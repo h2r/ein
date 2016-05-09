@@ -1631,6 +1631,9 @@ class EinConfig {
 
   vector<shared_ptr<GaussianMap> > depth_maps;
 
+  shared_ptr<GaussianMap> reprojection_buffer;
+
+
   vector<OrientedRay> rayBuffer;
 
   int angular_aperture_cols = 351;

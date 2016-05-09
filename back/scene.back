@@ -1364,18 +1364,45 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempClassifyOne" store
 
 
-25 "lensArraySize" store
-1.0 "lensArrayStrength" store
-0.05 "lensArrayGap" store
+0.012 "lensArrayPhaseX" store
+0.024 "lensArraySpacingX" store
+-16.0 "lensArrayStrengthX" store
+
+0.0 "lensArrayPhaseY" store
+0.00004 "lensArraySpacingY" store
+2.0 "lensArrayStrengthY" store
+
+
+50 "lensArraySize" store
+4.00 "lensArrayStrength" store
+-0.16 "lensArrayGap" store
+
+/*
+"scene" import 0.00008 "slfgRebaseCellWidth" store slfgRebase tempReconstructWithoutZ
+slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
+
+
+50 "lensArraySize" store
+12.00 "lensArrayStrength" store
+-0.16 "lensArrayGap" store
+
+64.00 "lensArrayStrength" store
+-0.64 "lensArrayGap" store
+*/
 
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
 0.343 "tempReconstructWithZTopZ" store 
+0.67 "tempReconstructWithZTopZ" store 
+0.57 "tempReconstructWithZTopZ" store 
 */
-0.343 "tempReconstructWithZTopZ" store 
+
+
+
+0.57 "tempReconstructWithZTopZ" store 
 0.0 "tempReconstructWithZTotalZ" store
 0.10 "tempReconstructWithZDeltaZ" store
-50 "tempReconstructStreamTakeSceneSamples" store
+20 "tempReconstructStreamTakeSceneSamples" store
 (
 
   /*
@@ -1536,7 +1563,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
   ( 
+    /*
     lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+    lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+    */
+    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
@@ -1613,8 +1644,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateZoomCoreNoClean
   tempUpdateSpinCoreNoClean
   tempUpdateMagCoreNoClean
+
+  tempUpdateSpiralCoreNoClean 
   */
-  tempUpdateSpiralCoreNoClean tempUpdateMaps
+  tempUpdatePanCoreNoClean
+
+
+  tempUpdateMaps
 
   quarterImpulse
   tempUpdateSpiralPos moveEeToPoseWord
@@ -2085,6 +2121,37 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* turn streaming off */
   bringUpAllNonessentialSystems
 ) "tempUpdateZoomCoreNoClean" store
+
+(
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+
+  /* spiral scan pattern */
+  0.03 setSpeed
+
+  0.02 setW1AngleThresh
+  0.01 setW1GoThresh
+
+  0.02 setSpeed
+  0.01 setGridSize
+  20 "panCoreSteps" store
+  ikModeIkFast 0 setCurrentIKFastMode
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 3.0 waitForSeconds
+  activateSensorStreaming
+  ( localXUp waitUntilAtCurrentPosition ) panCoreSteps replicateWord 
+  ( localXDown waitUntilAtCurrentPosition ) panCoreSteps replicateWord 
+  ( localXDown waitUntilAtCurrentPosition ) panCoreSteps replicateWord 
+  ( localXUp waitUntilAtCurrentPosition ) panCoreSteps replicateWord 
+  deactivateSensorStreaming
+
+  /* turn streaming off */
+  bringUpAllNonessentialSystems
+) "tempUpdatePanCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
