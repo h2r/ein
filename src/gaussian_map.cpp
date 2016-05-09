@@ -5246,7 +5246,425 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
 
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
 
+  double lens_gap = 0.01;
+  GET_NUMERIC_ARG(ms, lens_gap);
+
+
+  double array_phase_y = 0.01;
+  GET_NUMERIC_ARG(ms, array_phase_y);
+
+  double array_spacing_y = 0.01;
+  GET_NUMERIC_ARG(ms, array_spacing_y);
+
+  double lens_strength_y = 0.5;
+  GET_NUMERIC_ARG(ms, lens_strength_y);
+
+  if (lens_strength_y == 0) {
+    lens_strength_y = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray: given 0 lens_strength, using " << lens_strength_y << " instead." << endl;
+  }
+
+
+  double array_phase_x = 0.01;
+  GET_NUMERIC_ARG(ms, array_phase_x);
+
+  double array_spacing_x = 0.01;
+  GET_NUMERIC_ARG(ms, array_spacing_x);
+
+  double lens_strength_x = 0.5;
+  GET_NUMERIC_ARG(ms, lens_strength_x);
+
+  if (lens_strength_x == 0) {
+    lens_strength_x = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray: given 0 lens_strength, using " << lens_strength_x << " instead." << endl;
+  }
+
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  cout << "zToUse lens_gap: " << z_to_use << " " << lens_gap << endl;
+  cout << "array_spacing_x lens_strength_x: " << array_spacing_x << " " << lens_strength_x << endl;
+  cout << "array_spacing_y lens_strength_y: " << array_spacing_y << " " << lens_strength_y << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  pixelToGlobalCache data_gap;
+  double z = z_to_use;
+  double z_gap = z_to_use + lens_gap;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
+
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+      {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+	  double x_gap, y_gap;
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  
+	  if (1) {
+	    // single sample update
+	    int i, j;
+	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+
+	    // find the physical coordinate of the lens this ray falls into
+	    double lx, ly;
+	    lx = floor(x / array_spacing_x) * array_spacing_x; 
+	    ly = floor(y / array_spacing_y) * array_spacing_y; 
+	    lx += array_phase_x;
+	    ly += array_phase_y;
+
+	    // find the cell of the lens 
+	    //double li, lj;
+	    //ms->config.scene->observed_map->metersToCell(lx, ly, &li, &lj);
+	    //GaussianMapCell * lcell = ms->config.scene->observed_map->refAtCell(li, lj);
+	    //if (lcell != NULL) 
+	    {
+	      // shrink this ray towards the focal point
+	      //double ri = ((1.0 - lens_strength) * x + (lens_strength) * mi) * (1.0-lens_strength);
+	      //double rj = ((1.0 - lens_strength) * y + (lens_strength) * mj) * (1.0-lens_strength);
+	
+	      // projected angle is proportional to displacement caused by the gap
+	      // the bigger the gap the more angles we get
+
+	      double ri = ((x_gap-x)/(lens_strength_x) + lx);
+	      double rj = ((y_gap-y)/(lens_strength_y) + ly);
+
+	      // and put it in that cell
+	      int cri, crj;
+	      ms->config.scene->observed_map->metersToCell(ri, rj, &cri, &crj);
+
+	      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cri, crj);
+	      if (cell != NULL) {
+		  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		  cell->newObservation(pixel, z);
+		numPixels++;
+	      } else {
+		  numNulls++;
+	      }
+	    }
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray)
+
+WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  double arrayDimension = 25;
+  GET_NUMERIC_ARG(ms, arrayDimension);
+
+  double lens_strength = 0.5;
+  GET_NUMERIC_ARG(ms, lens_strength);
+
+  if (lens_strength == 0) {
+    lens_strength = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray: given 0 lens_strength, using " << lens_strength << " instead." << endl;
+  }
+
+  double lens_gap = 0.01;
+  GET_NUMERIC_ARG(ms, lens_gap);
+
+  cout << "zToUse arrayDimension lens_strength: " << z_to_use << " " << arrayDimension << " " << lens_strength << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  pixelToGlobalCache data_gap;
+  double z = z_to_use;
+  double z_gap = z_to_use + lens_gap;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
+
+  int lens_row_spacing = ceil(ms->config.scene->height / arrayDimension);
+  int lens_col_spacing = ceil(ms->config.scene->width / arrayDimension);
+
+  cout << "lens_row_spacing lens_col_spacing: " << lens_row_spacing << " " << lens_col_spacing << endl;
+
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
+
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+      {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+	  double x_gap, y_gap;
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  
+	  if (1) {
+	    // single sample update
+	    int i, j;
+	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+
+	    // find the cell of the lens this ray falls into
+	    int li, lj;
+	    li = (i / lens_row_spacing) * lens_row_spacing; 
+	    lj = (j / lens_col_spacing) * lens_col_spacing; 
+
+	    GaussianMapCell * lcell = ms->config.scene->observed_map->refAtCell(li, lj);
+
+	    //if (lcell != NULL) 
+	    {
+
+	      // find the physical coordinate of the lens, also the focal point
+	      double mi, mj;
+	      ms->config.scene->observed_map->cellToMeters(li, lj, &mi, &mj);
+
+	      // shrink this ray towards the focal point
+	      //double ri = ((1.0 - lens_strength) * x + (lens_strength) * mi) * (1.0-lens_strength);
+	      //double rj = ((1.0 - lens_strength) * y + (lens_strength) * mj) * (1.0-lens_strength);
+	
+	      // projected angle is proportional to displacement caused by the gap
+	      // the bigger the gap the more angles we get
+
+	      double ri = ((x_gap-x)/(lens_strength) + mi);
+	      double rj = ((y_gap-y)/(lens_strength) + mj);
+
+	      // and put it in that cell
+	      int cri, crj;
+	      ms->config.scene->observed_map->metersToCell(ri, rj, &cri, &crj);
+
+	      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cri, crj);
+	      if (cell != NULL) {
+		  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		  cell->newObservation(pixel, z);
+		numPixels++;
+	      } else {
+		  numNulls++;
+	      }
+	    }
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+// XXX
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
+
+
+WORD(SceneCopyObservedToReprojectionBuffer)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX
+}
+END_WORD
+REGISTER_WORD(SceneCopyObservedToReprojectionBuffer)
 
 
 
