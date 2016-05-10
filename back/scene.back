@@ -1366,7 +1366,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 0.012 "lensArrayPhaseX" store
 0.024 "lensArraySpacingX" store
--16.0 "lensArrayStrengthX" store
+-32.0 "lensArrayStrengthX" store
 
 0.0 "lensArrayPhaseY" store
 0.00004 "lensArraySpacingY" store
@@ -1375,20 +1375,40 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 50 "lensArraySize" store
 4.00 "lensArrayStrength" store
--0.16 "lensArrayGap" store
+-0.32 "lensArrayGap" store
 
-/*
-"scene" import 0.00008 "slfgRebaseCellWidth" store slfgRebase tempReconstructWithoutZ
-slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
+(
+  /* choosing a wider gap captures more angular information and incurs spatial blur */
 
+   -0.08 
+  "lensArrayGap" store 
 
-50 "lensArraySize" store
-12.00 "lensArrayStrength" store
--0.16 "lensArrayGap" store
+    0.0010 
+  "slfgRebaseCellWidth" store 
 
-64.00 "lensArrayStrength" store
--0.64 "lensArrayGap" store
-*/
+    slfgRebaseCellWidth 11.04 times 
+  "lensArraySpacingX" store 
+
+    0.0 lensArraySpacingX times
+  "lensArrayPhaseX" store
+  
+    lensArrayGap 100.0 times 
+  "lensArrayStrengthX" store 
+
+  /*
+  620 sceneSetAngularApertureCols "scene" import tempLenticularAutoFocus slfgRebase tempReconstructWithoutZ
+  slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
+
+  50 "lensArraySize" store
+  12.00 "lensArrayStrength" store
+  -0.16 "lensArrayGap" store
+
+  64.00 "lensArrayStrength" store
+  -0.64 "lensArrayGap" store
+  */
+
+) "tempLenticularAutoFocus" store
+
 
 /* 
 0.3883 "tempReconstructWithZTopZ" store 
@@ -1402,7 +1422,7 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
 0.57 "tempReconstructWithZTopZ" store 
 0.0 "tempReconstructWithZTotalZ" store
 0.10 "tempReconstructWithZDeltaZ" store
-20 "tempReconstructStreamTakeSceneSamples" store
+2000 "tempReconstructStreamTakeSceneSamples" store
 (
 
   /*
