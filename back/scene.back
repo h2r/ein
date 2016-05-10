@@ -1,4 +1,3 @@
-robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 ( assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition
 ) "tempGoHome" store
@@ -1399,10 +1398,10 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
 
 
 
-0.57 "tempReconstructWithZTopZ" store 
-0.0 "tempReconstructWithZTotalZ" store
-0.10 "tempReconstructWithZDeltaZ" store
-20 "tempReconstructStreamTakeSceneSamples" store
+10.083 "tempReconstructWithZTopZ" store 
+9.0 "tempReconstructWithZTotalZ" store
+1.0 "tempReconstructWithZDeltaZ" store
+25 "tempReconstructStreamTakeSceneSamples" store
 (
 
   /*
@@ -1463,6 +1462,10 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
+
+    tempReconstructWithZThisZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebase
+
+
     ( 
       tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
@@ -1566,8 +1569,9 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
     /*
     lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
     lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
-    */
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+    */
+      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
@@ -1646,8 +1650,9 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
   tempUpdateMagCoreNoClean
 
   tempUpdateSpiralCoreNoClean 
-  */
   tempUpdatePanCoreNoClean
+  */
+  tempUpdateMagicEyeCoreNoClean
 
 
   tempUpdateMaps
@@ -2012,9 +2017,9 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
 ) "slfgReconstructPoints" store
 
 
-0.1 "slfgRebaseCellWidth" store
+0.02 "slfgRebaseCellWidth" store
 ( 
-  0.001 setGridSize currentPose ( localZUp ) 388 replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) 388 replicateWord 
+  0.001 setGridSize currentPose ( localZUp ) 518 replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) 518 replicateWord 
 ) "slfgRebase" store
 
 
@@ -2152,6 +2157,38 @@ slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
   /* turn streaming off */
   bringUpAllNonessentialSystems
 ) "tempUpdatePanCoreNoClean" store
+
+(
+  /* turn streaming on, no disk streaming */ 
+  shutdownToSensorsAndMovement
+  disableDiskStreaming
+
+    /* Pose Range Image Joints Word Label */
+    1 0 1 0 0 0 
+  setSisFlags
+
+  /* spiral scan pattern */
+  0.03 setSpeed
+
+  0.02 setW1AngleThresh
+  0.01 setW1GoThresh
+
+  0.02 setSpeed
+  0.01 setGridSize
+  5 "panCoreSteps" store
+  ikModeIkFast 0 setCurrentIKFastMode
+  ( localXUp ) panCoreSteps replicateWord 
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  activateSensorStreaming 2.0 waitForSeconds deactivateSensorStreaming
+  ( localXDown ) panCoreSteps replicateWord 
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  activateSensorStreaming 2.0 waitForSeconds deactivateSensorStreaming
+
+  /* turn streaming off */
+  bringUpAllNonessentialSystems
+) "tempUpdateMagicEyeCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
