@@ -25,7 +25,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureAsFocused" store
 
 ( 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.1 sceneGrabDiscrepantCropAsClass 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
 ) "tempCaptureCore" store
 
 (
