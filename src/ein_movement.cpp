@@ -161,31 +161,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
   {
 
-    if ( (ms->config.currentMovementState == STOPPED) ||
-	 (ms->config.currentMovementState == BLOCKED) ) {
-
-      if (ms->config.currentMovementState == STOPPED) {
-	cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
-	ms->config.endThisStackCollapse = ms->config.endCollapse;
-      }
-      if (ms->config.currentMovementState == BLOCKED) {
-	cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
-	ms->config.endThisStackCollapse = ms->config.endCollapse;
-      }
-      
-      if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
-	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
-      } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
-	cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
-	ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
-	cout << "  backing up just a little to dislodge, then waiting again." << endl;
-      } else {
-	assert(0);
-      }
-
-      ms->evaluateProgram("0.01 waitForSeconds waitUntilAtCurrentPositionB");
-      return;
-    }
 
     ms->config.waitUntilAtCurrentPositionCounter++;
 
@@ -193,6 +168,33 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
 
     if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
+      if ( (ms->config.currentMovementState == STOPPED) ||
+	   (ms->config.currentMovementState == BLOCKED) ) {
+
+	if (ms->config.currentMovementState == STOPPED) {
+	  //cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = STOPPED, moving on." << endl;
+	  ms->config.endThisStackCollapse = ms->config.endCollapse;
+	}
+	if (ms->config.currentMovementState == BLOCKED) {
+	  //cout << "Warning: waitUntilAtCurrentPosition ms->config.currentMovementState = BLOCKED, moving on." << endl;
+	  ms->config.endThisStackCollapse = ms->config.endCollapse;
+	}
+	
+	if (ms->config.currentWaitMode == WAIT_KEEP_ON) {
+	  //cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
+	} else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
+	  cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
+	  ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	  cout << "  backing up just a little to dislodge, then waiting again." << endl;
+	} else {
+	  assert(0);
+	}
+
+	ms->evaluateProgram("0.1 waitForSeconds waitUntilAtCurrentPositionB");
+	ms->config.endThisStackCollapse = 1;
+	return;
+      }
+
       ms->pushWord("waitUntilAtCurrentPositionB"); 
       ms->config.endThisStackCollapse = 1;
       ms->config.shouldIDoIK = 1;

@@ -7,6 +7,7 @@
 class GaussianMap;
 class TransitionTable;
 class Scene;
+class OrientedRay;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -222,8 +223,14 @@ typedef enum {
 
 typedef enum {
   CAMCAL_LINBOUNDED = 0,
-  CAMCAL_QUADRATIC = 1
+  CAMCAL_QUADRATIC = 1,
+  CAMCAL_HYPERBOLIC = 2
 } cameraCalibrationMode;
+
+typedef enum {
+  FIXATE_STREAM = 0,
+  FIXATE_CURRENT = 1
+} sceneFixationMode;
 
 std::string pickModeToString(pickMode mode);
 
@@ -1092,8 +1099,11 @@ class EinConfig {
   //  the camera
   // the estimated vanishing point is actually pretty
   //  close to the measured one
-  double d_y = -0.04;
-  double d_x = 0.018;
+  //double d_y = -0.04;
+  //double d_x = 0.018;
+  //eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  double d_y = -0.038;
+  double d_x = 0.011;
   double offX = 0;
   double offY = 0;
   // these corrective magnification factors should be close to 1
@@ -1103,6 +1113,7 @@ class EinConfig {
   double m_x_h[4];
   double m_y_h[4];
   cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
 
@@ -1620,6 +1631,15 @@ class EinConfig {
 
   vector<shared_ptr<GaussianMap> > depth_maps;
 
+  shared_ptr<GaussianMap> reprojection_buffer;
+
+
+  vector<OrientedRay> rayBuffer;
+
+  int angular_aperture_cols = 351;
+  int angular_aperture_rows = 351;
+  int angular_baffle_cols = 0;
+  int angular_baffle_rows = 0;
 
   animationMode currentAnimationMode = ANIMATION_ON; 
   AnimationState currentAnimationState = {"confused", 0}; 
