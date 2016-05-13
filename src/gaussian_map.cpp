@@ -6057,8 +6057,12 @@ CONFIG_GETTER_INT(SceneAngularBaffleRows, ms->config.angular_baffle_rows)
 CONFIG_GETTER_INT(SceneAngularBaffleCols, ms->config.angular_baffle_cols)
 CONFIG_SETTER_INT(SceneSetAngularBaffleCols, ms->config.angular_baffle_cols)
 
+CONFIG_GETTER_INT(SceneDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
+CONFIG_SETTER_INT(SceneSetDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
 
 void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
+
+  int sceneDepthPatchHalfWidth = ms->config.sceneDepthPatchHalfWidth;
 
   int t_height = toMin->height;
   int t_width = toMin->width;
@@ -6069,16 +6073,49 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
       if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	double this_observed_sigma_squared = 
-	toMin->refAtCell(x,y)->red.sigmasquared +
-	toMin->refAtCell(x,y)->green.sigmasquared +
-	toMin->refAtCell(x,y)->blue.sigmasquared;
 
-	double this_register_sigma_squared = 
+
+	/*
+	  // one by one
+	  double this_observed_sigma_squared = 
+	  toMin->refAtCell(x,y)->red.sigmasquared +
+	  toMin->refAtCell(x,y)->green.sigmasquared +
+	  toMin->refAtCell(x,y)->blue.sigmasquared;
+
+	  double this_register_sigma_squared = 
+	  ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+	*/
+
+	// XXX can't do it over a patch here because you need the old neighborhoods.
+	double this_observed_sigma_squared = 0;
+	double this_register_sigma_squared = 0;
+	int pxmin = std::max(x - sceneDepthPatchHalfWidth, 0);
+	int pxmax = std::min(x + sceneDepthPatchHalfWidth, t_width-1);
+	int pymin = std::max(y - sceneDepthPatchHalfWidth, 0);
+	int pymax = std::min(y + sceneDepthPatchHalfWidth, t_height-1);
+
+	double ss_r = 0;
+	double ss_g = 0;
+	double ss_b = 0;
+
+	for (int py = pymin; py <= pymax; py++) {
+	  for (int px = pxmin; px <= pxmax; px++) {
+	    ss_r = ss_r + toMin->refAtCell(px,py)->red.sigmasquared;
+	    ss_g = ss_g + toMin->refAtCell(px,py)->green.sigmasquared;
+	    ss_b = ss_b + toMin->refAtCell(px,py)->blue.sigmasquared;
+	  }
+	}
+	this_observed_sigma_squared = this_observed_sigma_squared +
+	ss_r +
+	ss_g +
+	ss_b;
+
+	this_register_sigma_squared = 
 	ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
 	ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
 	ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
-
 	
 	double thisObservedPixelArea = 1.0;
 	double thisRegisterPixelArea = 1.0;
@@ -6120,6 +6157,10 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
 	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
+
+	  ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = ss_r;
+	  ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = ss_g;
+	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = ss_b;
 	} else {
 	}
       } else {
