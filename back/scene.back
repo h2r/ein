@@ -1,3 +1,4 @@
+robotSerial "_bg_" leftOrRightArm + + "bg" store
 
 ( assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition
 ) "tempGoHome" store
@@ -1418,10 +1419,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 
-10.083 "tempReconstructWithZTopZ" store 
-9.0 "tempReconstructWithZTotalZ" store
-1.0 "tempReconstructWithZDeltaZ" store
-25 "tempReconstructStreamTakeSceneSamples" store
+1.0083 "tempReconstructWithZTopZ" store 
+0.270 "tempReconstructWithZTotalZ" store
+0.01 "tempReconstructWithZDeltaZ" store
+200000 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1469,6 +1470,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   sceneClearDepthStack
 
+  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+
   ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
     tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
   (
@@ -1484,7 +1487,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
 
-    tempReconstructWithZThisZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebase
 
 
     ( 
@@ -1543,12 +1545,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /*
   sceneMarginalizeDepthStackIntoRegister
 */
-  sceneMinDepthStackIntoRegister 
-
-  sceneRecallFromRegister 
-
-  sceneRenderZ 
-  sceneRenderObservedMap
+  sceneMinDepthStackIntoRegister  sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
 ) "tempReconstructWithZ" store
 
 (
@@ -1583,6 +1580,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     tempReconstructWithZTopZ 
     " " 
   + + + + + print
+
+  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
 
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
@@ -2040,7 +2039,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 0.02 "slfgRebaseCellWidth" store
 ( 
-  0.001 setGridSize currentPose ( localZUp ) 518 replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) 518 replicateWord 
+  388 "slfgRebaseIterations" store
+  0.001 setGridSize currentPose ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
 ) "slfgRebase" store
 
 
@@ -2191,12 +2191,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* spiral scan pattern */
   0.03 setSpeed
 
-  0.02 setW1AngleThresh
-  0.01 setW1GoThresh
 
-  0.02 setSpeed
+  0.1 setSpeed
   0.01 setGridSize
-  5 "panCoreSteps" store
+  10 "panCoreSteps" store
+
+  0.0075 setW1GoThresh
+  0.02 setW1AngleThresh
+
   ikModeIkFast 0 setCurrentIKFastMode
   ( localXUp ) panCoreSteps replicateWord 
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
@@ -2209,6 +2211,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   /* turn streaming off */
   bringUpAllNonessentialSystems
+
+  0.02 setW1GoThresh
 ) "tempUpdateMagicEyeCoreNoClean" store
 
 (
