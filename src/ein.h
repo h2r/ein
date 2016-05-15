@@ -107,6 +107,7 @@ bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double
 bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y);
 void markMapAsCompleted(shared_ptr<MachineState> ms);
 
+
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
 int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * idxOfLabel, BoxMemory * out);
