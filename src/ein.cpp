@@ -5126,7 +5126,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
       }
 
       double x, y;
-      mapijToxy(ms, i, j, &x, &y);
+      mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
 
       if (ms->config.objectMap[i + ms->config.mapWidth * j].detectedClass != -1) {
         cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
@@ -5150,7 +5150,8 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
+	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
 	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
 	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
 	    glowFraction = min(max(glowFraction, 0.0), 1.0);
@@ -5158,7 +5159,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 	      glowFraction = 1.0;
 	    }
 	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
+	    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
 	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
 	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
 	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
@@ -5195,14 +5196,15 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
+	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
 	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
 	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
 	    if (!ms->config.useGlow) {
 	      glowFraction = 1.0;
 	    }
 	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
+	    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
 	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
 	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
 	    if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
@@ -8083,7 +8085,7 @@ void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, d
   cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> pixelServo strayed out of clearance area during mapping. <<<<" << endl;
@@ -8144,7 +8146,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       //ms->pushWord("clearStackIntoMappingPatrol"); 
@@ -9182,7 +9184,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
@@ -9611,7 +9613,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
@@ -9662,7 +9664,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       int tbi, tbj;
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
-      mapxyToij(ms, tbx, tby, &tbi, &tbj);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
       ros::Time thisNow = ros::Time::now();
@@ -9677,7 +9679,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 	// do nothing
       }
 
-      int isOutOfReach = ( !positionIsSearched(ms, tbx, tby) || 
+      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
                            !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
       double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
@@ -10680,7 +10682,7 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
-      mapxyToij(ms, x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 
       if (i >= 0 && i < ms->config.mapWidth && j >= 0 && j < ms->config.mapHeight) {
 	ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = timeToMark;
@@ -13811,25 +13813,25 @@ void processSaliency(Mat in, Mat out) {
 }
 
 
-void mapxyToij(shared_ptr<MachineState> ms, double x, double y, int * i, int * j) 
+void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j) 
 {
-  *i = round((x - ms->config.mapXMin) / ms->config.mapStep);
-  *j = round((y - ms->config.mapYMin) / ms->config.mapStep);
+  *i = round((x - xmin) / mapStep);
+  *j = round((y - ymin) / mapStep);
 }
-void mapijToxy(shared_ptr<MachineState> ms, int i, int j, double * x, double * y) 
+void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y) 
 {
-  *x = ms->config.mapXMin + i * ms->config.mapStep;
-  *y = ms->config.mapYMin + j * ms->config.mapStep;
+  *x = xmin + i * mapStep;
+  *y = ymin + j * mapStep;
 }
-bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j) {
+bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
-  return positionIsSearched(ms, x, y);
+  mapijToxy(xmin, ymin, mapStep, i, j, &x, &y);
+  return positionIsSearched(fenceXMin, fenceXMax, fenceYMin, fenceYMax, x, y);
 }
 
-bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
-  if ((ms->config.mapSearchFenceXMin <= x && x <= ms->config.mapSearchFenceXMax) &&
-      (ms->config.mapSearchFenceYMin <= y && y <= ms->config.mapSearchFenceYMax)) {
+bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y) {
+  if ((fenceXMin <= x && x <= fenceXMax) &&
+      (fenceYMin <= y && y <= fenceYMax)) {
     return true;
   } else {
     return false;
@@ -13841,7 +13843,7 @@ bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) {
   
   double min_x, min_y;
-  mapijToxy(ms, map_i, map_j, &min_x, &min_y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, map_i, map_j, &min_x, &min_y);
   double max_x = min_x + ms->config.mapStep;
   double max_y = min_y + ms->config.mapStep;
   double width = max_x - min_x;
@@ -13866,22 +13868,22 @@ bool isBoxMemoryIkPossible(shared_ptr<MachineState> ms, BoxMemory b) {
   int toReturn = 1;
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   return toReturn;
@@ -13894,28 +13896,28 @@ bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   return toReturn;
@@ -14237,7 +14239,7 @@ void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms)
 
 bool cellIsMapped(shared_ptr<MachineState> ms, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
   return positionIsMapped(ms, x, y);
 }
 bool positionIsMapped(shared_ptr<MachineState> ms, double x, double y) {
@@ -14338,8 +14340,8 @@ void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
   double voidTimeGap = 60.0;
 
   int mxs=0,mxe=0,mys=0,mye=0;
-  mapxyToij(ms, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
-  mapxyToij(ms, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
   mxs = max(0,min(mxs, (int) ms->config.mapWidth));
   mxe = max(0,min(mxe, (int) ms->config.mapWidth));
   mys = max(0,min(mys, (int) ms->config.mapWidth));
