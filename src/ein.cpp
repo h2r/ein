@@ -4591,10 +4591,13 @@ void accumulateImage(shared_ptr<MachineState> ms) {
   int imW = sz.width;
   int imH = sz.height;
   for (int y = 0; y < imH; y++) {
+
+    cv::Vec3d* pixel = ms->config.accumulatedImage.ptr<cv::Vec3d>(y); // point to first pixel in row
+
     for (int x = 0; x < imW; x++) {
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
+      pixel[x][0] = pixel[x][0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
+      pixel[x][1] = pixel[x][1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
+      pixel[x][2] = pixel[x][2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
       ms->config.accumulatedImageMass.at<double>(y,x) += 1.0;
     }
   }
