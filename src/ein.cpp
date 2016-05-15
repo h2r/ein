@@ -4521,138 +4521,86 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 }
 
 
-void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
-
-  shared_ptr<MachineState> ms = this->sharedThis;
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  ms->config.lastImageStamp = msg->header.stamp;
-
-  int converted = 0;
-  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    try{
+int renderInit(shared_ptr<MachineState> ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
+  ms->config.renderInit = 1;
+  
+  ms->config.shouldIRender = ms->config.shouldIRenderDefault;
+  
+  try {
+    if (!converted) {
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      int cfClass = ms->config.focusedClass;
-      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
-      } else {
-      } // do nothing
-      converted = 1;
-    }catch(cv_bridge::Exception& e){
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-  }
-
-  if (!ms->config.shouldIImageCallback) {
-    //cout << "Early exit image callback." << endl;
-    return;
-  }
-
-  if (!ms->config.renderInit) {
-    ms->config.renderInit = 1;
-    ms->config.shouldIRender = ms->config.shouldIRenderDefault;
-
-    try {
-      if (!converted) {
-	ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      } else {
-      } // do nothing 
-
-      ms->config.cam_img = ms->config.cv_ptr->image.clone();
-    } catch(cv_bridge::Exception& e) {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-
-    ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
-    ms->config.wristCamInit = 1;
-    ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
-    ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-    cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
-    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
-    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
-
-    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
-    ms->config.densityViewerImage *= 0;
-    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
-    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
-
-
-    int imW = ms->config.wristViewImage.cols;
-    int imH = ms->config.wristViewImage.rows;
-
-    // determine table edges, i.e. the gray boxes
-    ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
-    ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
-    ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
-    ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
-    
-
-    ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
-    ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
-
-    if (ms->config.all_range_mode) {
-      ms->config.grayTop = ms->config.armTop;
-      ms->config.grayBot = ms->config.armBot;
-    }
-
-    if (ms->config.integralDensity == NULL)
-      ms->config.integralDensity = new double[imW*imH];
-    if (ms->config.density == NULL)
-      ms->config.density = new double[imW*imH];
-    if (ms->config.preDensity == NULL)
-      ms->config.preDensity = new double[imW*imH];
-    if (ms->config.temporalDensity == NULL) {
-      ms->config.temporalDensity = new double[imW*imH];
-      for (int x = 0; x < imW; x++) {
-	for (int y = 0; y < imH; y++) {
-	  ms->config.temporalDensity[y*imW + x] = 0;
-	}
-      }
-    }
-  }
-
-  try{
-    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    } 
     ms->config.cam_img = ms->config.cv_ptr->image.clone();
-  }catch(cv_bridge::Exception& e){
+  } catch(cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
+    return -1;
   }
-
+  
   ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
   ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+  cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
+  ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+  
+  ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.densityViewerImage *= 0;
+  ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
+  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+  
+  
+  int imW = ms->config.wristViewImage.cols;
+  int imH = ms->config.wristViewImage.rows;
+  
+  // determine table edges, i.e. the gray boxes
+  ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
+  ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
+  ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
+  ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
+  
+  
+  ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
+  ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
+  
+  if (ms->config.all_range_mode) {
+    ms->config.grayTop = ms->config.armTop;
+    ms->config.grayBot = ms->config.armBot;
+  }
+  
+  if (ms->config.integralDensity == NULL)
+    ms->config.integralDensity = new double[imW*imH];
+  if (ms->config.density == NULL)
+    ms->config.density = new double[imW*imH];
+  if (ms->config.preDensity == NULL)
+    ms->config.preDensity = new double[imW*imH];
+  if (ms->config.temporalDensity == NULL) {
+    ms->config.temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+        ms->config.temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+  return 0;
+}
 
-
-  guardViewers(ms);
-
+void accumulateImage(shared_ptr<MachineState> ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
+  for (int y = 0; y < imH; y++) {
+    for (int x = 0; x < imW; x++) {
       ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
       ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
       ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
       ms->config.accumulatedImageMass.at<double>(y,x) += 1.0;
     }
   }
+}
 
-  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
-  Mat thisImage;
-  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
-
-  if (ms->config.castRecentRangeRay) {
-    recordReadyRangeReadings(ms);
-  } else {
-  }
-
+void renderWristViewImage(shared_ptr<MachineState> ms) {
 
   // paint gripper reticle centerline
   if (1) {
@@ -4662,7 +4610,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.pz = ms->config.trueEEPose.position.z;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
-
+    
     double zStart = ms->config.minHeight;
     double zEnd = ms->config.maxHeight; 
     double deltaZ = 0.005;
@@ -4670,39 +4618,39 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
     }
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
     }
-
+    
   }
-
+  
   // paint transform reticles
   if (ms->config.paintEEandReg1OnWrist) {
     paintEEPoseOnWrist(ms, ms->config.trueEEPoseEEPose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
-
+    
     paintEEPoseOnWrist(ms, ms->config.currentEEPose, cv::Scalar(255,255,0));
-
+    
     {
       eePose irPose;
       {
@@ -4712,12 +4660,12 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
-						0.0,
+                                               0.0,
 					       (thisPose.position.x - irSensorStartLocal.x()),
 					       (thisPose.position.y - irSensorStartLocal.y()),
 					       (thisPose.position.z - irSensorStartLocal.z())
-					      );
-
+                                               );
+        
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
@@ -4917,6 +4865,11 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   {
+
+    Size sz = ms->config.wristViewImage.size();
+    int imW = sz.width;
+    int imH = sz.height;
+    
     int param_pilotTargetHalfWidth = 15;
     cv::Point outTop = cv::Point(ms->config.pilotTarget.px-param_pilotTargetHalfWidth, ms->config.pilotTarget.py-param_pilotTargetHalfWidth);
     cv::Point outBot = cv::Point(ms->config.pilotTarget.px+param_pilotTargetHalfWidth, ms->config.pilotTarget.py+param_pilotTargetHalfWidth);
@@ -4927,6 +4880,73 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
     }
   }
+
+}
+
+void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  shared_ptr<MachineState> ms = this->sharedThis;
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+
+  ms->config.lastImageStamp = msg->header.stamp;
+
+  int converted = 0;
+  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
+    try{
+      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      int cfClass = ms->config.focusedClass;
+      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+	double thisNow = msg->header.stamp.toSec();
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
+      } else {
+      } // do nothing
+      converted = 1;
+    }catch(cv_bridge::Exception& e){
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+  }
+
+  if (!ms->config.shouldIImageCallback) {
+    //cout << "Early exit image callback." << endl;
+    return;
+  }
+
+  if (!ms->config.renderInit) {
+    if (renderInit(ms, converted, msg) == -1) {
+      ROS_ERROR("Couldn't initialize rendering system.");
+      return;
+    }
+  }
+
+  try{
+    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    ms->config.cam_img = ms->config.cv_ptr->image.clone();
+  }catch(cv_bridge::Exception& e){
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+
+  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
+  ms->config.wristCamInit = 1;
+  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
+  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+
+
+  guardViewers(ms);
+
+  accumulateImage(ms);
+
+  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
+  Mat thisImage;
+  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
+
+  if (ms->config.castRecentRangeRay) {
+    recordReadyRangeReadings(ms);
+  } else {
+  }
+
+  renderWristViewImage(ms);
 
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
