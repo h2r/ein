@@ -5140,8 +5140,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   for (int i = 0; i < ms->config.mapWidth; i++) {
     for (int j = 0; j < ms->config.mapHeight; j++) {
 
-      ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgo.toSec(), 0.0), fadeLast) / fadeLast)) + fadeBias;
+      //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+      double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgoSec, 0.0), fadeLast) / fadeLast)) + fadeBias;
       fadeFraction = min(max(fadeFraction, 0.0), 1.0);
       if (!ms->config.useGlow) {
 	fadeFraction = 1.0;
@@ -5171,96 +5172,93 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   double glowBias = 0.15;
   double glowLast = 30.0;
 
-  if (ms->config.drawIKMap) { // draw ikMap
+  if (ms->config.drawIKMap || ms->config.drawClearanceMap) { // draw ikMap and clearance map
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
 	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
                                 ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    glowFraction = min(max(glowFraction, 0.0), 1.0);
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
-	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
-	      Scalar tColor = CV_RGB(192, 32, 32);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
-	      Scalar tColor = CV_RGB(224, 64, 64);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
+          //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+          double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+          double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgoSec, 0.0), glowLast) / glowLast)) + glowBias;
+          glowFraction = min(max(glowFraction, 0.0), 1.0);
+          if (!ms->config.useGlow) {
+            glowFraction = 1.0;
+          }
+          double x=-1, y=-1;
+          mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
+          cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
+                                           ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
+          
+          if (ms->config.drawIKMap) { // draw ikMap 
+            if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
+              // do not draw when it's good
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
+              Scalar tColor = CV_RGB(192, 32, 32);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
+              Scalar tColor = CV_RGB(224, 64, 64);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else {
+              cout << "Bad IK value: " << ms->config.ikMap[i + ms->config.mapWidth * j] << endl;
+              assert(0);
+            }
+          }
+          if (ms->config.drawClearanceMap) { // draw clearanceMap 
+            if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 0 ) ) {
+              // do not draw
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
+              Scalar tColor = CV_RGB(224, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                  ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
+              Scalar tColor = CV_RGB(0, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else  {
+                cout << "Bad clearance value: " << ms->config.clearanceMap[i + ms->config.mapWidth * j] << endl;
+                assert(0);
+            }
+          }
 	}
       }
     }
   }
-
-  if (ms->config.drawClearanceMap) { // draw clearanceMap 
-    int ikMapRenderStride = 1;
-    for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
-      for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
-                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
-	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
-	      Scalar tColor = CV_RGB(224, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
-	      Scalar tColor = CV_RGB(0, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
-	}
-      }
-    }
-  }
+  
 
   { // drawMapSearchFence
     
