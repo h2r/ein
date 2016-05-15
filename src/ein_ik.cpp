@@ -8,23 +8,33 @@
 #undef MY_NAMESPACE
 #include "ikfast/ikfast_wrapper_right.h"
 
-
-void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
-  givenIkRequest->request.pose_stamp.resize(1);
-
-  givenIkRequest->request.pose_stamp[0].header.seq = 0;
-  givenIkRequest->request.pose_stamp[0].header.stamp = ros::Time::now();
-  givenIkRequest->request.pose_stamp[0].header.frame_id = "/base";
+void fillIkRequest(vector<eePose> poses, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+  givenIkRequest->request.pose_stamp.resize(poses.size());
+  
+  for (int i = 0; i < poses.size(); i++) {
+    givenIkRequest->request.pose_stamp[i].header.seq = 0;
+    givenIkRequest->request.pose_stamp[i].header.stamp = ros::Time::now();
+    givenIkRequest->request.pose_stamp[i].header.frame_id = "/base";
 
   
-  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose.px;
-  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose.py;
-  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose.pz;
+    givenIkRequest->request.pose_stamp[i].pose.position.x = poses[i].px;
+    givenIkRequest->request.pose_stamp[i].pose.position.y = poses[i].py;
+    givenIkRequest->request.pose_stamp[i].pose.position.z = poses[i].pz;
 
-  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose.qx;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose.qy;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose.qz;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose.qw;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.x = poses[i].qx;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.y = poses[i].qy;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.z = poses[i].qz;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.w = poses[i].qw;
+  }
+}
+
+
+void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+
+  vector<eePose> poses;
+  poses.push_back(givenEEPose);
+
+  fillIkRequest(poses, givenIkRequest);
 }
 
 void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
@@ -201,39 +211,47 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
   }
 }
 
-
-ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
-
+vector<ikMapState> ikAtPoses(shared_ptr<MachineState> ms, vector<eePose> poses) {
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(pose, &thisIkRequest);
-  
+  fillIkRequest(poses, &thisIkRequest);
+
   bool likelyInCollision = 0;
-  // ATTN 24
-  //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
   int thisIkCallResult = 0;
+
   queryIK(ms, &thisIkCallResult, &thisIkRequest);
-  
-  int ikResultFailed = 1;
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    ikResultFailed = !positionIsSearched(ms, pose.px, pose.py);
-  } else {
-    assert(0);
-  }
-  
-  int foundGoodPosition = !ikResultFailed;
-  //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
-  //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-  //cout << i << " " << j << endl;
-  if (ikResultFailed) {
-    return IK_FAILED;
-  } else {
-    if (likelyInCollision) {
-      return IK_LIKELY_IN_COLLISION;
+
+  vector<ikMapState> results;
+  results.resize(poses.size());
+
+  for (int i = 0; i < poses.size(); i++) {
+    int ikResultFailed = 1;
+    if (ms->config.currentRobotMode == PHYSICAL) {
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
+    } else if (ms->config.currentRobotMode == SIMULATED) {
+      ikResultFailed = !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, poses[i].px, poses[i].py);
     } else {
-      return IK_GOOD;
+      assert(0);
+    }
+  
+    int foundGoodPosition = !ikResultFailed;
+
+    if (ikResultFailed) {
+      results[i] = IK_FAILED;
+    } else {
+      if (likelyInCollision) {
+        results[i] = IK_LIKELY_IN_COLLISION;
+      } else {
+        results[i] = IK_GOOD;
+      }
     }
   }
+  return results;
 
+}
+
+ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
+  vector<eePose> poses;
+  poses.push_back(pose);
+  vector<ikMapState> results = ikAtPoses(ms, poses);
+  return results[0];
 }
