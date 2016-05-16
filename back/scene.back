@@ -1684,7 +1684,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
 
 
-  0.02 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
 
   12 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
