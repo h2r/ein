@@ -1807,7 +1807,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructPhrases" store
 
 (
-  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+  tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
   tempReconstructWithZ 
   /* 
   3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
