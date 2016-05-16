@@ -2508,7 +2508,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     "tempReconstructWithZTopZ" store 
     tempReconstructWithZ
 
+    /*
     tempUpdateMaps
+    */
 
 	scenePushAverageCrCbSigmaSquared 
       dup 
