@@ -288,6 +288,25 @@ void _GaussianMapCell::newObservation(Vec3b obs, double zobs) {
   z.samples += 1;
 }
 
+void _GaussianMapCell::newObservation(Vec3d obs) {
+  red.counts += obs[2];
+  green.counts += obs[1];
+  blue.counts += obs[0];
+  red.squaredcounts += pow(obs[2], 2);
+  green.squaredcounts += pow(obs[1], 2);
+  blue.squaredcounts += pow(obs[0], 2);
+  red.samples += 1;
+  green.samples += 1;
+  blue.samples += 1;
+}
+
+void _GaussianMapCell::newObservation(Vec3d obs, double zobs) {
+  newObservation(obs);
+  z.counts += zobs;
+  z.squaredcounts += pow(zobs, 2);
+  z.samples += 1;
+}
+
 void GaussianMap::reallocate() {
   if (width <= 0 || height <= 0) {
     cout << "GaussianMap area error: tried to allocate width, height: " << width << " " << height << endl;
@@ -4893,6 +4912,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneRecallFromRegister)
 
+WORD(SceneStoreObservedInRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneStoreObservedInRegister: copying..." << endl;
+  ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
+}
+END_WORD
+REGISTER_WORD(SceneStoreObservedInRegister)
+
 WORD(SceneUpdateObservedFromStreamBufferAtZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->evaluateProgram("sceneUpdateObservedFromStreamBufferAtZNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
@@ -5459,8 +5486,290 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray)
 
+
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  double lens_gap = 0.01;
+  GET_NUMERIC_ARG(ms, lens_gap);
+
+  double lambda = 0.01;
+  GET_NUMERIC_ARG(ms, lambda);
+
+  double phi = 0.01;
+  GET_NUMERIC_ARG(ms, phi);
+
+  if (lambda == 0) {
+    lambda = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
+  }
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  //cout << "zToUse lens_gap: " << z_to_use << " " << lens_gap << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  pixelToGlobalCache data_gap;
+  double z = z_to_use;
+  double z_gap = z_to_use + lens_gap;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
+
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+      {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+	  double x_gap, y_gap;
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  
+	  {
+	    double rx = x_gap;
+	    double ry = y_gap;
+
+	    // and put it in that cell
+	    int cri, crj;
+	    ms->config.scene->observed_map->metersToCell(rx, ry, &cri, &crj);
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cri, crj);
+	    if (cell != NULL) {
+		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		Vec3d phased_pixel;
+
+		// I wonder if there is a difference
+		//double gap_path_length = sqrt( pow(x_gap-x,2.0) + pow(y_gap-y,2.0) );
+		double gap_path_length = sqrt( (lens_gap*lens_gap) + (x_gap-x)*(x_gap-x) + (y_gap-y)*(y_gap-y) );
+
+		phased_pixel[0] = double(pixel[0]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+		phased_pixel[1] = double(pixel[1]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+		phased_pixel[2] = double(pixel[2]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+
+		/*
+		phased_pixel[0] = (double(pixel[0])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		phased_pixel[1] = (double(pixel[1])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		phased_pixel[2] = (double(pixel[2])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		*/
+
+		cell->newObservation(phased_pixel, z);
+	      numPixels++;
+	    } else {
+		numNulls++;
+	    }
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
+
+WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  double array_z = 0.01;
+  GET_NUMERIC_ARG(ms, array_z);
+
+  double lambda = 0.01;
+  GET_NUMERIC_ARG(ms, lambda);
+
+  double phi = 0.01;
+  GET_NUMERIC_ARG(ms, phi);
+
+
+
+  double aperture_width_cells = 11;
+  GET_NUMERIC_ARG(ms, aperture_width_cells);
+
+  double lens_x = 0.01;
+  GET_NUMERIC_ARG(ms, lens_x);
+
+  double lens_y = 0.01;
+  GET_NUMERIC_ARG(ms, lens_y);
+
+
+
+
+  if (lambda == 0) {
+    lambda = 1.0e-6;
+    cout << "sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
+  }
+
+  shared_ptr<GaussianMap> toFill = ms->config.scene->observed_map;
+  shared_ptr<GaussianMap> toLight= ms->config.gaussian_map_register;
+
+  int t_height = toFill->height;
+  int t_width = toFill->width;
+
+  int aperture_half_width_cells = (aperture_width_cells - 1)/2;
+
+  assert( toLight->width == t_width );
+  assert( toLight->height == t_height );
+
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+
+      int axstart = std::max(0, x - aperture_half_width_cells);
+      int axend = std::min(t_width, x + aperture_half_width_cells);
+      int aystart = std::max(0, y - aperture_half_width_cells);
+      int ayend = std::min(t_height, y + aperture_half_width_cells);
+      for (int ay = aystart; ay <= ayend; ay++) {
+	for (int ax = axstart; ax <= axend; ax++) {
+	  if ( toLight->safeAt(ax,ay) ) {
+	    if ( (toLight->refAtCell(ax,ay)->red.samples > ms->config.sceneCellCountThreshold) ) {
+
+	      double delta_x = x-ax;
+	      double delta_y = y-ay;
+	      double delta_z = z_to_use - array_z;
+	      double gap_path_length = sqrt( delta_x*delta_x + delta_y*delta_y + delta_z*delta_z );
+
+	      GaussianMapCell * fillCell = toFill->refAtCell(x, y);
+	      GaussianMapCell * lightCell = toLight->refAtCell(ax, ay);
+
+	      Vec3d phased_pixel;
+	      phased_pixel[2] = (double( lightCell->red.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+	      phased_pixel[1] = (double( lightCell->green.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+	      phased_pixel[0] = (double( lightCell->blue.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+/*
+	      phased_pixel[2] = (double( lightCell->red.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[1] = (double( lightCell->green.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[0] = (double( lightCell->blue.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+
+	      phased_pixel[2] = (lightCell->red.mu) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[1] = (lightCell->green.mu) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[0] = (lightCell->blue.mu) * cos( gap_path_length / lambda ) + 128.0;
+*/
+
+	      fillCell->newObservation(phased_pixel, z_to_use);
+	    }
+	  }
+	}
+      }
+
+    }
+  }
+
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
+
+
+
 WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX this function, which has not been started, should
+// reproject the reprojection buffer to a photograph at a single depth and store
+// it in the observed map, possibly to be put onto the depth stack
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -6250,6 +6559,25 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
   }
 
 }
+
+WORD(SceneFlattenUncertainZWithDepthStack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO RELEASE  this should be good for segmentation and grasp proposal
+//  if the max depth estimate does not own enough of the probability share, this depth is
+//  set to the maximum depth, saying if it was hazy to us consider it background.
+
+/*
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+      }
+    }
+  }
+*/
+
+}
+END_WORD
+REGISTER_WORD(SceneFlattenUncertainZWithDepthStack)
 
 WORD(SceneMinIntoRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
