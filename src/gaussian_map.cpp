@@ -3958,8 +3958,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   box.bTop = cv::Point(0,0);
   box.bBot = cv::Point(1,1);
-  mapxyToij(ms, box.top.px, box.top.py, &(box.bTop.x), &(box.bTop.y));
-  mapxyToij(ms, box.bot.px, box.bot.py, &(box.bBot.x), &(box.bBot.y));
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.top.px, box.top.py, &(box.bTop.x), &(box.bTop.y));
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.bot.px, box.bot.py, &(box.bBot.x), &(box.bBot.y));
 
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
@@ -3971,7 +3971,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
-  mapxyToij(ms, box.centroid.px, box.centroid.py, &i, &j);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.centroid.px, box.centroid.py, &i, &j);
 
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
@@ -3981,7 +3981,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        //!isBoxMemoryIkPossible(ms, box) ) 
   if (0)
   {
-    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
+    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;
   } else {
     vector<BoxMemory> newMemories;

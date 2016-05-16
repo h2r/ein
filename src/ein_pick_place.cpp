@@ -293,7 +293,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       int i, j;
       pixelToGlobal(ms, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iTop=i;
       jTop=j;
     }
@@ -301,7 +301,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       int i, j;
       pixelToGlobal(ms, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iBot=i;
       jBot=j;
     }

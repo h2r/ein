@@ -4521,138 +4521,91 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 }
 
 
-void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
-
-  shared_ptr<MachineState> ms = this->sharedThis;
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  ms->config.lastImageStamp = msg->header.stamp;
-
-  int converted = 0;
-  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    try{
+int renderInit(shared_ptr<MachineState> ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
+  ms->config.renderInit = 1;
+  
+  ms->config.shouldIRender = ms->config.shouldIRenderDefault;
+  
+  try {
+    if (!converted) {
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      int cfClass = ms->config.focusedClass;
-      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
-      } else {
-      } // do nothing
-      converted = 1;
-    }catch(cv_bridge::Exception& e){
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-  }
-
-  if (!ms->config.shouldIImageCallback) {
-    //cout << "Early exit image callback." << endl;
-    return;
-  }
-
-  if (!ms->config.renderInit) {
-    ms->config.renderInit = 1;
-    ms->config.shouldIRender = ms->config.shouldIRenderDefault;
-
-    try {
-      if (!converted) {
-	ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      } else {
-      } // do nothing 
-
-      ms->config.cam_img = ms->config.cv_ptr->image.clone();
-    } catch(cv_bridge::Exception& e) {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-
-    ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
-    ms->config.wristCamInit = 1;
-    ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
-    ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-    cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
-    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
-    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
-
-    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
-    ms->config.densityViewerImage *= 0;
-    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
-    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
-
-
-    int imW = ms->config.wristViewImage.cols;
-    int imH = ms->config.wristViewImage.rows;
-
-    // determine table edges, i.e. the gray boxes
-    ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
-    ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
-    ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
-    ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
-    
-
-    ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
-    ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
-
-    if (ms->config.all_range_mode) {
-      ms->config.grayTop = ms->config.armTop;
-      ms->config.grayBot = ms->config.armBot;
-    }
-
-    if (ms->config.integralDensity == NULL)
-      ms->config.integralDensity = new double[imW*imH];
-    if (ms->config.density == NULL)
-      ms->config.density = new double[imW*imH];
-    if (ms->config.preDensity == NULL)
-      ms->config.preDensity = new double[imW*imH];
-    if (ms->config.temporalDensity == NULL) {
-      ms->config.temporalDensity = new double[imW*imH];
-      for (int x = 0; x < imW; x++) {
-	for (int y = 0; y < imH; y++) {
-	  ms->config.temporalDensity[y*imW + x] = 0;
-	}
-      }
-    }
-  }
-
-  try{
-    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    } 
     ms->config.cam_img = ms->config.cv_ptr->image.clone();
-  }catch(cv_bridge::Exception& e){
+  } catch(cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
+    return -1;
   }
-
+  
   ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
   ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+  cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
+  ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+  
+  ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.densityViewerImage *= 0;
+  ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
+  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+  
+  
+  int imW = ms->config.wristViewImage.cols;
+  int imH = ms->config.wristViewImage.rows;
+  
+  // determine table edges, i.e. the gray boxes
+  ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
+  ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
+  ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
+  ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
+  
+  
+  ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
+  ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
+  
+  if (ms->config.all_range_mode) {
+    ms->config.grayTop = ms->config.armTop;
+    ms->config.grayBot = ms->config.armBot;
+  }
+  
+  if (ms->config.integralDensity == NULL)
+    ms->config.integralDensity = new double[imW*imH];
+  if (ms->config.density == NULL)
+    ms->config.density = new double[imW*imH];
+  if (ms->config.preDensity == NULL)
+    ms->config.preDensity = new double[imW*imH];
+  if (ms->config.temporalDensity == NULL) {
+    ms->config.temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+        ms->config.temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+  return 0;
+}
 
-
-  guardViewers(ms);
-
+void accumulateImage(shared_ptr<MachineState> ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  for (int y = 0; y < imH; y++) {
 
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
-      ms->config.accumulatedImageMass.at<double>(y,x) += 1.0;
+    cv::Vec3d* pixel = ms->config.accumulatedImage.ptr<cv::Vec3d>(y); // point to first pixel in row
+
+    cv::Vec3b* wpixel = ms->config.wristCamImage.ptr<cv::Vec3b>(y); // point to first pixel in row
+    double * mass = ms->config.accumulatedImageMass.ptr<double>(y);
+    for (int x = 0; x < imW; x++) {
+      pixel[x][0] += wpixel[x][0];
+      pixel[x][1] += wpixel[x][1];
+      pixel[x][2] += wpixel[x][2];
+      mass[x] += 1.0;
     }
   }
+}
 
-  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
-  Mat thisImage;
-  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
-
-  if (ms->config.castRecentRangeRay) {
-    recordReadyRangeReadings(ms);
-  } else {
-  }
-
+void renderWristViewImage(shared_ptr<MachineState> ms) {
 
   // paint gripper reticle centerline
   if (1) {
@@ -4662,7 +4615,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.pz = ms->config.trueEEPose.position.z;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
-
+    
     double zStart = ms->config.minHeight;
     double zEnd = ms->config.maxHeight; 
     double deltaZ = 0.005;
@@ -4670,39 +4623,39 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
     }
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
     }
-
+    
   }
-
+  
   // paint transform reticles
   if (ms->config.paintEEandReg1OnWrist) {
     paintEEPoseOnWrist(ms, ms->config.trueEEPoseEEPose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
-
+    
     paintEEPoseOnWrist(ms, ms->config.currentEEPose, cv::Scalar(255,255,0));
-
+    
     {
       eePose irPose;
       {
@@ -4712,12 +4665,12 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
-						0.0,
+                                               0.0,
 					       (thisPose.position.x - irSensorStartLocal.x()),
 					       (thisPose.position.y - irSensorStartLocal.y()),
 					       (thisPose.position.z - irSensorStartLocal.z())
-					      );
-
+                                               );
+        
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
@@ -4917,6 +4870,11 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   {
+
+    Size sz = ms->config.wristViewImage.size();
+    int imW = sz.width;
+    int imH = sz.height;
+    
     int param_pilotTargetHalfWidth = 15;
     cv::Point outTop = cv::Point(ms->config.pilotTarget.px-param_pilotTargetHalfWidth, ms->config.pilotTarget.py-param_pilotTargetHalfWidth);
     cv::Point outBot = cv::Point(ms->config.pilotTarget.px+param_pilotTargetHalfWidth, ms->config.pilotTarget.py+param_pilotTargetHalfWidth);
@@ -4927,6 +4885,73 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
     }
   }
+
+}
+
+void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  shared_ptr<MachineState> ms = this->sharedThis;
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+
+  ms->config.lastImageStamp = msg->header.stamp;
+
+  int converted = 0;
+  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
+    try{
+      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      int cfClass = ms->config.focusedClass;
+      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+	double thisNow = msg->header.stamp.toSec();
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
+      } else {
+      } // do nothing
+      converted = 1;
+    }catch(cv_bridge::Exception& e){
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+  }
+
+  if (!ms->config.shouldIImageCallback) {
+    //cout << "Early exit image callback." << endl;
+    return;
+  }
+
+  if (!ms->config.renderInit) {
+    if (renderInit(ms, converted, msg) == -1) {
+      ROS_ERROR("Couldn't initialize rendering system.");
+      return;
+    }
+  }
+
+  try{
+    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    ms->config.cam_img = ms->config.cv_ptr->image.clone();
+  }catch(cv_bridge::Exception& e){
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+
+  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
+  ms->config.wristCamInit = 1;
+  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
+  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+
+
+  guardViewers(ms);
+
+  accumulateImage(ms);
+
+  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
+  Mat thisImage;
+  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
+
+  if (ms->config.castRecentRangeRay) {
+    recordReadyRangeReadings(ms);
+  } else {
+  }
+
+  renderWristViewImage(ms);
 
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
@@ -5115,8 +5140,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   for (int i = 0; i < ms->config.mapWidth; i++) {
     for (int j = 0; j < ms->config.mapHeight; j++) {
 
-      ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgo.toSec(), 0.0), fadeLast) / fadeLast)) + fadeBias;
+      //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+      double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgoSec, 0.0), fadeLast) / fadeLast)) + fadeBias;
       fadeFraction = min(max(fadeFraction, 0.0), 1.0);
       if (!ms->config.useGlow) {
 	fadeFraction = 1.0;
@@ -5126,7 +5152,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
       }
 
       double x, y;
-      mapijToxy(ms, i, j, &x, &y);
+      mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
 
       if (ms->config.objectMap[i + ms->config.mapWidth * j].detectedClass != -1) {
         cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
@@ -5146,94 +5172,93 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   double glowBias = 0.15;
   double glowLast = 30.0;
 
-  if (ms->config.drawIKMap) { // draw ikMap
+  if (ms->config.drawIKMap || ms->config.drawClearanceMap) { // draw ikMap and clearance map
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    glowFraction = min(max(glowFraction, 0.0), 1.0);
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
-	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
-	      Scalar tColor = CV_RGB(192, 32, 32);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
-	      Scalar tColor = CV_RGB(224, 64, 64);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
+	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
+          //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+          double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+          double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgoSec, 0.0), glowLast) / glowLast)) + glowBias;
+          glowFraction = min(max(glowFraction, 0.0), 1.0);
+          if (!ms->config.useGlow) {
+            glowFraction = 1.0;
+          }
+          double x=-1, y=-1;
+          mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
+          cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
+                                           ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
+          
+          if (ms->config.drawIKMap) { // draw ikMap 
+            if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
+              // do not draw when it's good
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
+              Scalar tColor = CV_RGB(192, 32, 32);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
+              Scalar tColor = CV_RGB(224, 64, 64);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else {
+              cout << "Bad IK value: " << ms->config.ikMap[i + ms->config.mapWidth * j] << endl;
+              assert(0);
+            }
+          }
+          if (ms->config.drawClearanceMap) { // draw clearanceMap 
+            if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 0 ) ) {
+              // do not draw
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
+              Scalar tColor = CV_RGB(224, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                  ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
+              Scalar tColor = CV_RGB(0, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else  {
+                cout << "Bad clearance value: " << ms->config.clearanceMap[i + ms->config.mapWidth * j] << endl;
+                assert(0);
+            }
+          }
 	}
       }
     }
   }
-
-  if (ms->config.drawClearanceMap) { // draw clearanceMap 
-    int ikMapRenderStride = 1;
-    for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
-      for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
-	    cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
-	      Scalar tColor = CV_RGB(224, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
-	      Scalar tColor = CV_RGB(0, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
-	}
-      }
-    }
-  }
+  
 
   { // drawMapSearchFence
     
@@ -8083,7 +8108,7 @@ void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, d
   cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> pixelServo strayed out of clearance area during mapping. <<<<" << endl;
@@ -8144,7 +8169,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       //ms->pushWord("clearStackIntoMappingPatrol"); 
@@ -9182,7 +9207,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
@@ -9611,7 +9636,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
@@ -9662,7 +9687,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       int tbi, tbj;
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
-      mapxyToij(ms, tbx, tby, &tbi, &tbj);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
       ros::Time thisNow = ros::Time::now();
@@ -9677,7 +9702,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 	// do nothing
       }
 
-      int isOutOfReach = ( !positionIsSearched(ms, tbx, tby) || 
+      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
                            !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
       double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
@@ -10684,7 +10709,7 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
-      mapxyToij(ms, x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 
       if (i >= 0 && i < ms->config.mapWidth && j >= 0 && j < ms->config.mapHeight) {
 	ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = timeToMark;
@@ -13815,25 +13840,25 @@ void processSaliency(Mat in, Mat out) {
 }
 
 
-void mapxyToij(shared_ptr<MachineState> ms, double x, double y, int * i, int * j) 
+void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j) 
 {
-  *i = round((x - ms->config.mapXMin) / ms->config.mapStep);
-  *j = round((y - ms->config.mapYMin) / ms->config.mapStep);
+  *i = round((x - xmin) / mapStep);
+  *j = round((y - ymin) / mapStep);
 }
-void mapijToxy(shared_ptr<MachineState> ms, int i, int j, double * x, double * y) 
+void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y) 
 {
-  *x = ms->config.mapXMin + i * ms->config.mapStep;
-  *y = ms->config.mapYMin + j * ms->config.mapStep;
+  *x = xmin + i * mapStep;
+  *y = ymin + j * mapStep;
 }
-bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j) {
+bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
-  return positionIsSearched(ms, x, y);
+  mapijToxy(xmin, ymin, mapStep, i, j, &x, &y);
+  return positionIsSearched(fenceXMin, fenceXMax, fenceYMin, fenceYMax, x, y);
 }
 
-bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
-  if ((ms->config.mapSearchFenceXMin <= x && x <= ms->config.mapSearchFenceXMax) &&
-      (ms->config.mapSearchFenceYMin <= y && y <= ms->config.mapSearchFenceYMax)) {
+bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y) {
+  if ((fenceXMin <= x && x <= fenceXMax) &&
+      (fenceYMin <= y && y <= fenceYMax)) {
     return true;
   } else {
     return false;
@@ -13845,7 +13870,7 @@ bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) {
   
   double min_x, min_y;
-  mapijToxy(ms, map_i, map_j, &min_x, &min_y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, map_i, map_j, &min_x, &min_y);
   double max_x = min_x + ms->config.mapStep;
   double max_y = min_y + ms->config.mapStep;
   double width = max_x - min_x;
@@ -13870,22 +13895,22 @@ bool isBoxMemoryIkPossible(shared_ptr<MachineState> ms, BoxMemory b) {
   int toReturn = 1;
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   return toReturn;
@@ -13898,28 +13923,28 @@ bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   return toReturn;
@@ -14241,7 +14266,7 @@ void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms)
 
 bool cellIsMapped(shared_ptr<MachineState> ms, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
   return positionIsMapped(ms, x, y);
 }
 bool positionIsMapped(shared_ptr<MachineState> ms, double x, double y) {
@@ -14342,8 +14367,8 @@ void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
   double voidTimeGap = 60.0;
 
   int mxs=0,mxe=0,mys=0,mye=0;
-  mapxyToij(ms, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
-  mapxyToij(ms, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
   mxs = max(0,min(mxs, (int) ms->config.mapWidth));
   mxe = max(0,min(mxe, (int) ms->config.mapWidth));
   mys = max(0,min(mys, (int) ms->config.mapWidth));
