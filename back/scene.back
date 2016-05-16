@@ -2307,7 +2307,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
     */ 
 
-    0.001 "slfgRebaseCellWidth" store slfgRebase
+    0.001 "slfgRebaseCellWidth" store slfgRebaseTable
 
     /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
     tempReconstructWithZ
