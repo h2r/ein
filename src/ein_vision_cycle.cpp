@@ -455,13 +455,28 @@ END_WORD
 REGISTER_WORD(CopyIkMapToHeightIdx)
 
 
+WORD(ClearIkMap)
+virtual string description() {
+  return "Reset the IK Map so that every cell is good.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMap[i + ms->config.mapWidth * j] = IK_GOOD;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(ClearIkMap)
+
+
 WORD(FillIkMap)
 
 virtual string description() {
   return "Fill the IK map for the current range starting at the i and j and height on the stack.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int cellsPerQuery = 100;
+  int cellsPerQuery = 1000;
 
   int currentI, currentJ;
   double height;
@@ -473,6 +488,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int queries = 0;
   int i=currentI, j=currentJ;
+  vector<eePose> poses;
+  vector<tuple<int, int> > mapIndexes;
+
   for (; i < ms->config.mapWidth; i++) {
     if (queries < cellsPerQuery) {
       for (; j < ms->config.mapHeight; j++) {
@@ -486,8 +504,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
 	    nextEEPose.pz = height;
+            poses.push_back(nextEEPose);
+            mapIndexes.push_back(make_tuple(i, j));
 
-	    ms->config.ikMap[i + ms->config.mapWidth * j] = ikAtPose(ms, nextEEPose);
 	    queries++;
 	  }
 	} else {
@@ -508,6 +527,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       break;
     }
   }
+  cout << "Sending " << poses.size() << " poses to the IK Service..." << endl;
+  vector<ikMapState> results = ikAtPoses(ms, poses);
+  cout << "Received " << results.size() << " results from the IK Service." << endl;
+  assert(results.size() == poses.size());
+  for (int k = 0; k < mapIndexes.size(); k++) {
+    int ci = std::get<0>(mapIndexes[k]);
+    int cj = std::get<1>(mapIndexes[k]);
+    ms->config.ikMap[ci + ms->config.mapWidth * cj] = results[k];
+  }
+
 
   if (j >= ms->config.mapHeight) {
     j = 0;
@@ -607,7 +636,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     int ikResultFailed = 1;
     if (ms->config.currentRobotMode == PHYSICAL) {
-      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision, 0);
     } else if (ms->config.currentRobotMode == SIMULATED) {
       ikResultFailed = !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, nextEEPose.px, nextEEPose.py);
     } else {
