@@ -1419,10 +1419,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 
-1.0083 "tempReconstructWithZTopZ" store 
-0.270 "tempReconstructWithZTotalZ" store
+0.4083 "tempReconstructWithZTopZ" store 
+0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-200000 "tempReconstructStreamTakeSceneSamples" store
+200 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1469,8 +1469,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
 
   sceneClearDepthStack
-
-  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
 
   ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
     tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
@@ -1651,10 +1649,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   24 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
-  */
 
   0.015 "tempSpiralMoveSpeed" store
-  16 "tempUpdateSpiralN" store
+  */
+
+  0.05 "tempSpiralMoveSpeed" store
+  10 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -1669,10 +1669,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempUpdateSpinCoreNoClean
   tempUpdateMagCoreNoClean
 
-  tempUpdateSpiralCoreNoClean 
+  tempUpdateMagicEyeCoreNoClean
   tempUpdatePanCoreNoClean
   */
-  tempUpdateMagicEyeCoreNoClean
+  tempUpdateSpiralCoreNoClean 
 
 
   tempUpdateMaps
@@ -1765,6 +1765,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructPhrases" store
 
 (
+  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
   tempReconstructWithZ 
   /* 
   3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
@@ -2043,6 +2044,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   0.001 setGridSize currentPose ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
 ) "slfgRebase" store
 
+( 
+    slfgRebaseCellWidth 
+      currentPose 
+	0.0 
+	currentTableZ
+      -
+    setEEPosePZ 
+  sceneInitFromEePoseScale
+) "slfgRebaseTable" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2226,7 +2236,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   /* spiral scan pattern */
   0.02 setSpeed
-  0.01 setGridSize
+
+  0.02 setGridSize
 
   0.02 setW1AngleThresh
   0.01 setW1GoThresh
@@ -2253,6 +2264,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempUpdateMagCoreNoClean" store
 
 (
+  200 "tempReconstructStreamTakeSceneSamples" store
+  0 sceneSetDepthPatchHalfWidth
+
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
 
   1 sceneSetFixationMode
@@ -2282,10 +2296,18 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     quarterImpulse
     tempUpdateSpiralPos moveEeToPoseWord
+    tempChrThisHeight changeToHeight 
     waitUntilAtCurrentPosition
 
+    /* finds the current height difference */
+    /*
+    tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+    */ 
+
+    0.001 "slfgRebaseCellWidth" store slfgRebase
+
     /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
-    tempReconstructFromStream
+    tempReconstructWithZ
     tempUpdateMaps
 
     tempChrThisHeight sceneSetHeightReticleFromVariance
@@ -2320,6 +2342,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneClearObservedMap
   clearStreamBuffers
 
+  0.001 "slfgRebaseCellWidth" store slfgRebaseTable
+
   tempUpdateZoomCoreNoClean
 
   quarterImpulse
@@ -2329,7 +2353,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
   tempReconstructFromStream
   tempUpdateMaps
+
+  /*
   sceneSetVanishingPointFromVariance
+  */
 
   
   0 sceneSetFixationMode
@@ -2442,13 +2469,21 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   -1 "magCalMinVarMag" store
   0 "magCalNumWins" store
 
+  0.001 "slfgRebaseCellWidth" store slfgRebaseTable
+
   ( 
     magCalThis magCalHi < 
     magCalThis magCalHi = or
   ) (
     magCalThis magCalSetter 
 
-    tempReconstructFromStream
+	  currentPose
+	eePosePZ
+	currentTableZ
+      +
+    "tempReconstructWithZTopZ" store 
+    tempReconstructWithZ
+
     tempUpdateMaps
 
 	scenePushAverageCrCbSigmaSquared 
@@ -2527,6 +2562,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     quarterImpulse
     tempUpdateSpiralPos moveEeToPoseWord
+
+    /* necessary for mag changes to take effect properly */
+    tempChrThisHeight changeToHeight 
     waitUntilAtCurrentPosition
 
     tempMagCalibrationGridSearcher
@@ -2614,46 +2652,48 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
 
   /* 
-
-  0 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  1 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  2 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
-  3 changeToHeight
-  1.0 cameraSetIdxMagY 
-  1.0 cameraSetIdxMagX 
-
   */
 
-  /*
+  
+  1.2 "magCalBase" store
+  30 "magCalSteps" store
+  0.04 "magCalDelta" store
+
+  0 changeToHeight
+  magCalBase cameraSetIdxMagY 
+  magCalBase cameraSetIdxMagX 
+
+  1 changeToHeight
+  magCalBase cameraSetIdxMagY 
+  magCalBase cameraSetIdxMagX 
+
+  2 changeToHeight
+  magCalBase cameraSetIdxMagY 
+  magCalBase cameraSetIdxMagX 
+
+  3 changeToHeight
+  magCalBase cameraSetIdxMagY 
+  magCalBase cameraSetIdxMagX 
+
+
+  0 cameraSetCalibrationMode
+
   50 "tempReconstructStreamTakeSceneSamples" store
-  1 "tempChrStartHeight" store
-  3 "tempChrEndHeight" store
+  0 "tempChrStartHeight" store
+  1 "tempChrEndHeight" store
   0.0 "tempChrExtraZ" store
 
-
-  0.01 "magCalDelta" store
-  5 "magCalSteps" store
-  ( cameraGetIdxMagY ) "magCalGetter" store
-  ( cameraSetIdxMagY ) "magCalSetter" store
-  tempCalibrateOnBundleOneDimension
-
-  0.01 "magCalDelta" store
-  5 "magCalSteps" store
   ( cameraGetIdxMagX ) "magCalGetter" store
   ( cameraSetIdxMagX ) "magCalSetter" store
   tempCalibrateOnBundleOneDimension
 
-  */
+  ( cameraGetIdxMagY ) "magCalGetter" store
+  ( cameraSetIdxMagY ) "magCalSetter" store
+  tempCalibrateOnBundleOneDimension
 
+  /*
+
+  */
 
 
   /* 
@@ -2706,6 +2746,23 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 ) "tempCalibrateMagnification" store
+
+
+(
+  /*
+    currentPose
+  setTable
+  setGripperMaskWithMotion
+  moveEeToPoseWord
+  */
+
+  tempCalibrateHeightReticles
+  tempCalibrateMagnification
+
+  /*
+  tempCalibrateVanishingPointReticleMultiSample
+  */
+) "tempCalibrateHMV" store
 
 
 
