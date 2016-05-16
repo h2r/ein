@@ -63,19 +63,22 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
   }
 }
 
-bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
+bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision, int i) {
   bool thisIkResultFailed = 0;
   *likelyInCollision = 0;
 
-  if (thisIkCallResult && thisIkRequest.response.isValid[0]) {
+  if (thisIkCallResult && thisIkRequest.response.isValid[i]) {
     thisIkResultFailed = 0;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+  } else if (i >= thisIkRequest.response.joints.size()) {
+      thisIkResultFailed = 1;
+      cout << "Warning: received " << thisIkRequest.response.joints.size() << " results but requested i: " << i << endl;
+  } else if (thisIkRequest.response.joints[i].position.size() != NUM_JOINTS) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+  } else if (thisIkRequest.response.joints[i].name.size() != NUM_JOINTS) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-  } else if (thisIkRequest.response.joints.size() == 1) {
+  } else {
     if( ms->config.usePotentiallyCollidingIK ) {
       //cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
       //cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
@@ -85,11 +88,7 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
       thisIkResultFailed = 1;
       *likelyInCollision = 1;
     }
-  } else {
-    thisIkResultFailed = 1;
-    //cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
   }
-
   return thisIkResultFailed;
 }
 
@@ -226,7 +225,7 @@ vector<ikMapState> ikAtPoses(shared_ptr<MachineState> ms, vector<eePose> poses) 
   for (int i = 0; i < poses.size(); i++) {
     int ikResultFailed = 1;
     if (ms->config.currentRobotMode == PHYSICAL) {
-      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision, i);
     } else if (ms->config.currentRobotMode == SIMULATED) {
       ikResultFailed = !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, poses[i].px, poses[i].py);
     } else {
