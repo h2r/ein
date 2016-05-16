@@ -6794,6 +6794,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
+  if (minEnergyX == -1 || minEnergyY == -1) {
+     cout << "Did not update minEnergy, were there enough samples?  minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << endl;
+     return;
+  }
+
   double meters_scene_x, meters_scene_y;
   ms->config.scene->observed_map->cellToMeters(minEnergyX, minEnergyY, &meters_scene_x, &meters_scene_y);
 

@@ -10470,8 +10470,8 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   double oldPy = *pY;
   //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
   //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
+  *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
+  *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
 
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
@@ -10584,19 +10584,20 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   double oldPy = *pY;
   //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
   //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
+  *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
+  *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor) {
   cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
   int lineLength = 5;
+  int pXo = 0, pYo = 0;  
   int pX = 0, pY = 0;  
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
-  globalToPixel(ms, &pX, &pY, zToUse, toPaint.px, toPaint.py);
-  pX = pX - lineLength;
-  pY = pY - lineLength;
+  globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
+  pX = pXo - lineLength;
+  pY = pYo - lineLength;
   //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
   if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
     {
@@ -10614,8 +10615,11 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   // draw the test pattern for the inverse transformation 
   if (1) {
     double gX = 0, gY = 0;
-    pixelToGlobal(ms, pX, pY, zToUse, &gX, &gY);
-    globalToPixel(ms, &pX, &pY, zToUse, gX, gY);
+    int pXb = 0, pYb = 0;  
+    pixelToGlobal(ms, pXo, pYo, zToUse, &gX, &gY);
+    globalToPixel(ms, &pXb, &pYb, zToUse, gX, gY);
+    pX = pXb - lineLength;
+    pY = pYb - lineLength;
     //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
     if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
       {
