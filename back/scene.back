@@ -2041,7 +2041,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.02 "slfgRebaseCellWidth" store
 ( 
   388 "slfgRebaseIterations" store
-  0.001 setGridSize currentPose ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
+  0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
 ) "slfgRebase" store
 
 ( 
@@ -2264,12 +2264,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempUpdateMagCoreNoClean" store
 
 (
+  1 sceneSetFixationMode
+
   200 "tempReconstructStreamTakeSceneSamples" store
   0 sceneSetDepthPatchHalfWidth
 
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
 
-  1 sceneSetFixationMode
   quarterImpulse
   waitUntilAtCurrentPosition
 
@@ -2278,9 +2279,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   currentPose "tempUpdateSpiralPos" store
 
   0 "tempChrThisHeight" store
+  3 "tempChrEndHeight" store
 
   (
-    tempChrThisHeight 4 < 
+    tempChrThisHeight tempChrEndHeight < 
+    tempChrThisHeight tempChrEndHeight = or 
   ) (
     tempChrThisHeight changeToHeight 
 
@@ -2310,7 +2313,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     tempReconstructWithZ
     tempUpdateMaps
 
+    /*
     tempChrThisHeight sceneSetHeightReticleFromVariance
+    */
+    slide ( scenePushPixelOfMinVariance  1 sP )
 
       tempChrThisHeight 1 +
     "tempChrThisHeight" store
@@ -2320,8 +2326,26 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
   ) while 
   
+  tempCalibrateHeightReticlesSetAll
+
   0 sceneSetFixationMode
 ) "tempCalibrateHeightReticles" store
+
+(
+  tempChrEndHeight "tempChrThisHeight" store
+  (
+    tempChrThisHeight 0 > 
+    tempChrThisHeight 0 = or 
+  ) (
+      tempChrThisHeight 
+	swap 
+      slip
+    sceneSetHeightReticleFromPixel
+
+      tempChrThisHeight 1 -
+    "tempChrThisHeight" store
+  ) while 
+) "tempCalibrateHeightReticlesSetAll" store
 
 (
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
