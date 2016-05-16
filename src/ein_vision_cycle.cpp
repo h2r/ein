@@ -476,7 +476,7 @@ virtual string description() {
   return "Fill the IK map for the current range starting at the i and j and height on the stack.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int cellsPerQuery = 1000;
+  int cellsPerQuery = 200;
 
   int currentI, currentJ;
   double height;
@@ -527,16 +527,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       break;
     }
   }
-  cout << "Sending " << poses.size() << " poses to the IK Service..." << endl;
+  //cout << "Sending " << poses.size() << " poses to the IK Service..." << endl;
   vector<ikMapState> results = ikAtPoses(ms, poses);
-  cout << "Received " << results.size() << " results from the IK Service." << endl;
-  assert(results.size() == poses.size());
+  //cout << "Received " << results.size() << " results from the IK Service." << endl;
+  //assert(results.size() == poses.size());
+  //cout << "Sending " << poses.size() << " poses to the IK Service... separately" << endl;
   for (int k = 0; k < mapIndexes.size(); k++) {
     int ci = std::get<0>(mapIndexes[k]);
     int cj = std::get<1>(mapIndexes[k]);
+    //ikMapState result = ikAtPose(ms, poses[k]);
     ms->config.ikMap[ci + ms->config.mapWidth * cj] = results[k];
+    //ms->config.ikMap[ci + ms->config.mapWidth * cj] = result;
   }
-
+  //cout << "Done." << endl;
 
   if (j >= ms->config.mapHeight) {
     j = 0;
