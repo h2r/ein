@@ -27,7 +27,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double newX = ms->config.currentEEPose.px + noX;
     double newY = ms->config.currentEEPose.py + noY;
     int cellI = -1, cellJ = -1;
-    mapxyToij(ms, newX, newY, &cellI, &cellJ);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, newX, newY, &cellI, &cellJ);
     
     if (isCellInPatrolZone(ms, cellI, cellJ)) {
       ms->config.currentEEPose.px = newX;
