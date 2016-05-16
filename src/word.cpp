@@ -495,7 +495,7 @@ string CompoundWord::to_string() {
 }
 
 string CompoundWord::name() {
-  return "compound word";
+  return repr();
 }
 
 bool CommentWord::isComment(string token) {

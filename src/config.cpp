@@ -27,13 +27,12 @@ string MachineState::currentState()
     int w = 10;
     state << fixed;
     state << setfill(' ');
-    state << "CI: ";
+    state << "CI: " << setw(70) << std::left;
     if (current_instruction != NULL) {
       state << current_instruction->name();
     } else {
       state << "NULL";
     }
-    state << endl;
     state << "Hz: " << config.aveFrequencyRange << endl;
     state << "Current EE Position (x,y,z): "  << setw(w) << config.currentEEPose.px << " " << setw(w) << config.currentEEPose.py << " " << setw(w) << config.currentEEPose.pz << endl;
     state << "Current EE Orientation (x,y,z,w): " << setw(w) << config.currentEEPose.qx << " " << setw(w) << config.currentEEPose.qy << " " << setw(w) << config.currentEEPose.qz << " " << setw(w) << config.currentEEPose.qw << endl;
@@ -45,8 +44,8 @@ string MachineState::currentState()
     eePose difference = config.trueEEPoseEEPose.minusP(config.currentEEPose);
     state << "position, orientation error distance: "  << poseError << ", " << orError << endl;
 
-    state << "position error (x,y,z): "  << setw(w) << difference.px << " " << setw(w) << difference.py << " " << setw(w) << difference.pz << endl;
-    state << "orientation error (x,y,z,w): " << setw(w) << difference.qx << " " << setw(w) << difference.qy << " " << setw(w) << difference.qz << " " << setw(w) << difference.qw << endl;
+    //state << "position error (x,y,z): "  << setw(w) << difference.px << " " << setw(w) << difference.py << " " << setw(w) << difference.pz << endl;
+    //state << "orientation error (x,y,z,w): " << setw(w) << difference.qx << " " << setw(w) << difference.qy << " " << setw(w) << difference.qz << " " << setw(w) << difference.qw << endl;
 
     //state << "currentThompsonHeightIdx: " << config.currentThompsonHeightIdx << endl;
     //state << "mostRecentUntabledZ (remember this is inverted but correct): " << config.mostRecentUntabledZ << endl;
@@ -77,7 +76,7 @@ string MachineState::currentState()
 
 	double thisAveWN = config.averagedWrechAcc / config.averagedWrechMass;
 
-    state << "averagedWrechNorm: " << setw(w) << thisAveWN << endl;
+    //state << "averagedWrechNorm: " << setw(w) << thisAveWN << endl;
 
     
     //state << "collision: " << config.collisionStateBuffer.front().inCollision <<  " buffer: " << config.numCollisions() << "/" << config.collisionStateBuffer.size() << endl;
