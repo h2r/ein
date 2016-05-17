@@ -1426,16 +1426,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 0.0 "phasedArrayPhase" store
-0.0000007 "phasedArrayWavelength" store
-0.0002 "phasedArrayGap" store
+0.00005 "phasedArrayWavelength" store
+0.03 "phasedArrayGap" store
 
 5 "phasedArrayApertureWidthCells" store
-0.5883 "tempReconstructArrayZ" store 
+0.2683 "tempReconstructArrayZ" store 
 
 
 
 
-0.4083 "tempReconstructWithZTopZ" store 
+0.2683 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
 200 "tempReconstructStreamTakeSceneSamples" store
@@ -1686,7 +1686,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   0.04 "tempSpiralMoveSpeed" store
 
-  12 "tempUpdateSpiralN" store
+  16 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -1797,8 +1797,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructPhrases" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+	currentPose
+      eePosePZ
+      currentTableZ
+    +
+  "tempReconstructWithZTopZ" store 
+
+  tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
+
   /* 
   3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
   */
