@@ -288,6 +288,25 @@ void _GaussianMapCell::newObservation(Vec3b obs, double zobs) {
   z.samples += 1;
 }
 
+void _GaussianMapCell::newObservation(Vec3d obs) {
+  red.counts += obs[2];
+  green.counts += obs[1];
+  blue.counts += obs[0];
+  red.squaredcounts += pow(obs[2], 2);
+  green.squaredcounts += pow(obs[1], 2);
+  blue.squaredcounts += pow(obs[0], 2);
+  red.samples += 1;
+  green.samples += 1;
+  blue.samples += 1;
+}
+
+void _GaussianMapCell::newObservation(Vec3d obs, double zobs) {
+  newObservation(obs);
+  z.counts += zobs;
+  z.squaredcounts += pow(zobs, 2);
+  z.samples += 1;
+}
+
 void GaussianMap::reallocate() {
   if (width <= 0 || height <= 0) {
     cout << "GaussianMap area error: tried to allocate width, height: " << width << " " << height << endl;
@@ -569,19 +588,18 @@ void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   vec[2] = cellRef->red.statistic ; \
 
 void GaussianMap::rgbMuToMat(Mat& out) {
-  //out = Mat(height, width, CV_64FC3);
-  Mat big = Mat(height, width, CV_8UC3);
+  Mat big = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
 
       if (refAtCell(x, y)->red.samples > 0) {
-	big.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu);
-	big.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu);
-	big.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu);
+	big.at<Vec3b>(x,y)[0] = uchar(refAtCell(x,y)->blue.mu);
+	big.at<Vec3b>(x,y)[1] = uchar(refAtCell(x,y)->green.mu);
+	big.at<Vec3b>(x,y)[2] = uchar(refAtCell(x,y)->red.mu);
       } else {
-	big.at<Vec3b>(y,x)[0] = 0;
-	big.at<Vec3b>(y,x)[1] = 128;
-	big.at<Vec3b>(y,x)[2] = 128;
+	big.at<Vec3b>(x,y)[0] = 0;
+	big.at<Vec3b>(x,y)[1] = 128;
+	big.at<Vec3b>(x,y)[2] = 128;
       }
     }
   }
@@ -591,31 +609,30 @@ void GaussianMap::rgbMuToMat(Mat& out) {
 }
 
 void GaussianMap::rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out) {
-  //out = Mat(height, width, CV_64FC3);
-  out = Mat(height, width, CV_8UC3);
+  out = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu * 255);
-      out.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu * 255);
-      out.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu * 255); 
+      out.at<Vec3b>(x,y)[0] = uchar(refAtCell(x,y)->blue.mu * 255);
+      out.at<Vec3b>(x,y)[1] = uchar(refAtCell(x,y)->green.mu * 255);
+      out.at<Vec3b>(x,y)[2] = uchar(refAtCell(x,y)->red.mu * 255); 
     }
   }
 }
 
 
 void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.sigmasquared;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.sigmasquared;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.sigmasquared;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.sigmasquared;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.sigmasquared;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.sigmasquared;
     }
   }
 }
 
 void GaussianMap::rgbSigmaToMat(Mat& out) {
-  Mat big = Mat(height, width, CV_8UC3);
+  Mat big = Mat(width, height, CV_8UC3);
   double max_val = -DBL_MAX;
   double min_val = DBL_MAX;
   
@@ -629,9 +646,9 @@ void GaussianMap::rgbSigmaToMat(Mat& out) {
       if (bval < min_val) {
 	min_val = bval;
       }
-      big.at<Vec3b>(y,x)[0] = uchar(sqrt(refAtCell(x,y)->blue.sigmasquared) * 4);
-      big.at<Vec3b>(y,x)[1] = uchar(sqrt(refAtCell(x,y)->green.sigmasquared) * 4);
-      big.at<Vec3b>(y,x)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[0] = uchar(sqrt(refAtCell(x,y)->blue.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[1] = uchar(sqrt(refAtCell(x,y)->green.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
     }
   }
   //cout << "max: " << max_val << endl;
@@ -640,50 +657,50 @@ void GaussianMap::rgbSigmaToMat(Mat& out) {
 }
 
 void GaussianMap::rgbCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.counts;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.counts;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.counts;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.counts;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.counts;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.counts;
     }
   }
 }
 
 void GaussianMap::rgbSquaredCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.squaredcounts;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.squaredcounts;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.squaredcounts;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.squaredcounts;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.squaredcounts;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.squaredcounts;
     }
   }
 }
 
 void GaussianMap::zMuToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.mu;
+      out.at<double>(x,y) = refAtCell(x,y)->z.mu;
     }
   }
 }
 
 void GaussianMap::zSigmaSquaredToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.sigmasquared;
+      out.at<double>(x,y) = refAtCell(x,y)->z.sigmasquared;
     }
   }
 }
 
 void GaussianMap::zCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.counts;
+      out.at<double>(x,y) = refAtCell(x,y)->z.counts;
     }
   }
 }
@@ -875,12 +892,12 @@ void Scene::reallocate() {
   }
   background_map = make_shared<GaussianMap>(width, height, cell_width);
   predicted_map = make_shared<GaussianMap>(width, height, cell_width);
-  predicted_segmentation = Mat(height, width, CV_64F);
+  predicted_segmentation = Mat(width, height, CV_64F);
   observed_map = make_shared<GaussianMap>(width, height, cell_width);
   discrepancy = make_shared<GaussianMap>(width, height, cell_width);
 
-  discrepancy_magnitude = Mat(height, width, CV_64F);
-  discrepancy_density = Mat(height, width, CV_64F);
+  discrepancy_magnitude = Mat(width, height, CV_64F);
+  discrepancy_density = Mat(width, height, CV_64F);
 }
 
 void Scene::smoothDiscrepancyDensity(double sigma) {
@@ -894,7 +911,7 @@ bool Scene::isDiscrepantCell(double threshold, int x, int y) {
   if (!safeAt(x,y)) {
     return false;
   } else {
-    return (discrepancy_density.at<double>(y,x) > threshold);
+    return (discrepancy_density.at<double>(x,y) > threshold);
   }
 } 
 bool Scene::isDiscrepantCellBilin(double threshold, double x, double y) {
@@ -1151,7 +1168,7 @@ void Scene::measureDiscrepancy() {
 	  cout << "Total discrepancy is nan. " << total_discrepancy << endl;
 	  total_discrepancy = 0.0;
 	}
-	discrepancy_magnitude.at<double>(y,x) = total_discrepancy;
+	discrepancy_magnitude.at<double>(x,y) = total_discrepancy;
 
 	//identitycheckProb("total_discrepancy", total_discrepancy);
 	//identitycheckProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
@@ -1160,14 +1177,14 @@ void Scene::measureDiscrepancy() {
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
-	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
+	//sqrt(discrepancy_magnitude.at<double>(x,y) / 3.0) / 255.0; 
 
 	c_enough++;
 	//cout << " enough ";
 	//cout << predicted_map->refAtCell(x,y)->red.samples << " " << observed_map->refAtCell(x,y)->red.samples << " ";
       } else {
 	discrepancy->refAtCell(x,y)->zero();
-	discrepancy_magnitude.at<double>(y,x) = 0.0;
+	discrepancy_magnitude.at<double>(x,y) = 0.0;
       }
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	c_total++;
@@ -1201,7 +1218,7 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
       if (discrepancy->refAtCell(x,y)->red.samples > 0) {
-	totalScore += discrepancy_magnitude.at<double>(y,x); 
+	totalScore += discrepancy_magnitude.at<double>(x,y); 
       } else {
       }
     }
@@ -1413,11 +1430,11 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   cout << xmin << " " << xmax << " " << ymin << " " << ymax << " initial " << endl;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      if (discrepancy_density.at<double>(y,x) != 0) {
-	//cout << discrepancy_density.at<double>(y,x) << endl;
+      if (discrepancy_density.at<double>(x,y) != 0) {
+	//cout << discrepancy_density.at<double>(x,y) << endl;
       }
 
-      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(x,y) > threshold)) {
 	xmin = min(xmin, x);
 	xmax = max(xmax, x);
 	ymin = min(ymin, y);
@@ -1479,7 +1496,7 @@ int Scene::countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int
   int discrepant_cells = 0;
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
-      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(x,y) > threshold)) {
 	discrepant_cells++;
       } else {
       }
@@ -1573,9 +1590,9 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	int tx = x - tRx;
 	int ty = y - tRy;
 	if ( tx >= 0 && ty >= 0 && ty < crows && tx < ccols )  {
-	  prepared_object.at<double>(y, x) = object_to_prepare.at<double>(ty, tx);
+	  prepared_object.at<double>(x,y) = object_to_prepare.at<double>(ty, tx);
 	} else {
-	  prepared_object.at<double>(y, x) = 0.0;
+	  prepared_object.at<double>(x,y) = 0.0;
 	}
       }
     }
@@ -1700,8 +1717,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	double model_score = 0.0;
 
 /*
-	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
-	  cout << output.at<double>(y,x) << "  running inference...";
+	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
+	  cout << output.at<double>(x,y) << "  running inference...";
 	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
 	  double x_m_tt, y_m_tt;
 	  ms->config.scene->cellToMeters(x,y,&x_m_tt,&y_m_tt);
@@ -1709,7 +1726,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
 */
-	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
+	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
 	  SceneObjectScore to_push;
 	  to_push.x_c = x;
 	  to_push.y_c = y;
@@ -1717,7 +1734,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  to_push.orient_i = thisOrient;
 	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
 	  to_push.discrepancy_valid = true;
-	  to_push.discrepancy_score = output.at<double>(y,x);
+	  to_push.discrepancy_score = output.at<double>(x,y);
 
 	  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
 	    to_push.loglikelihood_valid = false;
@@ -1733,10 +1750,10 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	}
   
 	//if (model_score > max_score) 
-	if (output.at<double>(y,x) > max_score) 
+	if (output.at<double>(x,y) > max_score) 
 	{
 	  //max_score = model_score;
-	  max_score = output.at<double>(y,x);
+	  max_score = output.at<double>(x,y);
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
@@ -2358,19 +2375,19 @@ void Scene::readFromFileNode(FileNode& it) {
   bool error = false;
   if (discrepancy_density.rows != height || discrepancy_density.cols != width) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
-    discrepancy_density = Mat(height, width, CV_64F);
+    discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (discrepancy_magnitude.rows != height || discrepancy_magnitude.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
-    discrepancy_magnitude = Mat(height, width, CV_64F);
+    discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (predicted_segmentation.rows != height || predicted_segmentation.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
-    predicted_segmentation = Mat(height, width, CV_64F);
+    predicted_segmentation = Mat(width, height, CV_64F);
   }
   
   if (error) {
@@ -2875,7 +2892,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -2897,7 +2914,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double root = 0.0;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -2934,10 +2951,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      if (tsd.at<double>(y,x) <= thresh) {
-	omtsd.at<double>(y,x) = 0.0;
+      if (tsd.at<double>(x,y) <= thresh) {
+	omtsd.at<double>(x,y) = 0.0;
       } else {
-	omtsd.at<double>(y,x) = 1.0 - tsd.at<double>(y,x);
+	omtsd.at<double>(x,y) = 1.0 - tsd.at<double>(x,y);
       }
     }
   }
@@ -2992,8 +3009,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      if (omtsd.at<double>(y,x) <= 0) {
-	omtsd_log.at<double>(y,x) = 0.0;
+      if (omtsd.at<double>(x,y) <= 0) {
+	omtsd_log.at<double>(x,y) = 0.0;
       } else {
       }
     }
@@ -3009,7 +3026,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -3031,7 +3048,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double root = 0.0;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -3104,8 +3121,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd_a.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      before_scores.push_back( tsd_b.at<double>(y,x) );
-      after_scores.push_back( tsd_a.at<double>(y,x) );
+      before_scores.push_back( tsd_b.at<double>(x,y) );
+      after_scores.push_back( tsd_a.at<double>(x,y) );
     }
   }
 
@@ -3252,8 +3269,8 @@ REGISTER_WORD(SceneIsNewConfiguration)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
-  int p_width = 1001; //1501; // 1001 // 601;
-  int p_height = 1001; //1501; // 1001 / 601;
+  int p_width = 901; //1001; //1501; // 1001 // 601;
+  int p_height = 901; //1001; //1501; // 1001 / 601;
   eePose scenePose = eePose::identity();
   scenePose.pz = -ms->config.currentTableZ;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
@@ -3777,7 +3794,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
       } else {
-	densityImage.at<double>(y, x) = 0;
+	densityImage.at<double>(x,y) = 0;
       }
     }
   }
@@ -3803,7 +3820,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
       } else {
-	//toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(x,y) = 0;
       }
     }
   }
@@ -3815,10 +3832,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
-	//toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
-	toShow.at<double>(y, x) = (maxVal - toShow.at<double>(y, x)) / denom;
+	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
+	toShow.at<double>(x,y) = (maxVal - toShow.at<double>(x,y)) / denom;
       } else {
-	//toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(x,y) = 0;
       }
     }
   }
@@ -3958,8 +3975,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   box.bTop = cv::Point(0,0);
   box.bBot = cv::Point(1,1);
-  mapxyToij(ms, box.top.px, box.top.py, &(box.bTop.x), &(box.bTop.y));
-  mapxyToij(ms, box.bot.px, box.bot.py, &(box.bBot.x), &(box.bBot.y));
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.top.px, box.top.py, &(box.bTop.x), &(box.bTop.y));
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.bot.px, box.bot.py, &(box.bBot.x), &(box.bBot.y));
 
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
@@ -3971,7 +3988,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
-  mapxyToij(ms, box.centroid.px, box.centroid.py, &i, &j);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.centroid.px, box.centroid.py, &i, &j);
 
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
@@ -3981,7 +3998,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
        //!isBoxMemoryIkPossible(ms, box) ) 
   if (0)
   {
-    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
+    cout << "Not mapping box... " << " searched: " << positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, box.centroid.px, box.centroid.py) << " ikPossible: " << isBoxMemoryIkPossible(ms, box) << " " << box.cameraPose << endl;
     return;
   } else {
     vector<BoxMemory> newMemories;
@@ -4798,7 +4815,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double this_x_m, this_y_m;
       ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
-	fake_filter.at<double>(y,x) = scale*pos_factor;
+	fake_filter.at<double>(x,y) = scale*pos_factor;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
@@ -4809,12 +4826,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale*neg_factor;
+	fake_filter.at<double>(x,y) = -negative_space_weight_ratio*scale*neg_factor;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       } else {
-	fake_filter.at<double>(y,x) = 0.0;
+	fake_filter.at<double>(x,y) = 0.0;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
@@ -4892,6 +4909,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneRecallFromRegister)
+
+WORD(SceneStoreObservedInRegister)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneStoreObservedInRegister: copying..." << endl;
+  ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
+}
+END_WORD
+REGISTER_WORD(SceneStoreObservedInRegister)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZ)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -5459,8 +5484,290 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray)
 
+
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  double lens_gap = 0.01;
+  GET_NUMERIC_ARG(ms, lens_gap);
+
+  double lambda = 0.01;
+  GET_NUMERIC_ARG(ms, lambda);
+
+  double phi = 0.01;
+  GET_NUMERIC_ARG(ms, phi);
+
+  if (lambda == 0) {
+    lambda = 1.0e-6;
+    cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
+  }
+
+  int thisIdx = ms->config.sibCurIdx;
+  //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
+
+  //cout << "zToUse lens_gap: " << z_to_use << " " << lens_gap << endl;
+
+  Mat bufferImage;
+  eePose thisPose, tBaseP;
+
+  int success = 1;
+  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    bufferImage = tsi.image.clone();
+
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      thisPose = ms->config.currentEEPose;
+      z_to_use = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+  } else {
+    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    return;
+  }
+
+  if (success != 1) {
+    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    return;
+  }
+
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  if (fabs(transformed.qz) > 0.01) {
+    ROS_ERROR("  Not doing update because arm not vertical.");
+    return;
+  }
+
+  Mat wristViewYCbCr = bufferImage.clone();
+
+  cvtColor(bufferImage, wristViewYCbCr, CV_BGR2YCrCb);
+  
+  Size sz = bufferImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  pixelToGlobalCache data_gap;
+  double z = z_to_use;
+  double z_gap = z_to_use + lens_gap;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  int numThreads = 8;
+  // there is a faster way to stride it but i am risk averse atm
+
+
+  int numPixels = 0;
+  int numNulls = 0;
+
+  #pragma omp parallel for
+  for (int i = 0; i < numThreads; i++) {
+    //double frac = double(boty - topy) / double(numThreads);
+    //double bfrac = i*frac;
+    //double tfrac = (i+1)*frac;
+
+    double frac = double(boty - topy) / double(numThreads);
+    int ttopy = floor(topy + i*frac);
+    int tboty = floor(topy + (i+1)*frac);
+
+    //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+      {
+
+      //double opy = py-topy;
+      // this is superior
+      //if ( (bfrac <= opy) && (opy < tfrac) ) 
+      //{
+	for (int px = topx; px <= botx; px++) {
+	  if (isInGripperMask(ms, px, py)) {
+	    continue;
+	  }
+
+	  if ( (abhr > 0) && (abhc > 0) ) {
+	    if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+		 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+	      continue;
+	    } 
+	  } 
+
+	  double x, y;
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+	  double x_gap, y_gap;
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  
+	  {
+	    double rx = x_gap;
+	    double ry = y_gap;
+
+	    // and put it in that cell
+	    int cri, crj;
+	    ms->config.scene->observed_map->metersToCell(rx, ry, &cri, &crj);
+
+	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(cri, crj);
+	    if (cell != NULL) {
+		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+		Vec3d phased_pixel;
+
+		// I wonder if there is a difference
+		//double gap_path_length = sqrt( pow(x_gap-x,2.0) + pow(y_gap-y,2.0) );
+		double gap_path_length = sqrt( (lens_gap*lens_gap) + (x_gap-x)*(x_gap-x) + (y_gap-y)*(y_gap-y) );
+
+		phased_pixel[0] = double(pixel[0]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+		phased_pixel[1] = double(pixel[1]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+		phased_pixel[2] = double(pixel[2]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+
+		/*
+		phased_pixel[0] = (double(pixel[0])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		phased_pixel[1] = (double(pixel[1])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		phased_pixel[2] = (double(pixel[2])-128.0) * cos( gap_path_length / lambda ) + 128.0;
+		*/
+
+		cell->newObservation(phased_pixel, z);
+	      numPixels++;
+	    } else {
+		numNulls++;
+	    }
+	  }
+	}
+      //}
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
+
+WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  double array_z = 0.01;
+  GET_NUMERIC_ARG(ms, array_z);
+
+  double lambda = 0.01;
+  GET_NUMERIC_ARG(ms, lambda);
+
+  double phi = 0.01;
+  GET_NUMERIC_ARG(ms, phi);
+
+
+
+  double aperture_width_cells = 11;
+  GET_NUMERIC_ARG(ms, aperture_width_cells);
+
+  double lens_x = 0.01;
+  GET_NUMERIC_ARG(ms, lens_x);
+
+  double lens_y = 0.01;
+  GET_NUMERIC_ARG(ms, lens_y);
+
+
+
+
+  if (lambda == 0) {
+    lambda = 1.0e-6;
+    cout << "sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
+  }
+
+  shared_ptr<GaussianMap> toFill = ms->config.scene->observed_map;
+  shared_ptr<GaussianMap> toLight= ms->config.gaussian_map_register;
+
+  int t_height = toFill->height;
+  int t_width = toFill->width;
+
+  int aperture_half_width_cells = (aperture_width_cells - 1)/2;
+
+  assert( toLight->width == t_width );
+  assert( toLight->height == t_height );
+
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+
+      int axstart = std::max(0, x - aperture_half_width_cells);
+      int axend = std::min(t_width, x + aperture_half_width_cells);
+      int aystart = std::max(0, y - aperture_half_width_cells);
+      int ayend = std::min(t_height, y + aperture_half_width_cells);
+      for (int ay = aystart; ay <= ayend; ay++) {
+	for (int ax = axstart; ax <= axend; ax++) {
+	  if ( toLight->safeAt(ax,ay) ) {
+	    if ( (toLight->refAtCell(ax,ay)->red.samples > ms->config.sceneCellCountThreshold) ) {
+
+	      double delta_x = x-ax;
+	      double delta_y = y-ay;
+	      double delta_z = z_to_use - array_z;
+	      double gap_path_length = sqrt( delta_x*delta_x + delta_y*delta_y + delta_z*delta_z );
+
+	      GaussianMapCell * fillCell = toFill->refAtCell(x, y);
+	      GaussianMapCell * lightCell = toLight->refAtCell(ax, ay);
+
+	      Vec3d phased_pixel;
+	      phased_pixel[2] = (double( lightCell->red.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+	      phased_pixel[1] = (double( lightCell->green.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+	      phased_pixel[0] = (double( lightCell->blue.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+/*
+	      phased_pixel[2] = (double( lightCell->red.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[1] = (double( lightCell->green.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[0] = (double( lightCell->blue.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
+
+	      phased_pixel[2] = (lightCell->red.mu) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[1] = (lightCell->green.mu) * cos( gap_path_length / lambda ) + 128.0;
+	      phased_pixel[0] = (lightCell->blue.mu) * cos( gap_path_length / lambda ) + 128.0;
+*/
+
+	      fillCell->newObservation(phased_pixel, z_to_use);
+	    }
+	  }
+	}
+      }
+
+    }
+  }
+
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
+
+
+
 WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
 virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX this function, which has not been started, should
+// reproject the reprojection buffer to a photograph at a single depth and store
+// it in the observed map, possibly to be put onto the depth stack
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -6057,8 +6364,12 @@ CONFIG_GETTER_INT(SceneAngularBaffleRows, ms->config.angular_baffle_rows)
 CONFIG_GETTER_INT(SceneAngularBaffleCols, ms->config.angular_baffle_cols)
 CONFIG_SETTER_INT(SceneSetAngularBaffleCols, ms->config.angular_baffle_cols)
 
+CONFIG_GETTER_INT(SceneDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
+CONFIG_SETTER_INT(SceneSetDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
 
 void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
+
+  int sceneDepthPatchHalfWidth = ms->config.sceneDepthPatchHalfWidth;
 
   int t_height = toMin->height;
   int t_width = toMin->width;
@@ -6069,16 +6380,49 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
       if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	double this_observed_sigma_squared = 
-	toMin->refAtCell(x,y)->red.sigmasquared +
-	toMin->refAtCell(x,y)->green.sigmasquared +
-	toMin->refAtCell(x,y)->blue.sigmasquared;
 
-	double this_register_sigma_squared = 
+
+	/*
+	  // one by one
+	  double this_observed_sigma_squared = 
+	  toMin->refAtCell(x,y)->red.sigmasquared +
+	  toMin->refAtCell(x,y)->green.sigmasquared +
+	  toMin->refAtCell(x,y)->blue.sigmasquared;
+
+	  double this_register_sigma_squared = 
+	  ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
+	*/
+
+	// XXX can't do it over a patch here because you need the old neighborhoods.
+	double this_observed_sigma_squared = 0;
+	double this_register_sigma_squared = 0;
+	int pxmin = std::max(x - sceneDepthPatchHalfWidth, 0);
+	int pxmax = std::min(x + sceneDepthPatchHalfWidth, t_width-1);
+	int pymin = std::max(y - sceneDepthPatchHalfWidth, 0);
+	int pymax = std::min(y + sceneDepthPatchHalfWidth, t_height-1);
+
+	double ss_r = 0;
+	double ss_g = 0;
+	double ss_b = 0;
+
+	for (int py = pymin; py <= pymax; py++) {
+	  for (int px = pxmin; px <= pxmax; px++) {
+	    ss_r = ss_r + toMin->refAtCell(px,py)->red.sigmasquared;
+	    ss_g = ss_g + toMin->refAtCell(px,py)->green.sigmasquared;
+	    ss_b = ss_b + toMin->refAtCell(px,py)->blue.sigmasquared;
+	  }
+	}
+	this_observed_sigma_squared = this_observed_sigma_squared +
+	ss_r +
+	ss_g +
+	ss_b;
+
+	this_register_sigma_squared = 
 	ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared +
 	ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared +
 	ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
-
 	
 	double thisObservedPixelArea = 1.0;
 	double thisRegisterPixelArea = 1.0;
@@ -6120,6 +6464,10 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
 	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
+
+	  ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = ss_r;
+	  ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = ss_g;
+	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = ss_b;
 	} else {
 	}
       } else {
@@ -6210,6 +6558,25 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 
 }
 
+WORD(SceneFlattenUncertainZWithDepthStack)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+// XXX TODO RELEASE  this should be good for segmentation and grasp proposal
+//  if the max depth estimate does not own enough of the probability share, this depth is
+//  set to the maximum depth, saying if it was hazy to us consider it background.
+
+/*
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      if ( (toMin->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+      }
+    }
+  }
+*/
+
+}
+END_WORD
+REGISTER_WORD(SceneFlattenUncertainZWithDepthStack)
+
 WORD(SceneMinIntoRegister)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneMinIntoRegister: copying..." << endl;
@@ -6230,7 +6597,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int t_width = ms->config.scene->observed_map->width;
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
-      if (ms->config.scene->discrepancy_density.at<double>(y,x) > thresh) {
+      if (ms->config.scene->discrepancy_density.at<double>(x,y) > thresh) {
 	// keep its z value
       } else {
 	// zero it out
@@ -6272,7 +6639,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
 
-      CELLREF_EQUALS_VEC3(ms->config.scene->observed_map->refAtCell(x,y), ss.at<Vec3d>(y,x), sigmasquared);
+      CELLREF_EQUALS_VEC3(ms->config.scene->observed_map->refAtCell(x,y), ss.at<Vec3d>(x,y), sigmasquared);
 
     }
   }
@@ -6730,9 +7097,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double minEnergy = DBL_MAX;
   int minEnergyX = -1;
   int minEnergyY = -1;
-
+  double maxSamples = 0;
   for (int y = 0; y < ms->config.scene->height; y++) {
     for (int x = 0; x < ms->config.scene->width; x++) {
+      if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples >= maxSamples) {
+        maxSamples = ms->config.scene->observed_map->refAtCell(x, y)->red.samples;
+      }
       if (ms->config.scene->observed_map->refAtCell(x, y)->red.samples > 40) {
 	// this is for FIXATE_STREAM so ignore Y channel
 	double thisEnergy = 
@@ -6753,6 +7123,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
+  if (minEnergyX == -1 || minEnergyY == -1) {
+    cout << "Did not update minEnergy, were there enough samples?  minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl;
+    return;
+  }
+  
   double meters_scene_x, meters_scene_y;
   ms->config.scene->observed_map->cellToMeters(minEnergyX, minEnergyY, &meters_scene_x, &meters_scene_y);
 

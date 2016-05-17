@@ -302,66 +302,43 @@ void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vec
 
 void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
 
+
   string transform = ms->config.left_or_right_arm + "_arm_mount";
   int num = GetNumFreeParameters();
   int * free_params = GetFreeParameters();
   assert(num == 1);
   int free_joint_idx = free_params[0];
   double free = ms->config.trueJointPositions[free_joint_idx];
+  thisRequest->response.isValid.resize(thisRequest->request.pose_stamp.size());
+  thisRequest->response.joints.resize(thisRequest->request.pose_stamp.size());
+  for (int i = 0; i < thisRequest->request.pose_stamp.size(); i++ ) {
 
-  geometry_msgs::PoseStamped base_pose = thisRequest->request.pose_stamp[0];
-  base_pose.header.stamp = ros::Time(0);
-  geometry_msgs::PoseStamped transformed_pose;
-  geometry_msgs::PoseStamped gripper_base_pose;
-
-  ms->config.tfListener->transformPose(transform, base_pose, transformed_pose);
-  transformed_pose.header.stamp = ros::Time(0);
-  ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_gripper_base", transformed_pose, gripper_base_pose);
-  gripper_base_pose.pose.position.z += 0.005;
-  gripper_base_pose.header.stamp = ros::Time(0);
-  ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_arm_mount", gripper_base_pose, transformed_pose);
-  
-  vector<double> solution;
-  bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
-  thisRequest->response.isValid.resize(1);
-
-  if (result) {
-    thisRequest->response.isValid[0] = 1;
-    thisRequest->response.joints.resize(1);
-    thisRequest->response.joints[0].position.resize(NUM_JOINTS);
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      thisRequest->response.joints[0].position[j] = solution[j];
+    geometry_msgs::PoseStamped base_pose = thisRequest->request.pose_stamp[i];
+    base_pose.header.stamp = ros::Time(0);
+    geometry_msgs::PoseStamped transformed_pose;
+    geometry_msgs::PoseStamped gripper_base_pose;
+    
+    ms->config.tfListener->transformPose(transform, base_pose, transformed_pose);
+    transformed_pose.header.stamp = ros::Time(0);
+    ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_gripper_base", transformed_pose, gripper_base_pose);
+    gripper_base_pose.pose.position.z += 0.005;
+    gripper_base_pose.header.stamp = ros::Time(0);
+    ms->config.tfListener->transformPose(ms->config.left_or_right_arm + "_arm_mount", gripper_base_pose, transformed_pose);
+    
+    vector<double> solution;
+    bool result = ikfast_search(ms, transformed_pose.pose, free, solution);
+    
+    if (result) {
+      thisRequest->response.isValid[i] = 1;
+      thisRequest->response.joints[i].position.resize(NUM_JOINTS);
+      for (int j = 0; j < NUM_JOINTS; j++) {
+        thisRequest->response.joints[i].position[j] = solution[j];
+      }
+    } else {
+      thisRequest->response.isValid[i] = 0;
     }
-    *thisResult = 1;
-  } else {
-    *thisResult = 0;
-    thisRequest->response.isValid[0] = 0;
   }
-
-  //IkSolutionList<IkReal> solutions;
-  //ikfast_solve(ms, transformed_pose.pose, free, solutions);
-  
-
-  // for (int i = 0; i < solutions.GetNumSolutions(); i++) {
-  //   vector<double> solution;
-  //   solution.clear();
-  //   solution.resize(GetNumJoints());
-
-  //   const IkSolutionBase<IkReal>& sol = solutions.GetSolution(i);
-  //   std::vector<IkReal> vsolfree( sol.GetFree().size() );
-  //   sol.GetSolution(&solution[0],vsolfree.size()>0?&vsolfree[0]:NULL);
-  //   cout << "ikfast: " ;
-  //   for (int j = 0; j < solution.size(); j++) {
-  //     cout << solution[j] << ", " ;
-  //   }
-  //   cout << endl;
-  //   for (int j = 0; j < NUM_JOINTS; j++) {
-  //     //thisRequest->response.joints[0].position[j] = solution[j];
-  //   }
-
-  // }
-
-
+  *thisResult = 1;
 }
 
 
