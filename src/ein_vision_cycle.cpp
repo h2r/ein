@@ -195,7 +195,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int proximity = ms->config.pursuitProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
-	    if ( cellIsSearched(ms, i, j) ) {
+	    if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
 	      int iIStart = max(0, i-proximity);
 	      int iIEnd = min(ms->config.mapWidth-1, i+proximity);
 	      int iJStart = max(0, j-proximity);
@@ -204,7 +205,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      int reject = 0;
 	      for (int iI = iIStart; iI <= iIEnd; iI++) {
 	        for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	          if (  ( !cellIsSearched(ms, iI, iJ) ) || 
+	          if (  ( !cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, iI, iJ) ) || 
 	    	    (( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
 	    	    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity ))  ) {
 	    	    reject = 1;
@@ -228,7 +230,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int proximity = ms->config.searchProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
       for (int j = 0; j < ms->config.mapHeight; j++) {
-	    if ( cellIsSearched(ms, i, j) ) {
+	    if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
 	      int iIStart = max(0, i-proximity);
 	      int iIEnd = min(ms->config.mapWidth-1, i+proximity);
 	      int iJStart = max(0, j-proximity);
@@ -237,7 +240,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      int reject = 0;
 	      for (int iI = iIStart; iI <= iIEnd; iI++) {
 	        for (int iJ = iJStart; iJ <= iJEnd; iJ++) {
-	          if (  ( !cellIsSearched(ms, iI, iJ) ) || 
+	          if (  ( !cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, iI, iJ) ) || 
 	    	    (( ms->config.ikMap[iI + ms->config.mapWidth * iJ] != 0 ) &&
 	    	    ( sqrt((iI-i)*(iI-i) + (iJ-j)*(iJ-j)) < proximity ))  ) {
 	    	     reject = 1;
@@ -262,7 +266,7 @@ WORD(PointToClearanceMap)
 virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int currentI, currentJ;
-  mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &currentI, &currentJ);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &currentI, &currentJ);
 
   int minI, minJ;
   double minDistanceToGreen = INFINITY;
@@ -283,7 +287,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   double minX, minY;
-  mapijToxy(ms, minI, minJ, &minX, &minY);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, minI, minJ, &minX, &minY);
   
   double crane1I = 1;
   double crane1J = 0;
@@ -451,13 +455,28 @@ END_WORD
 REGISTER_WORD(CopyIkMapToHeightIdx)
 
 
+WORD(ClearIkMap)
+virtual string description() {
+  return "Reset the IK Map so that every cell is good.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  for (int i = 0; i < ms->config.mapWidth; i++) {
+    for (int j = 0; j < ms->config.mapHeight; j++) {
+      ms->config.ikMap[i + ms->config.mapWidth * j] = IK_GOOD;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(ClearIkMap)
+
+
 WORD(FillIkMap)
 
 virtual string description() {
   return "Fill the IK map for the current range starting at the i and j and height on the stack.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  int cellsPerQuery = 100;
+  int cellsPerQuery = 200;
 
   int currentI, currentJ;
   double height;
@@ -469,20 +488,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int queries = 0;
   int i=currentI, j=currentJ;
+  vector<eePose> poses;
+  vector<tuple<int, int> > mapIndexes;
+
   for (; i < ms->config.mapWidth; i++) {
     if (queries < cellsPerQuery) {
       for (; j < ms->config.mapHeight; j++) {
 	if (queries < cellsPerQuery) {
-	  if ( cellIsSearched(ms, i, j) ) {
+	  if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
 	    double X, Y;
-	    mapijToxy(ms, i, j, &X, &Y);
+	    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &X, &Y);
 
 	    eePose nextEEPose = ms->config.straightDown;
 	    nextEEPose.px = X;
 	    nextEEPose.py = Y;
 	    nextEEPose.pz = height;
+            poses.push_back(nextEEPose);
+            mapIndexes.push_back(make_tuple(i, j));
 
-	    ms->config.ikMap[i + ms->config.mapWidth * j] = ikAtPose(ms, nextEEPose);
 	    queries++;
 	  }
 	} else {
@@ -503,6 +527,19 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       break;
     }
   }
+  //cout << "Sending " << poses.size() << " poses to the IK Service..." << endl;
+  vector<ikMapState> results = ikAtPoses(ms, poses);
+  //cout << "Received " << results.size() << " results from the IK Service." << endl;
+  //assert(results.size() == poses.size());
+  //cout << "Sending " << poses.size() << " poses to the IK Service... separately" << endl;
+  for (int k = 0; k < mapIndexes.size(); k++) {
+    int ci = std::get<0>(mapIndexes[k]);
+    int cj = std::get<1>(mapIndexes[k]);
+    //ikMapState result = ikAtPose(ms, poses[k]);
+    ms->config.ikMap[ci + ms->config.mapWidth * cj] = results[k];
+    //ms->config.ikMap[ci + ms->config.mapWidth * cj] = result;
+  }
+  //cout << "Done." << endl;
 
   if (j >= ms->config.mapHeight) {
     j = 0;
@@ -548,7 +585,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ros::Time oldestTime = ms->config.lastScanStarted;
       for (int i = 0; i < ms->config.mapWidth; i++) {
 	    for (int j = 0; j < ms->config.mapHeight; j++) {
-	      if (cellIsSearched(ms, i, j) &&
+	      if (cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) &&
 	          (ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime <= oldestTime) &&
 	          (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) &&
 	          (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
@@ -584,7 +622,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
 
     double oldestX, oldestY;
-    mapijToxy(ms, oldestI, oldestJ, &oldestX, &oldestY);
+    mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, oldestI, oldestJ, &oldestX, &oldestY);
 
     eePose nextEEPose = ms->config.currentEEPose;
     nextEEPose.px = oldestX;
@@ -601,9 +639,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     int ikResultFailed = 1;
     if (ms->config.currentRobotMode == PHYSICAL) {
-      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision, 0);
     } else if (ms->config.currentRobotMode == SIMULATED) {
-      ikResultFailed = !positionIsSearched(ms, nextEEPose.px, nextEEPose.py);
+      ikResultFailed = !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, nextEEPose.px, nextEEPose.py);
     } else {
       assert(0);
     }
@@ -743,7 +781,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
-        mapxyToij(ms, x, y, &i, &j);
+        mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 	
 	//        if (ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime > mapMemoryTimeout) {
 	//          ms->config.objectMap[i + ms->config.mapWidth * j].b = 0;
@@ -822,7 +860,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   box.lockStatus = CENTROID_LOCK;
   
   int i, j;
-  mapxyToij(ms, box.centroid.px, box.centroid.py, &i, &j);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.centroid.px, box.centroid.py, &i, &j);
 
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
@@ -830,7 +868,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //if ( !positionIsSearched(box.centroid.px, box.centroid.py) && 
        //!isCellInPursuitZone(i, j) ) 
   //if (!positionIsSearched(box.centroid.px, box.centroid.py)) 
-  if ( !positionIsSearched(ms, box.centroid.px, box.centroid.py) || 
+  if ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, box.centroid.px, box.centroid.py) || 
        !isBoxMemoryIkPossible(ms, box) ) 
   {
     return;

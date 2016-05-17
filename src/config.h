@@ -1630,6 +1630,7 @@ class EinConfig {
   double scene_score_thresh = 0.01;
 
   vector<shared_ptr<GaussianMap> > depth_maps;
+  int sceneDepthPatchHalfWidth = 0;
 
   shared_ptr<GaussianMap> reprojection_buffer;
 
