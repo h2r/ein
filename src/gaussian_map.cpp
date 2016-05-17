@@ -588,19 +588,18 @@ void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   vec[2] = cellRef->red.statistic ; \
 
 void GaussianMap::rgbMuToMat(Mat& out) {
-  //out = Mat(height, width, CV_64FC3);
-  Mat big = Mat(height, width, CV_8UC3);
+  Mat big = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
 
       if (refAtCell(x, y)->red.samples > 0) {
-	big.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu);
-	big.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu);
-	big.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu);
+	big.at<Vec3b>(x,y)[0] = uchar(refAtCell(x,y)->blue.mu);
+	big.at<Vec3b>(x,y)[1] = uchar(refAtCell(x,y)->green.mu);
+	big.at<Vec3b>(x,y)[2] = uchar(refAtCell(x,y)->red.mu);
       } else {
-	big.at<Vec3b>(y,x)[0] = 0;
-	big.at<Vec3b>(y,x)[1] = 128;
-	big.at<Vec3b>(y,x)[2] = 128;
+	big.at<Vec3b>(x,y)[0] = 0;
+	big.at<Vec3b>(x,y)[1] = 128;
+	big.at<Vec3b>(x,y)[2] = 128;
       }
     }
   }
@@ -610,31 +609,30 @@ void GaussianMap::rgbMuToMat(Mat& out) {
 }
 
 void GaussianMap::rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out) {
-  //out = Mat(height, width, CV_64FC3);
-  out = Mat(height, width, CV_8UC3);
+  out = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3b>(y,x)[0] = uchar(refAtCell(x,y)->blue.mu * 255);
-      out.at<Vec3b>(y,x)[1] = uchar(refAtCell(x,y)->green.mu * 255);
-      out.at<Vec3b>(y,x)[2] = uchar(refAtCell(x,y)->red.mu * 255); 
+      out.at<Vec3b>(x,y)[0] = uchar(refAtCell(x,y)->blue.mu * 255);
+      out.at<Vec3b>(x,y)[1] = uchar(refAtCell(x,y)->green.mu * 255);
+      out.at<Vec3b>(x,y)[2] = uchar(refAtCell(x,y)->red.mu * 255); 
     }
   }
 }
 
 
 void GaussianMap::rgbSigmaSquaredToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.sigmasquared;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.sigmasquared;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.sigmasquared;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.sigmasquared;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.sigmasquared;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.sigmasquared;
     }
   }
 }
 
 void GaussianMap::rgbSigmaToMat(Mat& out) {
-  Mat big = Mat(height, width, CV_8UC3);
+  Mat big = Mat(width, height, CV_8UC3);
   double max_val = -DBL_MAX;
   double min_val = DBL_MAX;
   
@@ -648,9 +646,9 @@ void GaussianMap::rgbSigmaToMat(Mat& out) {
       if (bval < min_val) {
 	min_val = bval;
       }
-      big.at<Vec3b>(y,x)[0] = uchar(sqrt(refAtCell(x,y)->blue.sigmasquared) * 4);
-      big.at<Vec3b>(y,x)[1] = uchar(sqrt(refAtCell(x,y)->green.sigmasquared) * 4);
-      big.at<Vec3b>(y,x)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[0] = uchar(sqrt(refAtCell(x,y)->blue.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[1] = uchar(sqrt(refAtCell(x,y)->green.sigmasquared) * 4);
+      big.at<Vec3b>(x,y)[2] = uchar(sqrt(refAtCell(x,y)->red.sigmasquared) * 4);
     }
   }
   //cout << "max: " << max_val << endl;
@@ -659,50 +657,50 @@ void GaussianMap::rgbSigmaToMat(Mat& out) {
 }
 
 void GaussianMap::rgbCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.counts;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.counts;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.counts;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.counts;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.counts;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.counts;
     }
   }
 }
 
 void GaussianMap::rgbSquaredCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64FC3);
+  out = Mat(width, height, CV_64FC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<Vec3d>(y,x)[0] = refAtCell(x,y)->blue.squaredcounts;
-      out.at<Vec3d>(y,x)[1] = refAtCell(x,y)->green.squaredcounts;
-      out.at<Vec3d>(y,x)[2] = refAtCell(x,y)->red.squaredcounts;
+      out.at<Vec3d>(x,y)[0] = refAtCell(x,y)->blue.squaredcounts;
+      out.at<Vec3d>(x,y)[1] = refAtCell(x,y)->green.squaredcounts;
+      out.at<Vec3d>(x,y)[2] = refAtCell(x,y)->red.squaredcounts;
     }
   }
 }
 
 void GaussianMap::zMuToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.mu;
+      out.at<double>(x,y) = refAtCell(x,y)->z.mu;
     }
   }
 }
 
 void GaussianMap::zSigmaSquaredToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.sigmasquared;
+      out.at<double>(x,y) = refAtCell(x,y)->z.sigmasquared;
     }
   }
 }
 
 void GaussianMap::zCountsToMat(Mat& out) {
-  out = Mat(height, width, CV_64F);
+  out = Mat(width, height, CV_64F);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      out.at<double>(y,x) = refAtCell(x,y)->z.counts;
+      out.at<double>(x,y) = refAtCell(x,y)->z.counts;
     }
   }
 }
@@ -894,12 +892,12 @@ void Scene::reallocate() {
   }
   background_map = make_shared<GaussianMap>(width, height, cell_width);
   predicted_map = make_shared<GaussianMap>(width, height, cell_width);
-  predicted_segmentation = Mat(height, width, CV_64F);
+  predicted_segmentation = Mat(width, height, CV_64F);
   observed_map = make_shared<GaussianMap>(width, height, cell_width);
   discrepancy = make_shared<GaussianMap>(width, height, cell_width);
 
-  discrepancy_magnitude = Mat(height, width, CV_64F);
-  discrepancy_density = Mat(height, width, CV_64F);
+  discrepancy_magnitude = Mat(width, height, CV_64F);
+  discrepancy_density = Mat(width, height, CV_64F);
 }
 
 void Scene::smoothDiscrepancyDensity(double sigma) {
@@ -913,7 +911,7 @@ bool Scene::isDiscrepantCell(double threshold, int x, int y) {
   if (!safeAt(x,y)) {
     return false;
   } else {
-    return (discrepancy_density.at<double>(y,x) > threshold);
+    return (discrepancy_density.at<double>(x,y) > threshold);
   }
 } 
 bool Scene::isDiscrepantCellBilin(double threshold, double x, double y) {
@@ -1170,7 +1168,7 @@ void Scene::measureDiscrepancy() {
 	  cout << "Total discrepancy is nan. " << total_discrepancy << endl;
 	  total_discrepancy = 0.0;
 	}
-	discrepancy_magnitude.at<double>(y,x) = total_discrepancy;
+	discrepancy_magnitude.at<double>(x,y) = total_discrepancy;
 
 	//identitycheckProb("total_discrepancy", total_discrepancy);
 	//identitycheckProb("rmu", discrepancy->refAtCell(x,y)->red.mu);
@@ -1179,14 +1177,14 @@ void Scene::measureDiscrepancy() {
 	//rmu_diff*rmu_diff + gmu_diff*gmu_diff + bmu_diff*bmu_diff ;
 	//+ rvar_quot + gvar_quot + bvar_quot;
 
-	//sqrt(discrepancy_magnitude.at<double>(y,x) / 3.0) / 255.0; 
+	//sqrt(discrepancy_magnitude.at<double>(x,y) / 3.0) / 255.0; 
 
 	c_enough++;
 	//cout << " enough ";
 	//cout << predicted_map->refAtCell(x,y)->red.samples << " " << observed_map->refAtCell(x,y)->red.samples << " ";
       } else {
 	discrepancy->refAtCell(x,y)->zero();
-	discrepancy_magnitude.at<double>(y,x) = 0.0;
+	discrepancy_magnitude.at<double>(x,y) = 0.0;
       }
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	c_total++;
@@ -1220,7 +1218,7 @@ double Scene::measureScoreRegion(int _x1, int _y1, int _x2, int _y2) {
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
       if (discrepancy->refAtCell(x,y)->red.samples > 0) {
-	totalScore += discrepancy_magnitude.at<double>(y,x); 
+	totalScore += discrepancy_magnitude.at<double>(x,y); 
       } else {
       }
     }
@@ -1432,11 +1430,11 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   cout << xmin << " " << xmax << " " << ymin << " " << ymax << " initial " << endl;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      if (discrepancy_density.at<double>(y,x) != 0) {
-	//cout << discrepancy_density.at<double>(y,x) << endl;
+      if (discrepancy_density.at<double>(x,y) != 0) {
+	//cout << discrepancy_density.at<double>(x,y) << endl;
       }
 
-      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(x,y) > threshold)) {
 	xmin = min(xmin, x);
 	xmax = max(xmax, x);
 	ymin = min(ymin, y);
@@ -1498,7 +1496,7 @@ int Scene::countDiscrepantCells(double threshold, int _x1, int _y1, int _x2, int
   int discrepant_cells = 0;
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
-      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(y,x) > threshold)) {
+      if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (discrepancy_density.at<double>(x,y) > threshold)) {
 	discrepant_cells++;
       } else {
       }
@@ -1592,9 +1590,9 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	int tx = x - tRx;
 	int ty = y - tRy;
 	if ( tx >= 0 && ty >= 0 && ty < crows && tx < ccols )  {
-	  prepared_object.at<double>(y, x) = object_to_prepare.at<double>(ty, tx);
+	  prepared_object.at<double>(x,y) = object_to_prepare.at<double>(ty, tx);
 	} else {
-	  prepared_object.at<double>(y, x) = 0.0;
+	  prepared_object.at<double>(x,y) = 0.0;
 	}
       }
     }
@@ -1719,8 +1717,8 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	double model_score = 0.0;
 
 /*
-	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
-	  cout << output.at<double>(y,x) << "  running inference...";
+	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
+	  cout << output.at<double>(x,y) << "  running inference...";
 	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
 	  double x_m_tt, y_m_tt;
 	  ms->config.scene->cellToMeters(x,y,&x_m_tt,&y_m_tt);
@@ -1728,7 +1726,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  cout << " score " << score << " max_score " << max_score << endl;
 	}
 */
-	if (output.at<double>(y,x) > overlap_thresh * po_l2norm) {
+	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
 	  SceneObjectScore to_push;
 	  to_push.x_c = x;
 	  to_push.y_c = y;
@@ -1736,7 +1734,7 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	  to_push.orient_i = thisOrient;
 	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
 	  to_push.discrepancy_valid = true;
-	  to_push.discrepancy_score = output.at<double>(y,x);
+	  to_push.discrepancy_score = output.at<double>(x,y);
 
 	  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
 	    to_push.loglikelihood_valid = false;
@@ -1752,10 +1750,10 @@ cout << "tob " << tob_half_width << " " << tob_half_height << endl;
 	}
   
 	//if (model_score > max_score) 
-	if (output.at<double>(y,x) > max_score) 
+	if (output.at<double>(x,y) > max_score) 
 	{
 	  //max_score = model_score;
-	  max_score = output.at<double>(y,x);
+	  max_score = output.at<double>(x,y);
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
@@ -2377,19 +2375,19 @@ void Scene::readFromFileNode(FileNode& it) {
   bool error = false;
   if (discrepancy_density.rows != height || discrepancy_density.cols != width) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
-    discrepancy_density = Mat(height, width, CV_64F);
+    discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (discrepancy_magnitude.rows != height || discrepancy_magnitude.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
-    discrepancy_magnitude = Mat(height, width, CV_64F);
+    discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (predicted_segmentation.rows != height || predicted_segmentation.cols != width) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
-    predicted_segmentation = Mat(height, width, CV_64F);
+    predicted_segmentation = Mat(width, height, CV_64F);
   }
   
   if (error) {
@@ -2894,7 +2892,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -2916,7 +2914,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double root = 0.0;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -2953,10 +2951,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      if (tsd.at<double>(y,x) <= thresh) {
-	omtsd.at<double>(y,x) = 0.0;
+      if (tsd.at<double>(x,y) <= thresh) {
+	omtsd.at<double>(x,y) = 0.0;
       } else {
-	omtsd.at<double>(y,x) = 1.0 - tsd.at<double>(y,x);
+	omtsd.at<double>(x,y) = 1.0 - tsd.at<double>(x,y);
       }
     }
   }
@@ -3011,8 +3009,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      if (omtsd.at<double>(y,x) <= 0) {
-	omtsd_log.at<double>(y,x) = 0.0;
+      if (omtsd.at<double>(x,y) <= 0) {
+	omtsd_log.at<double>(x,y) = 0.0;
       } else {
       }
     }
@@ -3028,7 +3026,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -3050,7 +3048,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double root = 0.0;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      double val = tsd.at<double>(y,x);
+      double val = tsd.at<double>(x,y);
       if (val > 1.0) {
 	cout << "scenePushTotalDiscrepancy: XXX invalid density " << val << endl;
       } else if (val < 0.0) {
@@ -3123,8 +3121,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int H = tsd_a.rows;
   for (int y = 0; y < H; y++) {
     for (int x = 0; x < W; x++) {
-      before_scores.push_back( tsd_b.at<double>(y,x) );
-      after_scores.push_back( tsd_a.at<double>(y,x) );
+      before_scores.push_back( tsd_b.at<double>(x,y) );
+      after_scores.push_back( tsd_a.at<double>(x,y) );
     }
   }
 
@@ -3271,8 +3269,8 @@ REGISTER_WORD(SceneIsNewConfiguration)
 WORD(SceneInit)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
-  int p_width = 1001; //1501; // 1001 // 601;
-  int p_height = 1001; //1501; // 1001 / 601;
+  int p_width = 901; //1001; //1501; // 1001 // 601;
+  int p_height = 901; //1001; //1501; // 1001 / 601;
   eePose scenePose = eePose::identity();
   scenePose.pz = -ms->config.currentTableZ;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
@@ -3796,7 +3794,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
       } else {
-	densityImage.at<double>(y, x) = 0;
+	densityImage.at<double>(x,y) = 0;
       }
     }
   }
@@ -3822,7 +3820,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
       } else {
-	//toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(x,y) = 0;
       }
     }
   }
@@ -3834,10 +3832,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
-	//toShow.at<double>(y, x) = (toShow.at<double>(y, x) - minVal) / denom;
-	toShow.at<double>(y, x) = (maxVal - toShow.at<double>(y, x)) / denom;
+	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
+	toShow.at<double>(x,y) = (maxVal - toShow.at<double>(x,y)) / denom;
       } else {
-	//toShow.at<double>(y, x) = 0;
+	//toShow.at<double>(x,y) = 0;
       }
     }
   }
@@ -4817,7 +4815,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double this_x_m, this_y_m;
       ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
-	fake_filter.at<double>(y,x) = scale*pos_factor;
+	fake_filter.at<double>(x,y) = scale*pos_factor;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
@@ -4828,12 +4826,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
-	fake_filter.at<double>(y,x) = -negative_space_weight_ratio*scale*neg_factor;
+	fake_filter.at<double>(x,y) = -negative_space_weight_ratio*scale*neg_factor;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
       } else {
-	fake_filter.at<double>(y,x) = 0.0;
+	fake_filter.at<double>(x,y) = 0.0;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
 	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
@@ -6599,7 +6597,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int t_width = ms->config.scene->observed_map->width;
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
-      if (ms->config.scene->discrepancy_density.at<double>(y,x) > thresh) {
+      if (ms->config.scene->discrepancy_density.at<double>(x,y) > thresh) {
 	// keep its z value
       } else {
 	// zero it out
@@ -6641,7 +6639,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
 
-      CELLREF_EQUALS_VEC3(ms->config.scene->observed_map->refAtCell(x,y), ss.at<Vec3d>(y,x), sigmasquared);
+      CELLREF_EQUALS_VEC3(ms->config.scene->observed_map->refAtCell(x,y), ss.at<Vec3d>(x,y), sigmasquared);
 
     }
   }
