@@ -116,7 +116,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
   tempSpiralStreamTakeSceneSamples "tempReconstructStreamTakeSceneSamples" store
+  /*
   tempReconstructWithZ
+  */
+  tempReconstructFromStream
 
 ) "tempUpdateSpiralCoreIntegrate" store
 
@@ -2820,6 +2823,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   setGripperMaskWithMotion
   moveEeToPoseWord
   */
+  initializeAndFocusOnNewClass
   setTable
 
   tempCalibrateHeightReticles
