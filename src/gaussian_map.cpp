@@ -1450,12 +1450,12 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
   toReturn->discrepancy= discrepancy->copyBox(x1,y1,x2,y2);
 
-  //toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
-  //toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
-  //toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
-  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
-  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
-  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  //toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  //toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  //toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
 
 
 
