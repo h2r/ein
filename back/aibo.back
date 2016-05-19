@@ -459,6 +459,22 @@ Snare
 ) "dogTailCenter" store
 
 
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  -100 dogMouthTo
+  dogSendMotorState
+) "dogOpenMouth" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  100 dogMouthTo
+  dogSendMotorState
+) "dogCloseMouth" store
+
+
+
 
 ( 
   dogTailUp 0.15 waitForSeconds
@@ -484,9 +500,11 @@ dogComeToStop
 ) "demoDogLieDown" store
 
 (
+dogOpenMouth
 dogBark dogBark dogBark 
 dogBark dogBark dogBark 
 2 waitForSeconds
+dogCloseMouth
 dogComeToStop
 ) "demoDogBark" store
 
