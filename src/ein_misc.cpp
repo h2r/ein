@@ -343,6 +343,54 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(Pow)
 
+WORD(Max)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(std::max(v2,v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Max)
+
+WORD(Min)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  double v2;
+  GET_NUMERIC_ARG(ms, v2);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(std::min(v2,v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Min)
+
+WORD(Floor)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(floor(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Floor)
+
+WORD(Ceil)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(ceil(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Ceil)
+
 WORD(Plus)
 CODE('+') 
 virtual vector<string> names() {
@@ -1138,6 +1186,9 @@ REGISTER_WORD(CameraZeroNonLinear)
 CONFIG_GETTER_INT(CameraGetCalibrationMode, ms->config.currentCameraCalibrationMode);
 CONFIG_SETTER_ENUM(CameraSetCalibrationMode, ms->config.currentCameraCalibrationMode, (cameraCalibrationMode));
 
+CONFIG_GETTER_INT(SceneGetFixationMode, ms->config.currentSceneFixationMode);
+CONFIG_SETTER_ENUM(SceneSetFixationMode, ms->config.currentSceneFixationMode, (sceneFixationMode));
+
 WORD(CameraFitQuadratic)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -1210,6 +1261,174 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(CameraFitQuadratic)
 
+WORD(CameraFitHyperbolic)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double bBZ[4];
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+
+  if (	bBZ[0] == 0 || 
+	bBZ[1] == 0 || 
+	bBZ[2] == 0 || 
+	bBZ[3] == 0 ) {
+    cout << "cameraFitHyperbolic: error, bailing" << endl;
+  }
+
+  bBZ[0] = 1.0/bBZ[0];     
+  bBZ[1] = 1.0/bBZ[1];  
+  bBZ[2] = 1.0/bBZ[2];
+  bBZ[3] = 1.0/bBZ[3];  
+
+
+  cout << "cameraFitHyperbolic: " << endl;
+  {
+    cout << "  running y reticles... 0 1 2 3: " <<
+       ms->config.m_y_h[0] << " " <<
+       ms->config.m_y_h[1] << " " <<
+       ms->config.m_y_h[2] << " " <<
+       ms->config.m_y_h[3] << endl;
+
+    Vector3d beta;
+    Vector4d Y;
+    Matrix<double, 4, 3> X;
+
+    X << 1 , bBZ[0] , bBZ[0] * bBZ[0] 
+       , 1 , bBZ[1] , bBZ[1] * bBZ[1] 
+       , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
+       , 1 , bBZ[3] , bBZ[3] * bBZ[3];
+
+    Y << ms->config.m_y_h[0]
+       , ms->config.m_y_h[1]
+       , ms->config.m_y_h[2]
+       , ms->config.m_y_h[3];
+
+    beta = (X.transpose() * X).inverse() * X.transpose() * Y;
+
+    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+
+    ms->config.m_YQ[0] = beta(0);
+    ms->config.m_YQ[1] = beta(1);
+    ms->config.m_YQ[2] = beta(2);
+  }
+  {
+    cout << "  running x reticles... 0 1 2 3: " <<
+       ms->config.m_x_h[0] << " " <<
+       ms->config.m_x_h[1] << " " <<
+       ms->config.m_x_h[2] << " " <<
+       ms->config.m_x_h[3] << endl;
+
+    Vector3d beta;
+    Vector4d Y;
+    Matrix<double, 4, 3> X;
+
+    X << 1 , bBZ[0] , bBZ[0] * bBZ[0] 
+       , 1 , bBZ[1] , bBZ[1] * bBZ[1] 
+       , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
+       , 1 , bBZ[3] , bBZ[3] * bBZ[3];
+
+    Y << ms->config.m_x_h[0]
+       , ms->config.m_x_h[1]
+       , ms->config.m_x_h[2]
+       , ms->config.m_x_h[3];
+
+    beta = (X.transpose() * X).inverse() * X.transpose() * Y;
+
+    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+
+    ms->config.m_XQ[0] = beta(0);
+    ms->config.m_XQ[1] = beta(1);
+    ms->config.m_XQ[2] = beta(2);
+  }
+}
+END_WORD
+REGISTER_WORD(CameraFitHyperbolic)
+
+WORD(CameraPrintParams)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double gZ = ms->config.currentEEPose.pz;
+
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
+
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+
+  {
+    //double d = ms->config.d_x;
+    double d = ms->config.d_x/ms->config.m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
+
+    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+/*
+    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+*/
+  }
+  {
+    //double d = ms->config.d_y;
+    double d = ms->config.d_y/ms->config.m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // XXX removed the above correction still need to check
+
+    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(CameraPrintParams)
 
 
 WORD(EndStackCollapse)
@@ -1514,6 +1733,17 @@ END_WORD
 REGISTER_WORD(Help)
 
 
+WORD(CurrentIKModeString)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<StringWord> currentIkModeWord = make_shared<StringWord>(ikModeToString(ms->config.currentIKMode));
+  ms->pushWord(currentIkModeWord);
+}
+END_WORD
+REGISTER_WORD(CurrentIKModeString)
+
+
+
 WORD(IkModeService)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
@@ -1548,6 +1778,64 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(ResetAveragedWrenchNorm)
+
+
+WORD(AnalogIOCommand)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  string component;
+  double value;
+  GET_ARG(ms, StringWord, component);
+  GET_NUMERIC_ARG(ms, value);
+
+  baxter_core_msgs::AnalogOutputCommand thisCommand;
+
+  thisCommand.name = component;
+  thisCommand.value = value;
+
+  ms->config.analog_io_pub.publish(thisCommand);
+}
+END_WORD
+REGISTER_WORD(AnalogIOCommand)
+
+WORD(TorsoFanOn)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("100 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOn)
+
+WORD(TorsoFanOff)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("1 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOff)
+
+WORD(TorsoFanAuto)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  ms->evaluateProgram("0 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanAuto)
+
+
+WORD(SetTorsoFanLevel)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  std::stringstream program;
+  program << value << " \"torso_fan\" analogIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(SetTorsoFanLevel)
+
+
 
 WORD(DigitalIOCommand)
 virtual void execute(std::shared_ptr<MachineState> ms)
@@ -2165,6 +2453,31 @@ END_WORD
 REGISTER_WORD(Dsr)
 
 
+WORD(OSB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("[");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("slide (");
+}
+END_WORD
+REGISTER_WORD(OSB)
+
+WORD(CSB)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("]");
+  return result;
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->evaluateProgram("1 |S )");
+}
+END_WORD
+REGISTER_WORD(CSB)
 
 
 WORD(Time)
@@ -2172,14 +2485,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<CompoundWord> block;
   GET_WORD_ARG(ms, CompoundWord, block);
 
-  ms->pushWord("-");
-  ms->pushWord("swap");
-  ms->pushWord("now");
+  ms->evaluateProgram("time_endTime time_startTime -");
+  ms->evaluateProgram("now \"time_endTime\" store");
   ms->pushWord(block);
-  ms->pushWord("now");
+  ms->evaluateProgram("now \"time_startTime\" store");
 }
 END_WORD
 REGISTER_WORD(Time)
+
+WORD(CommandOtherArm)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string string_in;
+  GET_STRING_ARG(ms, string_in);
+
+  std_msgs::String command;
+  command.data = string_in;
+  ms->config.forthCommandPublisher.publish(command);
+}
+END_WORD
+REGISTER_WORD(CommandOtherArm)
 
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -2258,6 +2582,14 @@ CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold
 
 CONFIG_GETTER_INT(SceneDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
 CONFIG_SETTER_INT(SceneSetDiscrepancySearchDepth, ms->config.sceneDiscrepancySearchDepth)
+
+CONFIG_GETTER_INT(ArmOkButtonState, ms->config.lastArmOkButtonState)
+CONFIG_GETTER_INT(ArmShowButtonState, ms->config.lastArmShowButtonState)
+CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
+
+CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
+
+CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 

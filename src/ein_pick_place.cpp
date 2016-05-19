@@ -85,20 +85,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(DucksInARow)
 
-WORD(FollowPath)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  eePose destPose;
-  CONSUME_EEPOSE(destPose,ms);
-
-  ms->pushWord("followPath");
-
-  ms->pushWord("waitUntilAtCurrentPositionCollapse");
-  ms->pushWord("moveEeToPoseWord");
-  ms->pushWord(std::make_shared<EePoseWord>(destPose));
-}
-END_WORD
-REGISTER_WORD(FollowPath)
-
 WORD(CornellMugsOnTables)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   
@@ -307,7 +293,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       int i, j;
       pixelToGlobal(ms, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iTop=i;
       jTop=j;
     }
@@ -315,7 +301,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double x, y;
       int i, j;
       pixelToGlobal(ms, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
-      mapxyToij(ms,x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iBot=i;
       jBot=j;
     }
@@ -588,10 +574,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     assert(0);
   }
 
-  ms->pushWord("cruisingSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("tryToMoveToTheLastPrePickHeight");   
-  ms->pushWord("departureSpeed");
+  if (ms->config.currentPlaceMode == HOLD) {
+  } else {
+    ms->pushWord("cruisingSpeed");
+    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("tryToMoveToTheLastPrePickHeight");   
+    ms->pushWord("departureSpeed");
+  }
 }
 END_WORD
 REGISTER_WORD(PlaceObjectInDeliveryZone)

@@ -7,6 +7,20 @@
 class MachineState;
 class Word;
 
+typedef enum {
+  RAY_RGB = 1,
+  RAY_A = 2
+} rayType;
+
+class OrientedRay {
+public:
+  eePose pa;
+  eePose pb;
+  double r,g,b,a;
+  rayType t;
+};
+
+
 typedef struct _GaussianMapChannel {
   double counts;
   double squaredcounts;
@@ -37,6 +51,8 @@ typedef struct _GaussianMapCell {
 
   void newObservation(Vec3b obs);
   void newObservation(Vec3b obs, double zobs);
+  void newObservation(Vec3d obs);
+  void newObservation(Vec3d obs, double zobs);
   
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
@@ -147,6 +163,8 @@ class SceneObject {
   void readFromFileNode(FileNode& it);
 };
 
+
+
 class Scene {
   public:
   string predicted_class_name;
@@ -160,7 +178,7 @@ class Scene {
 
   std::shared_ptr<MachineState> ms;
 
-  Scene(shared_ptr<MachineState> ms, int w, int h, double cw);
+  Scene(shared_ptr<MachineState> ms, int w, int h, double cw, eePose pose);
   void reallocate();
 
   vector< shared_ptr<GaussianMap> > depth_stack;
@@ -232,7 +250,11 @@ class Scene {
 
   void readPredictedObjects(FileNode & fn);
   void writePredictedObjects(FileStorage & fsvO);
+
+  static shared_ptr<Scene> createFromFile(shared_ptr<MachineState> ms, string filename);
 };
+
+
 
 // transition tables can be instanced for particular settings; transitions may differ in low gravity, high wind, or soft ground, 
 //   especially helpful when running experiments to compare two subroutimnes or parameter choices.

@@ -8,23 +8,33 @@
 #undef MY_NAMESPACE
 #include "ikfast/ikfast_wrapper_right.h"
 
-
-void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
-  givenIkRequest->request.pose_stamp.resize(1);
-
-  givenIkRequest->request.pose_stamp[0].header.seq = 0;
-  givenIkRequest->request.pose_stamp[0].header.stamp = ros::Time::now();
-  givenIkRequest->request.pose_stamp[0].header.frame_id = "/base";
+void fillIkRequest(vector<eePose> poses, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+  givenIkRequest->request.pose_stamp.resize(poses.size());
+  
+  for (int i = 0; i < poses.size(); i++) {
+    givenIkRequest->request.pose_stamp[i].header.seq = 0;
+    givenIkRequest->request.pose_stamp[i].header.stamp = ros::Time::now();
+    givenIkRequest->request.pose_stamp[i].header.frame_id = "/base";
 
   
-  givenIkRequest->request.pose_stamp[0].pose.position.x = givenEEPose.px;
-  givenIkRequest->request.pose_stamp[0].pose.position.y = givenEEPose.py;
-  givenIkRequest->request.pose_stamp[0].pose.position.z = givenEEPose.pz;
+    givenIkRequest->request.pose_stamp[i].pose.position.x = poses[i].px;
+    givenIkRequest->request.pose_stamp[i].pose.position.y = poses[i].py;
+    givenIkRequest->request.pose_stamp[i].pose.position.z = poses[i].pz;
 
-  givenIkRequest->request.pose_stamp[0].pose.orientation.x = givenEEPose.qx;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.y = givenEEPose.qy;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.z = givenEEPose.qz;
-  givenIkRequest->request.pose_stamp[0].pose.orientation.w = givenEEPose.qw;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.x = poses[i].qx;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.y = poses[i].qy;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.z = poses[i].qz;
+    givenIkRequest->request.pose_stamp[i].pose.orientation.w = poses[i].qw;
+  }
+}
+
+
+void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest) {
+
+  vector<eePose> poses;
+  poses.push_back(givenEEPose);
+
+  fillIkRequest(poses, givenIkRequest);
 }
 
 void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
@@ -53,19 +63,22 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
   }
 }
 
-bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision) {
+bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision, int i) {
   bool thisIkResultFailed = 0;
   *likelyInCollision = 0;
 
-  if (thisIkCallResult && thisIkRequest.response.isValid[0]) {
+  if (thisIkCallResult && thisIkRequest.response.isValid[i]) {
     thisIkResultFailed = 0;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+  } else if (i >= thisIkRequest.response.joints.size()) {
+      thisIkResultFailed = 1;
+      cout << "Warning: received " << thisIkRequest.response.joints.size() << " results but requested i: " << i << endl;
+  } else if (thisIkRequest.response.joints[i].position.size() != NUM_JOINTS) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-  } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+  } else if (thisIkRequest.response.joints[i].name.size() != NUM_JOINTS) {
     thisIkResultFailed = 1;
     //cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-  } else if (thisIkRequest.response.joints.size() == 1) {
+  } else {
     if( ms->config.usePotentiallyCollidingIK ) {
       //cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
       //cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
@@ -75,15 +88,13 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
       thisIkResultFailed = 1;
       *likelyInCollision = 1;
     }
-  } else {
-    thisIkResultFailed = 1;
-    //cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
   }
-
   return thisIkResultFailed;
 }
 
 void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+    // fill in 
+
     *thisResult = ms->config.ikClient.call(*thisRequest);
     //cout << "Asking for IK: " << thisRequest->request.pose_stamp[0].pose.position.x << ",";
     //cout << thisRequest->request.pose_stamp[0].pose.position.y << ",";
@@ -98,11 +109,66 @@ void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_m
     // } else {
     //   cout << "invalid" << endl;
     // }
- 
 }
 
 
 void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+  // cache for later
+  eePose currentEEPoseRequested;
+  {
+    currentEEPoseRequested.px = thisRequest->request.pose_stamp[0].pose.position.x;
+    currentEEPoseRequested.py = thisRequest->request.pose_stamp[0].pose.position.y;
+    currentEEPoseRequested.pz = thisRequest->request.pose_stamp[0].pose.position.z;
+
+    currentEEPoseRequested.qx = thisRequest->request.pose_stamp[0].pose.orientation.x;
+    currentEEPoseRequested.qy = thisRequest->request.pose_stamp[0].pose.orientation.y;
+    currentEEPoseRequested.qz = thisRequest->request.pose_stamp[0].pose.orientation.z;
+    currentEEPoseRequested.qw = thisRequest->request.pose_stamp[0].pose.orientation.w;
+  }
+
+  eePose handPoint;
+  if (ms->config.currentRobotMode == PHYSICAL) {
+    if(ms->config.currentIKMode == IKSERVICE) {
+      handPoint = ms->config.handToRethinkEndPointTransform;
+    } else if (ms->config.currentIKMode == IKFAST) {
+      handPoint = eePose(0,0,0.0437, 0,0,0,1);
+    } else if (ms->config.currentIKMode == IKFASTDEBUG) {
+    } else {
+      assert(0);
+    }
+  } else if (ms->config.currentRobotMode == SIMULATED) {
+    *thisResult = 1;
+  } else {
+    assert(0);
+  }
+
+  // correct for IK service
+  eePose endPointCorrectedEEPoseToRequest;
+  {
+    eePose desiredHandPose = ms->config.handFromEndEffectorTransform.applyAsRelativePoseTo(currentEEPoseRequested);
+    eePose desiredEndPointPose = handPoint.applyAsRelativePoseTo(desiredHandPose);
+    //cout << currentEEPoseRequested << desiredHandPose << desiredEndPointPose << endl;
+    //cout << ms->config.handFromEndEffectorTransform << ms->config.handToRethinkEndPointTransform << endl;
+    //endPointCorrectedEEPoseToRequest = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
+    //endPointCorrectedEEPoseToRequest = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(currentEEPoseRequested);
+    //cout << ms->config.handToRethinkEndPointTransform << endl;
+
+
+    //endPointCorrectedEEPoseToRequest = currentEEPoseRequested;
+    endPointCorrectedEEPoseToRequest = desiredEndPointPose;
+  }
+
+  {
+    thisRequest->request.pose_stamp[0].pose.position.x = endPointCorrectedEEPoseToRequest.px;
+    thisRequest->request.pose_stamp[0].pose.position.y = endPointCorrectedEEPoseToRequest.py;
+    thisRequest->request.pose_stamp[0].pose.position.z = endPointCorrectedEEPoseToRequest.pz;
+
+    thisRequest->request.pose_stamp[0].pose.orientation.x = endPointCorrectedEEPoseToRequest.qx;
+    thisRequest->request.pose_stamp[0].pose.orientation.y = endPointCorrectedEEPoseToRequest.qy;
+    thisRequest->request.pose_stamp[0].pose.orientation.z = endPointCorrectedEEPoseToRequest.qz;
+    thisRequest->request.pose_stamp[0].pose.orientation.w = endPointCorrectedEEPoseToRequest.qw;
+  }
+
   if (ms->config.currentRobotMode == PHYSICAL) {
     if(ms->config.currentIKMode == IKSERVICE) {
       queryIKService(ms, thisResult, thisRequest);
@@ -130,44 +196,61 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
   } else {
     assert(0);
   }
+
+  // replace with original before returning
+  {
+    thisRequest->request.pose_stamp[0].pose.position.x = currentEEPoseRequested.px;
+    thisRequest->request.pose_stamp[0].pose.position.y = currentEEPoseRequested.py;
+    thisRequest->request.pose_stamp[0].pose.position.z = currentEEPoseRequested.pz;
+
+    thisRequest->request.pose_stamp[0].pose.orientation.x = currentEEPoseRequested.qx;
+    thisRequest->request.pose_stamp[0].pose.orientation.y = currentEEPoseRequested.qy;
+    thisRequest->request.pose_stamp[0].pose.orientation.z = currentEEPoseRequested.qz;
+    thisRequest->request.pose_stamp[0].pose.orientation.w = currentEEPoseRequested.qw;
+  }
 }
 
-
-
-
-
-ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
-
+vector<ikMapState> ikAtPoses(shared_ptr<MachineState> ms, vector<eePose> poses) {
   baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(pose, &thisIkRequest);
-  
+  fillIkRequest(poses, &thisIkRequest);
+
   bool likelyInCollision = 0;
-  // ATTN 24
-  //int thisIkCallResult = ms->config.ikClient.call(thisIkRequest);
   int thisIkCallResult = 0;
+
   queryIK(ms, &thisIkCallResult, &thisIkRequest);
-  
-  int ikResultFailed = 1;
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision);
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    ikResultFailed = !positionIsSearched(ms, pose.px, pose.py);
-  } else {
-    assert(0);
-  }
-  
-  int foundGoodPosition = !ikResultFailed;
-  //ms->config.ikMap[i + ms->config.mapWidth * j] = ikResultFailed;
-  //ms->config.ikMap[i + ms->config.mapWidth * j] = 1;
-  //cout << i << " " << j << endl;
-  if (ikResultFailed) {
-    return IK_FAILED;
-  } else {
-    if (likelyInCollision) {
-      return IK_LIKELY_IN_COLLISION;
+
+  vector<ikMapState> results;
+  results.resize(poses.size());
+
+  for (int i = 0; i < poses.size(); i++) {
+    int ikResultFailed = 1;
+    if (ms->config.currentRobotMode == PHYSICAL) {
+      ikResultFailed = willIkResultFail(ms, thisIkRequest, thisIkCallResult, &likelyInCollision, i);
+    } else if (ms->config.currentRobotMode == SIMULATED) {
+      ikResultFailed = !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, poses[i].px, poses[i].py);
     } else {
-      return IK_GOOD;
+      assert(0);
+    }
+  
+    int foundGoodPosition = !ikResultFailed;
+
+    if (ikResultFailed) {
+      results[i] = IK_FAILED;
+    } else {
+      if (likelyInCollision) {
+        results[i] = IK_LIKELY_IN_COLLISION;
+      } else {
+        results[i] = IK_GOOD;
+      }
     }
   }
+  return results;
 
+}
+
+ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
+  vector<eePose> poses;
+  poses.push_back(pose);
+  vector<ikMapState> results = ikAtPoses(ms, poses);
+  return results[0];
 }

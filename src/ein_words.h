@@ -304,6 +304,95 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
 }\
 
 
+#define GET_WORD_ARG_VALUE_LIST(ms,type,x)\
+{\
+  int hMore_args = 1;\
+  while(hMore_args) {\
+    shared_ptr<Word> hWord = ms->popData();\
+\
+    if (hWord == NULL) {\
+      cout << "oops, GET_WORD_ARG_VALUE_LIST expects endArgs" << endl;\
+      ms->clearStack();\
+      return;\
+\
+      cout << "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " found no argument..." << endl;\
+      cout << "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name() << endl;\
+      cout << "  Pausing." << endl;\
+      ms->pushWord("pauseStackExecution");\
+      return;\
+    } else {\
+    }\
+\
+    if (hWord->name().compare("endArgs") == 0) {\
+      cout << " found endArgs" << endl;\
+      hMore_args = 0;\
+      break;\
+    } else {\
+    }\
+\
+    std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
+\
+    if (hTypeWord == NULL) {\
+      cout << "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
+      cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
+      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
+      cout << "  Pausing." << endl;\
+      ms->pushWord("pauseStackExecution");\
+      cout << "Pushing the bad word back on the data stack." << endl;\
+      ms->pushData(hWord);\
+      return;\
+    } else {\
+      x.push_back(hTypeWord->value());\
+    }\
+  }\
+}\
+\
+
+#define GET_WORD_ARG_LIST(ms,type,x)\
+{\
+  int hMore_args = 1;\
+  while(hMore_args) {\
+    shared_ptr<Word> hWord = ms->popData();\
+\
+    if (hWord == NULL) {\
+      cout << "oops, GET_WORD_ARG_LIST expects endArgs" << endl;\
+      ms->clearStack();\
+      return;\
+\
+      cout << "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " found no argument..." << endl;\
+      cout << "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name() << endl;\
+      cout << "  Pausing." << endl;\
+      ms->pushWord("pauseStackExecution");\
+      return;\
+    } else {\
+    }\
+\
+    if (hWord->name().compare("endArgs") == 0) {\
+      cout << " found endArgs" << endl;\
+      hMore_args = 0;\
+      break;\
+    } else {\
+    }\
+\
+    std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
+\
+    if (hTypeWord == NULL) {\
+      cout << "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
+      cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
+      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
+      cout << "  Pausing." << endl;\
+      ms->pushWord("pauseStackExecution");\
+      cout << "Pushing the bad word back on the data stack." << endl;\
+      ms->pushData(hWord);\
+      return;\
+    } else {\
+      x.push_back(hTypeWord);\
+    }\
+  }\
+}\
+\
+
+
 
 int register_word(shared_ptr<Word> word);
 

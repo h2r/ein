@@ -7,6 +7,7 @@
 class GaussianMap;
 class TransitionTable;
 class Scene;
+class OrientedRay;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -61,6 +62,7 @@ class Scene;
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/DigitalIOState.h>
+#include <baxter_core_msgs/AnalogIOState.h>
 
 
 #include "eigen_util.h"
@@ -151,6 +153,12 @@ typedef enum {
   IKFASTDEBUG
 } ikMode;
 
+typedef enum {
+  IKF_NO_ARGUMENTS_LOCAL = 0,
+  IKF_NO_ARGUMENTS_GLOBAL = 1,
+  IKF_SWITCHING = 2
+} ikFastMode;
+
 string ikModeToString(ikMode mode);
 
 
@@ -215,8 +223,14 @@ typedef enum {
 
 typedef enum {
   CAMCAL_LINBOUNDED = 0,
-  CAMCAL_QUADRATIC = 1
+  CAMCAL_QUADRATIC = 1,
+  CAMCAL_HYPERBOLIC = 2
 } cameraCalibrationMode;
+
+typedef enum {
+  FIXATE_STREAM = 0,
+  FIXATE_CURRENT = 1
+} sceneFixationMode;
 
 std::string pickModeToString(pickMode mode);
 
@@ -227,6 +241,21 @@ typedef enum {
   POSE_LOCK = 2,
   POSE_REPORTED = 3
 } memoryLockType;
+
+
+
+typedef enum { 
+	ANIMATION_OFF = 0,
+	ANIMATION_ON = 1 
+} animationMode; 
+
+struct AnimationState {
+	String emotion; 
+	int value; 
+}; 
+
+
+
 
 struct Grasp {
   eePose grasp_pose;
@@ -331,6 +360,8 @@ typedef struct streamLabel {
 
 
 typedef struct pixelToGlobalCache {
+  eePose givenEEPose;
+  double gZ;
   int x1;
   int x2;
   int x3;
@@ -350,6 +381,23 @@ typedef struct pixelToGlobalCache {
   double reticlePixelY;
 
   Mat un_rot_mat;
+
+
+  double dx;
+  double cx;
+  double b42x;
+  double b31x;
+  double bDiffx;
+  double bx;
+
+
+  double dy;
+  double cy;
+  double b42y;
+  double b31y;
+  double bDiffy;
+  double by;
+
 } pixelToGlobalCache;
 
 
@@ -396,6 +444,7 @@ class EinConfig {
   ros::Publisher ee_target_pub;
 
   ros::Publisher digital_io_pub;
+  ros::Publisher analog_io_pub;
 
   ros::Publisher sonar_pub;
   ros::Publisher red_halo_pub;
@@ -445,6 +494,7 @@ class EinConfig {
   graspMode currentGraspMode = GRASP_3D;
   robotMode currentRobotMode = PHYSICAL;
   ikMode currentIKMode = IKSERVICE;
+  ikFastMode currentIKFastMode = IKF_SWITCHING;
   ikBoundaryMode currentIKBoundaryMode = IK_BOUNDARY_STOP;
   scanMode currentScanMode = CENTERED;
   mapServoMode currentMapServoMode = HISTOGRAM_CLASSIFY;
@@ -455,6 +505,8 @@ class EinConfig {
   bool streamPicks = false;
   bool mapAutoPick = false;
   bool snapToFlushGrasp = true;
+
+  double graspBackoffDistance = 0.20;
 
   int fakeBBWidth = 50;
 
@@ -665,6 +717,7 @@ class EinConfig {
   int pilotTargetBlueBoxNumber = -1;
   int pilotClosestBlueBoxNumber = -1;
   string left_or_right_arm = "right";
+  string other_arm = "left";
   string robot_serial;
   string robot_description;
 
@@ -675,6 +728,9 @@ class EinConfig {
   double averagedWrechMass = 0;
   double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
+
+  eePose trueCameraPose;
+  eePose trueRangePose;
 
   std::string forthCommand;
 
@@ -1015,7 +1071,21 @@ class EinConfig {
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
+  //almost vertical for signs
+  //camera: 0.25525; 0.85732; 0.94282
+  //range: 0.24561; 0.82523; 0.956
+  //hand: 0.21624; 0.84881; 0.92597
+  //straight down for magnitudes
+  //
+  //camera 0.29581; 0.76695; 0.066762
+  //range  0.30204; 0.73505; 0.053803
+  //hand   0.33396; 0.75551; 0.082641
   double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
+  eePose handEndEffectorOffset = {0,0,0.028838, 0,0,0,1};
+  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  eePose handRangeOffset = {0.03192,-0.02046,0.028838, 0,0,0,1};
+  eePose handToRethinkEndPointTransform = {0,0,0, 0,0,0,1};
+  eePose handFromEndEffectorTransform = {0,0,0, 0,0,0,1};
 
 
   int useContinuousGraspTransform = 1;
@@ -1029,8 +1099,11 @@ class EinConfig {
   //  the camera
   // the estimated vanishing point is actually pretty
   //  close to the measured one
-  double d_y = -0.04;
-  double d_x = 0.018;
+  //double d_y = -0.04;
+  //double d_x = 0.018;
+  //eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  double d_y = -0.038;
+  double d_x = 0.011;
   double offX = 0;
   double offY = 0;
   // these corrective magnification factors should be close to 1
@@ -1040,6 +1113,7 @@ class EinConfig {
   double m_x_h[4];
   double m_y_h[4];
   cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
 
@@ -1489,10 +1563,15 @@ class EinConfig {
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
   ros::Subscriber gravity_comp_sub;
+  ros::Subscriber torso_fan_sub;
+  ros::Subscriber arm_button_back_sub;
+  ros::Subscriber arm_button_ok_sub;
+  ros::Subscriber arm_button_show_sub;
   ros::Subscriber cuff_grasp_sub;
   ros::Subscriber cuff_ok_sub;
   ros::Subscriber shoulder_sub;
   ros::Subscriber rosout_sub;
+
 
 
   shared_ptr<image_transport::ImageTransport> it;
@@ -1518,6 +1597,7 @@ class EinConfig {
   ros::Time measureTimeTarget;
   ros::Time measureTimeStart;
   double measureTimePeriod = 1.0;
+  
 
   eePose pressPose;
   double twistThresh = 0.01;
@@ -1529,7 +1609,14 @@ class EinConfig {
   double wrenchThresh = 15.0;
 
   int intendedEnableState = 1;
-  int lastShoulderState = 1;
+  int lastShoulderState = 0;
+
+  int lastArmOkButtonState = 0;
+  int lastArmShowButtonState = 0;
+  int lastArmBackButtonState = 0;
+
+  double torsoFanState;
+  
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
@@ -1543,6 +1630,30 @@ class EinConfig {
   double scene_score_thresh = 0.01;
 
   vector<shared_ptr<GaussianMap> > depth_maps;
+  int sceneDepthPatchHalfWidth = 0;
+
+  shared_ptr<GaussianMap> reprojection_buffer;
+
+
+  vector<OrientedRay> rayBuffer;
+
+  int angular_aperture_cols = 351;
+  int angular_aperture_rows = 351;
+  int angular_baffle_cols = 0;
+  int angular_baffle_rows = 0;
+
+  animationMode currentAnimationMode = ANIMATION_ON; 
+  AnimationState currentAnimationState = {"confused", 0}; 
+  AnimationState targetAnimationState = {"confused", 0}; 
+  std::map<string, int> emotionIndex; 
+  vector< vector<Mat> > emotionImages;
+  double animationRate = 60; 
+
+
+
+
+
+
   
 }; // config end
 
@@ -1604,6 +1715,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+
+
   void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
@@ -1619,7 +1732,12 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
   void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
+  void torsoFanCallback(const baxter_core_msgs::AnalogIOState& dios) ;
   void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armShowButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armBackButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+  void armOkButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
+
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
   void einStateCallback(const ein::EinState & msg);

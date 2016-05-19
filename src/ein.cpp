@@ -2159,7 +2159,7 @@ void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms) {
 
 void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
   ros::NodeHandle n("~");
-  image_transport::ImageTransport it(n);
+
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     string this_label_name = ms->config.classLabels[cfClass]; 
@@ -2184,7 +2184,7 @@ void activateSensorStreaming(std::shared_ptr<MachineState> ms) {
     // turn that queue size up!
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms.get());
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms.get());
-    ms->config.image_sub = it.subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms.get());
+    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms.get());
     cout << "Activating sensor stream." << endl;
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
@@ -2197,16 +2197,15 @@ void deactivateSensorStreaming(std::shared_ptr<MachineState> ms) {
   cout << "deactivateSensorStreaming: Making node handle." << endl;
   ros::NodeHandle n("~");
   cout << "deactivateSensorStreaming: Making image transport." << endl;
-  image_transport::ImageTransport it(n);
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
   cout << "deactivateSensorStreaming: Subscribe to endpoint_state." << endl;
   ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms.get());
   cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms.get());
-  cout << "deactivateSensorStreaming: Subscribe to image." << endl;
-  ms->config.image_sub = it.subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
-
+  cout << "deactivateSensorStreaming: Subscribe to image." << ms->config.image_topic << endl;
+  ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms.get());
+  cout << "Subscribed to image." << endl;
   if (ms->config.diskStreamingEnabled) {
     cout << "deactivateSensorStreaming: About to write batches... ";
     int cfClass = ms->config.focusedClass;
@@ -2728,6 +2727,7 @@ void MachineState::moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg
   }
 }
 
+
 void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg) {
   shared_ptr<MachineState> ms = this->sharedThis;
   if (ms->config.currentRobotMode == PHYSICAL) {
@@ -2830,8 +2830,20 @@ void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 
-void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) {
+void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps) {
+  baxter_core_msgs::EndpointState eps = _eps;
   shared_ptr<MachineState> ms = this->sharedThis;
+
+  eePose endPointEEPose;
+  {
+    endPointEEPose.px = _eps.pose.position.x;
+    endPointEEPose.py = _eps.pose.position.y;
+    endPointEEPose.pz = _eps.pose.position.z;
+    endPointEEPose.qx = _eps.pose.orientation.x;
+    endPointEEPose.qy = _eps.pose.orientation.y;
+    endPointEEPose.qz = _eps.pose.orientation.z;
+    endPointEEPose.qw = _eps.pose.orientation.w;
+  }
 
   ms->config.lastEndpointCallbackReceived = ros::Time::now();
 
@@ -2851,14 +2863,137 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& eps) 
   //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
 
   //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
+  // XXX
+  //ms->config.tfListener
+  //tf::StampedTransform transform;
+  //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_gripper_base", ros::Time(0), transform);
+
+  geometry_msgs::PoseStamped hand_pose;
+  //tf::StampedTransform base_to_hand_transform;
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = 0;
+    pose.pose.position.y = 0;
+    pose.pose.position.z = 0;
+    pose.pose.orientation.x = 0;
+    pose.pose.orientation.y = 0;
+    pose.pose.orientation.z = 0;
+    pose.pose.orientation.w = 1;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
+    }
+    //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
+  }
+  eePose handEEPose;
+  {
+    handEEPose.px = hand_pose.pose.position.x;
+    handEEPose.py = hand_pose.pose.position.y;
+    handEEPose.pz = hand_pose.pose.position.z;
+    handEEPose.qx = hand_pose.pose.orientation.x;
+    handEEPose.qy = hand_pose.pose.orientation.y;
+    handEEPose.qz = hand_pose.pose.orientation.z;
+    handEEPose.qw = hand_pose.pose.orientation.w;
+  }
+  ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handEndEffectorOffset.px;
+    pose.pose.position.y = ms->config.handEndEffectorOffset.py;
+    pose.pose.position.z = ms->config.handEndEffectorOffset.pz;
+    pose.pose.orientation.x = ms->config.handEndEffectorOffset.qx;
+    pose.pose.orientation.y = ms->config.handEndEffectorOffset.qy;
+    pose.pose.orientation.z = ms->config.handEndEffectorOffset.qz;
+    pose.pose.orientation.w = ms->config.handEndEffectorOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
+
+    eps.pose.position.x = transformed_pose.pose.position.x;
+    eps.pose.position.y = transformed_pose.pose.position.y;
+    eps.pose.position.z = transformed_pose.pose.position.z;
+    eps.pose.orientation = transformed_pose.pose.orientation;
+
+    //cout << pose << transformed_pose << hand_pose;
+    //cout << base_to_hand_transform.getOrigin().x() << base_to_hand_transform.getOrigin().y() << base_to_hand_transform.getOrigin().z() << endl;
+    //tf::Vector3 test(0,0,0.03);
+    //tf::Vector3 test2 = base_to_hand_transform * test;
+    //cout <<  test2.x() << test2.y() << test2.z() << endl;
+  }
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handCameraOffset.px;
+    pose.pose.position.y = ms->config.handCameraOffset.py;
+    pose.pose.position.z = ms->config.handCameraOffset.pz;
+    pose.pose.orientation.x = ms->config.handCameraOffset.qx;
+    pose.pose.orientation.y = ms->config.handCameraOffset.qy;
+    pose.pose.orientation.z = ms->config.handCameraOffset.qz;
+    pose.pose.orientation.w = ms->config.handCameraOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
+
+    ms->config.trueCameraPose.px = transformed_pose.pose.position.x;
+    ms->config.trueCameraPose.py = transformed_pose.pose.position.y;
+    ms->config.trueCameraPose.pz = transformed_pose.pose.position.z;
+    ms->config.trueCameraPose.qx = transformed_pose.pose.orientation.x;
+    ms->config.trueCameraPose.qy = transformed_pose.pose.orientation.y;
+    ms->config.trueCameraPose.qz = transformed_pose.pose.orientation.z;
+    ms->config.trueCameraPose.qw = transformed_pose.pose.orientation.w;
+  }
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = ms->config.handRangeOffset.px;
+    pose.pose.position.y = ms->config.handRangeOffset.py;
+    pose.pose.position.z = ms->config.handRangeOffset.pz;
+    pose.pose.orientation.x = ms->config.handRangeOffset.qx;
+    pose.pose.orientation.y = ms->config.handRangeOffset.qy;
+    pose.pose.orientation.z = ms->config.handRangeOffset.qz;
+    pose.pose.orientation.w = ms->config.handRangeOffset.qw;
+
+    pose.header.stamp = ros::Time(0);
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+    }
+
+    ms->config.trueRangePose.px = transformed_pose.pose.position.x;
+    ms->config.trueRangePose.py = transformed_pose.pose.position.y;
+    ms->config.trueRangePose.pz = transformed_pose.pose.position.z;
+    ms->config.trueRangePose.qx = transformed_pose.pose.orientation.x;
+    ms->config.trueRangePose.qy = transformed_pose.pose.orientation.y;
+    ms->config.trueRangePose.qz = transformed_pose.pose.orientation.z;
+    ms->config.trueRangePose.qw = transformed_pose.pose.orientation.w;
+  }
+
   ms->config.trueEEPose = eps.pose;
-  ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
-  ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
-  ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
-  ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
-  ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
-  ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
-  ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+  {
+    ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
+    ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
+    ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
+    ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
+    ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
+    ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
+    ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
+  }
+  ms->config.handFromEndEffectorTransform = handEEPose.getPoseRelativeTo(ms->config.trueEEPoseEEPose);
+
+
   //cout << "Setting true pose: " << ms->config.trueEEPoseEEPose << endl;
 
   int cfClass = ms->config.focusedClass;
@@ -4173,13 +4308,13 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     }
     ms->config.goodIkInitialized = 1;
   } else if (ms->config.currentControlMode == ANGLES) {
-    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
+    //ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
+    //ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
+    //ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
+    //ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
+    //ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
+    //ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
+    //ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
 
     myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
     myCommand.command.resize(NUM_JOINTS);
@@ -4386,138 +4521,91 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 }
 
 
-void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
-
-  shared_ptr<MachineState> ms = this->sharedThis;
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  ms->config.lastImageStamp = msg->header.stamp;
-
-  int converted = 0;
-  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    try{
+int renderInit(shared_ptr<MachineState> ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
+  ms->config.renderInit = 1;
+  
+  ms->config.shouldIRender = ms->config.shouldIRenderDefault;
+  
+  try {
+    if (!converted) {
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      int cfClass = ms->config.focusedClass;
-      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
-      } else {
-      } // do nothing
-      converted = 1;
-    }catch(cv_bridge::Exception& e){
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-  }
-
-  if (!ms->config.shouldIImageCallback) {
-    //cout << "Early exit image callback." << endl;
-    return;
-  }
-
-  if (!ms->config.renderInit) {
-    ms->config.renderInit = 1;
-    ms->config.shouldIRender = ms->config.shouldIRenderDefault;
-
-    try {
-      if (!converted) {
-	ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      } else {
-      } // do nothing 
-
-      ms->config.cam_img = ms->config.cv_ptr->image.clone();
-    } catch(cv_bridge::Exception& e) {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-
-    ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
-    ms->config.wristCamInit = 1;
-    ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
-    ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-    cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
-    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
-    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
-
-    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
-    ms->config.densityViewerImage *= 0;
-    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
-    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
-
-
-    int imW = ms->config.wristViewImage.cols;
-    int imH = ms->config.wristViewImage.rows;
-
-    // determine table edges, i.e. the gray boxes
-    ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
-    ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
-    ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
-    ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
-    
-
-    ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
-    ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
-
-    if (ms->config.all_range_mode) {
-      ms->config.grayTop = ms->config.armTop;
-      ms->config.grayBot = ms->config.armBot;
-    }
-
-    if (ms->config.integralDensity == NULL)
-      ms->config.integralDensity = new double[imW*imH];
-    if (ms->config.density == NULL)
-      ms->config.density = new double[imW*imH];
-    if (ms->config.preDensity == NULL)
-      ms->config.preDensity = new double[imW*imH];
-    if (ms->config.temporalDensity == NULL) {
-      ms->config.temporalDensity = new double[imW*imH];
-      for (int x = 0; x < imW; x++) {
-	for (int y = 0; y < imH; y++) {
-	  ms->config.temporalDensity[y*imW + x] = 0;
-	}
-      }
-    }
-  }
-
-  try{
-    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    } 
     ms->config.cam_img = ms->config.cv_ptr->image.clone();
-  }catch(cv_bridge::Exception& e){
+  } catch(cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
+    return -1;
   }
-
+  
   ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
   ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+  cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
+  ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+  
+  ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.densityViewerImage *= 0;
+  ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
+  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+  
+  
+  int imW = ms->config.wristViewImage.cols;
+  int imH = ms->config.wristViewImage.rows;
+  
+  // determine table edges, i.e. the gray boxes
+  ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
+  ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
+  ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
+  ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
+  
+  
+  ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
+  ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
+  
+  if (ms->config.all_range_mode) {
+    ms->config.grayTop = ms->config.armTop;
+    ms->config.grayBot = ms->config.armBot;
+  }
+  
+  if (ms->config.integralDensity == NULL)
+    ms->config.integralDensity = new double[imW*imH];
+  if (ms->config.density == NULL)
+    ms->config.density = new double[imW*imH];
+  if (ms->config.preDensity == NULL)
+    ms->config.preDensity = new double[imW*imH];
+  if (ms->config.temporalDensity == NULL) {
+    ms->config.temporalDensity = new double[imW*imH];
+    for (int x = 0; x < imW; x++) {
+      for (int y = 0; y < imH; y++) {
+        ms->config.temporalDensity[y*imW + x] = 0;
+      }
+    }
+  }
+  return 0;
+}
 
-
-  guardViewers(ms);
-
+void accumulateImage(shared_ptr<MachineState> ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  for (int y = 0; y < imH; y++) {
 
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = ms->config.accumulatedImage.at<Vec3d>(y,x)[0] + ms->config.wristCamImage.at<Vec3b>(y,x)[0];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = ms->config.accumulatedImage.at<Vec3d>(y,x)[1] + ms->config.wristCamImage.at<Vec3b>(y,x)[1];
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = ms->config.accumulatedImage.at<Vec3d>(y,x)[2] + ms->config.wristCamImage.at<Vec3b>(y,x)[2];
-      ms->config.accumulatedImageMass.at<double>(y,x) += 1.0;
+    cv::Vec3d* pixel = ms->config.accumulatedImage.ptr<cv::Vec3d>(y); // point to first pixel in row
+
+    cv::Vec3b* wpixel = ms->config.wristCamImage.ptr<cv::Vec3b>(y); // point to first pixel in row
+    double * mass = ms->config.accumulatedImageMass.ptr<double>(y);
+    for (int x = 0; x < imW; x++) {
+      pixel[x][0] += wpixel[x][0];
+      pixel[x][1] += wpixel[x][1];
+      pixel[x][2] += wpixel[x][2];
+      mass[x] += 1.0;
     }
   }
+}
 
-  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
-  Mat thisImage;
-  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
-
-  if (ms->config.castRecentRangeRay) {
-    recordReadyRangeReadings(ms);
-  } else {
-  }
-
+void renderWristViewImage(shared_ptr<MachineState> ms) {
 
   // paint gripper reticle centerline
   if (1) {
@@ -4527,7 +4615,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     teePose.pz = ms->config.trueEEPose.position.z;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
-
+    
     double zStart = ms->config.minHeight;
     double zEnd = ms->config.maxHeight; 
     double deltaZ = 0.005;
@@ -4535,39 +4623,39 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
     }
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
-
+      
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-
+      
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-
+      
       line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
     }
-
+    
   }
-
+  
   // paint transform reticles
   if (ms->config.paintEEandReg1OnWrist) {
     paintEEPoseOnWrist(ms, ms->config.trueEEPoseEEPose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
-
+    
     paintEEPoseOnWrist(ms, ms->config.currentEEPose, cv::Scalar(255,255,0));
-
+    
     {
       eePose irPose;
       {
@@ -4577,12 +4665,12 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
-						0.0,
+                                               0.0,
 					       (thisPose.position.x - irSensorStartLocal.x()),
 					       (thisPose.position.y - irSensorStartLocal.y()),
 					       (thisPose.position.z - irSensorStartLocal.z())
-					      );
-
+                                               );
+        
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
@@ -4782,6 +4870,11 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   {
+
+    Size sz = ms->config.wristViewImage.size();
+    int imW = sz.width;
+    int imH = sz.height;
+    
     int param_pilotTargetHalfWidth = 15;
     cv::Point outTop = cv::Point(ms->config.pilotTarget.px-param_pilotTargetHalfWidth, ms->config.pilotTarget.py-param_pilotTargetHalfWidth);
     cv::Point outBot = cv::Point(ms->config.pilotTarget.px+param_pilotTargetHalfWidth, ms->config.pilotTarget.py+param_pilotTargetHalfWidth);
@@ -4792,6 +4885,73 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
     }
   }
+
+}
+
+void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
+  shared_ptr<MachineState> ms = this->sharedThis;
+  ms->config.lastImageCallbackReceived = ros::Time::now();
+
+  ms->config.lastImageStamp = msg->header.stamp;
+
+  int converted = 0;
+  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
+    try{
+      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+      int cfClass = ms->config.focusedClass;
+      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+	double thisNow = msg->header.stamp.toSec();
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
+      } else {
+      } // do nothing
+      converted = 1;
+    }catch(cv_bridge::Exception& e){
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+  }
+
+  if (!ms->config.shouldIImageCallback) {
+    //cout << "Early exit image callback." << endl;
+    return;
+  }
+
+  if (!ms->config.renderInit) {
+    if (renderInit(ms, converted, msg) == -1) {
+      ROS_ERROR("Couldn't initialize rendering system.");
+      return;
+    }
+  }
+
+  try{
+    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    ms->config.cam_img = ms->config.cv_ptr->image.clone();
+  }catch(cv_bridge::Exception& e){
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+
+  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
+  ms->config.wristCamInit = 1;
+  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
+  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
+
+
+  guardViewers(ms);
+
+  accumulateImage(ms);
+
+  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
+  Mat thisImage;
+  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
+
+  if (ms->config.castRecentRangeRay) {
+    recordReadyRangeReadings(ms);
+  } else {
+  }
+
+  renderWristViewImage(ms);
 
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
@@ -4812,8 +4972,7 @@ void MachineState::gravityCompCallback(const baxter_core_msgs::SEAJointState& se
 
 void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
   shared_ptr<MachineState> ms = this->sharedThis;
-
-  if (cuffDIOS.state) {
+  if (cuffDIOS.state == 1) {
     baxter_core_msgs::EndEffectorCommand command;
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 0.0}";
@@ -4826,8 +4985,7 @@ void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuf
 
 void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
   shared_ptr<MachineState> ms = this->sharedThis;
-
-  if (cuffDIOS.state) {
+  if (cuffDIOS.state == 1) {
     baxter_core_msgs::EndEffectorCommand command;
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 100.0}";
@@ -4839,28 +4997,89 @@ void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDI
 
 }
 
-void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
+void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->evaluateProgram("infiniteScan");
+    }      
+  }
+
+  if (dios.state) {
+    ms->config.lastArmShowButtonState = 1;
+  } else {
+    ms->config.lastArmShowButtonState = 0;
+  }
+}
+
+void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->clearStack();
+      ms->clearData();
+
+      ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
+    }      
+  }
+
+  if (dios.state) {
+    ms->config.lastArmBackButtonState = 1;
+  } else {
+    ms->config.lastArmBackButtonState = 0;
+  }
+}
+
+void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->evaluateProgram("zeroGToggle");
+    }      
+  }
+
+  if (dios.state == 1) {
+    ms->config.lastArmOkButtonState = 1;
+  } else if (dios.state == 0) {
+    ms->config.lastArmOkButtonState = 0;
+  } else {
+    ROS_ERROR_STREAM("Unexpected state: " << dios);
+    assert(0);
+  }
+
+}
+
+void MachineState::torsoFanCallback(const baxter_core_msgs::AnalogIOState& aios) {
+  shared_ptr<MachineState> ms = this->sharedThis;
+  ms->config.torsoFanState = aios.value;
+}
+
+void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
   // this is backwards, probably a bug
-  if (cuffDIOS.state) {
+  if (!dios.state && ms->config.lastShoulderState == 1) {
+    ms->config.intendedEnableState = !ms->config.intendedEnableState;
+    if (ms->config.intendedEnableState) {
+      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
+    } else {
+      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
+    }
+  }
+
+  if (dios.state) {
     ms->config.lastShoulderState = 1;
   } else {
-    // only if this is the first of recent presses
-    if (ms->config.lastShoulderState == 1) {
-      ms->config.intendedEnableState = !ms->config.intendedEnableState;
-      if (ms->config.intendedEnableState) {
-	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
-      } else {
-	int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
-      }
-    } else {
-    }
     ms->config.lastShoulderState = 0;
   }
 }
 
-cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
+cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
   double pxMax = mapImage.rows;
   double pyMin = 0;
@@ -4875,7 +5094,7 @@ cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, doub
 
 
 
-void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) {
+void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) {
   double pxMin = 0;
   double pxMax = mapImage.rows;
   double pyMin = 0;
@@ -4936,8 +5155,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   for (int i = 0; i < ms->config.mapWidth; i++) {
     for (int j = 0; j < ms->config.mapHeight; j++) {
 
-      ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgo.toSec(), 0.0), fadeLast) / fadeLast)) + fadeBias;
+      //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+      double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+      double fadeFraction = (1.0-fadeBias)*(1.0-(min(max(longAgoSec, 0.0), fadeLast) / fadeLast)) + fadeBias;
       fadeFraction = min(max(fadeFraction, 0.0), 1.0);
       if (!ms->config.useGlow) {
 	fadeFraction = 1.0;
@@ -4947,11 +5167,11 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
       }
 
       double x, y;
-      mapijToxy(ms, i, j, &x, &y);
+      mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
 
       if (ms->config.objectMap[i + ms->config.mapWidth * j].detectedClass != -1) {
-        cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-        cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x + ms->config.mapStep, y + ms->config.mapStep);
+        cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
+        cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x + ms->config.mapStep, y + ms->config.mapStep);
         cv::Scalar color = CV_RGB((int) (ms->config.objectMap[i + ms->config.mapWidth * j].r / ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount),
                                   (int) (ms->config.objectMap[i + ms->config.mapWidth * j].g / ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount),
                                   (int) (ms->config.objectMap[i + ms->config.mapWidth * j].b / ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount) );
@@ -4967,100 +5187,99 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   double glowBias = 0.15;
   double glowLast = 30.0;
 
-  if (ms->config.drawIKMap) { // draw ikMap
+  if (ms->config.drawIKMap || ms->config.drawClearanceMap) { // draw ikMap and clearance map
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    glowFraction = min(max(glowFraction, 0.0), 1.0);
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
-	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
-	      Scalar tColor = CV_RGB(192, 32, 32);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
-	      Scalar tColor = CV_RGB(224, 64, 64);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, tColor);
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
+	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+                                ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
+          //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
+          double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+          double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgoSec, 0.0), glowLast) / glowLast)) + glowBias;
+          glowFraction = min(max(glowFraction, 0.0), 1.0);
+          if (!ms->config.useGlow) {
+            glowFraction = 1.0;
+          }
+          double x=-1, y=-1;
+          mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
+          cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
+                                           ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
+          
+          if (ms->config.drawIKMap) { // draw ikMap 
+            if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
+              // do not draw when it's good
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
+              Scalar tColor = CV_RGB(192, 32, 32);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
+              Scalar tColor = CV_RGB(224, 64, 64);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, tColor);
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else {
+              cout << "Bad IK value: " << ms->config.ikMap[i + ms->config.mapWidth * j] << endl;
+              assert(0);
+            }
+          }
+          if (ms->config.drawClearanceMap) { // draw clearanceMap 
+            if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 0 ) ) {
+              // do not draw
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
+              Scalar tColor = CV_RGB(224, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                  ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
+              Scalar tColor = CV_RGB(0, 224, 0);
+              cv::Vec3b cColor;
+              cColor[0] = tColor[0]*glowFraction;
+              cColor[1] = tColor[1]*glowFraction;
+              cColor[2] = tColor[2]*glowFraction;
+              //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
+              //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
+              //gsl_matrix_free(mapcell);
+              //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+                ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
+            } else  {
+                cout << "Bad clearance value: " << ms->config.clearanceMap[i + ms->config.mapWidth * j] << endl;
+                assert(0);
+            }
+          }
 	}
       }
     }
   }
-
-  if (ms->config.drawClearanceMap) { // draw clearanceMap 
-    int ikMapRenderStride = 1;
-    for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
-      for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms, i, j) ) {
-	    ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-	    double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgo.toSec(), 0.0), glowLast) / glowLast)) + glowBias;
-	    if (!ms->config.useGlow) {
-	      glowFraction = 1.0;
-	    }
-	    double x=-1, y=-1;
-	    mapijToxy(ms, i, j, &x, &y);
-	    cv::Point cvp1 = worldToPixel(ms->config.objectMapViewerImage, 
-	      ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-	    if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
-	      Scalar tColor = CV_RGB(224, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
-	      Scalar tColor = CV_RGB(0, 224, 0);
-	      cv::Vec3b cColor;
-	      cColor[0] = tColor[0]*glowFraction;
-	      cColor[1] = tColor[1]*glowFraction;
-	      cColor[2] = tColor[2]*glowFraction;
-	      //gsl_matrix * mapcell = mapCellToPolygon(ms, i, j);
-	      //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
-	      //gsl_matrix_free(mapcell);
-	      //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-	      ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
-		ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
-	    }
-	}
-      }
-    }
-  }
+  
 
   { // drawMapSearchFence
     
-    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceYMin);
-    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMax);
 
     rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
@@ -5069,9 +5288,9 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
 
   { // drawMapRejectFence
     
-    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     ms->config.mapRejectFenceXMin, ms->config.mapRejectFenceYMin);
-    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     ms->config.mapRejectFenceXMax, ms->config.mapRejectFenceYMax);
 
     rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
@@ -5088,13 +5307,13 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
       cx = sprite.pose.px;
       cy = sprite.pose.py;
       
-      cv::Point objectPoint = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
 					   cx, cy);
       objectPoint.x += 15;
 
-      cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
 				      sprite.top.px, sprite.top.py);
-      cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
 				      sprite.bot.px, sprite.bot.py);
 
       int halfHeight = (outBot.y - outTop.y)/2;
@@ -5125,13 +5344,13 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
     cx = memory.centroid.px;
     cy = memory.centroid.py;
     
-    cv::Point objectPoint = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                          cx, cy);
     objectPoint.x += 15;
 
-    cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     memory.top.px, memory.top.py);
-    cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                     memory.bot.px, memory.bot.py);
 
     int halfHeight = (outBot.y - outTop.y)/2;
@@ -5199,7 +5418,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
   { // drawHand
     eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
     double radius = 10;
-    cv::Point handPoint = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point handPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                        tp.px, tp.py);
     
     Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
@@ -5208,7 +5427,7 @@ void renderObjectMapViewOneArm(shared_ptr<MachineState> ms) {
     Eigen::Vector3f point(rotated_magnitude, 0, 0);
     Eigen::Vector3f rotated = handQuat * point;
     
-    cv::Point orientation_point = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
+    cv::Point orientation_point = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                                tp.px + rotated[0], 
                                                tp.py + rotated[1]);
 
@@ -5269,9 +5488,9 @@ void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin
     double x2 = gsl_vector_get(&p2.vector, 0);
     double y2 = gsl_vector_get(&p2.vector, 1);
     double px1, px2, py1, py2;
-    cv::Point cvp1 = worldToPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp1 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                   x1, y1);
-    cv::Point cvp2 = worldToPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp2 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
                                   x2, y2);
     line(mapImage, cvp1, cvp2, color);
   }
@@ -5394,7 +5613,7 @@ void doObjectMapCallbackFunc(int event, int x, int y, int flags, shared_ptr<Mach
 
   if ( event == EIN_EVENT_LBUTTONDBLCLK ) {
     double worldX, worldY;
-    pixelToWorld(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y, worldX, worldY);
+    mapPixelToWorld(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y, worldX, worldY);
     ms->config.currentEEPose.px = worldX;  
     ms->config.currentEEPose.py = worldY;  
 
@@ -5403,9 +5622,9 @@ void doObjectMapCallbackFunc(int event, int x, int y, int flags, shared_ptr<Mach
       BoxMemory memory = ms->config.blueBoxMemories[i];
       string class_name = ms->config.classLabels[memory.labeledClassIndex];
        
-      cv::Point outTop = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
 				      memory.top.px, memory.top.py);
-      cv::Point outBot = worldToPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
 				      memory.bot.px, memory.bot.py);
       
       cout <<" Top: " << outTop.x << ", " << outTop.y << endl;
@@ -5777,7 +5996,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     //ms->config.mapSearchFenceXMin = 0.25;
     //ms->config.mapSearchFenceXMax = 0.25;
     ms->config.mapSearchFenceXMax = 0.9; //1.0;
-    ms->config.mapSearchFenceYMin = 0.1;//-1.25;
+    ms->config.mapSearchFenceYMin = -0.5; //0.1;//-1.25;
     ms->config.mapSearchFenceYMax = 1.25;
 
     //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
@@ -5944,7 +6163,7 @@ void pilotInit(shared_ptr<MachineState> ms) {
     ms->config.mapSearchFenceXMin = -0.75;
     ms->config.mapSearchFenceXMax = 0.9;
     ms->config.mapSearchFenceYMin = -1.25;
-    ms->config.mapSearchFenceYMax = -0.1;//1.25;
+    ms->config.mapSearchFenceYMax = 0.5; //-0.1;//1.25;
     ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
     ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
     ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
@@ -7904,7 +8123,7 @@ void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, d
   cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> pixelServo strayed out of clearance area during mapping. <<<<" << endl;
@@ -7965,7 +8184,7 @@ void gradientServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       //ms->pushWord("clearStackIntoMappingPatrol"); 
@@ -9003,7 +9222,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
@@ -9432,7 +9651,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 
   {
     int i, j;
-    mapxyToij(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
       cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
@@ -9483,7 +9702,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       int tbi, tbj;
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
-      mapxyToij(ms, tbx, tby, &tbi, &tbj);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
       ros::Time thisNow = ros::Time::now();
@@ -9498,7 +9717,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
 	// do nothing
       }
 
-      int isOutOfReach = ( !positionIsSearched(ms, tbx, tby) || 
+      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
                            !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
       double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
@@ -9893,6 +10112,16 @@ void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * 
   } else if (ms->config.currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
     *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
     *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
+  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_HYPERBOLIC) {
+    
+    double ooDZ = dZ;
+    if (dZ == 0) {
+      cout << "oops, magnification interpolate failed." << endl;
+    } else {
+      ooDZ = 1.0/dZ;
+    } 
+    *(m_y) = ms->config.m_YQ[0] + (ooDZ * ms->config.m_YQ[1]) + (ooDZ * ooDZ * ms->config.m_YQ[2]);
+    *(m_x) = ms->config.m_XQ[0] + (ooDZ * ms->config.m_XQ[1]) + (ooDZ * ooDZ * ms->config.m_XQ[2]);
   } else {
   }
 }
@@ -9901,11 +10130,23 @@ void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, doubl
   pixelToGlobal(ms, pX, pY, gZ, gX, gY, ms->config.trueEEPoseEEPose);
 }
 
+void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame) {
 
+  eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
+
+  pixelToGlobal(ms, pX, pY, gZ, gX, gY, transformedPose);
+  
+}
+
+void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
+  eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
+  computePixelToGlobalCache(ms, gZ, transformedPose, cache);
+}
 
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
-
+  cache->givenEEPose = givenEEPose;
+  cache->gZ = gZ;
   cache->x1 = ms->config.heightReticles[0].px;
   cache->x2 = ms->config.heightReticles[1].px;
   cache->x3 = ms->config.heightReticles[2].px;
@@ -9933,9 +10174,12 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/zFraction;
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     cache->reticlePixelX = x_thisZ;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
   {
     double d = ms->config.d_y;
@@ -9947,9 +10191,12 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/zFraction;
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
     cache->reticlePixelY = y_thisZ;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
 
   // account for rotation of the end effector 
@@ -9960,7 +10207,6 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
   Quaternionf zee(0,0,0,1);
 	
   Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
   double aY = result.y();
   double aX = result.x();
 
@@ -9972,73 +10218,70 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
   Point center = Point(cache->reticlePixelX, cache->reticlePixelY);
 
   cache->un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+  cache->dx = ms->config.d_x/ms->config.m_x;
+  cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
+  cache->b42x = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*cache->cx)/(cache->x4-cache->x2);
+  cache->b31x = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*cache->cx)/(cache->x3-cache->x1);
+
+  cache->bDiffx = cache->b42x-cache->b31x;
+  cache->bx = (cache->b42x+cache->b31x)/2.0;
+
+
+  cache->dy = ms->config.d_y/ms->config.m_y;
+  cache->cy = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
+
+  cache->b42y = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*cache->cy)/(cache->y4-cache->y2);
+  cache->b31y = (cache->z3*cache->y3-cache->z1*cache->y1+(cache->z1-cache->z3)*cache->cy)/(cache->y3-cache->y1);
+
+  cache->bDiffy = cache->b42y-cache->b31y;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+  cache->by = (cache->b42y+cache->b31y)/2.0;
+
+  
+
+  
 }
 
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
   pixelToGlobalCache data;
   computePixelToGlobalCache(ms, gZ, givenEEPose, &data);
-  pixelToGlobalFromCache(ms, pX, pY, gZ, gX, gY, givenEEPose, &data);
+  pixelToGlobalFromCache(ms, pX, pY, gX, gY, &data);
 }
 
-void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, pixelToGlobalCache * cache) {
+void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
 
-  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=pX;
-  toUn.at<double>(1,0)=pY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = cache->un_rot_mat*toUn;
-  pX = didUn.at<double>(0,0);
-  pY = didUn.at<double>(1,0);
+  int rotatedPX = (cache->un_rot_mat.at<double>(0, 0) * pX +
+		   cache->un_rot_mat.at<double>(0, 1) * pY +
+		   cache->un_rot_mat.at<double>(0, 2) * 1);
+  int rotatedPY = (cache->un_rot_mat.at<double>(1, 0) * pX +
+		   cache->un_rot_mat.at<double>(1, 1) * pY +
+		   cache->un_rot_mat.at<double>(1, 2) * 1);
+  //assert(0);
 
-  double oldPx = pX;
-  double oldPy = pY;
+  double oldPx = rotatedPX;
+  double oldPy = rotatedPY;
 
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
-  {
-    double d = ms->config.d_x/ms->config.m_x;
-    double c = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
+/*
+  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
+  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
-    double b42 = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*c)/(cache->x4-cache->x2);
-    double b31 = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*c)/(cache->x3-cache->x1);
+  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
+  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+*/
+  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
+  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
+  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
+  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
 
-    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    //*gX = d + ( (pX-c)*(ms->config.currentEEPose.px-d) )/(x1-c) ;
-    //*gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c)*ms->config.m_x ) ;
-    *gX = givenEEPose.px - d + ( (pX-c)*(d) )/( (x_thisZ-c) ) ;
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
-  }
-  {
-    double d = ms->config.d_y/ms->config.m_y;
-    double c = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
-
-    double b42 = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*c)/(cache->y4-cache->y2);
-    double b31 = (cache->z3*cache->y3-cache->z1*cache->y1+(cache->z1-cache->z3)*c)/(cache->y3-cache->y1);
-
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
-
-    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    //*gY = d + ( (pY-c)*(ms->config.currentEEPose.py-d) )/(y1-c) ;
-    //*gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c)*ms->config.m_y ) ;
-    *gY = givenEEPose.py - d + ( (pY-c)*(d) )/( (y_thisZ-c) ) ;
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
-  }
 }
 
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
@@ -10076,19 +10319,25 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelX = x_thisZ;
 
+/*
     cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+*/
   }
   {
     //double d = ms->config.d_y;
@@ -10105,19 +10354,23 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // XXX removed the above correction still need to check
     reticlePixelY = y_thisZ;
 
+/*
     cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+*/
   }
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
@@ -10193,15 +10446,17 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
-    x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelX = x_thisZ;
   }
   {
@@ -10219,15 +10474,17 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
-    y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
     reticlePixelY = y_thisZ;
   }
 
@@ -10266,19 +10523,136 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   double oldPy = *pY;
   //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
   //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
+  *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
+  *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
+}
+
+void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
+  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
+
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
+
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+
+  double reticlePixelX = 0.0;
+  double reticlePixelY = 0.0;
+  {
+    //double d = ms->config.d_x;
+    double d = ms->config.d_x/ms->config.m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( ms->config.m_x*(gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
+    *pX = c + ( (gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
+    reticlePixelX = x_thisZ;
+  }
+  {
+    //double d = ms->config.d_y;
+    double d = ms->config.d_y/ms->config.m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( ms->config.m_y*(gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
+    *pY = c + ( (gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // removed the above correction
+    reticlePixelY = y_thisZ;
+  }
+
+  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
+
+  // account for rotation of the end effector 
+  Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+  Quaternionf crane2Orient(0, 1, 0, 0);
+  Quaternionf rel = eeqform * crane2Orient.inverse();
+  Quaternionf ex(0,1,0,0);
+  Quaternionf zee(0,0,0,1);
+	
+  Quaternionf result = rel * ex * rel.conjugate();
+  Quaternionf thumb = rel * zee * rel.conjugate();
+  double aY = result.y();
+  double aX = result.x();
+
+  // ATTN 22
+  //double angle = atan2(aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  angle = angle;
+  double scale = 1.0;
+  Point center = Point(reticlePixelX, reticlePixelY);
+
+  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+
+  Mat toUn(3,1,CV_64F);
+  toUn.at<double>(0,0)=*pX;
+  toUn.at<double>(1,0)=*pY;
+  toUn.at<double>(2,0)=1.0;
+  Mat didUn = un_rot_mat*toUn;
+  *pX = didUn.at<double>(0,0);
+  *pY = didUn.at<double>(1,0);
+
+  double oldPx = *pX;
+  double oldPy = *pY;
+  //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
+  //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
+  *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
+  *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor) {
   cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
   int lineLength = 5;
+  int pXo = 0, pYo = 0;  
   int pX = 0, pY = 0;  
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
-  globalToPixel(ms, &pX, &pY, zToUse, toPaint.px, toPaint.py);
-  pX = pX - lineLength;
-  pY = pY - lineLength;
+  globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
+  pX = pXo - lineLength;
+  pY = pYo - lineLength;
   //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
   if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
     {
@@ -10294,10 +10668,13 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   }
 
   // draw the test pattern for the inverse transformation 
-  if (0) {
+  if (1) {
     double gX = 0, gY = 0;
-    pixelToGlobal(ms, pX, pY, zToUse, &gX, &gY);
-    globalToPixel(ms, &pX, &pY, zToUse, gX, gY);
+    int pXb = 0, pYb = 0;  
+    pixelToGlobal(ms, pXo, pYo, zToUse, &gX, &gY);
+    globalToPixel(ms, &pXb, &pYb, zToUse, gX, gY);
+    pX = pXb - lineLength;
+    pY = pYb - lineLength;
     //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
     if ( (pX > 0+lineLength) && (pX < ms->config.wristViewImage.cols-lineLength) && (pY > 0+lineLength) && (pY < ms->config.wristViewImage.rows-lineLength) ) {
       {
@@ -10362,7 +10739,7 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
-      mapxyToij(ms, x, y, &i, &j);
+      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 
       if (i >= 0 && i < ms->config.mapWidth && j >= 0 && j < ms->config.mapHeight) {
 	ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime = timeToMark;
@@ -13369,8 +13746,7 @@ void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const 
 
   {
     guardSceneModels(ms);
-    ms->config.class_scene_models[i] = make_shared<Scene>(ms, 3, 3, 0.005);
-    ms->config.class_scene_models[i]->loadFromFile(sceneModelFile(ms, thisLabelName));
+    ms->config.class_scene_models[i] = Scene::createFromFile(ms, sceneModelFile(ms, thisLabelName));
   }
 }
 
@@ -13494,25 +13870,25 @@ void processSaliency(Mat in, Mat out) {
 }
 
 
-void mapxyToij(shared_ptr<MachineState> ms, double x, double y, int * i, int * j) 
+void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j) 
 {
-  *i = round((x - ms->config.mapXMin) / ms->config.mapStep);
-  *j = round((y - ms->config.mapYMin) / ms->config.mapStep);
+  *i = round((x - xmin) / mapStep);
+  *j = round((y - ymin) / mapStep);
 }
-void mapijToxy(shared_ptr<MachineState> ms, int i, int j, double * x, double * y) 
+void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y) 
 {
-  *x = ms->config.mapXMin + i * ms->config.mapStep;
-  *y = ms->config.mapYMin + j * ms->config.mapStep;
+  *x = xmin + i * mapStep;
+  *y = ymin + j * mapStep;
 }
-bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j) {
+bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
-  return positionIsSearched(ms, x, y);
+  mapijToxy(xmin, ymin, mapStep, i, j, &x, &y);
+  return positionIsSearched(fenceXMin, fenceXMax, fenceYMin, fenceYMax, x, y);
 }
 
-bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
-  if ((ms->config.mapSearchFenceXMin <= x && x <= ms->config.mapSearchFenceXMax) &&
-      (ms->config.mapSearchFenceYMin <= y && y <= ms->config.mapSearchFenceYMax)) {
+bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y) {
+  if ((fenceXMin <= x && x <= fenceXMax) &&
+      (fenceYMin <= y && y <= fenceYMax)) {
     return true;
   } else {
     return false;
@@ -13524,7 +13900,7 @@ bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y) {
 gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) {
   
   double min_x, min_y;
-  mapijToxy(ms, map_i, map_j, &min_x, &min_y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, map_i, map_j, &min_x, &min_y);
   double max_x = min_x + ms->config.mapStep;
   double max_y = min_y + ms->config.mapStep;
   double width = max_x - min_x;
@@ -13549,22 +13925,22 @@ bool isBoxMemoryIkPossible(shared_ptr<MachineState> ms, BoxMemory b) {
   int toReturn = 1;
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.bot.px, b.top.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.bot.px, b.top.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   {
     int i, j;
-    mapxyToij(ms, b.top.px, b.bot.py, &i, &j);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, b.top.px, b.bot.py, &i, &j);
     toReturn &= isCellIkPossible(ms, i, j);
   }
   return toReturn;
@@ -13577,28 +13953,28 @@ bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
     pixelToGlobal(ms, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
-    mapxyToij(ms, tbx, tby, &tbi, &tbj);
+    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   return toReturn;
@@ -13920,7 +14296,7 @@ void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms)
 
 bool cellIsMapped(shared_ptr<MachineState> ms, int i, int j) {
   double x, y;
-  mapijToxy(ms, i, j, &x, &y);
+  mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
   return positionIsMapped(ms, x, y);
 }
 bool positionIsMapped(shared_ptr<MachineState> ms, double x, double y) {
@@ -14021,8 +14397,8 @@ void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc) {
   double voidTimeGap = 60.0;
 
   int mxs=0,mxe=0,mys=0,mye=0;
-  mapxyToij(ms, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
-  mapxyToij(ms, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc-voidRegionWidth, yc-voidRegionWidth, &mxs, &mys);
+  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, xc+voidRegionWidth, yc+voidRegionWidth, &mxe, &mye);
   mxs = max(0,min(mxs, (int) ms->config.mapWidth));
   mxe = max(0,min(mxe, (int) ms->config.mapWidth));
   mys = max(0,min(mys, (int) ms->config.mapWidth));
@@ -14414,6 +14790,14 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
   ms->config.left_or_right_arm = left_or_right_arm;
 
+  if (left_or_right_arm == "left") {
+    ms->config.other_arm = "right";
+  } else if (left_or_right_arm == "right") {
+    ms->config.other_arm = "left";
+  } else {
+    ms->config.other_arm = "none";
+  }
+
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
   cout << "n namespace: " << n.getNamespace() << endl;
@@ -14455,6 +14839,18 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
     ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms.get());
     ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms.get());
     ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms.get());
+
+    ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms.get());
+
+#ifdef RETHINK_SDK_1_2_0
+    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms.get());
+    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms.get());
+    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms.get());
+#else
+    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms.get());
+    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms.get());
+    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms.get());
+#endif
 
 
     ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms.get());
@@ -14576,6 +14972,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
     ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
 						    &MachineState::forthCommandCallback, ms.get());
+    ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.other_arm + "/forth_commands", 10);
   } else if (ms->config.currentRobotMode == SNOOP) {
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
     ms->config.einSub = n.subscribe("/ein_" + ms->config.left_or_right_arm + "/state", 1, &MachineState::einStateCallback, ms.get());
@@ -14600,6 +14997,7 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
   ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
 
   ms->config.digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
+  ms->config.analog_io_pub = n.advertise<baxter_core_msgs::AnalogOutputCommand>("/robot/analog_io/command",10);
 
   ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
   ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
