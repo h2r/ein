@@ -2594,6 +2594,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
   loadCalibration(ms, fileName);
+  ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
 REGISTER_WORD(LoadCalibration)
@@ -2607,6 +2608,15 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(LoadCalibrationRaw)
+
+WORD(LoadDefaultCalibration)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  cout << "Loading calibration file from " << fileName << endl;
+  loadCalibration(ms, fileName);
+}
+END_WORD
+REGISTER_WORD(LoadDefaultCalibration)
 
 
 WORD(SaveCalibration)

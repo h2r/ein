@@ -426,14 +426,14 @@ GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
 void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
   (*xc) = round(xm / cell_width) + x_center_cell;
   (*yc) = round(ym / cell_width) + y_center_cell;
-  if (*xc < 0 || *xc >= width) {
-    ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad x. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
-    assert(0);
-  }
-  if (*yc < 0 || *yc >= height) {
-    ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad y. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
-    assert(0);
-  }
+  //if (*xc < 0 || *xc >= width) {
+  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad x. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //assert(0);
+  //}
+  //if (*yc < 0 || *yc >= height) {
+  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad y. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //assert(0);
+  //}
 } 
 
 void GaussianMap::metersToCell(double xm, double ym, double * xc, double * yc) {
