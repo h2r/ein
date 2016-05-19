@@ -10274,7 +10274,7 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
   *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
   double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
-  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+1  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
 */
   double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
   *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
@@ -10791,7 +10791,7 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 
   if (msg.name == "/baxter_cams") {
     shared_ptr<MachineState> ms = this->sharedThis;
-    cout << "Received cam msg." << msg.name << " " << msg.line << " " << msg.msg << endl;
+    //cout << "Received cam msg." << msg.name << " " << msg.line << " " << msg.msg << endl;
     size_t loc = msg.msg.find(':');
 
     if (loc != std::string::npos) {
