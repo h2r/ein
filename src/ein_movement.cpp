@@ -786,7 +786,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ms->clearStack();
   }
 
-  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -801,7 +801,7 @@ WORD(ChangeToHeight0)
 CODE(1245217) // capslock + numlock + !
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentThompsonHeightIdx = 0;
-  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -816,7 +816,7 @@ WORD(ChangeToHeight1)
 CODE(1245248)     // capslock + numlock + @
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentThompsonHeightIdx = 1;
-  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -831,7 +831,7 @@ WORD(ChangeToHeight2)
 CODE(1245219)  // capslock + numlock + #
 virtual void execute(std::shared_ptr<MachineState> ms)  {
   ms->config.currentThompsonHeightIdx = 2;
-  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -846,7 +846,7 @@ WORD(ChangeToHeight3)
 CODE(1245220) // capslock + numlock + $
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentThompsonHeightIdx = 3;
-  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
+  ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -1035,8 +1035,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
     box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.top = pixelToGlobalEEPose(ms->p, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms->p, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1172,7 +1172,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double aY = result.y();
       double aX = result.x();
 
-      double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
       angle = (angle);
       double scale = 1.0;
       Point center = Point(sz.width/2, sz.height/2);
@@ -2438,7 +2438,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double current_r_coordinate = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) );
   double current_theta_coordinate = atan2(ms->config.currentEEPose.py, ms->config.currentEEPose.px);
 
-  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms->p, 1);
   double p_inter_target_r = 0.8;
 
   double target_plane_distance = sqrt( pow(ms->config.currentEEPose.px - targetPoseIn.px, 2.0) + pow(ms->config.currentEEPose.py - targetPoseIn.py, 2.0) );
@@ -2562,7 +2562,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double current_r_coordinate = sqrt( pow(ms->config.currentEEPose.px, 2.0) + pow(ms->config.currentEEPose.py, 2.0) );
   double current_theta_coordinate = atan2(ms->config.currentEEPose.py, ms->config.currentEEPose.px);
 
-  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms->p, 1);
   double p_inter_target_r = 0.8;
 
   double target_plane_distance = sqrt( pow(ms->config.currentEEPose.px - targetPoseIn.px, 2.0) + pow(ms->config.currentEEPose.py - targetPoseIn.py, 2.0) );
@@ -2731,7 +2731,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double current_r_coordinate = sqrt( pow(startPoseIn.px, 2.0) + pow(startPoseIn.py, 2.0) );
   double current_theta_coordinate = atan2(startPoseIn.py, startPoseIn.px);
 
-  double p_inter_target_z = convertHeightIdxToGlobalZ(ms, 1);
+  double p_inter_target_z = convertHeightIdxToGlobalZ(ms->p, 1);
   double p_inter_target_r = 0.8;
 
   double target_plane_distance = sqrt( pow(startPoseIn.px - targetPoseIn.px, 2.0) + pow(startPoseIn.py - targetPoseIn.py, 2.0) );

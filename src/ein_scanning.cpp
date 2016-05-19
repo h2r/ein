@@ -818,7 +818,7 @@ REGISTER_WORD(RgbScan)
 
 WORD(SetPhotoPinHere)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -826,7 +826,7 @@ REGISTER_WORD(SetPhotoPinHere)
 WORD(PutCameraOverPhotoPin)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -1693,7 +1693,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
   }
 }
 END_WORD
@@ -2113,7 +2113,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2188,7 +2188,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;

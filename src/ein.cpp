@@ -2742,8 +2742,8 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
       box.bBot.x = ms->config.vanishingPointReticle.px+probeBoxHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms->p, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms->p, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2794,8 +2794,8 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
       box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms->p, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms->p, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -4624,11 +4624,11 @@ void renderWristViewImage(shared_ptr<MachineState> ms) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
       
-      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms->p, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
       
       zToUse = zCounter+deltaZ;
-      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms->p, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
       
       line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
@@ -4637,11 +4637,11 @@ void renderWristViewImage(shared_ptr<MachineState> ms) {
       int pX = 0, pY = 0;  
       double zToUse = zCounter;
       
-      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms->p, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
       
       zToUse = zCounter+deltaZ;
-      globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
+      globalToPixel(ms->p, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
       
       line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
@@ -5550,7 +5550,7 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
     // form a rotation about the vanishing point, measured from positive x axis
     // window is inverted
-    double thisTheta = vectorArcTan(ms, ms->config.vanishingPointReticle.py - y, x - ms->config.vanishingPointReticle.px);
+    double thisTheta = vectorArcTan(ms->p, ms->config.vanishingPointReticle.py - y, x - ms->config.vanishingPointReticle.px);
 
     ms->pushWord("pixelServoA");
     ms->pushWord(std::make_shared<DoubleWord>(thisTheta));
@@ -6456,7 +6456,7 @@ int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn) {
   // no degrees here
   // ATTN 22
   //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(ms, aY, aX);
+  double angle = vectorArcTan(ms->p, aY, aX);
   // no inversion necessary
   //angle = -angle;
   
@@ -6496,7 +6496,7 @@ int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn) {
   // no degrees here
   // ATTN 22
   //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(ms, aY, aX);
+  double angle = vectorArcTan(ms->p, aY, aX);
   // inversion to convert to global
   angle = -angle;
   
@@ -7013,7 +7013,7 @@ void loadSampledHeightMemory(shared_ptr<MachineState> ms) {
   drawHeightMemorySample(ms);
 }
 
-double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
+double convertHeightIdxToGlobalZ(MachineState * ms, int heightIdx) {
   double tabledMaxHeight = ms->config.maxHeight - ms->config.currentTableZ;
   double tabledMinHeight = ms->config.minHeight - ms->config.currentTableZ;
 
@@ -7022,7 +7022,7 @@ double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int heightIdx) {
   return scaledTranslatedHeight;
 }
 
-double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int heightIdx) {
+double convertHeightIdxToLocalZ(MachineState * ms, int heightIdx) {
   double unTabledMaxHeight = ms->config.maxHeight;
   double unTabledMinHeight = ms->config.minHeight;
 
@@ -7041,7 +7041,7 @@ int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double globalZ) {
 
 void testHeightConversion(shared_ptr<MachineState> ms) {
   for (int i = 0; i < ms->config.hmWidth; i++) {
-    double height = convertHeightIdxToGlobalZ(ms, i);
+    double height = convertHeightIdxToGlobalZ(ms->p, i);
     int newIdx = convertHeightGlobalZToIdx(ms, height);
     cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
     //assert(newIdx == i);
@@ -7150,7 +7150,7 @@ void estimateGlobalGraspGear(shared_ptr<MachineState> ms) {
 
   for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
     prepareGraspFilter(ms, tGG);
-    loadGlobalTargetClassRangeMap(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
+    loadGlobalTargetClassRangeMap(ms->p, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
     applyGraspFilter(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
 
     int rx = ms->config.maxX;
@@ -7484,7 +7484,7 @@ void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double *
   }
 }
 
-void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB) {
+void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB) {
   //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
   Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
@@ -7504,7 +7504,7 @@ void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMa
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
   double scale = 1.0;
   Point center = Point(ms->config.rmWidth/2, ms->config.rmWidth/2);
   Size toBecome(ms->config.rmWidth, ms->config.rmWidth);
@@ -7938,7 +7938,7 @@ void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms) {
     ms->config.currentEEPose.py += yToAdd;
   } else {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
+    pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
   { // yet another way to do this
     // 0 assumes no rotation 
@@ -8115,7 +8115,7 @@ double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class
   return computeSimilarity(ms, ms->config.classHeight1AerialGradients[class1], ms->config.classHeight1AerialGradients[class2]);
 }
 
-void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta) {
+void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta) {
 
   ms->config.reticle = ms->config.vanishingPointReticle;
 
@@ -8146,7 +8146,7 @@ void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, d
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms->p, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
 
@@ -8574,14 +8574,14 @@ void gradientServo(shared_ptr<MachineState> ms) {
     double newy = 0;
     // first analytic
     //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    //pixelToGlobal(ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
+    //pixelToGlobal(ms->p->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
     // old PID
     //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
     //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms->p, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
@@ -9112,7 +9112,7 @@ void gradientServoLatentClass(shared_ptr<MachineState> ms) {
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms->p, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
@@ -9567,7 +9567,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   {
     double newx = 0;
     double newy = 0;
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms->p, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
 
@@ -9585,13 +9585,13 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 
 // given pixel is the pixel in the current frame that you want to be at the vanishing point
 //  after undergoing a rotaion of ozAngle about the end effector Z axis
-eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double ozAngle, eePose givenCameraPose) {
+eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double ozAngle, eePose givenCameraPose) {
   eePose toReturn = givenCameraPose;
   eePose grGlobalPostRotation = givenCameraPose;
   eePose gpGlobalPreRotation = givenCameraPose;
   {
     double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py), givenCameraPose);
+    pixelToGlobal(ms->p, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py), givenCameraPose);
   }
 
   eePose fakeEndEffector = givenCameraPose;
@@ -9600,7 +9600,7 @@ eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixe
   endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
   {
     double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
+    pixelToGlobal(ms->p, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
   }
   double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
   double  postRotationTranslationY = (gpGlobalPreRotation.py - grGlobalPostRotation.py);
@@ -9619,7 +9619,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
   eePose thisGripperReticle;
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
-  globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
+  globalToPixel(ms->p, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
   thisGripperReticle.py = yOut;
   ms->config.reticle = ms->config.vanishingPointReticle;
@@ -9701,7 +9701,7 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       double tbx, tby;
       int tbi, tbj;
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-      pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
+      pixelToGlobal(ms->p, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
       mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
       
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
@@ -9835,10 +9835,10 @@ void synchronicServo(shared_ptr<MachineState> ms) {
       double newy = 0;
       // first analytic
       //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-      //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
+      //pixelToGlobal(ms->p, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
       // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0, ms->config.trueEEPoseEEPose);
+      eePose newGlobalTarget = analyticServoPixelToReticle(ms->p, ms->config.pilotTarget, ms->config.reticle, 0, ms->config.trueEEPoseEEPose);
       newx = newGlobalTarget.px;
       newy = newGlobalTarget.py;
 
@@ -10061,9 +10061,9 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i) {
   return toReturn;
 }
 
-eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ) {
+eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
   eePose result;
-  pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
+  pixelToGlobal(ms->p, pX, pY, gZ, &result.px, &result.py);
   result.pz = ms->config.trueEEPose.position.z - ms->config.currentTableZ;
   result.qx = 0;
   result.qy = 0;
@@ -10071,14 +10071,14 @@ eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double g
   return result;
 }
 
-void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * m_x, double * m_y) {
+void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, double * m_y) {
 
   if (ms->config.currentCameraCalibrationMode == CAMCAL_LINBOUNDED) {
     double bBZ[4];
-    bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-    bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-    bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-    bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+    bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+    bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+    bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+    bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
     if (dZ <= bBZ[0]) {
       *m_x = ms->config.m_x_h[0];
@@ -10126,11 +10126,11 @@ void interpolateM_xAndM_yFromZ(shared_ptr<MachineState> ms, double dZ, double * 
   }
 }
 
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY) {
+void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY) {
   pixelToGlobal(ms, pX, pY, gZ, gX, gY, ms->config.trueEEPoseEEPose);
 }
 
-void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame) {
+void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame) {
 
   eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
 
@@ -10138,12 +10138,12 @@ void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double
   
 }
 
-void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
+void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
   eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
-  computePixelToGlobalCache(ms, gZ, transformedPose, cache);
+  computePixelToGlobalCache(ms->p, gZ, transformedPose, cache);
 }
 
-void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
+void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
   cache->givenEEPose = givenEEPose;
   cache->gZ = gZ;
@@ -10157,10 +10157,10 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
   cache->y3 = ms->config.heightReticles[2].py;
   cache->y4 = ms->config.heightReticles[3].py;
 
-  cache->z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  cache->z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  cache->z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  cache->z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  cache->z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  cache->z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  cache->z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  cache->z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   cache->reticlePixelX = 0.0;
   cache->reticlePixelY = 0.0;
@@ -10212,7 +10212,7 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
   angle = (angle);
   double scale = 1.0;
   Point center = Point(cache->reticlePixelX, cache->reticlePixelY);
@@ -10247,13 +10247,13 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
 }
 
 
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
+void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose) {
   pixelToGlobalCache data;
-  computePixelToGlobalCache(ms, gZ, givenEEPose, &data);
-  pixelToGlobalFromCache(ms, pX, pY, gX, gY, &data);
+  computePixelToGlobalCache(ms->p, gZ, givenEEPose, &data);
+  pixelToGlobalFromCache(ms->p, pX, pY, gX, gY, &data);
 }
 
-void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
 
   int rotatedPX = (cache->un_rot_mat.at<double>(0, 0) * pX +
 		   cache->un_rot_mat.at<double>(0, 1) * pY +
@@ -10284,7 +10284,7 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
 
 }
 
-void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
+void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
@@ -10297,10 +10297,10 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -10389,7 +10389,7 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -10411,7 +10411,7 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
   *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
   *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
 }
-void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY) {
+void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
@@ -10424,10 +10424,10 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -10504,7 +10504,7 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -10527,7 +10527,7 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
 
-void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
+void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
   interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
 
   int x1 = ms->config.heightReticles[0].px;
@@ -10540,10 +10540,10 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
@@ -10620,7 +10620,7 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
 
   // ATTN 22
   //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+  double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
   angle = angle;
   double scale = 1.0;
   Point center = Point(reticlePixelX, reticlePixelY);
@@ -10650,7 +10650,7 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   int pX = 0, pY = 0;  
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
-  globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
+  globalToPixel(ms->p, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
   pX = pXo - lineLength;
   pY = pYo - lineLength;
   //cout << "paintEEPoseOnWrist pX pY zToUse: " << pX << " " << pY << " " << zToUse << endl;
@@ -10671,8 +10671,8 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   if (1) {
     double gX = 0, gY = 0;
     int pXb = 0, pYb = 0;  
-    pixelToGlobal(ms, pXo, pYo, zToUse, &gX, &gY);
-    globalToPixel(ms, &pXb, &pYb, zToUse, gX, gY);
+    pixelToGlobal(ms->p, pXo, pYo, zToUse, &gX, &gY);
+    globalToPixel(ms->p, &pXb, &pYb, zToUse, gX, gY);
     pX = pXb - lineLength;
     pY = pYb - lineLength;
     //cout << "PAINTeepOSEoNwRIST pX pY gX gY: " << pX << " " << pY << " " << gX << " " << gY << endl;
@@ -10693,7 +10693,7 @@ void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar 
   //guardedImshow(ms->config.objectViewerName, ms->config.objectViewerImage);
 }
 
-double vectorArcTan(shared_ptr<MachineState> ms, double y, double x) {
+double vectorArcTan(MachineState * ms, double y, double x) {
   int maxVaSlot = 0;
   double maxVaDot = -INFINITY;
   for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
@@ -10713,7 +10713,7 @@ double vectorArcTan(shared_ptr<MachineState> ms, double y, double x) {
   }
 }
 
-void initVectorArcTan(shared_ptr<MachineState> ms) {
+void initVectorArcTan(MachineState * ms) {
   for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
     ms->config.vaX[vaSlot] = cos(vaSlot*ms->config.vaDelta);
     ms->config.vaY[vaSlot] = sin(vaSlot*ms->config.vaDelta);
@@ -10721,7 +10721,7 @@ void initVectorArcTan(shared_ptr<MachineState> ms) {
   /* smoke test
   for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
     cout << "atan2 vectorArcTan: " << 
-      vectorArcTan(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << " " << 
+      vectorArcTan(ms->p->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << " " << 
       atan2(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << endl; 
   }
   */
@@ -10737,7 +10737,7 @@ void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, i
       double x, y;
       double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
 
-      pixelToGlobal(ms, px, py, z, &x, &y);
+      pixelToGlobal(ms->p, px, py, z, &x, &y);
       int i, j;
       mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 
@@ -10903,10 +10903,10 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
       double topLx = 0.0;
       double topLy = 0.0;
-      pixelToGlobal(ms, 0, 0, zToUse, &topLx, &topLy);
+      pixelToGlobal(ms->p, 0, 0, zToUse, &topLx, &topLy);
       double botLx = 0.0;
       double botLy = 0.0;
-      pixelToGlobal(ms, imW-1, imH-1, zToUse, &botLx, &botLy);
+      pixelToGlobal(ms->p, imW-1, imH-1, zToUse, &botLx, &botLy);
       topLx = min(max(ms->config.mapBackgroundXMin, topLx), ms->config.mapBackgroundXMax);
       topLy = min(max(ms->config.mapBackgroundYMin, topLy), ms->config.mapBackgroundYMax);
       botLx = min(max(ms->config.mapBackgroundXMin, botLx), ms->config.mapBackgroundXMax);
@@ -10935,7 +10935,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
       // ATTN 22
       //double angle = atan2(aY, aX)*180.0/3.1415926;
-      double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
+      double angle = vectorArcTan(ms->p, aY, aX)*180.0/3.1415926;
       angle = (angle);
       double scale = 1.0;
       Point center = Point(mapGpPx, mapGpPy);
@@ -11002,10 +11002,10 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
 
       int topPx = 0.0;
       int topPy = 0.0;
-      globalToPixel(ms, &topPx, &topPy, zToUse, topLx, topLy);
+      globalToPixel(ms->p, &topPx, &topPy, zToUse, topLx, topLy);
       int botPx = 0.0;
       int botPy = 0.0;
-      globalToPixel(ms, &botPx, &botPy, zToUse, botLx, botLy);
+      globalToPixel(ms->p, &botPx, &botPy, zToUse, botLx, botLy);
       topPx = min(max(0, topPx), imW-1);
       topPy = min(max(0, topPy), imH-1);
       botPx = min(max(0, botPx), imW-1);
@@ -13952,28 +13952,28 @@ bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(ms, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms->p, tbTop.x, tbTop.y, zToUse, &tbx, &tby);
     mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(ms, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms->p, tbBot.x, tbBot.y, zToUse, &tbx, &tby);
     mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(ms, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms->p, tbTop.x, tbBot.y, zToUse, &tbx, &tby);
     mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
   {
     double tbx, tby;
     int tbi, tbj;
-    pixelToGlobal(ms, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
+    pixelToGlobal(ms->p, tbBot.x, tbTop.y, zToUse, &tbx, &tby);
     mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
     toReturn &= isCellIkPossible(ms, tbi, tbj);
   }
@@ -14505,7 +14505,7 @@ void initializeMap(shared_ptr<MachineState> ms) {
 
   ms->config.lastScanStarted = ros::Time::now();
   ms->config.ikMapStartHeight = -ms->config.currentTableZ + ms->config.pickFlushFactor;
-  ms->config.ikMapEndHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
+  ms->config.ikMapEndHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.mappingHeightIdx);
 }
 
 
@@ -15315,7 +15315,7 @@ int main(int argc, char **argv) {
       assert(0);
     }
 
-    initVectorArcTan(ms);
+    initVectorArcTan(ms->p);
 
     initializeArm(ms, left_or_right);
 
