@@ -1,6 +1,8 @@
 robotSerial "_bg_" leftOrRightArm + + "bg" store
 
-( assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition
+( /* assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition */
+0.562500 0.478750 0.069192 -0.001253 0.999999 -0.000147 0.000237 createEEPose moveEeToPoseWord
+1 changeToHeight waitUntilAtCurrentPosition
 ) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
@@ -43,11 +45,6 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   5 sceneSetCellCountThreshold 
   tempRegularizeBackground
 
-/* orion's left arm.
-  10.0 sceneSetBackgroundStdDevY
-  10.0 sceneSetBackgroundStdDevColor
-  2 sceneSetCellCountThreshold 
-*/
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "tempInit" store
 
@@ -964,7 +961,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
   sceneClearObservedMap 
   waitUntilAtCurrentPosition
-  9 tempUpdateSpiralCore tempUpdateMaps
+  tempUpdateSpiral tempUpdateMaps
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
@@ -977,7 +974,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   initializeAndFocusOnNewClass
 
-  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord
+/*  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
 
   sceneClearObservedMap sceneClearPredictedObjects 
 
@@ -2091,9 +2088,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 0.02 "slfgRebaseCellWidth" store
-( 
+(
   388 "slfgRebaseIterations" store
   0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
+  tempInit
 ) "slfgRebase" store
 
 ( 
@@ -2104,6 +2102,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       -
     setEEPosePZ 
   sceneInitFromEePoseScale
+  tempInit
 ) "slfgRebaseTable" store
 
 (
@@ -2822,9 +2821,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
+  setTable
   */
   initializeAndFocusOnNewClass
-  setTable
 
   tempCalibrateHeightReticles
   tempCalibrateMagnification
