@@ -22,7 +22,7 @@ void _GaussianMapChannel::zero() {
 }
 
 shared_ptr<Scene> Scene::createFromFile(shared_ptr<MachineState> ms, string filename) {
-  shared_ptr<Scene> scene = make_shared<Scene>(ms, 2, 2, 0.02, eePose::identity());
+  shared_ptr<Scene> scene = make_shared<Scene>(ms, 1, 1, 0.02, eePose::identity());
   scene->loadFromFile(filename);
   return scene;
 }
@@ -935,10 +935,10 @@ bool Scene::isDiscrepantCellBilin(double threshold, double x, double y) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  return ( (discrepancy_density.at<double>(y1,x1) > threshold) || 
-	   (discrepancy_density.at<double>(y1,x2) > threshold) ||
-	   (discrepancy_density.at<double>(y2,x1) > threshold) ||
-	   (discrepancy_density.at<double>(y2,x2) > threshold) );
+  return ( (discrepancy_density.at<double>(x1,y1) > threshold) || 
+	   (discrepancy_density.at<double>(x1,y2) > threshold) ||
+	   (discrepancy_density.at<double>(x2,y1) > threshold) ||
+	   (discrepancy_density.at<double>(x2,y2) > threshold) );
 } 
 bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
   double cell_x;
@@ -1418,16 +1418,46 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
+  if ((x2 - x1 + 1) % 2 == 0) {
+    if (x1 != 0) {
+      x1 -= 1;
+    } else if (x2 != width - 1)  {
+      x2 += 1;
+    } else {
+      cout << "Invalid parity correction: x1: " << x1 << " x2: " << x2 << " width: " << width << endl;
+      assert(0);
+    }
+  }
+
+  if ((y2 - y1 + 1) % 2 == 0) {
+    if (y1 != 0) {
+      y1 -= 1;
+    } else if (y2 != height - 1)  {
+      y2 += 1;
+    } else {
+      cout << "Invalid parity correction: y1: " << y1 << " y2: " << y2 << " height: " << height << endl;
+      assert(0);
+    }
+  }
+
+
+
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width, background_pose);
+
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
   toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
   toReturn->discrepancy= discrepancy->copyBox(x1,y1,x2,y2);
 
+  //toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  //toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  //toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
   toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
   toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
   toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+
+
 
   return toReturn;
 }
@@ -1466,10 +1496,10 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
     xmax = xmax-1;
-  } else {}
+  }
   if ((new_height % 2) == 0) {
     ymax = ymax-1;
-  } else {}
+  }
   new_width = xmax - xmin + 1;
   new_height = ymax - ymin + 1;
 
@@ -2383,20 +2413,20 @@ void Scene::readFromFileNode(FileNode& it) {
   cout << "done" << endl;
 
   bool error = false;
-  if (discrepancy_density.rows != height || discrepancy_density.cols != width) {
+  if (discrepancy_density.cols != width || discrepancy_density.rows != height) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (discrepancy_magnitude.rows != height || discrepancy_magnitude.cols != width) {
+  if (discrepancy_magnitude.cols != width || discrepancy_magnitude.rows != height) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (predicted_segmentation.rows != height || predicted_segmentation.cols != width) {
-    ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
+  if (predicted_segmentation.cols != width || predicted_segmentation.rows != height) {
+    ROS_ERROR_STREAM("Predicted segmentation has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(width, height, CV_64F);
   }
   
@@ -3890,8 +3920,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
-      if (ms->config.scene->discrepancy->safeAt(cell_y, cell_x)) {
-        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
+      if (ms->config.scene->discrepancy->safeAt(cell_x, cell_y)) {
+        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_x,cell_y);
       }
     }
   }
@@ -7658,7 +7688,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      continue;
 	    } 
 	  } 
-
 	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
 
 	  double x, y;
