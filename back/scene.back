@@ -25,7 +25,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureAsFocused" store
 
 ( 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.1 sceneGrabDiscrepantCropAsClass 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
 ) "tempCaptureCore" store
 
 (
@@ -116,7 +116,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
   tempSpiralStreamTakeSceneSamples "tempReconstructStreamTakeSceneSamples" store
+  /*
   tempReconstructWithZ
+  */
+  tempReconstructFromStream
 
 ) "tempUpdateSpiralCoreIntegrate" store
 
@@ -1172,12 +1175,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.05 "tempBlockMaxGraspThickness" store
+0.04 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.03 "tempBlockGripperThrow" store
+0.035 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
@@ -1436,16 +1439,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 0.0 "phasedArrayPhase" store
-0.0000007 "phasedArrayWavelength" store
-0.0002 "phasedArrayGap" store
+0.00005 "phasedArrayWavelength" store
+0.03 "phasedArrayGap" store
 
 5 "phasedArrayApertureWidthCells" store
-0.5883 "tempReconstructArrayZ" store 
+0.2683 "tempReconstructArrayZ" store 
 
 
 
 
-0.4083 "tempReconstructWithZTopZ" store 
+0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
 200 "tempReconstructStreamTakeSceneSamples" store
@@ -1696,7 +1699,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   0.04 "tempSpiralMoveSpeed" store
 
-  12 "tempUpdateSpiralN" store
+  16 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -1807,8 +1810,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructPhrases" store
 
 (
-  tempReconstructWithZThisZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+	currentPose
+      eePosePZ
+      currentTableZ
+    +
+  "tempReconstructWithZTopZ" store 
+
+  tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
+
   /* 
   3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
   */
@@ -2723,8 +2733,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
 
   
-  1.2 "magCalBase" store
-  30 "magCalSteps" store
+  1.375 "magCalBase" store
+  50 "magCalSteps" store
   0.04 "magCalDelta" store
 
   0 changeToHeight
@@ -2746,7 +2756,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   0 cameraSetCalibrationMode
 
-  50 "tempReconstructStreamTakeSceneSamples" store
+  100 "tempReconstructStreamTakeSceneSamples" store
   0 "tempChrStartHeight" store
   1 "tempChrEndHeight" store
   0.0 "tempChrExtraZ" store
@@ -2772,9 +2782,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   1 changeToHeight cameraGetIdxMagX dup 2 changeToHeight cameraSetIdxMagX 3 changeToHeight cameraSetIdxMagX
   cameraFitQuadratic 1 cameraSetCalibrationMode
 
+) "tempCalibrateMagnification" store
 
-
-/*
+(
   /*
   gripper projections
   these parameters interact through the pixelToGlobal function so they might need
@@ -2788,7 +2798,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   separate case not fully chased because calibration from spinning was adequate.
   */
 
-/*
   200 "tempReconstructStreamTakeSceneSamples" store
 
   0 "tempChrStartHeight" store
@@ -2806,23 +2815,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ( cameraSetCurrentHeightReticleY ) "magCalSetter" store
   tempCalibrateOnBundleOneDimensionJointHeights
 
-*/
-
-
-
-
-*/
-
-) "tempCalibrateMagnification" store
-
+) "tempCalibrateBundleHeight" store
 
 (
   /*
     currentPose
-  setTable
   setGripperMaskWithMotion
   moveEeToPoseWord
   */
+  initializeAndFocusOnNewClass
+  setTable
 
   tempCalibrateHeightReticles
   tempCalibrateMagnification
@@ -2831,7 +2833,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempCalibrateVanishingPointReticleMultiSample
   */
 ) "tempCalibrateHMV" store
-
 
 
 (

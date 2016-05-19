@@ -79,7 +79,11 @@ void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms) {
     if ( boost::filesystem::exists(dirToMakePath) ) {
       cout << "Group folder exists: " << dirToMakePath << endl;
     } else {
-      mkdir(dirToMakePath.c_str(), 0777);
+      try {
+	create_directories(dirToMakePath);
+      } catch( ... ) {
+	ROS_ERROR_STREAM("Could not create directory: " << dirToMakePath);
+      }
     }
   }
   bool collision = 1;
@@ -95,7 +99,12 @@ void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms) {
       suffix_counter++;
       collision = 1;
     } else {
-      mkdir(dirToMakePath.c_str(), 0777);
+      cout << "Creating " << dirToMakePath << endl;
+      try {
+	create_directories(dirToMakePath);
+      } catch( ... ) {
+	ROS_ERROR_STREAM("Could not create directory  " << dirToMakePath);
+      }
       collision = 0;
       thisLabelName = thisLabelName + the_suffix;  
     }
