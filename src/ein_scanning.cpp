@@ -1957,6 +1957,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
 
+  ms->config.pilotTarget.px = darkX;
+  ms->config.pilotTarget.py = darkY;
+
   int Px = darkX - ms->config.vanishingPointReticle.px;
   int Py = darkY - ms->config.vanishingPointReticle.py;
 
@@ -2146,6 +2149,26 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SetMagnificationA)
+
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
+
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
+
+
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.vanishingPointReticle.px) 
+CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.vanishingPointReticle.px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.vanishingPointReticle.py) 
+CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.vanishingPointReticle.py) 
+
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
 WORD(SetMagnificationB)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -2574,6 +2597,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(LoadCalibration)
+
+WORD(LoadCalibrationRaw)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string fileName;
+  GET_ARG(ms, StringWord, fileName);
+  cout << "Loading calibration file from " << fileName << endl;
+  loadCalibration(ms, fileName);
+}
+END_WORD
+REGISTER_WORD(LoadCalibrationRaw)
+
 
 WORD(SaveCalibration)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -4567,11 +4601,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(AddPlaceOverPoint)
 
+CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance) 
+CONFIG_SETTER_DOUBLE(SetGraspBackoffDistance, ms->config.graspBackoffDistance) 
+
 WORD(AssumeBest3dGrasp)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
-  double p_backoffDistance = 0.20;
+  double p_backoffDistance = ms->config.graspBackoffDistance;
 
   vector<int> feasible_indeces;
   for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {

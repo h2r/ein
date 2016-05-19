@@ -397,6 +397,65 @@ public:
   }
 };
 
+class ArmPoseWord: public Word
+{
+private:
+  armPose pose;
+
+public:
+  armPose value() {
+    return pose;
+  }
+
+  virtual bool is_value() {
+    return true;
+  }
+
+  static std::shared_ptr<ArmPoseWord> parse(string token) {
+    
+    armPose pose;
+    return std::make_shared<ArmPoseWord>(pose);
+  }
+  virtual bool is_static() {
+    return false;
+  }
+  static bool isInteger(string token) {
+    if (token.substr(0,6) == "armPose") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  ArmPoseWord(armPose _pose) {
+    pose = _pose;
+  }
+
+  virtual string repr();
+
+  string name() {
+    stringstream ss;
+    ss << pose;
+    return ss.str();
+  }
+
+  bool equals(shared_ptr<Word> word) {
+    shared_ptr<ArmPoseWord> w1 = dynamic_pointer_cast<ArmPoseWord>(word);
+    if (w1 == NULL) {
+      return false;
+    } else {
+      return w1->value().equals(this->value());
+    }
+  }
+  
+  virtual bool to_bool() {
+    return true;
+  }
+  virtual int to_int() {
+    return 1;
+  }
+};
+
 
 
 

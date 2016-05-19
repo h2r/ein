@@ -82,6 +82,11 @@ double _eePose::distanceQ(eePose pose1, eePose pose2) {
   return distance;
 }
 
+double _eePose::dotP(eePose pose1, eePose pose2) {
+  double dot = pose1.px * pose2.px + pose1.py * pose2.py + pose1.pz * pose2.pz;
+  return dot;
+}
+
 eePose _eePose::fromRectCentroid(Rect rect) {
   eePose result;
   result.px = rect.x + rect.width * 0.5;
@@ -278,6 +283,16 @@ _eePose _eePose::getInterpolation(_eePose inB, double mu) const {
   return out;
 }
 
+_eePose _eePose::getNormalized() const {
+  double norm = dotP(*this,*this);
+  if (norm > 0) {
+    _eePose thisNormalized = this->multP(1.0 / norm);
+    return thisNormalized;
+  } else {
+    return (*this);
+  }
+}
+
 _eePose _eePose::applyRPYTo(double roll_z, double pitch_y, double yaw_x) const {
 
   Eigen::Vector3f localUnitX;
@@ -418,3 +433,64 @@ void _eePose::getRollPitchYaw(double * roll, double * pitch, double * yaw) {
 
   
 }
+
+_armPose::_armPose(double a0, double a1, double a2, double a3, double a4, double a5, double a6) {
+  joints[0] = a0;
+  joints[1] = a1;
+  joints[2] = a2;
+  joints[3] = a3;
+  joints[4] = a4;
+  joints[5] = a5;
+  joints[6] = a6;
+}
+
+_armPose::_armPose() {
+  joints[0] = 0;
+  joints[1] = 0;
+  joints[2] = 0;
+  joints[3] = 0;
+  joints[4] = 0;
+  joints[5] = 0;
+  joints[6] = 0;
+}
+
+bool _armPose::equals(_armPose pose)
+{
+  if (pose.joints[0] == this->joints[0] &&
+      pose.joints[1] == this->joints[1] &&
+      pose.joints[2] == this->joints[2] &&
+      pose.joints[3] == this->joints[3] &&
+      pose.joints[4] == this->joints[4] &&
+      pose.joints[5] == this->joints[5] && 
+      pose.joints[6] == this->joints[6]) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+ostream & operator<<(ostream & os, const _armPose& toPrint)
+{
+  FileStorage st;
+  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  st << "armPose"; 
+  toPrint.writeToFileStorage(st);
+  string result = st.releaseAndGetString();
+  os << result.substr(10, result.size());
+  return os;
+} 
+
+void _armPose::writeToFileStorage(FileStorage& fsvO) const {
+  fsvO << "{:";
+  fsvO << "a0" << joints[0];
+  fsvO << "a1" << joints[1];
+  fsvO << "a2" << joints[2];
+  fsvO << "a3" << joints[3];
+  fsvO << "a4" << joints[4];
+  fsvO << "a5" << joints[5];
+  fsvO << "a6" << joints[6];
+  fsvO << "}";
+}
+
+
+

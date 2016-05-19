@@ -455,9 +455,13 @@ int CompoundWord::size() {
 }
 
 shared_ptr<Word> CompoundWord::popWord() {
+  if (stack.size() > 0) {
     std::shared_ptr<Word> word = stack.back();
     stack.pop_back();
     return word;
+  } else {
+    return NULL;
+  }
 }
 
 shared_ptr<Word> CompoundWord::getWord(int i) {
@@ -491,7 +495,7 @@ string CompoundWord::to_string() {
 }
 
 string CompoundWord::name() {
-  return "compound word";
+  return repr();
 }
 
 bool CommentWord::isComment(string token) {
@@ -535,6 +539,10 @@ bool SymbolWord::isSymbol(string token)
 
 string EePoseWord::repr() {
   return std::to_string(pose.px) + " " + std::to_string(pose.py) + " " + std::to_string(pose.pz) + " " + std::to_string(pose.qx) + " " + std::to_string(pose.qy) + " " + std::to_string(pose.qz) + " " + std::to_string(pose.qw) + " createEEPose";
+}
+
+string ArmPoseWord::repr() {
+  return std::to_string(pose.joints[0]) + " " + std::to_string(pose.joints[1]) + " " + std::to_string(pose.joints[2]) + " " + std::to_string(pose.joints[3]) + " " + std::to_string(pose.joints[4]) + " " + std::to_string(pose.joints[5]) + " " + std::to_string(pose.joints[6]) + " createArmPose";
 }
 
 string AiboPoseWord::repr() {

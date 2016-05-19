@@ -250,7 +250,9 @@ workspace4 "outputPileWorkspace" store
       clearMapForPatrol clearBlueBoxMemories mapLocal
       deliverTargetObject
       liftArm
+      /*
       pileSwitchCounter 1 + "pileSwitchCounter" store
+      */
       pileSwitchCounter pileSwitchThreshold > ( 
 	"  >>>> switching piles " print
 	inputPileWorkspace "temp" store 
@@ -748,7 +750,9 @@ dateString "catScan5VarianceTrialThisTime" store
       */
 
       liftArm
+      /*
       pileSwitchCounter 1 + "pileSwitchCounter" store
+      */
       pileSwitchCounter pileSwitchThreshold > ( 
 	"  >>>> switching piles " print
 	inputPileWorkspace "temp" store 
@@ -833,10 +837,10 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "moveToOutputPile2" store
 
 (
-  shiftIntoGraspGear3 waitUntilAtCurrentPosition
   800 "tempSpiralStreamTakeSceneSamples" store
   0.03 "tempSpiralMoveSpeed" store
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
+  shiftIntoGraspGear3 waitUntilAtCurrentPosition
   3 7 4 tempUpdateSpiralEccentricCore tempUpdateMaps
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap
   catScan5LoadInputBg
@@ -863,8 +867,9 @@ dateString "catScan5VarianceTrialThisTime" store
 
  /*
   6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
- */
   tempReconstructTakeScene
+ */
+  6 3 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 
 
 
@@ -886,12 +891,18 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadPlayBg" store
 
 (
-  shiftIntoGraspGear3 waitUntilAtCurrentPosition
-  100 "tempSpiralStreamTakeSceneSamples" store
   tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
   tempSpiralGridSizeDefault "tempSpiralGridSize" store
-  0.04 "tempSpiralMoveSpeed" store
+  800 "tempSpiralStreamTakeSceneSamples" store
+  0.03 "tempSpiralMoveSpeed" store
+  /*
+  100 "tempSpiralStreamTakeSceneSamples" store
   1 5 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  0.04 "tempSpiralMoveSpeed" store
+  */
+  inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
+  shiftIntoGraspGear3 waitUntilAtCurrentPosition
+  3 7 4 tempUpdateSpiralEccentricCore tempUpdateMaps
 ) "catScan5InputPileTakeScene" store
 
 (

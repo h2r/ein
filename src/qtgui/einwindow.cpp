@@ -14,8 +14,8 @@ EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
     ui->setupUi(this);
     ms = _ms;
     ui->imageFrame->layout()->addWidget(myView.getWidget());
-    cout << "menu: " << ui->menubar << endl;
-    cout << "menu: " << ui->menubar->isVisible() << endl;
+    //cout << "menu: " << ui->menubar << endl;
+    //cout << "menu: " << ui->menubar->isVisible() << endl;
     ui->menubar->setVisible(true);
     connect(ui->actionSaveImage, SIGNAL(triggered()), this, SLOT(saveImage()));
 }

@@ -1,0 +1,11 @@
+%YAML:1.0
+features: !!opencv-matrix
+   rows: 0
+   cols: 0
+   dt: u
+   data: []
+labels: !!opencv-matrix
+   rows: 0
+   cols: 0
+   dt: u
+   data: []

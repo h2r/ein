@@ -43,6 +43,7 @@ typedef struct _eePose{
   _eePose getPoseRelativeTo(_eePose in) const;
   _eePose applyAsRelativePoseTo(_eePose in) const;
   _eePose getInterpolation(_eePose inB, double lambda) const; 
+  _eePose getNormalized() const; 
 
   _eePose applyRPYTo(double roll, double pitch, double yaw) const;
 
@@ -57,6 +58,7 @@ typedef struct _eePose{
   static double squareDistance(_eePose pose1, _eePose pose2);
   static double distance(_eePose pose1, _eePose pose2);
   static double distanceQ(_eePose pose1, _eePose pose2);
+  static double dotP(_eePose pose1, _eePose pose2);
 
   static void distanceXYZAndAngle(_eePose pose1, _eePose pose2, double * distance, double * angleDistance);
 
@@ -74,6 +76,67 @@ typedef struct _eePose{
   _eePose();
 
 } eePose;
+
+typedef struct _armPose{
+
+  double joints[7];
+
+  bool equals(_armPose pose);
+
+  friend ostream & operator<<(ostream &, const _armPose &);
+
+  _armPose(double a0, double a1, double a2, double a3, double a4, double a5, double a6);
+  _armPose();
+
+  void writeToFileStorage(FileStorage& fsvO) const;
+
+  /*
+
+  void readFromFileNodeIterator(FileNodeIterator& it);
+  void readFromFileNode(FileNode& it);
+
+  static void print(_armPose toPrint);
+  static double distance(_armPose pose1, _armPose pose2);
+
+
+  _armPose plusP(const Vector3d& a) const;
+  _armPose minusP(const Vector3d& a) const;
+
+  _armPose plusP(const _armPose& a) const;
+  _armPose minusP(const _armPose& a) const;
+
+  _armPose multP(const double& a) const;
+
+  _armPose negativeP() const;
+  _armPose negativeQ() const;
+
+  _armPose multQ(const _armPose& a) const;
+  _armPose invQ() const;
+
+  void copyP(_armPose src);
+  void copyQ(_armPose src);
+
+  _armPose applyQTo(_armPose in) const;
+  _armPose getPoseRelativeTo(_armPose in) const;
+  _armPose applyAsRelativePoseTo(_armPose in) const;
+  _armPose getInterpolation(_armPose inB, double lambda) const; 
+
+  _armPose applyRPYTo(double roll, double pitch, double yaw) const;
+
+  static double squareDistance(_armPose pose1, _armPose pose2);
+  static double distanceQ(_armPose pose1, _armPose pose2);
+
+  static void distanceXYZAndAngle(_armPose pose1, _armPose pose2, double * distance, double * angleDistance);
+
+  void getRollPitchYaw(double * roll, double * pitch, double * yaw);
+
+
+  static _armPose fromRectCentroid(Rect rect);
+  static _armPose zero();
+  static _armPose identity();
+  static _armPose fromGeometryMsgPose(geometry_msgs::Pose);
+  */
+} armPose;
 
 
 #endif /* _EEPOSEH_ */

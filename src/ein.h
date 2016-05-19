@@ -57,6 +57,7 @@
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/SEAJointState.h>
 #include <baxter_core_msgs/DigitalOutputCommand.h>
+#include <baxter_core_msgs/AnalogOutputCommand.h>
 
 
 #include <cv.h>
@@ -94,18 +95,18 @@ int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms);
 int getColorReticleX(shared_ptr<MachineState> ms);
 int getColorReticleY(shared_ptr<MachineState> ms);
 
-
-void mapijToxy(shared_ptr<MachineState> ms, int i, int j, double * x, double * y);
-void mapxyToij(shared_ptr<MachineState> ms, double x, double y, int * i, int * j); 
+void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j);
+void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y); 
 void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
 void clearMapForPatrol(shared_ptr<MachineState> ms);
 void initializeMap(shared_ptr<MachineState> ms);
 void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
 int blueBoxForPixel(int px, int py);
 int skirtedBlueBoxForPixel(shared_ptr<MachineState> ms, int px, int py, int skirtPixels);
-bool cellIsSearched(shared_ptr<MachineState> ms, int i, int j);
-bool positionIsSearched(shared_ptr<MachineState> ms, double x, double y);
+bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j);
+bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y);
 void markMapAsCompleted(shared_ptr<MachineState> ms);
+
 
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
 vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
@@ -349,14 +350,19 @@ int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
 
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
-void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, pixelToGlobalCache * cache);
+void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
 void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
+void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
 void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
 
-void pixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
-cv::Point worldToPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
+void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
+void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);
+
+
+void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
+cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
 
