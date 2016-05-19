@@ -5820,7 +5820,7 @@ void loadCalibration(shared_ptr<MachineState> ms, string inFileName) {
     ms->config.cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
 
   }
-
+  ms->pushWord("moveCropToProperValue"); 
   cout << "done." << endl;
 }
 

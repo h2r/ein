@@ -197,7 +197,6 @@ void initializeMachine(shared_ptr<MachineState> ms) {
 
   {
     ms->pushWord("fillClearanceMap"); 
-    ms->pushWord("moveCropToProperValue"); 
     ms->pushWord("loadCalibration"); 
     ms->pushWord("loadIkMap"); 
     ms->pushWord("loadGripperMask"); 
