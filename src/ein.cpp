@@ -5000,6 +5000,12 @@ void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDI
 void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->evaluateProgram("infiniteScan");
+    }      
+  }
 
   if (dios.state) {
     ms->config.lastArmShowButtonState = 1;
@@ -5011,12 +5017,21 @@ void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState&
 void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
   shared_ptr<MachineState> ms = this->sharedThis;
 
+  if (dios.state == 1) {
+    // only if this is the first of recent presses
+    if (ms->config.lastArmOkButtonState == 0) {
+      ms->clearStack();
+      ms->clearData();
+
+      ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
+    }      
+  }
+
   if (dios.state) {
     ms->config.lastArmBackButtonState = 1;
   } else {
     ms->config.lastArmBackButtonState = 0;
   }
-
 }
 
 void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
@@ -10159,7 +10174,8 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     cache->reticlePixelX = x_thisZ;
@@ -10175,7 +10191,8 @@ void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose gi
     double bDiff = b42-b31;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     cache->reticlePixelY = y_thisZ;
@@ -10252,10 +10269,17 @@ void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double 
   pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
   pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
 
+/*
   double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
   *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
   double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
+  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+*/
+  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
+  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
+
+  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
   *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
 
 }
@@ -10295,14 +10319,15 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
@@ -10329,14 +10354,15 @@ void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double 
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // XXX removed the above correction still need to check
     reticlePixelY = y_thisZ;
@@ -10420,14 +10446,15 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
@@ -10447,14 +10474,15 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelY = y_thisZ;
@@ -10534,14 +10562,15 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( ms->config.m_x*(gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
@@ -10561,14 +10590,15 @@ void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, d
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
     double b = (b42+b31)/2.0;
 
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    double zFraction = (gZ); // (gZ-b)
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( ms->config.m_y*(gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelY = y_thisZ;

@@ -1346,6 +1346,89 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(CameraFitHyperbolic)
 
+WORD(CameraPrintParams)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  double gZ = ms->config.currentEEPose.pz;
+
+  int x1 = ms->config.heightReticles[0].px;
+  int x2 = ms->config.heightReticles[1].px;
+  int x3 = ms->config.heightReticles[2].px;
+  int x4 = ms->config.heightReticles[3].px;
+
+  int y1 = ms->config.heightReticles[0].py;
+  int y2 = ms->config.heightReticles[1].py;
+  int y3 = ms->config.heightReticles[2].py;
+  int y4 = ms->config.heightReticles[3].py;
+
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+
+  {
+    //double d = ms->config.d_x;
+    double d = ms->config.d_x/ms->config.m_x;
+    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
+
+    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
+    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
+    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
+    // removed the above correction
+
+    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+/*
+    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+*/
+  }
+  {
+    //double d = ms->config.d_y;
+    double d = ms->config.d_y/ms->config.m_y;
+    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
+
+    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
+    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
+
+    double bDiff = b42-b31;
+    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
+    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
+    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
+    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
+    double b = (b42+b31)/2.0;
+
+    int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
+    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    // need to set this again so things match up if gX is truEEpose
+    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
+    // XXX removed the above correction still need to check
+
+    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+  }
+}
+END_WORD
+REGISTER_WORD(CameraPrintParams)
 
 
 WORD(EndStackCollapse)
