@@ -438,7 +438,7 @@ REGISTER_WORD(ShakeItOff1)
 WORD(LoadTargetClassRangeMapIntoRegister1)
 CODE(131162)     // capslock + z
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  loadGlobalTargetClassRangeMap(ms, ms->config.rangeMap, ms->config.rangeMapReg1);
+  loadGlobalTargetClassRangeMap(ms->p, ms->config.rangeMap, ms->config.rangeMapReg1);
 }
 END_WORD
 REGISTER_WORD(LoadTargetClassRangeMapIntoRegister1)
@@ -1639,7 +1639,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_NUMERIC_ARG(ms, servoDeltaY);
   GET_NUMERIC_ARG(ms, servoDeltaX);
 
-  pixelServo(ms, servoDeltaX, servoDeltaY, servoDeltaTheta);
+  pixelServo(ms->p, servoDeltaX, servoDeltaY, servoDeltaTheta);
 }
 END_WORD
 REGISTER_WORD(PixelServoA)
@@ -1649,7 +1649,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
+  pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
 
   ms->config.currentEEPose.px = vpx;
   ms->config.currentEEPose.py = vpy;
@@ -1662,7 +1662,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
+  pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
 
   double gpx = ms->config.currentEEPose.px;
   double gpy = ms->config.currentEEPose.py;
