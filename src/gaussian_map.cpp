@@ -593,9 +593,9 @@ void GaussianMap::rgbMuToMat(Mat& out) {
     for (int x = 0; x < width; x++) {
 
       if (refAtCell(x, y)->red.samples > 0) {
-	big.at<Vec3b>(x,y)[0] = uchar(refAtCell(x,y)->blue.mu);
-	big.at<Vec3b>(x,y)[1] = uchar(refAtCell(x,y)->green.mu);
-	big.at<Vec3b>(x,y)[2] = uchar(refAtCell(x,y)->red.mu);
+	big.at<Vec3b>(x,y)[0] = uchar(std::min(std::max(0.0, refAtCell(x,y)->blue.mu ), 255.0));
+	big.at<Vec3b>(x,y)[1] = uchar(std::min(std::max(0.0, refAtCell(x,y)->green.mu), 255.0));
+	big.at<Vec3b>(x,y)[2] = uchar(std::min(std::max(0.0, refAtCell(x,y)->red.mu  ), 255.0));
       } else {
 	big.at<Vec3b>(x,y)[0] = 0;
 	big.at<Vec3b>(x,y)[1] = 128;
@@ -5500,6 +5500,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double phi = 0.01;
   GET_NUMERIC_ARG(ms, phi);
 
+  double gain = 1.0;
+  GET_NUMERIC_ARG(ms, gain);
+
   if (lambda == 0) {
     lambda = 1.0e-6;
     cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
@@ -5640,17 +5643,23 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 		// I wonder if there is a difference
 		//double gap_path_length = sqrt( pow(x_gap-x,2.0) + pow(y_gap-y,2.0) );
-		double gap_path_length = sqrt( (lens_gap*lens_gap) + (x_gap-x)*(x_gap-x) + (y_gap-y)*(y_gap-y) );
+		double gap_path_length_squared = ( (lens_gap*lens_gap) + (x_gap-x)*(x_gap-x) + (y_gap-y)*(y_gap-y) );
+		double gap_path_length = sqrt(gap_path_length_squared);
 
+		/*
 		phased_pixel[0] = double(pixel[0]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
 		phased_pixel[1] = double(pixel[1]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
 		phased_pixel[2] = double(pixel[2]) * (1.0+cos( gap_path_length / lambda )) * 0.5;
 
-		/*
 		phased_pixel[0] = (double(pixel[0])-128.0) * cos( gap_path_length / lambda ) + 128.0;
 		phased_pixel[1] = (double(pixel[1])-128.0) * cos( gap_path_length / lambda ) + 128.0;
 		phased_pixel[2] = (double(pixel[2])-128.0) * cos( gap_path_length / lambda ) + 128.0;
 		*/
+
+// XXX make sure to divide magnitude by the path length, eventually, but maybe leave out as an optimization if its not much 
+		phased_pixel[0] = ( gain / gap_path_length_squared ) * (double(pixel[0])/2.0) * (1.0 + cos( gap_path_length / lambda ));
+		phased_pixel[1] = ( gain / gap_path_length_squared ) * (double(pixel[1])/2.0) * cos( gap_path_length / lambda ) + 128.0;
+		phased_pixel[2] = ( gain / gap_path_length_squared ) * (double(pixel[2])/2.0) * cos( gap_path_length / lambda ) + 128.0;
 
 		cell->newObservation(phased_pixel, z);
 	      numPixels++;
@@ -5734,10 +5743,11 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      GaussianMapCell * lightCell = toLight->refAtCell(ax, ay);
 
 	      Vec3d phased_pixel;
+/*
 	      phased_pixel[2] = (double( lightCell->red.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
 	      phased_pixel[1] = (double( lightCell->green.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
 	      phased_pixel[0] = (double( lightCell->blue.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
-/*
+
 	      phased_pixel[2] = (double( lightCell->red.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
 	      phased_pixel[1] = (double( lightCell->green.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
 	      phased_pixel[0] = (double( lightCell->blue.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
@@ -5746,6 +5756,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      phased_pixel[1] = (lightCell->green.mu) * cos( gap_path_length / lambda ) + 128.0;
 	      phased_pixel[0] = (lightCell->blue.mu) * cos( gap_path_length / lambda ) + 128.0;
 */
+
+
+	      phased_pixel[2] = (double( lightCell->red.mu   ) - 128.0) * 2.0 * (cos( gap_path_length / lambda ));
+	      phased_pixel[1] = (double( lightCell->green.mu ) - 128.0) * 2.0 * (cos( gap_path_length / lambda ));
+	      phased_pixel[0] = (double( lightCell->blue.mu  )/2.0) * (1.0 + cos( gap_path_length / lambda ));
+
 
 	      fillCell->newObservation(phased_pixel, z_to_use);
 	    }
