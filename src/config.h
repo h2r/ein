@@ -1667,7 +1667,9 @@ class EinConfig {
 class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
+  MachineState();
   std::shared_ptr<MachineState> sharedThis;
+  MachineState * p;
 
   std::vector<std::shared_ptr<Word> > call_stack;
   std::vector<std::shared_ptr<Word> > data_stack;

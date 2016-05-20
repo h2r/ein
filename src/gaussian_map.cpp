@@ -22,7 +22,7 @@ void _GaussianMapChannel::zero() {
 }
 
 shared_ptr<Scene> Scene::createFromFile(shared_ptr<MachineState> ms, string filename) {
-  shared_ptr<Scene> scene = make_shared<Scene>(ms, 2, 2, 0.02, eePose::identity());
+  shared_ptr<Scene> scene = make_shared<Scene>(ms, 1, 1, 0.02, eePose::identity());
   scene->loadFromFile(filename);
   return scene;
 }
@@ -353,6 +353,8 @@ int GaussianMap::safeBilinAt(int x, int y) {
   return ( (cells != NULL) && (x >= 2) && (x < width-2) && (y >= 2) && (y < height-2) );
 }
 
+
+
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
     // XXX ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
@@ -424,6 +426,14 @@ GaussianMapCell GaussianMap::bilinValAtMeters(double x, double y) {
 void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
   (*xc) = round(xm / cell_width) + x_center_cell;
   (*yc) = round(ym / cell_width) + y_center_cell;
+  //if (*xc < 0 || *xc >= width) {
+  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad x. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //assert(0);
+  //}
+  //if (*yc < 0 || *yc >= height) {
+  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad y. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //assert(0);
+  //}
 } 
 
 void GaussianMap::metersToCell(double xm, double ym, double * xc, double * yc) {
@@ -925,10 +935,10 @@ bool Scene::isDiscrepantCellBilin(double threshold, double x, double y) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  return ( (discrepancy_density.at<double>(y1,x1) > threshold) || 
-	   (discrepancy_density.at<double>(y1,x2) > threshold) ||
-	   (discrepancy_density.at<double>(y2,x1) > threshold) ||
-	   (discrepancy_density.at<double>(y2,x2) > threshold) );
+  return ( (discrepancy_density.at<double>(x1,y1) > threshold) || 
+	   (discrepancy_density.at<double>(x1,y2) > threshold) ||
+	   (discrepancy_density.at<double>(x2,y1) > threshold) ||
+	   (discrepancy_density.at<double>(x2,y2) > threshold) );
 } 
 bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
   double cell_x;
@@ -1408,16 +1418,46 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
+  if ((x2 - x1 + 1) % 2 == 0) {
+    if (x1 != 0) {
+      x1 -= 1;
+    } else if (x2 != width - 1)  {
+      x2 += 1;
+    } else {
+      cout << "Invalid parity correction: x1: " << x1 << " x2: " << x2 << " width: " << width << endl;
+      assert(0);
+    }
+  }
+
+  if ((y2 - y1 + 1) % 2 == 0) {
+    if (y1 != 0) {
+      y1 -= 1;
+    } else if (y2 != height - 1)  {
+      y2 += 1;
+    } else {
+      cout << "Invalid parity correction: y1: " << y1 << " y2: " << y2 << " height: " << height << endl;
+      assert(0);
+    }
+  }
+
+
+
   shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width, background_pose);
+
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
   toReturn->predicted_map = predicted_map->copyBox(x1,y1,x2,y2);
   toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
   toReturn->discrepancy= discrepancy->copyBox(x1,y1,x2,y2);
 
-  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
-  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
-  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  //toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  //toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+  //toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
+
+
 
   return toReturn;
 }
@@ -1456,10 +1496,10 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
     xmax = xmax-1;
-  } else {}
+  }
   if ((new_height % 2) == 0) {
     ymax = ymax-1;
-  } else {}
+  }
   new_width = xmax - xmin + 1;
   new_height = ymax - ymin + 1;
 
@@ -2373,20 +2413,20 @@ void Scene::readFromFileNode(FileNode& it) {
   cout << "done" << endl;
 
   bool error = false;
-  if (discrepancy_density.rows != height || discrepancy_density.cols != width) {
+  if (discrepancy_density.cols != width || discrepancy_density.rows != height) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (discrepancy_magnitude.rows != height || discrepancy_magnitude.cols != width) {
+  if (discrepancy_magnitude.cols != width || discrepancy_magnitude.rows != height) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (predicted_segmentation.rows != height || predicted_segmentation.cols != width) {
-    ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
+  if (predicted_segmentation.cols != width || predicted_segmentation.rows != height) {
+    ROS_ERROR_STREAM("Predicted segmentation has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(width, height, CV_64F);
   }
   
@@ -3483,8 +3523,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3494,7 +3534,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+      pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 
       if (1) {
 	// single sample update
@@ -3634,9 +3674,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data;
   //double z = thisPose.pz + ms->config.currentTableZ;
   double z = transformed.pz;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
   cout << "z: " << z << endl;
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3646,7 +3686,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+      pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
       
       if (1) {
 	// single sample update
@@ -3870,18 +3910,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int imH = sz.height;
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->background_pose, &data);
+  //computePixelToGlobalCache(ms->p, zToUse, ms->config.currentEEPose, &data);
+  computePixelToPlaneCache(ms->p, zToUse, ms->config.currentEEPose, ms->config.scene->background_pose, &data);
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
       double meter_y = 0;
-      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
+      pixelToGlobalFromCache(ms->p, x, y, &meter_x, &meter_y, &data);
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
-      if (ms->config.scene->discrepancy->safeAt(cell_y, cell_x)) {
-        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_y,cell_x);
+      if (ms->config.scene->discrepancy->safeAt(cell_x, cell_y)) {
+        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_x,cell_y);
       }
     }
   }
@@ -5008,8 +5048,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   pixelToGlobalCache data;
   double z = z_to_use;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5048,7 +5088,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 	  
 	  if (1) {
 	    // single sample update
@@ -5166,9 +5206,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5213,10 +5253,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -5386,9 +5426,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5427,10 +5467,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -5582,9 +5622,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5623,10 +5663,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  {
 	    double rx = x_gap;
@@ -5875,9 +5915,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5922,10 +5962,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -6065,14 +6105,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
-  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
   double topMx, topMy, botMx, botMy;
-  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
-  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
+  pixelToGlobalFromCache(ms->p, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms->p, botx, boty, &botMx, &botMy, &data);
   int topCx, topCy, botCx, botCy;
   ms->config.scene->metersToCell(topMx, topMy, &topCx, &topCy);
   ms->config.scene->metersToCell(botMx, botMy, &botCx, &botCy);
@@ -6101,8 +6141,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	
 
       int topPx, topPy, botPx, botPy;
-      globalToPixel(ms, &topPx, &topPy, zToUse, mx-cellWidthO2, my-cellWidthO2, ms->config.straightDown);
-      globalToPixel(ms, &botPx, &botPy, zToUse, mx+cellWidthO2, my+cellWidthO2, ms->config.straightDown);
+      globalToPixel(ms->p, &topPx, &topPy, zToUse, mx-cellWidthO2, my-cellWidthO2, ms->config.straightDown);
+      globalToPixel(ms->p, &botPx, &botPy, zToUse, mx+cellWidthO2, my+cellWidthO2, ms->config.straightDown);
 
       if (topPy > botPy) {
 	temp = botPy;
@@ -6218,14 +6258,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
-  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->background_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
   double topMx, topMy, botMx, botMy;
-  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
-  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
+  pixelToGlobalFromCache(ms->p, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms->p, botx, boty, &botMx, &botMy, &data);
 
   double temp = 0;
   if (topMy > botMy) {
@@ -6250,8 +6290,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   int prePixelsPerCellY, prePixelsPerCellX;
   int postPixelsPerCellY, postPixelsPerCellX;
   double numToApp = 10.0;
-  globalToPixel(ms, &prePixelsPerCellX, &prePixelsPerCellY, zToUse, 0, 0, transformed);
-  globalToPixel(ms, &postPixelsPerCellX, &postPixelsPerCellY, zToUse, numToApp*ms->config.scene->cell_width, numToApp*ms->config.scene->cell_width, transformed);
+  globalToPixel(ms->p, &prePixelsPerCellX, &prePixelsPerCellY, zToUse, 0, 0, transformed);
+  globalToPixel(ms->p, &postPixelsPerCellX, &postPixelsPerCellY, zToUse, numToApp*ms->config.scene->cell_width, numToApp*ms->config.scene->cell_width, transformed);
   double pixelsPerCellXD = (postPixelsPerCellX - prePixelsPerCellX)/numToApp;
   double pixelsPerCellYD = (postPixelsPerCellY - prePixelsPerCellY)/numToApp;
 
@@ -6269,7 +6309,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
 
   int topCxPx, topCyPy;
-  globalToPixel(ms, &topCxPx, &topCyPy, zToUse, topMx-cellWidthO2, topMy-cellWidthO2, transformed);
+  globalToPixel(ms->p, &topCxPx, &topCyPy, zToUse, topMx-cellWidthO2, topMy-cellWidthO2, transformed);
 
   //cout << "NoRecalcApprox: -- " << pixelsPerCellXD << " " << pixelsPerCellYD << " -- " << topCx << " " << topCy << " " << topCxPx << " " << topCyPy << endl;
 
@@ -6451,9 +6491,9 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 
 	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
@@ -6466,9 +6506,9 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 
 	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
@@ -6526,9 +6566,9 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
 	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
 	{
@@ -6539,9 +6579,9 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 
 	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
 	thisRegisterPixelArea = std::max(thisRegisterPixelArea, 1.0);
@@ -7149,7 +7189,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
+  globalToPixel(ms->p, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
   cout << "scenePushPixelOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
   cout << "scenePushPixelOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
@@ -7204,7 +7244,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
+  globalToPixel(ms->p, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
   cout << "scenePushPixelOfMinStackVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
   cout << "scenePushPixelOfMinStackVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
@@ -7635,9 +7675,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data2;
   double z = z_to_use;
   double z2 = z_to_use-0.01;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms, z2, thisPose, ms->config.scene->background_pose, &data2);  
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z2, thisPose, ms->config.scene->background_pose, &data2);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
   //#pragma omp parallel for
@@ -7664,13 +7704,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	      continue;
 	    } 
 	  } 
-
 	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
 
 	  double x, y;
 	  double x2, y2;
-	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
-	  pixelToGlobalFromCache(ms, px, py, &x2, &y2, &data2);
+	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms->p, px, py, &x2, &y2, &data2);
 
 	  int newIdx = ms->config.rayBuffer.size();
 	  ms->config.rayBuffer.resize(newIdx+1);

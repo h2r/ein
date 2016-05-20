@@ -135,6 +135,10 @@ void Grasp::readFromFileNode(FileNode& it) {
   jams = (double)(it)["jams"];
 }
 
+MachineState::MachineState() {
+  this->p = this;
+}
+
 ostream & operator<<(ostream & os, const Grasp& toPrint)
 {
   FileStorage st;
