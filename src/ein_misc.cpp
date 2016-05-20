@@ -1193,10 +1193,10 @@ WORD(CameraFitQuadratic)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   cout << "cameraFitQuadratic: " << endl;
   {
@@ -1265,10 +1265,10 @@ WORD(CameraFitHyperbolic)
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   if (	bBZ[0] == 0 || 
 	bBZ[1] == 0 || 
@@ -1361,10 +1361,10 @@ virtual void execute(std::shared_ptr<MachineState> ms)
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
 
   {
     //double d = ms->config.d_x;

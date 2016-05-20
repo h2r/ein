@@ -302,8 +302,8 @@ void guardHeightMemory(shared_ptr<MachineState> ms);
 void loadSampledHeightMemory(shared_ptr<MachineState> ms);
 void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
 void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
-double convertHeightIdxToGlobalZ(shared_ptr<MachineState> ms, int);
-double convertHeightIdxToLocalZ(shared_ptr<MachineState> ms, int);
+double convertHeightIdxToGlobalZ(MachineState * ms, int);
+double convertHeightIdxToLocalZ(MachineState * ms, int);
 int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
 void testHeightConversion(shared_ptr<MachineState> ms);
 void drawHeightMemorySample(shared_ptr<MachineState> ms);
@@ -318,7 +318,7 @@ void prepareGraspFilter4(shared_ptr<MachineState> ms);
 
 void copyRangeMapRegister(shared_ptr<MachineState> ms, double * src, double * target);
 void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double * target);
-void loadGlobalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
+void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
 void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
 void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
 void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms);
@@ -331,10 +331,10 @@ void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
 
 void restartBBLearning(shared_ptr<MachineState> ms);
 
-eePose analyticServoPixelToReticle(shared_ptr<MachineState> ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
+eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
 Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY);
-void pixelServo(shared_ptr<MachineState> ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
+void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
 void gradientServo(shared_ptr<MachineState> ms);
 void gradientServoLatentClass(shared_ptr<MachineState> ms);
 void continuousServo(shared_ptr<MachineState> ms);
@@ -348,17 +348,17 @@ void initRangeMapsNoLoad(shared_ptr<MachineState> ms);
 
 int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
 
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY);
-void pixelToGlobal(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
-void pixelToGlobalFromCache(shared_ptr<MachineState> ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
-void computePixelToGlobalCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
-void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
-void globalToPixel(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
-void globalToPixelPrint(shared_ptr<MachineState> ms, int * pX, int * pY, double gZ, double gX, double gY);
-eePose pixelToGlobalEEPose(shared_ptr<MachineState> ms, int pX, int pY, double gZ);
+void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY);
+void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
+void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
+void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
+void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
+void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
+void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
+eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ);
 
-void pixelToPlane(shared_ptr<MachineState> ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
-void computePixelToPlaneCache(shared_ptr<MachineState> ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);
+void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
+void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);
 
 
 void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
@@ -366,8 +366,8 @@ cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, d
 
 void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
 
-double vectorArcTan(shared_ptr<MachineState> ms, double y, double x);
-void initVectorArcTan(shared_ptr<MachineState> ms);
+double vectorArcTan(MachineState * ms, double y, double x);
+void initVectorArcTan(MachineState * ms);
 
 void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
