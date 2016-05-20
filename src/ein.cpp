@@ -1379,7 +1379,7 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 
   if (tspb.size() < 2) {
     // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
-    cout << "tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
+    cout << "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
     return 0;
   } else {
   }
@@ -1400,6 +1400,7 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
 	  return 0;
 	} else {
 	}
@@ -1421,6 +1422,7 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
 	  return 0;
 	} else {
 	}
@@ -1436,7 +1438,7 @@ int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * o
       }
     }
   }
-
+  cout << "bottomed out of the if." << endl;
   return 0;
 }
 
