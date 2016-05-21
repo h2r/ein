@@ -3821,6 +3821,16 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
 
+WORD(SceneUpdateAllClassDiscrepancies)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  cout << "sceneUpdateAllClassDiscrepancies: refreshing discrepencies of all classes." << endl;
+  int nc = ms->config.numClasses;
+  for (int i = 0; i < nc; i++) {
+    ms->config.class_scene_models[i]->measureDiscrepancy();
+  }
+}
+END_WORD
+REGISTER_WORD(SceneUpdateAllClassDiscrepancies)
 
 WORD(SceneRenderDiscrepancy)
 virtual void execute(std::shared_ptr<MachineState> ms) {
