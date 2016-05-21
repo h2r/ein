@@ -77,45 +77,8 @@ tempSpiralGridSizeDefault "tempSpiralGridSize" store
 200 "tempSpiralStreamTakeSceneSamplesDefault" store
 tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
-/*
-/*
-    0 
-  "buildFigNum" store
-*/
-
-/*
-  rewindImageStreamBufferNLNK
-  streamPushImageStreamSize tempSpiralStreamTakeSceneSamples divide "tempSpiralStreamTakeSceneStride" store
-  tempSpiralStreamTakeSceneStride 1 < (
-    1 "tempSpiralStreamTakeSceneStride" store
-  ) ift
-
-  ( 
-    sceneUpdateObservedFromStreamBufferNoRecalc 
-    ( 
-      incrementImageStreamBufferNoLoadNoKick 
-    ) tempSpiralStreamTakeSceneStride replicateWord 
-*/
-    /* endStackCollapseNoop  */
-
-/*
-      "buildFigure_" buildFigNum +
-    sceneSaveScene
-
-      buildFigNum 1 + 
-    "buildFigNum" store
-*/
-
-/*
-  ) tempSpiralStreamTakeSceneSamples replicateWord
-  sceneRecalculateObservedMusAndSigmas  sceneRenderObservedMap
-*/
-*/
 
   tempSpiralStreamTakeSceneSamples "tempReconstructStreamTakeSceneSamples" store
-  /*
-  tempReconstructWithZ
-  */
   tempReconstructFromStream
 
 ) "tempUpdateSpiralCoreIntegrate" store
@@ -977,6 +940,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 /*  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
 
   sceneClearObservedMap sceneClearPredictedObjects 
+  bg sceneSaveBackgroundMap
 
   tempUpdateSpiral
   tempCaptureCore
@@ -988,18 +952,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   "tempFullScan: starting" print
-  zeroGOff
-  setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
-  tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
 
-  initializeAndFocusOnNewClass
-
-  tempRecaptureServo 
-
-  sceneClearObservedMap sceneClearPredictedObjects 
-
-  tempUpdateSpiral
-  tempCaptureCore
+  tempQuickScan
 
   1 waitSetCurrentWaitMode
   scanObjectScene

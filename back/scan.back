@@ -848,6 +848,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   "catScan5InputBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
+  bg sceneSaveBackgroundMap
   tempRegularizeBackground
 ) "catScan5LoadInputBg" store
 
@@ -887,6 +888,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   "catScan5PlayBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
+  bg sceneSaveBackgroundMap
   tempRegularizeBackground
 ) "catScan5LoadPlayBg" store
 
