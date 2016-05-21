@@ -1440,17 +1440,18 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 5 "phasedArrayApertureWidthCells" store
 
 
-0.001 "phasedArrayGain" store 
-0.0 "phasedArrayPhase" store
+0.0001 "phasedArrayGain" store 
+3.14 "phasedArrayPhase" store
+
 /*
 0.01 "phasedArrayWavelength" store
 */
-0.005 "phasedArrayWavelength" store
+0.001 "phasedArrayWavelength" store
 
 
 1.0 "phasedArrayPlaneScale" store 
-40 "phasedArrayZoneWidthCells" store
-0.3475 "tempReconstructArrayZ" store 
+70 "phasedArrayZoneWidthCells" store
+0.4225 "tempReconstructArrayZ" store 
 
 
 
@@ -1626,10 +1627,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
-
-    phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
-    */
       tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+
+    */
+    phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
 
 
     ( 

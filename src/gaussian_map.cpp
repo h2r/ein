@@ -5872,8 +5872,9 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double cell_width = ms->config.scene->cell_width;
 
-  // XXX construct the kernel
-  Mat zoneKernel(zone_kernel_width, zone_kernel_width, CV_64F);
+  // construct the kernel
+  Mat zoneKernelCos(zone_kernel_width, zone_kernel_width, CV_64F);
+  Mat zoneKernelSin(zone_kernel_width, zone_kernel_width, CV_64F);
   for (int ay = 0; ay < zone_kernel_width; ay++) {
     for (int ax = 0; ax < zone_kernel_width; ax++) {
 
@@ -5883,56 +5884,58 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
       double gap_path_length = sqrt( gap_path_length_squared );
 
-/*
-      phased_pixel[2] = (double( lightCell->red.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
-      phased_pixel[1] = (double( lightCell->green.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
-      phased_pixel[0] = (double( lightCell->blue.mu )) * (1.0+cos( gap_path_length / lambda )) * 0.5;
+      double val_cos = ( gain / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
+      zoneKernelCos.at<double>(ay,ax) = val_cos;
 
-      phased_pixel[2] = (double( lightCell->red.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
-      phased_pixel[1] = (double( lightCell->green.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
-      phased_pixel[0] = (double( lightCell->blue.mu )-128.0) * cos( gap_path_length / lambda ) + 128.0;
-
-      phased_pixel[2] = (lightCell->red.mu) * cos( gap_path_length / lambda ) + 128.0;
-      phased_pixel[1] = (lightCell->green.mu) * cos( gap_path_length / lambda ) + 128.0;
-      phased_pixel[0] = (lightCell->blue.mu) * cos( gap_path_length / lambda ) + 128.0;
-
-      phased_pixel[2] = (double( lightCell->red.mu   ) - 128.0) * 2.0 * (cos( gap_path_length / lambda ));
-      phased_pixel[1] = (double( lightCell->green.mu ) - 128.0) * 2.0 * (cos( gap_path_length / lambda ));
-      phased_pixel[0] = (double( lightCell->blue.mu  )/2.0) * (1.0 + cos( gap_path_length / lambda ));
-
-      phased_pixel[0] = ( gain / gap_path_length_squared ) * (double(pixel[0])/2.0) * (1.0 + cos( gap_path_length / lambda ));
-*/
-
-      double val = ( gain / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
-      cout << val << " " << ay << " " << ax << " " << gap_path_length << endl;
-      zoneKernel.at<double>(ay,ax) = val;
+      double val_sin = ( gain / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
+      zoneKernelSin.at<double>(ay,ax) = val_sin;
     }
   }
 
-  // XXX apply the kernel to counts
+  // apply the kernel to counts
   Mat countBuffer;
   toLight->rgbCountsToMat(countBuffer);
 
-  Mat output;
-  filter2D(countBuffer, output, -1, zoneKernel, Point(-1,-1), 0, BORDER_REFLECT);
+  // XXX should subtract the actual DC component and deal with scale better...
+  double bias_estimate = 0.0;
+  double one_bias_estimate = 0.0;
+  {
+    double delta_z = z_to_use - array_z;
+    double gap_path_length = sqrt( delta_z * delta_z );
+    one_bias_estimate = ( gain / gap_path_length );
+    bias_estimate = one_bias_estimate * zone_kernel_width * zone_kernel_width;
+  }
 
-  // XXX set counts and counts squared
+  Mat outputCos;
+  Mat outputSin;
+  filter2D(countBuffer, outputCos, -1, zoneKernelCos, Point(-1,-1), 0, BORDER_REFLECT);
+  filter2D(countBuffer, outputSin, -1, zoneKernelSin, Point(-1,-1), 0, BORDER_REFLECT);
+
+  // set counts and counts squared
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
       // two factors of gain is too much
-      double val = output.at<Vec3d>(x,y)[2];
+      double valCos = outputCos.at<Vec3d>(x,y)[2];
+      double valSin = outputSin.at<Vec3d>(x,y)[2];
+      double val = sqrt(valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->red.counts = val;
-      toFill->refAtCell(x,y)->red.squaredcounts = val*val/gain;
+      toFill->refAtCell(x,y)->red.squaredcounts = val*val/one_bias_estimate;
       toFill->refAtCell(x,y)->red.samples = toLight->refAtCell(x,y)->red.samples;
 
-      val = output.at<Vec3d>(x,y)[1];
+      valCos = outputCos.at<Vec3d>(x,y)[1];
+      valSin = outputSin.at<Vec3d>(x,y)[1];
+      val = sqrt(valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->green.counts = val;
-      toFill->refAtCell(x,y)->green.squaredcounts = val*val/gain;
+      toFill->refAtCell(x,y)->green.squaredcounts = val*val/one_bias_estimate;
       toFill->refAtCell(x,y)->green.samples = toLight->refAtCell(x,y)->green.samples;
 
-      val = output.at<Vec3d>(x,y)[0];
+      valCos = outputCos.at<Vec3d>(x,y)[0];
+      valSin = outputSin.at<Vec3d>(x,y)[0];
+      val = sqrt(valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->blue.counts = val;
-      toFill->refAtCell(x,y)->blue.squaredcounts = val*val/gain;
+      toFill->refAtCell(x,y)->blue.squaredcounts = val*val/one_bias_estimate;
       toFill->refAtCell(x,y)->blue.samples = toLight->refAtCell(x,y)->blue.samples;
     }
   }
