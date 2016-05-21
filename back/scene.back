@@ -1390,13 +1390,22 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.011 "phasedArrayGain" store 
 */
 
-0.003 "phasedArrayGain" store 
-0.0 "phasedArrayPhase" store
-0.00001 "phasedArrayWavelength" store
-0.04 "phasedArrayGap" store
-
+0.08 "phasedArrayGap" store
 5 "phasedArrayApertureWidthCells" store
-0.3883 "tempReconstructArrayZ" store 
+
+
+0.0001 "phasedArrayGain" store 
+3.14 "phasedArrayPhase" store
+
+/*
+0.01 "phasedArrayWavelength" store
+*/
+0.001 "phasedArrayWavelength" store
+
+
+1.0 "phasedArrayPlaneScale" store 
+70 "phasedArrayZoneWidthCells" store
+0.4225 "tempReconstructArrayZ" store 
 
 
 
@@ -1404,7 +1413,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-200 "tempReconstructStreamTakeSceneSamples" store
+400 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1573,9 +1582,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
       tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
-    */
 
+    */
     phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
+
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
@@ -1619,6 +1629,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
 )  "tempReconstructFromPhasedArrayRegister" store
+
+(
+  tempReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+
+  phasedArrayPlaneScale phasedArrayZoneWidthCells 0 0 phasedArrayGain phasedArrayPhase phasedArrayWavelength tempReconstructArrayZ tempReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel
+
+  sceneRecalculateObservedMusAndSigmas
+  sceneRenderObservedMap
+)  "tempReconstructFromPhasedArrayRegisterKernel" store
 
 (
   quarterImpulse

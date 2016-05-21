@@ -5827,6 +5827,132 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
 
+WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  double array_z = 0.01;
+  GET_NUMERIC_ARG(ms, array_z);
+
+  double lambda = 0.01;
+  GET_NUMERIC_ARG(ms, lambda);
+
+  double phi = 0.01;
+  GET_NUMERIC_ARG(ms, phi);
+
+  double gain = 1.0;
+  GET_NUMERIC_ARG(ms, gain);
+
+
+
+
+  double lens_x = 0.01;
+  GET_NUMERIC_ARG(ms, lens_x);
+
+  double lens_y = 0.01;
+  GET_NUMERIC_ARG(ms, lens_y);
+
+
+  double zone_kernel_width = 101;
+  GET_NUMERIC_ARG(ms, zone_kernel_width);
+
+  double plane_scale = 1.0;
+  GET_NUMERIC_ARG(ms, plane_scale);
+
+
+
+
+  if (lambda == 0) {
+    lambda = 1.0e-6;
+    cout << "sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
+  }
+
+  shared_ptr<GaussianMap> toFill = ms->config.scene->observed_map;
+  shared_ptr<GaussianMap> toLight= ms->config.gaussian_map_register;
+
+  int t_height = toFill->height;
+  int t_width = toFill->width;
+
+  int zone_kernel_half_width = (zone_kernel_width - 1)/2;
+
+  assert( toLight->width == t_width );
+  assert( toLight->height == t_height );
+
+  double cell_width = ms->config.scene->cell_width;
+
+  // construct the kernel
+  Mat zoneKernelCos(zone_kernel_width, zone_kernel_width, CV_64F);
+  Mat zoneKernelSin(zone_kernel_width, zone_kernel_width, CV_64F);
+  for (int ay = 0; ay < zone_kernel_width; ay++) {
+    for (int ax = 0; ax < zone_kernel_width; ax++) {
+
+      double delta_x = (zone_kernel_half_width-ax) * cell_width * plane_scale;
+      double delta_y = (zone_kernel_half_width-ay) * cell_width * plane_scale;
+      double delta_z = z_to_use - array_z;
+      double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
+      double gap_path_length = sqrt( gap_path_length_squared );
+
+      double val_cos = ( gain / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
+      zoneKernelCos.at<double>(ay,ax) = val_cos;
+
+      double val_sin = ( gain / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
+      zoneKernelSin.at<double>(ay,ax) = val_sin;
+    }
+  }
+
+  // apply the kernel to counts
+  Mat countBuffer;
+  toLight->rgbCountsToMat(countBuffer);
+
+  // XXX should subtract the actual DC component and deal with scale better...
+  double bias_estimate = 0.0;
+  double one_bias_estimate = 0.0;
+  {
+    double delta_z = z_to_use - array_z;
+    double gap_path_length = sqrt( delta_z * delta_z );
+    one_bias_estimate = ( gain / gap_path_length );
+    bias_estimate = one_bias_estimate * zone_kernel_width * zone_kernel_width;
+  }
+
+  Mat outputCos;
+  Mat outputSin;
+  filter2D(countBuffer, outputCos, -1, zoneKernelCos, Point(-1,-1), 0, BORDER_REFLECT);
+  filter2D(countBuffer, outputSin, -1, zoneKernelSin, Point(-1,-1), 0, BORDER_REFLECT);
+
+  // set counts and counts squared
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      // two factors of gain is too much
+      double valCos = outputCos.at<Vec3d>(x,y)[2];
+      double valSin = outputSin.at<Vec3d>(x,y)[2];
+      double val = sqrt(valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->red.counts = val;
+      toFill->refAtCell(x,y)->red.squaredcounts = val*val/one_bias_estimate;
+      toFill->refAtCell(x,y)->red.samples = toLight->refAtCell(x,y)->red.samples;
+
+      valCos = outputCos.at<Vec3d>(x,y)[1];
+      valSin = outputSin.at<Vec3d>(x,y)[1];
+      val = sqrt(valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->green.counts = val;
+      toFill->refAtCell(x,y)->green.squaredcounts = val*val/one_bias_estimate;
+      toFill->refAtCell(x,y)->green.samples = toLight->refAtCell(x,y)->green.samples;
+
+      valCos = outputCos.at<Vec3d>(x,y)[0];
+      valSin = outputSin.at<Vec3d>(x,y)[0];
+      val = sqrt(valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->blue.counts = val;
+      toFill->refAtCell(x,y)->blue.squaredcounts = val*val/one_bias_estimate;
+      toFill->refAtCell(x,y)->blue.samples = toLight->refAtCell(x,y)->blue.samples;
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel)
+
 
 
 WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
