@@ -439,7 +439,7 @@ namespace ein_words {
 
 WORD(OpenClEchoTest)
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<GaussianMap> a_map = make_shared<GaussianMap>(100,100,0.1);
+  shared_ptr<GaussianMap> a_map = make_shared<GaussianMap>(100,100,0.1,eePose::identity());
   gaussianMapGpuEchoTest( a_map );
 }
 END_WORD

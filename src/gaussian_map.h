@@ -68,12 +68,12 @@ class GaussianMap {
   int x_center_cell;
   int y_center_cell;
 
-  
+  eePose anchor_pose;
 
   double cell_width = 0.01;
   GaussianMapCell *cells = NULL;
 
-  GaussianMap(int w, int h, double cw);
+  GaussianMap(int w, int h, double cw, eePose pose);
   ~GaussianMap();
   void reallocate();
 
@@ -182,7 +182,7 @@ class Scene {
   void reallocate();
 
   vector< shared_ptr<GaussianMap> > depth_stack;
-  eePose background_pose;
+  eePose anchor_pose;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
   Mat predicted_segmentation;
