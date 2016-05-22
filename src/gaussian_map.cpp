@@ -329,13 +329,14 @@ void GaussianMap::reallocate() {
   }
 }
 
-GaussianMap::GaussianMap(int w, int h, double cw) {
+GaussianMap::GaussianMap(int w, int h, double cw, eePose pose) {
   width = w;
   height = h;
   x_center_cell = (width-1)/2;
   y_center_cell = (height-1)/2;
   cell_width = cw;
   cells = NULL;
+  anchor_pose = pose;
   reallocate();
 }
 
@@ -458,6 +459,9 @@ void GaussianMap::writeToFileStorage(FileStorage& fsvO) {
 
     fsvO << "cells";
     writeCells(fsvO);
+
+    fsvO << "anchor_pose";
+    anchor_pose.writeToFileStorage(fsvO);
     //fsvO << "cells" << "[" ;
 
     //for (int y = 0; y < height; y++) {
@@ -513,6 +517,9 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     it["x_center_cell"] >> x_center_cell;
     it["y_center_cell"] >> y_center_cell;
     it["cell_width"] >> cell_width;
+
+    FileNode bg_pose_node = (it)["anchor_pose"];
+    anchor_pose.readFromFileNode(bg_pose_node);
   }
 
   reallocate();
@@ -728,7 +735,7 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1+1, y2-y1+1, cell_width);
+  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1+1, y2-y1+1, cell_width, anchor_pose);
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
       *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
@@ -743,7 +750,7 @@ shared_ptr<GaussianMap> GaussianMap::copy() {
 }
 
 shared_ptr<Scene> Scene::copy() {
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width, background_pose);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, width, height, cell_width, anchor_pose);
   toReturn->annotated_class_name = annotated_class_name;
   toReturn->predicted_class_name = predicted_class_name;
   toReturn->background_map = background_map->copy();
@@ -754,7 +761,7 @@ shared_ptr<Scene> Scene::copy() {
   toReturn->predicted_segmentation = predicted_segmentation.clone();
   toReturn->discrepancy_magnitude = discrepancy_magnitude.clone();
   toReturn->discrepancy_density = discrepancy_density.clone();
-  toReturn->background_pose = background_pose;
+  toReturn->anchor_pose = anchor_pose;
   toReturn->discrepancy_before = discrepancy_before.clone();
   toReturn->discrepancy_after = discrepancy_after.clone();
   
@@ -881,8 +888,8 @@ Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw, eePose pose)
   x_center_cell = (width-1)/2;
   y_center_cell = (height-1)/2;
   cell_width = cw;
-  //background_pose = eePose::identity();
-  background_pose = pose;
+  //anchor_pose = eePose::identity();
+  anchor_pose = pose;
   predicted_objects.resize(0);
   reallocate();
 }
@@ -900,11 +907,11 @@ void Scene::reallocate() {
       height = height+1;
     } 
   }
-  background_map = make_shared<GaussianMap>(width, height, cell_width);
-  predicted_map = make_shared<GaussianMap>(width, height, cell_width);
+  background_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
+  predicted_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
   predicted_segmentation = Mat(width, height, CV_64F);
-  observed_map = make_shared<GaussianMap>(width, height, cell_width);
-  discrepancy = make_shared<GaussianMap>(width, height, cell_width);
+  observed_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
+  discrepancy = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
 
   discrepancy_magnitude = Mat(width, height, CV_64F);
   discrepancy_density = Mat(width, height, CV_64F);
@@ -950,9 +957,25 @@ bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
 
 
 void Scene::initializePredictedMapWithBackground() {
- for (int x = 0; x < width; x++) {
+
+  eePose predicted_anchor = predicted_map->anchor_pose;
+  eePose background_anchor = background_map->anchor_pose;
+
+  for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      *(predicted_map->refAtCell(x,y)) = *(background_map->refAtCell(x,y));
+
+      double meters_predicted_x, meters_predicted_y;
+      predicted_map->cellToMeters(x, y, &meters_predicted_x, &meters_predicted_y);
+      eePose toTransform(x, y, 0, 0, 0, 0, 1);
+      eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
+      eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
+
+      double cell_background_x, cell_background_y;
+      background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+
+      if ( background_map->safeBilinAt(cell_background_x, cell_background_y) ) {
+	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtMeters(cell_background_x, cell_background_y);
+      }
     }
   }
 }
@@ -1385,6 +1408,7 @@ double Scene::recomputeScore(shared_ptr<SceneObject> obj, double threshold) {
 	      //object_cell->blue.sigmasquared = temp;
 
 //cout << "score " << score << " ";
+	      // XXX should that check predicted instead?
 	      if (observed_cell->red.samples >= ms->config.sceneCellCountThreshold) {
 		score -= computeLogLikelihood(ms, predicted_cell->red, observed_cell->red);
 		score -= computeLogLikelihood(ms, predicted_cell->green, observed_cell->green);
@@ -1442,7 +1466,7 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
 
 
 
-  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width, background_pose);
+  shared_ptr<Scene> toReturn = std::make_shared<Scene>(ms, x2-x1+1, y2-y1+1, cell_width, anchor_pose);
 
 
   toReturn->background_map = background_map->copyBox(x1,y1,x2,y2);
@@ -2195,8 +2219,8 @@ void Scene::writeToFileStorage(FileStorage& fsvO) {
   fsvO << "x_center_cell" << x_center_cell;
   fsvO << "y_center_cell" << y_center_cell;
   fsvO << "cell_width" << cell_width;
-  fsvO << "background_pose";
-  background_pose.writeToFileStorage(fsvO);
+  fsvO << "anchor_pose";
+  anchor_pose.writeToFileStorage(fsvO);
 
   fsvO << "background_map";
   background_map->writeToFileStorage(fsvO);
@@ -2260,8 +2284,8 @@ void Scene::readFromFileNode(FileNode& it) {
   (it)["y_center_cell"] >> y_center_cell;
   (it)["cell_width"] >> cell_width;
   
-  FileNode bg_pose_node = (it)["background_pose"];
-  background_pose.readFromFileNode(bg_pose_node);
+  FileNode bg_pose_node = (it)["anchor_pose"];
+  anchor_pose.readFromFileNode(bg_pose_node);
   
   FileNode bg_map_node = (it)["background_map"];
   background_map->readFromFileNode(bg_map_node);
@@ -3405,7 +3429,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3521,10 +3545,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   //return;
   //}
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   cout << "untransformed qz: " << thisPose.qz << endl;
   cout << "  transformed qz: " << transformed.qz << endl;
-  cout << "    reference qz: " << ms->config.scene->background_pose.qz << endl;
+  cout << "    reference qz: " << ms->config.scene->anchor_pose.qz << endl;
 
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR(" Maybe shouldn't do update because arm not perpendicular to plane of scene.");
@@ -3557,7 +3581,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = transformed.pz;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
   cout << "z: " << z << endl;
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3802,7 +3826,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
   //computePixelToGlobalCache(ms->p, zToUse, ms->config.currentEEPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, ms->config.currentEEPose, ms->config.scene->background_pose, &data);
+  computePixelToPlaneCache(ms->p, zToUse, ms->config.currentEEPose, ms->config.scene->anchor_pose, &data);
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
@@ -3863,7 +3887,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if ( so_idx < ms->config.scene->predicted_objects.size() ) {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
-    eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+    eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
     ms->pushWord(make_shared<EePoseWord>(objectPoseInBase));
   } else {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
@@ -3899,7 +3923,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
   shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
-  eePose objectPoseInBase = tso->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+  eePose objectPoseInBase = tso->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
   BoxMemory box;
   box.cameraPose = objectPoseInBase;
 
@@ -4707,7 +4731,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double this_cw = ms->config.scene->cell_width; 
   int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
   int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
-  ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw, ms->config.scene->background_pose);
+  ms->config.class_scene_models[tfc] = make_shared<Scene>(ms, this_w, this_h, this_cw, ms->config.scene->anchor_pose);
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
   Mat fake_filter = ms->config.class_scene_models[tfc]->discrepancy_magnitude;
@@ -4911,7 +4935,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -4942,7 +4966,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   pixelToGlobalCache data;
   double z = z_to_use;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5073,7 +5097,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -5106,8 +5130,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5293,7 +5317,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -5326,8 +5350,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5489,7 +5513,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -5522,8 +5546,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5774,6 +5798,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // construct the kernel
   Mat zoneKernelCos(zone_kernel_width, zone_kernel_width, CV_64F);
   Mat zoneKernelSin(zone_kernel_width, zone_kernel_width, CV_64F);
+  double cos_bias = 0.0;
+  double sin_bias = 0.0;
   for (int ay = 0; ay < zone_kernel_width; ay++) {
     for (int ax = 0; ax < zone_kernel_width; ax++) {
 
@@ -5783,15 +5809,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
       double gap_path_length = sqrt( gap_path_length_squared );
 
-      double val_cos = ( gain / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
-      cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
+      double val_cos = ( 1.0 / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      //cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelCos.at<double>(ay,ax) = val_cos;
+      cos_bias = cos_bias + val_cos;
 
-      double val_sin = ( gain / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
-      cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
+      double val_sin = ( 1.0 / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      //cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelSin.at<double>(ay,ax) = val_sin;
+      sin_bias = sin_bias + val_sin;
     }
   }
+  double cos_norm = 0.0;
+  double sin_norm = 0.0;
+  sin_bias = sin_bias / (zone_kernel_width*zone_kernel_width);
+  cos_bias = cos_bias / (zone_kernel_width*zone_kernel_width);
+  for (int ay = 0; ay < zone_kernel_width; ay++) {
+    for (int ax = 0; ax < zone_kernel_width; ax++) {
+      zoneKernelCos.at<double>(ay,ax) = zoneKernelCos.at<double>(ay,ax) - cos_bias;
+      zoneKernelSin.at<double>(ay,ax) = zoneKernelSin.at<double>(ay,ax) - sin_bias;
+
+      //cos_norm = cos_norm + zoneKernelCos.at<double>(ay,ax)*zoneKernelCos.at<double>(ay,ax);
+      //sin_norm = sin_norm + zoneKernelSin.at<double>(ay,ax)*zoneKernelSin.at<double>(ay,ax);
+    }
+  }
+
+  cos_norm = std::max(EPSILON, sqrt(cos_norm));
+  sin_norm = std::max(EPSILON, sqrt(sin_norm));
+  for (int ay = 0; ay < zone_kernel_width; ay++) {
+    for (int ax = 0; ax < zone_kernel_width; ax++) {
+      //zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax) / cos_norm;
+      //zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax) / sin_norm;
+      zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax);
+      zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax);
+    }
+  }
+
 
   // apply the kernel to counts
   Mat countBuffer;
@@ -5807,35 +5860,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     bias_estimate = one_bias_estimate * zone_kernel_width * zone_kernel_width;
   }
 
+  cout << "cos_bias, cos_norm: " << cos_bias << " " << cos_norm << " " << endl;
+  cout << "sin_bias, sin_norm: " << sin_bias << " " << sin_norm << " " << endl;
+  cout << "bias_estimate: " << bias_estimate << endl;
+
+
   Mat outputCos;
   Mat outputSin;
   filter2D(countBuffer, outputCos, -1, zoneKernelCos, Point(-1,-1), 0, BORDER_REFLECT);
   filter2D(countBuffer, outputSin, -1, zoneKernelSin, Point(-1,-1), 0, BORDER_REFLECT);
 
+  double fake_samples = 1000.0;
   // set counts and counts squared
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
       // two factors of gain is too much
       double valCos = outputCos.at<Vec3d>(x,y)[2];
       double valSin = outputSin.at<Vec3d>(x,y)[2];
-      double val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->red.counts = val;
-      toFill->refAtCell(x,y)->red.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->red.samples = toLight->refAtCell(x,y)->red.samples;
+      //double valSin = 0.0;
+      double val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->red.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->red.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->red.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[1];
       valSin = outputSin.at<Vec3d>(x,y)[1];
-      val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->green.counts = val;
-      toFill->refAtCell(x,y)->green.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->green.samples = toLight->refAtCell(x,y)->green.samples;
+      val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->green.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->green.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->green.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[0];
       valSin = outputSin.at<Vec3d>(x,y)[0];
-      val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->blue.counts = val;
-      toFill->refAtCell(x,y)->blue.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->blue.samples = toLight->refAtCell(x,y)->blue.samples;
+      val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->blue.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->blue.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->blue.samples = fake_samples;
     }
   }
 }
@@ -5908,7 +5968,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -5941,8 +6001,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->background_pose, &data_gap);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -6101,7 +6161,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -6131,7 +6191,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   pixelToGlobalCache data;
   //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -6254,7 +6314,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -6284,7 +6344,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   
   pixelToGlobalCache data;
   //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->background_pose, &data);  
+  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -7668,7 +7728,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     return;
   }
 
-  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->background_pose);
+  eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
     ROS_ERROR("  Not doing update because arm not vertical.");
     return;
@@ -7701,8 +7761,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double z = z_to_use;
   double z2 = z_to_use-0.01;
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->background_pose, &data);  
-  computePixelToPlaneCache(ms->p, z2, thisPose, ms->config.scene->background_pose, &data2);  
+  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms->p, z2, thisPose, ms->config.scene->anchor_pose, &data2);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
   //#pragma omp parallel for
