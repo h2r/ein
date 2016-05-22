@@ -966,16 +966,19 @@ void Scene::initializePredictedMapWithBackground() {
 
       double meters_predicted_x, meters_predicted_y;
       predicted_map->cellToMeters(x, y, &meters_predicted_x, &meters_predicted_y);
-      eePose toTransform(x, y, 0, 0, 0, 0, 1);
+      eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
       eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
       eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
 
-      double cell_background_x, cell_background_y;
+      int cell_background_x, cell_background_y;
       background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
 
       if ( background_map->safeBilinAt(cell_background_x, cell_background_y) ) {
-	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtMeters(cell_background_x, cell_background_y);
+	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtMeters(inBackground.px, inBackground.py);
+	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
       }
+
+      //cout << "x y bx by: " << x << " " << y << " " << inBase.px << " " << inBase.py << " " << predicted_anchor << " " << background_anchor << " " << toTransform << inBase << inBackground << endl;
     }
   }
 }
