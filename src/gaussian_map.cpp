@@ -269,7 +269,7 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   z.samples        =  (double)(it)["zsamples"];          
 }
 
-void _GaussianMapCell::newObservation(Vec3b obs) {
+void _GaussianMapCell::newObservation(const Vec3b & obs) {
   red.counts += obs[2];
   green.counts += obs[1];
   blue.counts += obs[0];
@@ -281,14 +281,14 @@ void _GaussianMapCell::newObservation(Vec3b obs) {
   blue.samples += 1;
 }
 
-void _GaussianMapCell::newObservation(Vec3b obs, double zobs) {
+void _GaussianMapCell::newObservation(const Vec3b & obs, double zobs) {
   newObservation(obs);
   z.counts += zobs;
   z.squaredcounts += pow(zobs, 2);
   z.samples += 1;
 }
 
-void _GaussianMapCell::newObservation(Vec3d obs) {
+void _GaussianMapCell::newObservation(const Vec3d & obs) {
   red.counts += obs[2];
   green.counts += obs[1];
   blue.counts += obs[0];
@@ -300,7 +300,7 @@ void _GaussianMapCell::newObservation(Vec3d obs) {
   blue.samples += 1;
 }
 
-void _GaussianMapCell::newObservation(Vec3d obs, double zobs) {
+void _GaussianMapCell::newObservation(const Vec3d & obs, double zobs) {
   newObservation(obs);
   z.counts += zobs;
   z.squaredcounts += pow(zobs, 2);
@@ -1450,9 +1450,9 @@ shared_ptr<Scene> Scene::copyBox(int _x1, int _y1, int _x2, int _y2) {
   toReturn->observed_map = observed_map->copyBox(x1,y1,x2,y2);
   toReturn->discrepancy= discrepancy->copyBox(x1,y1,x2,y2);
 
-  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
-  toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
-  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y1 + toReturn->height), cv::Range(x1, x1 + toReturn->width)).clone();
+  toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(x1, x1 + toReturn->width), cv::Range(y1, y1 + toReturn->height)).clone();
+  toReturn->discrepancy_density = discrepancy_density(cv::Range(x1, x1 + toReturn->width), cv::Range(y1, y1 + toReturn->height)).clone();
+  toReturn->predicted_segmentation = predicted_segmentation(cv::Range(x1, x1 + toReturn->width), cv::Range(y1, y1 + toReturn->height)).clone();
   //toReturn->discrepancy_magnitude = discrepancy_magnitude(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
   //toReturn->discrepancy_density = discrepancy_density(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
   //toReturn->predicted_segmentation = predicted_segmentation(cv::Range(y1, y2), cv::Range(x1, x2)).clone();
@@ -5066,8 +5066,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   int numPixels = 0;
   int numNulls = 0;
+  Mat gripperMask = ms->config.gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    ROS_ERROR("Gripper mask is messed up.");
+  }
 
-  #pragma omp parallel for
+  //#pragma omp parallel for
   for (int i = 0; i < numThreads; i++) {
     //double frac = double(boty - topy) / double(numThreads);
     //double bfrac = i*frac;
@@ -5080,13 +5084,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     //for (int py = topy; py <= boty; py++) 
       for (int py = ttopy; py < tboty; py++) 
       {
-
+        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        //cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
       //double opy = py-topy;
       // this is superior
       //if ( (bfrac <= opy) && (opy < tfrac) ) 
       //{
 	for (int px = topx; px <= botx; px++) {
-	  if (isInGripperMask(ms, px, py)) {
+	  if (gripperMaskPixel[px] == 0) {
 	    continue;
 	  }
 
