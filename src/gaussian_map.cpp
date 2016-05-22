@@ -5875,6 +5875,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // construct the kernel
   Mat zoneKernelCos(zone_kernel_width, zone_kernel_width, CV_64F);
   Mat zoneKernelSin(zone_kernel_width, zone_kernel_width, CV_64F);
+  double cos_bias = 0.0;
+  double sin_bias = 0.0;
   for (int ay = 0; ay < zone_kernel_width; ay++) {
     for (int ax = 0; ax < zone_kernel_width; ax++) {
 
@@ -5884,15 +5886,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
       double gap_path_length = sqrt( gap_path_length_squared );
 
-      double val_cos = ( gain / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
-      cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
+      double val_cos = ( 1.0 / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      //cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelCos.at<double>(ay,ax) = val_cos;
+      cos_bias = cos_bias + val_cos;
 
-      double val_sin = ( gain / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
-      cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
+      double val_sin = ( 1.0 / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      //cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelSin.at<double>(ay,ax) = val_sin;
+      sin_bias = sin_bias + val_sin;
     }
   }
+  double cos_norm = 0.0;
+  double sin_norm = 0.0;
+  sin_bias = sin_bias / (zone_kernel_width*zone_kernel_width);
+  cos_bias = cos_bias / (zone_kernel_width*zone_kernel_width);
+  for (int ay = 0; ay < zone_kernel_width; ay++) {
+    for (int ax = 0; ax < zone_kernel_width; ax++) {
+      zoneKernelCos.at<double>(ay,ax) = zoneKernelCos.at<double>(ay,ax) - cos_bias;
+      zoneKernelSin.at<double>(ay,ax) = zoneKernelSin.at<double>(ay,ax) - sin_bias;
+
+      //cos_norm = cos_norm + zoneKernelCos.at<double>(ay,ax)*zoneKernelCos.at<double>(ay,ax);
+      //sin_norm = sin_norm + zoneKernelSin.at<double>(ay,ax)*zoneKernelSin.at<double>(ay,ax);
+    }
+  }
+
+  cos_norm = std::max(EPSILON, sqrt(cos_norm));
+  sin_norm = std::max(EPSILON, sqrt(sin_norm));
+  for (int ay = 0; ay < zone_kernel_width; ay++) {
+    for (int ax = 0; ax < zone_kernel_width; ax++) {
+      //zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax) / cos_norm;
+      //zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax) / sin_norm;
+      zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax);
+      zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax);
+    }
+  }
+
 
   // apply the kernel to counts
   Mat countBuffer;
@@ -5908,35 +5937,42 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     bias_estimate = one_bias_estimate * zone_kernel_width * zone_kernel_width;
   }
 
+  cout << "cos_bias, cos_norm: " << cos_bias << " " << cos_norm << " " << endl;
+  cout << "sin_bias, sin_norm: " << sin_bias << " " << sin_norm << " " << endl;
+  cout << "bias_estimate: " << bias_estimate << endl;
+
+
   Mat outputCos;
   Mat outputSin;
   filter2D(countBuffer, outputCos, -1, zoneKernelCos, Point(-1,-1), 0, BORDER_REFLECT);
   filter2D(countBuffer, outputSin, -1, zoneKernelSin, Point(-1,-1), 0, BORDER_REFLECT);
 
+  double fake_samples = 1000.0;
   // set counts and counts squared
   for (int y = 0; y < t_height; y++) {
     for (int x = 0; x < t_width; x++) {
       // two factors of gain is too much
       double valCos = outputCos.at<Vec3d>(x,y)[2];
       double valSin = outputSin.at<Vec3d>(x,y)[2];
-      double val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->red.counts = val;
-      toFill->refAtCell(x,y)->red.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->red.samples = toLight->refAtCell(x,y)->red.samples;
+      //double valSin = 0.0;
+      double val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->red.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->red.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->red.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[1];
       valSin = outputSin.at<Vec3d>(x,y)[1];
-      val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->green.counts = val;
-      toFill->refAtCell(x,y)->green.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->green.samples = toLight->refAtCell(x,y)->green.samples;
+      val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->green.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->green.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->green.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[0];
       valSin = outputSin.at<Vec3d>(x,y)[0];
-      val = sqrt(valCos * valCos + valSin * valSin);
-      toFill->refAtCell(x,y)->blue.counts = val;
-      toFill->refAtCell(x,y)->blue.squaredcounts = val*val/one_bias_estimate;
-      toFill->refAtCell(x,y)->blue.samples = toLight->refAtCell(x,y)->blue.samples;
+      val = (valCos * valCos + valSin * valSin);
+      toFill->refAtCell(x,y)->blue.counts = val*fake_samples;
+      toFill->refAtCell(x,y)->blue.squaredcounts = val*val*fake_samples;
+      toFill->refAtCell(x,y)->blue.samples = fake_samples;
     }
   }
 }

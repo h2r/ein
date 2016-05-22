@@ -1440,8 +1440,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 5 "phasedArrayApertureWidthCells" store
 
 
-0.0001 "phasedArrayGain" store 
-3.14 "phasedArrayPhase" store
+0.000000005 "phasedArrayGain" store 
+0.0 "phasedArrayPhase" store
 
 /*
 0.01 "phasedArrayWavelength" store
@@ -1450,8 +1450,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 1.0 "phasedArrayPlaneScale" store 
-70 "phasedArrayZoneWidthCells" store
-0.4225 "tempReconstructArrayZ" store 
+800 "phasedArrayZoneWidthCells" store
+0.3425 "tempReconstructArrayZ" store 
 
 
 
@@ -1668,7 +1668,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 )  "tempReconstructMaxLikelihoodFromStack" store
 
 (
-  tempReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
 
   0 0 phasedArrayApertureWidthCells phasedArrayPhase phasedArrayWavelength tempReconstructArrayZ tempReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray
 
@@ -1677,7 +1677,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 )  "tempReconstructFromPhasedArrayRegister" store
 
 (
-  tempReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
 
   phasedArrayPlaneScale phasedArrayZoneWidthCells 0 0 phasedArrayGain phasedArrayPhase phasedArrayWavelength tempReconstructArrayZ tempReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel
 
