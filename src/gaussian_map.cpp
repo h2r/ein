@@ -1665,7 +1665,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
 
     //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
-    waitKey(0);
+    //waitKey(0);
 
     for (int x = 0; x < output.rows; x++) {
       for (int y = 0; y < output.cols; y++) {
