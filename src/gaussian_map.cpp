@@ -4007,7 +4007,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if ( so_idx < ms->config.scene->predicted_objects.size() ) {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
-    eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+    eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
     ms->pushWord(make_shared<EePoseWord>(objectPoseInBase));
   } else {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
@@ -4043,7 +4043,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
   shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
-  eePose objectPoseInBase = tso->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+  eePose objectPoseInBase = tso->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
   BoxMemory box;
   box.cameraPose = objectPoseInBase;
 
