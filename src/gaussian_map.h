@@ -49,10 +49,10 @@ typedef struct _GaussianMapCell {
   void readFromFileNodeIterator(FileNodeIterator& it);
   void readFromFileNode(FileNode& it);
 
-  void newObservation(Vec3b obs);
-  void newObservation(Vec3b obs, double zobs);
-  void newObservation(Vec3d obs);
-  void newObservation(Vec3d obs, double zobs);
+  void newObservation(const Vec3b & obs);
+  void newObservation(const Vec3b & obs, double zobs);
+  void newObservation(const Vec3d & obs);
+  void newObservation(const Vec3d & obs, double zobs);
   
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
