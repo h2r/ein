@@ -1594,53 +1594,10 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
   if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
-
-    /* 
-    // l2 normalizing might mess up comparison on the positive regions vs negative... 
-    double po_safe_l2norm = sqrt( std::max(1.0e-12, prepared_object.dot(prepared_object)) );
-    prepared_object = prepared_object / po_safe_l2norm;
-    {
-      double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
-      prepared_object = prepared_object - po_l1norm;
-      double po_meanless_l2norm = std::max(1.0e-12, prepared_object.dot(prepared_object));
-      prepared_object = prepared_object / po_meanless_l2norm;
-      cout << "TTTTTT: " << po_l1norm << " " << po_meanless_l2norm << endl;
-    }
-    {
-      double pd_l1norm = prepared_discrepancy.dot(Mat::ones(prepared_discrepancy.rows, prepared_discrepancy.cols, prepared_discrepancy.type()));
-      prepared_discrepancy = prepared_discrepancy - pd_l1norm;
-      double pd_meanless_l2norm = std::max(1.0e-12, prepared_discrepancy.dot(prepared_discrepancy));
-      prepared_discrepancy = prepared_discrepancy / pd_meanless_l2norm;
-    }
-    overlap_thresh = -DBL_MAX; 
-    */
   } else {
     assert(0);
   }
 
-/*
-  Mat prepared_object = Mat(max_dim, max_dim, CV_64F);
-  {
-    int crows = object_to_prepare.rows;
-    int ccols = object_to_prepare.cols;
-    int tRy = (max_dim-crows)/2;
-    int tRx = (max_dim-ccols)/2;
-    
-    for (int x = 0; x < max_dim; x++) {
-      for (int y = 0; y < max_dim; y++) {
-	int tx = x - tRx;
-	int ty = y - tRy;
-	if ( tx >= 0 && ty >= 0 && ty < crows && tx < ccols )  {
-	  prepared_object.at<double>(x,y) = object_to_prepare.at<double>(ty, tx);
-	} else {
-	  prepared_object.at<double>(x,y) = 0.0;
-	}
-      }
-    }
-    //GaussianBlur(prepared_object, prepared_object, cv::Size(0,0), p_scene_sigma);
-    //normalizeForCrossCorrelation(ms, prepared_object, prepared_object);
-  }
-*/
   
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
@@ -1660,40 +1617,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   int pushed = 0;
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-/*
-    // rotate the template and L1 normalize it
-    Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
-    double angle = thisOrient*360.0/numOrientations;
-    
-    //double scale = 1.0;
-    double scale = thisScale;
-    
-    // Get the rotation matrix with the specifications above
-    Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-    warpAffine(im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-    
-    processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-    
-    double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
-    double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-    l2norm = sqrt(l2norm);
-    if (l2norm <= EPSILON) {
-      l2norm = 1.0;
-    }
-    rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
-*/
 
-/*
-    prepareForCrossCorrelation(ms, im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
-
-    Mat output = preparedClass1.clone(); 
-    filter2D(preparedClass1, output, -1, rotatedAerialGrads[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
-    double minValue, maxValue;
-    minMaxLoc(output, &minValue, &maxValue);
-    globalMax = max(maxValue, globalMax);
-*/
-    //Point center = Point(max_dim/2.0, max_dim/2.0);
     Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
     double angle = thisOrient*360.0/numOrientations;
     
@@ -1702,71 +1626,27 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-//cout << rot_mat << rot_mat.size() << endl;
+
+    // also translate it a bit, because we are making a square output,
+    // and we want it to be in the center of the square.
     rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
     rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
+
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+    //imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+
 
     Mat output = prepared_discrepancy.clone(); 
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
 
-  //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
-  //waitKey(0);
 
-/*
-    Mat tob = rotated_object_imgs[thisOrient + etaS*numOrientations];
-    int tob_half_width = ceil(tob.cols/2.0);
-    int tob_half_height = ceil(tob.rows/2.0);
+    //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+    waitKey(0);
 
-cout << "tob " << tob_half_width << " " << tob_half_height << endl;
-
-    #pragma omp parallel for
-    for (int ys = tob_half_height; ys < output.rows-tob_half_height; ys++) {
-      for (int xs = tob_half_width; xs < output.cols-tob_half_width; xs++) {
-	output.at<double>(ys,xs) = 0.0;
-	//if (prepared_discrepancy.at<double>(ys,xs) > 0) 
-	if (discrepancy->refAtCell(xs,ys)->red.samples > 0) 
-	//if ( 0 ) 
-	//if ( 1 ) 
-	{
-	  int xst_part = xs-tob_half_width;
-	  int yst_part = ys-tob_half_height;
-	  for (int yo = 0; yo < tob.rows; yo++) {
-	    for (int xo = 0; xo < tob.cols; xo++) {
-	      int xst = xst_part+xo;
-	      int yst = yst_part+yo;
-	      //int xst = xs-tob_half_width+xo;
-	      //int yst = ys-tob_half_height+yo;
-	      //if ( 
-		  //(xo >= 0 && xo < tob.cols) &&
-		  //(yo >= 0 && yo < tob.rows) &&
-		  //(xst >= 0 && xst < output.cols) &&
-		  //(yst >= 0 && yst < output.rows) 
-		 //) {
-		output.at<double>(ys,xs) += prepared_discrepancy.at<double>(yst,xst) * tob.at<double>(yo,xo);
-	      //}
-	    }
-	  }
-	}
-      }
-    }
-*/
-
-//cout << output ;
-    for (int y = 0; y < output.rows; y++) {
-      for (int x = 0; x < output.cols; x++) {
+    for (int x = 0; x < output.rows; x++) {
+      for (int y = 0; y < output.cols; y++) {
 	double model_score = 0.0;
 
-/*
-	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
-	  cout << output.at<double>(x,y) << "  running inference...";
-	  double this_theta = -thisOrient * 2.0 * M_PI / numOrientations;
-	  double x_m_tt, y_m_tt;
-	  ms->config.scene->cellToMeters(x,y,&x_m_tt,&y_m_tt);
-	  model_score = -ms->config.scene->scoreObjectAtPose(x_m_tt, y_m_tt, this_theta, class_idx);
-	  cout << " score " << score << " max_score " << max_score << endl;
-	}
-*/
 	if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
 	  SceneObjectScore to_push;
 	  to_push.x_c = x;
