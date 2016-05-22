@@ -1658,14 +1658,14 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
     //imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+    //waitKey(0);
 
 
     Mat output = prepared_discrepancy.clone(); 
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
 
 
-    //imshow("test", rotated_object_imgs[thisOrient + etaS*numOrientations]);
-    //waitKey(0);
+
 
     for (int x = 0; x < output.rows; x++) {
       for (int y = 0; y < output.cols; y++) {
