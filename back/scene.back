@@ -31,13 +31,13 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  16.0 sceneSetBackgroundStdDevY
-  16.0 sceneSetBackgroundStdDevColor
+  4.0 sceneSetBackgroundStdDevY
+  4.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
 (
-  16.0 sceneSetFocusedSceneStdDevY
-  16.0 sceneSetFocusedSceneStdDevColor
+  4.0 sceneSetFocusedSceneStdDevY
+  4.0 sceneSetFocusedSceneStdDevColor
 ) "tempRegularizeFocusedClassModel" store
 
 ( 
@@ -1215,7 +1215,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /*
   tempReconstructServoToBestSceneObject
   */
-  tempSpiralServoToBestSceneObject
+  tempSpiralServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
