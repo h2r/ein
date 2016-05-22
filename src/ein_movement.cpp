@@ -325,7 +325,6 @@ REGISTER_WORD(OZDown)
 WORD(OZUp)
 CODE('e'+65504) 
 virtual void execute(std::shared_ptr<MachineState> ms) {
-  cout << "Changing pose. " << endl;
   ms->config.currentEEDeltaRPY.pz += ms->config.bDelta;
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 }
