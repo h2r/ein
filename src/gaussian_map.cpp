@@ -1483,7 +1483,7 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
       }
     }
   }
-  cout << xmin << " " << xmax << " " << ymin << " " << ymax << " secondary " << endl;
+  //cout << xmin << " " << xmax << " " << ymin << " " << ymax << " secondary " << endl;
 
   xmin = xmin - ceil(pad_meters/cell_width);
   xmax = xmax + ceil(pad_meters/cell_width);
@@ -1492,7 +1492,7 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
 
   int new_width = xmax - xmin + 1;
   int new_height = ymax - ymin + 1;
-  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
+  //cout << " new_width, new_height: " << new_width << " " << new_height << endl;
   // make sure the crop is odd dimensioned
   if ((new_width % 2) == 0) {
     xmax = xmax-1;
@@ -1503,8 +1503,8 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   new_width = xmax - xmin + 1;
   new_height = ymax - ymin + 1;
 
-  cout << xmin << " " << xmax << " " << ymin << " " << ymax << " third " << endl;
-  cout << " new_width, new_height: " << new_width << " " << new_height << endl;
+  //cout << xmin << " " << xmax << " " << ymin << " " << ymax << " third " << endl;
+  //cout << " new_width, new_height: " << new_width << " " << new_height << endl;
 
   shared_ptr<Scene> scene_to_return;
   if ((xmin <= xmax) && (ymin <= ymax)) {
@@ -1518,6 +1518,7 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
     ymin = 0;
     scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   }
+  cout << "new object dimensions: " << (xmax - xmin) << "x" << (ymax - ymin) << endl;
   
   return scene_to_return;
 }
@@ -2413,19 +2414,19 @@ void Scene::readFromFileNode(FileNode& it) {
   cout << "done" << endl;
 
   bool error = false;
-  if (discrepancy_density.cols != width || discrepancy_density.rows != height) {
+  if (discrepancy_density.rows != width || discrepancy_density.cols != height) {
     ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (discrepancy_magnitude.cols != width || discrepancy_magnitude.rows != height) {
+  if (discrepancy_magnitude.rows != width || discrepancy_magnitude.cols != height) {
     ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
-  if (predicted_segmentation.cols != width || predicted_segmentation.rows != height) {
+  if (predicted_segmentation.rows != width || predicted_segmentation.cols != height) {
     ROS_ERROR_STREAM("Predicted segmentation has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(width, height, CV_64F);
   }
@@ -3982,7 +3983,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   if ( so_idx < ms->config.scene->predicted_objects.size() ) {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so using idx " << so_idx << endl;
-    ms->pushWord(make_shared<EePoseWord>(ms->config.scene->predicted_objects[so_idx]->scene_pose));
+    eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+    ms->pushWord(make_shared<EePoseWord>(objectPoseInBase));
   } else {
     cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
   }
@@ -4015,13 +4017,17 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   GET_INT_ARG(ms, to_map);
   REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
 
-  BoxMemory box;
-  box.cameraPose = ms->config.scene->predicted_objects[to_map]->scene_pose;
-
   shared_ptr<SceneObject> tso = ms->config.scene->predicted_objects[to_map];
   shared_ptr<Scene> tso_s = ms->config.class_scene_models[ tso->labeled_class_index ];
-  box.top = ms->config.scene->predicted_objects[to_map]->scene_pose.minusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
-  box.bot = ms->config.scene->predicted_objects[to_map]->scene_pose.plusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  eePose objectPoseInBase = tso->scene_pose.applyAsRelativePoseTo(ms->config.scene->background_pose);
+  BoxMemory box;
+  box.cameraPose = objectPoseInBase;
+
+  box.top = objectPoseInBase.minusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  box.bot = objectPoseInBase.plusP(eePose(0.5 * tso_s->width * tso_s->cell_width, 0.5 * tso_s->height * tso_s->cell_width, 0, 0,0,0,0));
+  //cout << "tso pose: " << tso->scene_pose << endl;
+  //cout << "transformed tso pose: " << objectPoseInBase << endl;
+  //cout << "Top: " << box.top << " bot: " << box.bot << endl;
 
   box.bTop = cv::Point(0,0);
   box.bBot = cv::Point(1,1);
@@ -4037,9 +4043,6 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   box.lockStatus = CENTROID_LOCK;
   
-  int i, j;
-  mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, box.centroid.px, box.centroid.py, &i, &j);
-
   // this only does the timestamp to avoid obsessive behavior
   mapBox(ms, box);
   
