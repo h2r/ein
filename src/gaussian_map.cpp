@@ -5088,7 +5088,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       for (int py = ttopy; py < tboty; py++) 
       {
         uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
-        //cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
+        cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
       //double opy = py-topy;
       // this is superior
       //if ( (bfrac <= opy) && (opy < tfrac) ) 
@@ -5114,9 +5114,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	    ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
 	    GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
 	    if (cell != NULL) {
-		Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-		cell->newObservation(pixel, z);
-	      numPixels++;
+              //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+              //cell->newObservation(pixel, z);
+              cell->newObservation(wristViewPixel[px]);
+              numPixels++;
 	    }
 	  } else {
 	      numNulls++;
