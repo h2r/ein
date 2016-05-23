@@ -83,6 +83,7 @@ typedef enum {
 typedef enum {
   DISCREPANCY_POINT = 0,
   DISCREPANCY_DOT = 1,
+  DISCREPANCY_NOISY_OR = 2,
 } discrepancyModeState;
 
 typedef enum {
