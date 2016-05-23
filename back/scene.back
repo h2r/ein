@@ -41,6 +41,8 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempRegularizeFocusedClassModel" store
 
 ( 
+  sceneSetDiscrepancyModeNoisyOr
+  0.1 sceneSetScoreThresh
   bg sceneLoadBackgroundMap 
   5 sceneSetCellCountThreshold 
   tempRegularizeBackground
