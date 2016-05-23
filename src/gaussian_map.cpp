@@ -1032,7 +1032,9 @@ void Scene::initializePredictedMapWithBackground() {
   }
 }
 
-
+void Scene::composePredictedMap() {
+  composePredictedMap(ms->config.scene_score_thresh);
+}
 void Scene::composePredictedMap(double threshold) {
   //REQUIRE_FOCUSED_CLASS(ms, tfc);
   // XXX
@@ -1873,7 +1875,7 @@ double Scene::computeProbabilityOfMap() {
 
   shared_ptr<Scene> new_component_scene = this->copy();
   new_component_scene->predicted_objects.resize(0);
-  new_component_scene->composePredictedMap(0.01);
+  new_component_scene->composePredictedMap();
   new_component_scene->measureDiscrepancy();
   shared_ptr<Scene> new_class_crop = new_component_scene->copyPaddedDiscrepancySupport(threshold, p_crop_pad);
 
@@ -1881,7 +1883,7 @@ double Scene::computeProbabilityOfMap() {
   ms->config.class_scene_models[ms->config.focusedClass] = new_class_crop;
 
   new_component_scene->tryToAddObjectToScene(ms->config.focusedClass);
-  new_component_scene->composePredictedMap(0.01);
+  new_component_scene->composePredictedMap();
 
   for (int y = 0; y < new_component_scene->background_map->height; y++) {
     for (int x = 0; x < new_component_scene->background_map->width; x++) {
@@ -4081,7 +4083,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
 
-
+CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
 
 WORD(SceneSetDiscrepancyModeDot)
 virtual void execute(std::shared_ptr<MachineState> ms) {
@@ -4160,7 +4162,7 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
     shared_ptr<Scene> this_scene = Scene::createFromFile(ms, scene_files[i]);
 
     this_scene->predicted_objects.resize(0);
-    this_scene->composePredictedMap(0.01);
+    this_scene->composePredictedMap();
     this_scene->measureDiscrepancy();
     this_scene->tryToAddBestObjectToScene();
 
@@ -4551,7 +4553,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
 	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	this_scene->predicted_objects.resize(0);
-	this_scene->composePredictedMap(0.01);
+	this_scene->composePredictedMap();
 	this_scene->measureDiscrepancy();
 
 	this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
@@ -4673,7 +4675,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
 		shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName_2);
 		this_scene->predicted_objects.resize(0);
-		this_scene->composePredictedMap(0.01);
+		this_scene->composePredictedMap();
 		this_scene->measureDiscrepancy();
 
 		this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
