@@ -1782,12 +1782,11 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     int numThreads = 8;
     #pragma omp parallel for
     for (int thr = 0; thr < numThreads; thr++) {
-      shared_ptr<Scene> thisscene = ms->config.scene->copy();
       for (int i = 0; i < to_check; i++) {
 	if ( i % numThreads == thr ) {
 	  if ( ! local_scores[i].loglikelihood_valid ) {
 	    // score should return the delta of including vs not including
-	    local_scores[i].loglikelihood_score = thisscene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
 	    if (i % 10000 == 0) {
 	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
@@ -2217,6 +2216,15 @@ shared_ptr<SceneObject> Scene::addPredictedObject(double x, double y, double the
   return topush;
 }
 
+shared_ptr<SceneObject> Scene::getPredictedObject(double x, double y, double theta, int class_idx) {
+  eePose topass = eePose::identity().applyRPYTo(theta,0,0); 
+  topass.px = x;
+  topass.py = y;
+  shared_ptr<SceneObject> topush = make_shared<SceneObject>(topass, class_idx,  ms->config.classLabels[class_idx], PREDICTED);
+  return topush;
+}
+
+
 double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx, double threshold) {
   shared_ptr<Scene> object_scene = ms->config.class_scene_models[class_idx];
 
@@ -2227,9 +2235,10 @@ double Scene::scoreObjectAtPose(double x, double y, double theta, int class_idx,
   removeObjectFromPredictedMap(obj);
 */
 
-  shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  //shared_ptr<SceneObject> obj = addPredictedObject(x, y, theta, class_idx);
+  shared_ptr<SceneObject> obj = getPredictedObject(x, y, theta, class_idx);
   double score = recomputeScore(obj, threshold);
-  removeObjectFromPredictedMap(obj);
+  //removeObjectFromPredictedMap(obj);
 
   //cout << "zzz: " << score << endl;
 
