@@ -1113,7 +1113,7 @@ class EinConfig {
   double m_y = 0.94;
   double m_x_h[4];
   double m_y_h[4];
-  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_HYPERBOLIC;
   sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
