@@ -165,6 +165,7 @@ double _GaussianMapCell::innerProduct(_GaussianMapCell * other, double * rterm_o
 
 }
 
+
 void computePointDiscrepancy(GaussianMapChannel & channel1, GaussianMapChannel & channel2, double * likelihood, double * channel_term_normalized) {
   double safesigmasquared = safeSigmaSquared(channel1.sigmasquared);
   *likelihood = normal_pdf(channel1.mu, sqrt(safesigmasquared), channel2.mu);
@@ -181,6 +182,54 @@ double _GaussianMapCell::pointDiscrepancy(_GaussianMapCell * other, double * rte
   computePointDiscrepancy(blue, other->blue, &blikelihood, bterm_out);
   return normalizeDiscrepancy(rlikelihood, glikelihood, blikelihood);
 }
+
+double _GaussianMapCell::noisyOrDiscrepancy(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
+  double rlikelihood, glikelihood, blikelihood;
+  computePointDiscrepancy(red, other->red, &rlikelihood, rterm_out);
+  computePointDiscrepancy(green, other->green, &glikelihood, gterm_out);
+  computePointDiscrepancy(blue, other->blue, &blikelihood, bterm_out);
+  int debug;
+  if ((1 - *bterm_out) * 255 > 200  && (1 - *gterm_out) * 255 < 20 && (1 - *rterm_out) * 255 < 20) {
+    debug = 0;
+  } else {
+    debug = 0;
+  }
+
+  if (debug) {
+    cout << "******** computing noisy or for " << red.mu << ", " << green.mu << ", " << blue.mu << endl;
+    cout << "Channel discrepancy probability: " << *rterm_out << ", " << *gterm_out << ", " << *bterm_out << endl;
+  }
+
+  double prd = 1 - *rterm_out;
+  double pgd = 1 - *gterm_out;
+  double pbd = 1 - *bterm_out;
+
+  double sum = 0.0;
+  for (int rd = 0; rd <= 1; rd ++) {
+    for (int gd = 0; gd <= 1; gd ++) {
+      for (int bd = 0; bd <= 1; bd ++) {
+        double normalizer = ((rd ? prd : (1 - prd)) *
+                             (gd ? pgd : (1 - pgd)) *
+                             (bd ? pbd : (1 - pbd)));
+        double noisyOr = 1 - ((rd ? (1 - prd) : 1) *
+                              (gd ? (1 - pgd) : 1) *
+                              (bd ? (1 - pbd) : 1));
+        if (debug) {
+          cout << "rd: " << rd << ", gd: " << gd << ", bd: " << bd << " ";
+          cout << " normalizer: " << setw(20) << normalizer << " ";
+          cout << " noisyOr: " << setw(20) << noisyOr << endl;
+        }
+        sum += normalizer * noisyOr;
+      }
+    }
+  }
+  if (debug) {
+    cout << "sum: " << sum << endl;
+    cout  << endl;
+  }
+  return 1.0 - sum;
+}
+
 
 double _GaussianMapCell::normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood) {
 
@@ -1174,7 +1223,9 @@ void Scene::measureDiscrepancy() {
 	if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
 	  discrepancy_value = predicted_map->refAtCell(x,y)->pointDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	} else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
-	  discrepancy_value = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+          discrepancy_value = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	} else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+          discrepancy_value = predicted_map->refAtCell(x,y)->noisyOrDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	} else {
 	  cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
 	  assert(0);
@@ -1220,7 +1271,7 @@ void Scene::measureDiscrepancy() {
 	//cout << predicted_map->refAtCell(x,y)->red.samples << " " << observed_map->refAtCell(x,y)->red.samples << " ";
       } else {
 	discrepancy->refAtCell(x,y)->zero();
-	discrepancy_magnitude.at<double>(x,y) = 0.0;
+	discrepancy_magnitude.at<double>(x,y) = 0.5;
       }
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	c_total++;
@@ -1233,6 +1284,7 @@ void Scene::measureDiscrepancy() {
 
   double p_density_sigma = 2.0;
   setDiscrepancyDensityFromMagnitude(p_density_sigma);
+  //discrepancy_density = discrepancy_magnitude;
 }
 
 double Scene::assignScore() {
@@ -1619,11 +1671,6 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
 
 
-  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
-  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
-  } else {
-    assert(0);
-  }
 
   
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
@@ -4041,9 +4088,12 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
-
-
-
+WORD(SceneSetDiscrepancyModeNoisyOr)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  ms->config.discrepancyMode = DISCREPANCY_NOISY_OR;
+}
+END_WORD
+REGISTER_WORD(SceneSetDiscrepancyModeNoisyOr)
 
 
 WORD(SceneSetPredictedClassNameToFocusedClass)
