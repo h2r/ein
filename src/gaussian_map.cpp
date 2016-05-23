@@ -1271,7 +1271,7 @@ void Scene::measureDiscrepancy() {
 	//cout << predicted_map->refAtCell(x,y)->red.samples << " " << observed_map->refAtCell(x,y)->red.samples << " ";
       } else {
 	discrepancy->refAtCell(x,y)->zero();
-	discrepancy_magnitude.at<double>(x,y) = 0.5;
+	discrepancy_magnitude.at<double>(x,y) = 0.0;
       }
       if ((predicted_map->refAtCell(x,y)->red.samples > 0) && (observed_map->refAtCell(x,y)->red.samples > 0)) {
 	c_total++;
