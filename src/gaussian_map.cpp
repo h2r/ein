@@ -5821,12 +5821,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
       double gap_path_length = sqrt( gap_path_length_squared );
 
-      double val_cos = ( 1.0 / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      //double val_cos = ( 1.0 / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      double val_cos = (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
       //cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelCos.at<double>(ay,ax) = val_cos;
       cos_bias = cos_bias + val_cos;
 
-      double val_sin = ( 1.0 / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      //double val_sin = ( 1.0 / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      double val_sin = ( 1.0 ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
       //cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelSin.at<double>(ay,ax) = val_sin;
       sin_bias = sin_bias + val_sin;
