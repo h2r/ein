@@ -380,6 +380,14 @@ typedef struct pixelToGlobalCache {
 
   double reticlePixelX;
   double reticlePixelY;
+  double reticlePixelXOffset;
+  double reticlePixelYOffset;
+
+  double x_thisZ;
+  double y_thisZ;
+
+  double gXFactor;
+  double gYFactor;
 
   Mat un_rot_mat;
 
