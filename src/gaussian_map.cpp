@@ -2722,6 +2722,10 @@ END_WORD
 REGISTER_WORD(SceneRenderScene)
 
 WORD(SceneLoadObjectModel)
+virtual string description() {
+  return "Load the object model.  Takes an object name as argument, which must be a directory name in the objects directory.";
+}
+
 virtual void execute(std::shared_ptr<MachineState> ms) {
   string object_name;
   GET_STRING_ARG(ms, object_name);
