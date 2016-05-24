@@ -1678,7 +1678,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
-  cout << "  po_l2norm: " << po_l2norm << endl;
+  // cout << "  po_l2norm: " << po_l2norm << endl;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1693,7 +1693,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   vector<SceneObjectScore> local_scores;
   local_scores.reserve(1e5);
   int pushed = 0;
-  cout << "orientations: " << numOrientations << endl;
+  //cout << "orientations: " << numOrientations << endl;
 
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
@@ -1713,9 +1713,9 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
 
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-    cout << "angle: " << angle << endl;
-    imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
-    imshow("prepared discrepancy", prepared_discrepancy);
+    //cout << "angle: " << angle << endl;
+    //imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+    //imshow("prepared discrepancy", prepared_discrepancy);
 
 
     Mat output = prepared_discrepancy.clone(); 
@@ -1723,7 +1723,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 
 
     double theta_r = thisOrient* 2.0 * M_PI / numOrientations;
-    cout << "theta_r: " << theta_r << " deg: " << theta_r / (2.0 * M_PI) * 360 << endl;
+
     for (int x = 0; x < output.rows; x++) {
       for (int y = 0; y < output.cols; y++) {
 	double model_score = 0.0;
@@ -1760,30 +1760,30 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
-          max_image = rotated_object_imgs[thisOrient + etaS*numOrientations].clone();
+          // max_image = rotated_object_imgs[thisOrient + etaS*numOrientations].clone();
 	}
       }
     }
-    Mat bestMatch = prepared_discrepancy.clone();
-    Point c = Point(max_y, max_x);
-    cv::Scalar color = cv::Scalar(255, 255, 255);
-    circle(bestMatch, c, 10, color);
+    // Mat bestMatch = prepared_discrepancy.clone();
+    // Point c = Point(max_y, max_x);
+    // cv::Scalar color = cv::Scalar(255, 255, 255);
+    // circle(bestMatch, c, 10, color);
 
-    for (int x1 = 0; x1 < max_image.rows; x1++) {
-      for (int y1 = 0; y1 < max_image.cols; y1++) {
-        int bx1 = max_x - max_image.rows * 0.5 + x1;
-        int by1 = max_y - max_image.cols * 0.5 + y1;
+    // for (int x1 = 0; x1 < max_image.rows; x1++) {
+    //   for (int y1 = 0; y1 < max_image.cols; y1++) {
+    //     int bx1 = max_x - max_image.rows * 0.5 + x1;
+    //     int by1 = max_y - max_image.cols * 0.5 + y1;
 
-        bestMatch.at<double>(bx1,by1) = max(max_image.at<double>(x1, y1),
-                                            prepared_discrepancy.at<double>(bx1, by1));
-      }
-    }
-    imshow("best match for this angle", bestMatch);
+    //     bestMatch.at<double>(bx1,by1) = max(max_image.at<double>(x1, y1),
+    //                                         prepared_discrepancy.at<double>(bx1, by1));
+    //   }
+    // }
+    //imshow("best match for this angle", bestMatch);
 
-    output = output / max_score;
-    imshow("output", output);
-    cout << "max: " << max_x << ", " << max_y <<  " at " << max_score << endl;
-    waitKey(0);    
+    //output = output / max_score;
+    //imshow("output", output);
+    //cout << "max: " << max_x << ", " << max_y <<  " at " << max_score << endl;
+    //waitKey(0);    
   }
   cout << "max_theta: " << max_orient << endl;
 
