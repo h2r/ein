@@ -69,7 +69,7 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 ) "tempFivePointThreeWidthTakeScene" store
 
 (
-  sceneClearObservedMap tempUpdateSpiral tempUpdateMaps
+  sceneClearObservedMap tempUpdateSpiral 
 ) "tempSpiralTakeScene" store
 
 0.1 "tempSpiralMoveSpeedDefault" store
@@ -306,7 +306,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     tempUpdateSpiral
 
-    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    endStackCollapseNoop 0.1 waitForSeconds
 
     /* pauseStackExecution */
 
@@ -619,7 +619,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
     tempUpdateSpiralEccentric
 
-    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    endStackCollapseNoop 0.1 waitForSeconds
     /* pauseStackExecution */
 
     /*
@@ -835,7 +835,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   sceneClearPredictedObjects
-  sceneClearObservedMap tempUpdateSpiral tempUpdateMaps
+  sceneClearObservedMap tempUpdateSpiral 
   tempCaptureCore
 
   tempServoToFocusedSceneObject
@@ -926,7 +926,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
   sceneClearObservedMap 
   waitUntilAtCurrentPosition
-  tempUpdateSpiral tempUpdateMaps
+  tempUpdateSpiral 
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
@@ -1479,7 +1479,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     rewindImageStreamBufferNLNK 
 
 
+/*
+      sceneRecalculateObservedMusAndSigmas
+      sceneRenderObservedMap
+*/
 
+/*
     ( 
       tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
@@ -1488,13 +1493,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	incrementImageStreamBufferNoLoadNoKick 
       ) tempSpiralStreamTakeSceneStride replicateWord 
 
-/*
-      sceneRecalculateObservedMusAndSigmas
-      sceneRenderObservedMap
-*/
 
       endStackCollapseNoop 
     ) tempRSTSSMax replicateWord
+*/
+
+    
+      tempSpiralStreamTakeSceneStride 
+      tempReconstructWithZThisZ 
+    sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
 
     sceneRecalculateObservedMusAndSigmas
     sceneRenderObservedMap
@@ -1693,7 +1700,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
   tempUpdateSpiralCoreNoClean 
 
-
   tempUpdateMaps
 
   quarterImpulse
@@ -1771,7 +1777,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   0.001 setW1GoThresh
   0.03 "tempSpiralMoveSpeed" store
   0.01 "tempSpiralGridSize" store
-  6 tempUpdateSpiralCore tempUpdateMaps
+  6 tempUpdateSpiralCore
 ) "tempReconstructTakeSceneMid" store
 
 (
