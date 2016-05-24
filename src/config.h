@@ -393,6 +393,8 @@ typedef struct pixelToGlobalCache {
 
   Mat un_rot_mat;
 
+  double rotx[3];
+  double roty[3];
 
   double dx;
   double cx;

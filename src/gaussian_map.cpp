@@ -34,7 +34,7 @@ void _GaussianMapCell::zero() {
   z.zero();
 }
 
-void GaussianMapCell::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
+void GaussianMapCell::recalculateMusAndSigmas(MachineState * ms) {
   red.recalculateMusAndSigmas(ms);
   green.recalculateMusAndSigmas(ms);
   blue.recalculateMusAndSigmas(ms);
@@ -624,7 +624,7 @@ CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.
 CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 CONFIG_SETTER_DOUBLE(SceneSetMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 
-void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
+void GaussianMapChannel::recalculateMusAndSigmas(MachineState * ms) {
   double safe_samples = max(samples, 1.0);
   mu = counts / safe_samples;			
   sigmasquared = (squaredcounts / safe_samples) - (mu * mu); 
@@ -633,7 +633,7 @@ void GaussianMapChannel::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
   }
 }
  
-void GaussianMap::recalculateMusAndSigmas(shared_ptr<MachineState> ms) {
+void GaussianMap::recalculateMusAndSigmas(MachineState * ms) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (refAtCell(x, y)->red.samples > 0) {
@@ -1099,7 +1099,7 @@ void Scene::initializePredictedMapWithBackground() {
 
       if ( background_map->safeBilinAt(cell_background_x, cell_background_y) ) {
 	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtCell(cell_background_x, cell_background_y);
-	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
       }
 
       //cout << "x y bx by: " << x << " " << y << " " << inBase.px << " " << inBase.py << " " << predicted_anchor << " " << background_anchor << " " << toTransform << inBase << inBackground << endl;
@@ -1161,7 +1161,7 @@ void Scene::composePredictedMap(double threshold) {
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
 	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
 	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
-	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
 	  } else {
 	  }
 	} else {
@@ -1228,7 +1228,7 @@ void Scene::addPredictedObjectsToObservedMap(double threshold, double learning_w
 	    GaussianMapCell cell = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
 	    cell.multS(learning_weight);
 	    observed_map->refAtCell(x,y)->addC(&cell);
-	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
 	  } else {
 	  }
 	} else {
@@ -3661,7 +3661,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }  
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
   ms->pushWord("sceneRenderObservedMap");
 }
 END_WORD
@@ -5059,7 +5059,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
 WORD(SceneRecalculateObservedMusAndSigmas)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneRecalculateObservedMusAndSigmas: ." << endl;
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
 }
 END_WORD
 REGISTER_WORD(SceneRecalculateObservedMusAndSigmas)
@@ -6997,7 +6997,7 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 	    //ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
 	  } else {}
 
-	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
       } else {
       }
     }
@@ -7055,7 +7055,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
 
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
 }
 END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
@@ -7202,7 +7202,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Scene> focusedScene = ms->config.class_scene_models[tfc];
 
   ms->config.scene->observed_map->addM(ms->config.scene->predicted_map);
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
 
 }
 END_WORD
@@ -7280,7 +7280,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       }
     }
   }
-  bg->recalculateMusAndSigmas(ms);
+  bg->recalculateMusAndSigmas(ms->p);
 }
 END_WORD
 REGISTER_WORD(SceneLoadMonochromeBackground)
@@ -7531,7 +7531,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     }
   }
   //ms->config.scene->observed_map->multS(decay);
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
 }
 END_WORD
 REGISTER_WORD(SceneRegularizeSceneL2)
