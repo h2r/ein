@@ -1009,21 +1009,96 @@ void Scene::initializePredictedMapWithBackground() {
 
   eePose predicted_anchor = predicted_map->anchor_pose;
   eePose background_anchor = background_map->anchor_pose;
+  
+  double px0 = 0;
+  double py0 = 0;
+
+  double px1 = 1;
+  double py1 = 0;
+
+  double px2 = 0;
+  double py2 = 1;
+
+
+  double bx0 = 0;
+  double by0 = 0;
+
+  double bx1 = 0;
+  double by1 = 0;
+
+  double bx2 = 0;
+  double by2 = 0;
+
+  {
+    double meters_predicted_x, meters_predicted_y;
+    predicted_map->cellToMeters(px0, py0, &meters_predicted_x, &meters_predicted_y);
+    eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
+    eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
+    eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
+    
+    double cell_background_x, cell_background_y;
+    background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+    bx0 = cell_background_x;
+    by0 = cell_background_y;
+  }
+  {
+    double meters_predicted_x, meters_predicted_y;
+    predicted_map->cellToMeters(px1, py1, &meters_predicted_x, &meters_predicted_y);
+    eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
+    eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
+    eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
+    
+    double cell_background_x, cell_background_y;
+    background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+    bx1 = cell_background_x;
+    by1 = cell_background_y;
+  }
+
+  {
+    double meters_predicted_x, meters_predicted_y;
+    predicted_map->cellToMeters(px2, py2, &meters_predicted_x, &meters_predicted_y);
+    eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
+    eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
+    eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
+    
+    double cell_background_x, cell_background_y;
+    background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+    bx2 = cell_background_x;
+    by2 = cell_background_y;
+  }
+
+
+
+  double diffx_x = bx1 - bx0;
+  double diffx_y = by1 - by0;
+  
+  double diffy_x = bx2 - bx0;
+  double diffy_y = by2 - by0;
+
 
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
 
-      double meters_predicted_x, meters_predicted_y;
-      predicted_map->cellToMeters(x, y, &meters_predicted_x, &meters_predicted_y);
-      eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
-      eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
-      eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
+      //double meters_predicted_x, meters_predicted_y;
+      //predicted_map->cellToMeters(x, y, &meters_predicted_x, &meters_predicted_y);
+      //eePose toTransform(meters_predicted_x, meters_predicted_y, 0, 0, 0, 0, 1);
+      //eePose inBase = toTransform.applyAsRelativePoseTo(predicted_anchor);
+      //eePose inBackground = inBase.getPoseRelativeTo(background_anchor);
 
-      int cell_background_x, cell_background_y;
-      background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+      //double cell_background_x, cell_background_y;
+      //background_map->metersToCell(inBackground.px, inBackground.py, &cell_background_x, &cell_background_y);
+
+
+      double cell_background_x = bx0 + diffx_x * x + diffy_x * y;
+      double cell_background_y = by0 + diffx_y * x + diffy_y * y;
+
+      //cout << "      exact: " << cell_background_x << "," << cell_background_y << endl; 
+      //cout << "estimated x: " << cell_x << "," << cell_y << endl << endl;
+      //assert(fabs(cell_x - cell_background_x) < 0.0001);
+      //assert(fabs(cell_y - cell_background_y) < 0.0001);
 
       if ( background_map->safeBilinAt(cell_background_x, cell_background_y) ) {
-	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtMeters(inBackground.px, inBackground.py);
+	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtCell(cell_background_x, cell_background_y);
 	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
       }
 
@@ -5186,6 +5261,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
     if (success != 1) {
       ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
+      continue;
     }
 
     eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
