@@ -1415,7 +1415,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-400 "tempReconstructStreamTakeSceneSamples" store
+100 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -2714,7 +2714,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* 
   */
 
-  /*
   
   1.375 "magCalBase" store
   50 "magCalSteps" store
@@ -2753,6 +2752,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempCalibrateOnBundleOneDimension
 
 
+  /*
   */
 
 
