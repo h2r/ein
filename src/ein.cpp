@@ -10227,6 +10227,13 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   Point center = Point(cache->reticlePixelX, cache->reticlePixelY);
 
   cache->un_rot_mat = getRotationMatrix2D( center, angle, scale );
+  cache->rotx[0] = cache->un_rot_mat.at<double>(0, 0);
+  cache->rotx[1] = cache->un_rot_mat.at<double>(0, 1);
+  cache->rotx[2] = cache->un_rot_mat.at<double>(0, 2);
+  cache->roty[0] = cache->un_rot_mat.at<double>(1, 0);
+  cache->roty[1] = cache->un_rot_mat.at<double>(1, 1);
+  cache->roty[2] = cache->un_rot_mat.at<double>(1, 2);
+
 
   cache->dx = ms->config.d_x/ms->config.m_x;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
@@ -10269,12 +10276,12 @@ void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, do
 
 void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
 
-  double rotatedPX = (cache->un_rot_mat.at<double>(0, 0) * pX +
-                      cache->un_rot_mat.at<double>(0, 1) * pY +
-                      cache->un_rot_mat.at<double>(0, 2) * 1);
-  double rotatedPY = (cache->un_rot_mat.at<double>(1, 0) * pX +
-                      cache->un_rot_mat.at<double>(1, 1) * pY +
-                      cache->un_rot_mat.at<double>(1, 2) * 1);
+  double rotatedPX = (cache->rotx[0] * pX +
+                      cache->rotx[1] * pY +
+                      cache->rotx[2] * 1);
+  double rotatedPY = (cache->roty[0] * pX +
+                      cache->roty[1] * pY +
+                      cache->roty[2] * 1);
   //assert(0);
 
   pX = cache->reticlePixelXOffset + rotatedPY;
