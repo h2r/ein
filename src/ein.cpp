@@ -10183,6 +10183,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     cache->reticlePixelX = x_thisZ;
+
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
   {
@@ -10203,6 +10204,9 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     cache->reticlePixelY = y_thisZ;
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
+
+  cache->reticlePixelYOffset = cache->reticlePixelY - ms->config.offY - cache->reticlePixelX;
+  cache->reticlePixelXOffset = cache->reticlePixelX - ms->config.offX - cache->reticlePixelY;
 
   // account for rotation of the end effector 
   Quaternionf eeqform(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
@@ -10247,8 +10251,10 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->by = (cache->b42y+cache->b31y)/2.0;
 
   
-
-  
+  cache->x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
+  cache->y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
+  cache->gXFactor = (cache->dx) / (cache->x_thisZ-cache->cx) ;
+  cache->gYFactor = (cache->dy) / (cache->y_thisZ-cache->cy) ;
 }
 
 
@@ -10271,8 +10277,8 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
   double oldPx = rotatedPX;
   double oldPy = rotatedPY;
 
-  pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
-  pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
+  pX = cache->reticlePixelXOffset + oldPy;
+  pY = cache->reticlePixelYOffset + oldPx;
 
 /*
   double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
@@ -10283,12 +10289,13 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
 */
   // taking out other singularity
   //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
-  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
-  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
+
+
+  *gX = cache->givenEEPose.px - cache->dx + (pX-cache->cx)*cache->gXFactor;
 
   //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
-  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
-  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+
+  *gY = cache->givenEEPose.py - cache->dy + (pY-cache->cy)*cache->gYFactor;
 
 }
 
