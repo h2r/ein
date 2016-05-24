@@ -322,9 +322,9 @@ void _GaussianMapCell::newObservation(const Vec3b & obs) {
   red.counts += obs[2];
   green.counts += obs[1];
   blue.counts += obs[0];
-  red.squaredcounts += pow(obs[2], 2);
-  green.squaredcounts += pow(obs[1], 2);
-  blue.squaredcounts += pow(obs[0], 2);
+  red.squaredcounts += obs[2] * obs[2];
+  green.squaredcounts += obs[1] * obs[1];
+  blue.squaredcounts += obs[0] * obs[0];
   red.samples += 1;
   green.samples += 1;
   blue.samples += 1;
@@ -5134,6 +5134,135 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
+
+
+
+
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+  Mat bufferImage;
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  pixelToGlobalCache data;
+  double z = z_to_use;
+  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  Mat gripperMask = ms->config.gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    ROS_ERROR("Gripper mask is messed up.");
+  }
+
+  for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
+    streamImage * tsi = setIsbIdxNoLoad(ms, i);
+
+    if (tsi == NULL) {
+      ROS_ERROR("Stream image null.");
+    }
+    eePose tArmP, tBaseP;
+    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    if (success != 1) {
+      ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
+    }
+
+    eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+    if (fabs(transformed.qz) > 0.01) {
+      ROS_ERROR("  Not doing update because arm not vertical.");
+      return;
+    }
+    
+    computePixelToPlaneCache(ms->p, z, tArmP, ms->config.scene->anchor_pose, &data);  
+    int numThreads = 8;
+    // there is a faster way to stride it but i am risk averse atm
+    
+    Mat wristViewYCbCr = tsi->image.clone();
+    
+    cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+    int numPixels = 0;
+    int numNulls = 0;
+    
+    //#pragma omp parallel for
+    for (int i = 0; i < numThreads; i++) {
+      //double frac = double(boty - topy) / double(numThreads);
+      //double bfrac = i*frac;
+      //double tfrac = (i+1)*frac;
+      
+      double frac = double(boty - topy) / double(numThreads);
+      int ttopy = floor(topy + i*frac);
+      int tboty = floor(topy + (i+1)*frac);
+      
+      //for (int py = topy; py <= boty; py++) 
+      for (int py = ttopy; py < tboty; py++) 
+        {
+          uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+          cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
+          //double opy = py-topy;
+          // this is superior
+          //if ( (bfrac <= opy) && (opy < tfrac) ) 
+          //{
+          for (int px = topx; px <= botx; px++) {
+            if (gripperMaskPixel[px] == 0) {
+              continue;
+            }
+            
+            if ( (abhr > 0) && (abhc > 0) ) {
+              if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                   (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+                continue;
+              } 
+            } 
+            
+            double x, y;
+            pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+            
+            if (1) {
+              // single sample update
+              int i, j;
+              ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+              GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+              if (cell != NULL) {
+                //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+                //cell->newObservation(pixel, z);
+                cell->newObservation(wristViewPixel[px]);
+              numPixels++;
+              }
+            } else {
+	      numNulls++;
+            }
+          }
+          //}
+        }
+    }
+  }
+  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
+  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
+    
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
 virtual void execute(std::shared_ptr<MachineState> ms) {
