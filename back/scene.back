@@ -2708,6 +2708,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* 
   */
 
+  /*
   
   1.375 "magCalBase" store
   50 "magCalSteps" store
@@ -2745,7 +2746,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ( cameraSetIdxMagY ) "magCalSetter" store
   tempCalibrateOnBundleOneDimension
 
-  /*
 
   */
 
@@ -2756,7 +2756,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   */
   1 changeToHeight cameraGetIdxMagY dup 2 changeToHeight cameraSetIdxMagY 3 changeToHeight cameraSetIdxMagY
   1 changeToHeight cameraGetIdxMagX dup 2 changeToHeight cameraSetIdxMagX 3 changeToHeight cameraSetIdxMagX
-  cameraFitQuadratic 1 cameraSetCalibrationMode
+  cameraFitHyperbolic 2 cameraSetCalibrationMode
 
 ) "tempCalibrateMagnification" store
 
@@ -2794,12 +2794,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempCalibrateBundleHeight" store
 
 (
-  /*
+  setTable
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
-  setTable
-  */
   initializeAndFocusOnNewClass
 
   tempCalibrateHeightReticles
