@@ -1638,13 +1638,14 @@ void Scene::proposeObject() {
 CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
 CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
 
-void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
+void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i) {
   REQUIRE_VALID_CLASS(ms,class_idx);
   guardSceneModels(ms);
 
   vector<Mat> rotated_object_imgs;
   int numScales = 1;//11;
   int numOrientations = num_orientations;
+  //numOrientations = numOrientations * 2;
   double scaleStepSize = 1.02;
   int etaS = 0;
 
@@ -1677,7 +1678,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   
   //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
   double po_l2norm = prepared_object.dot(prepared_object);
-  cout << "  po_l2norm: " << po_l2norm << endl;
+  // cout << "  po_l2norm: " << po_l2norm << endl;
 
   Size toBecome(max_dim, max_dim);
 
@@ -1686,11 +1687,14 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   int max_y = -1;
   int max_orient = -1;
   double max_score = -DBL_MAX;
+  Mat max_image = prepared_object.clone();
 
 
   vector<SceneObjectScore> local_scores;
   local_scores.reserve(1e5);
   int pushed = 0;
+  //cout << "orientations: " << numOrientations << endl;
+
 
   for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 
@@ -1709,15 +1713,16 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
 
     warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+    //cout << "angle: " << angle << endl;
     //imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
-    //waitKey(0);
+    //imshow("prepared discrepancy", prepared_discrepancy);
 
 
     Mat output = prepared_discrepancy.clone(); 
     filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
 
 
-
+    double theta_r = thisOrient* 2.0 * M_PI / numOrientations;
 
     for (int x = 0; x < output.rows; x++) {
       for (int y = 0; y < output.cols; y++) {
@@ -1729,7 +1734,8 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	  to_push.y_c = y;
 	  cellToMeters(to_push.x_c, to_push.y_c, &(to_push.x_m), &(to_push.y_m));
 	  to_push.orient_i = thisOrient;
-	  to_push.theta_r = -(to_push.orient_i)* 2.0 * M_PI / numOrientations;
+	  to_push.theta_r = theta_r;
+
 	  to_push.discrepancy_valid = true;
 	  to_push.discrepancy_score = output.at<double>(x,y);
 
@@ -1754,10 +1760,32 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	  max_x = x;
 	  max_y = y;
 	  max_orient = thisOrient;
+          // max_image = rotated_object_imgs[thisOrient + etaS*numOrientations].clone();
 	}
       }
     }
+    // Mat bestMatch = prepared_discrepancy.clone();
+    // Point c = Point(max_y, max_x);
+    // cv::Scalar color = cv::Scalar(255, 255, 255);
+    // circle(bestMatch, c, 10, color);
+
+    // for (int x1 = 0; x1 < max_image.rows; x1++) {
+    //   for (int y1 = 0; y1 < max_image.cols; y1++) {
+    //     int bx1 = max_x - max_image.rows * 0.5 + x1;
+    //     int by1 = max_y - max_image.cols * 0.5 + y1;
+
+    //     bestMatch.at<double>(bx1,by1) = max(max_image.at<double>(x1, y1),
+    //                                         prepared_discrepancy.at<double>(bx1, by1));
+    //   }
+    // }
+    //imshow("best match for this angle", bestMatch);
+
+    //output = output / max_score;
+    //imshow("output", output);
+    //cout << "max: " << max_x << ", " << max_y <<  " at " << max_score << endl;
+    //waitKey(0);    
   }
+  cout << "max_theta: " << max_orient << endl;
 
 
   //cout << prepared_discrepancy << prepared_object ;
@@ -1810,6 +1838,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
       *l_max_x = local_scores[i].x_c;
       *l_max_y = local_scores[i].y_c;
       *l_max_orient = local_scores[i].orient_i;
+      *l_max_theta = local_scores[i].theta_r;
       *l_max_i = i;
     }
   }
@@ -1830,17 +1859,17 @@ void Scene::tryToAddObjectToScene(int class_idx) {
   int l_max_x = -1;
   int l_max_y = -1;
   int l_max_orient = -1;
+  double l_max_theta = -1;
   double l_max_score = -DBL_MAX;
   int l_max_i = -1;
 
-  findBestScoreForObject(class_idx, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
+  findBestScoreForObject(class_idx, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_theta, &l_max_score, &l_max_i);
 
-  double l_max_theta = -l_max_orient * 2.0 * M_PI / num_orientations;
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
   cout << "  loglikelihood says: " << endl;
   cout << "x: " << l_max_x << " y: " << l_max_y << " orient: " << l_max_orient << " x (meters): " << l_max_x_meters << " y (meters):" << l_max_y_meters << " " << 
-    l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth << endl;
+    "l_max_theta: " << l_max_theta << endl << "l_max_score: " << l_max_score << " l_max_i: " << l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth << endl;
 
   //if (max_x > -1)
   if (l_max_score > -DBL_MAX)
@@ -2098,12 +2127,13 @@ double Scene::computeProbabilityOfMapDouble() {
   return resultProb;
 }
 
-void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i) {
+void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i) {
   guardSceneModels(ms);
 
   *l_max_x = -1;
   *l_max_y = -1;
   *l_max_orient = -1;
+  *l_max_theta = -1;
   //*l_max_score = -DBL_MAX;
   *l_max_i = -1;
 
@@ -2114,16 +2144,19 @@ void Scene::findBestObjectAndScore(int * class_idx, int num_orientations, int * 
     int j_max_x = -1;
     int j_max_y = -1;
     int j_max_orient = -1;
+    double j_max_theta = -1;
     double j_max_score = -DBL_MAX;
     int j_max_i = -1;
 
-    findBestScoreForObject(j, num_orientations, &j_max_x, &j_max_y, &j_max_orient, &j_max_score, &j_max_i);
+
+    findBestScoreForObject(j, num_orientations, &j_max_x, &j_max_y, &j_max_orient, &j_max_theta, &j_max_score, &j_max_i);
 
     if (j_max_score > *l_max_score) {
       *l_max_score = j_max_score;
       *l_max_x = j_max_x;
       *l_max_y = j_max_y;
       *l_max_orient = j_max_orient;
+      *l_max_theta = j_max_theta;
       *l_max_i = j_max_i;
 
       *class_idx = j;
@@ -2147,12 +2180,12 @@ void Scene::tryToAddBestObjectToScene() {
   int l_max_x = -1;
   int l_max_y = -1;
   int l_max_orient = -1;
+  double l_max_theta = -1;
   double l_max_score = -DBL_MAX;
   int l_max_i = -1;
 
-  findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_score, &l_max_i);
+  findBestObjectAndScore(&l_max_class, num_orientations, &l_max_x, &l_max_y, &l_max_orient, &l_max_theta, &l_max_score, &l_max_i);
 
-  double l_max_theta = -l_max_orient * 2.0 * M_PI / num_orientations;
   double l_max_x_meters, l_max_y_meters;
   cellToMeters(l_max_x, l_max_y, &l_max_x_meters, &l_max_y_meters);
 
@@ -4551,12 +4584,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 	double this_score = -DBL_MAX;
 	int this_i = -1;
 	int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+        double this_theta = -1;
 	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	this_scene->predicted_objects.resize(0);
 	this_scene->composePredictedMap();
 	this_scene->measureDiscrepancy();
 
-	this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+	this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_theta, &this_score, &this_i);
 	int thisSceneLabelIdx = -1;
 	for (int i = 0; i < nc; i++) {
 	  if ( 0 == ms->config.classLabels[i].compare(this_scene->annotated_class_name) ) {
@@ -4673,12 +4707,13 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 		double this_score = -DBL_MAX;
 		int this_i = -1;
 		int this_x_cell = 0,this_y_cell = 1,this_orient= 2;
+                double this_theta = -1;
 		shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName_2);
 		this_scene->predicted_objects.resize(0);
 		this_scene->composePredictedMap();
 		this_scene->measureDiscrepancy();
 
-		this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
+		this_scene->findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_theta, &this_score, &this_i);
 		int thisSceneLabelIdx = -1;
 		for (int i = 0; i < nc; i++) {
 		  // remove object folder token from front
