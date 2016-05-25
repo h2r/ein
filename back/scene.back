@@ -1415,7 +1415,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-100 "tempReconstructStreamTakeSceneSamples" store
+400 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1584,16 +1584,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
+
+/*
   ( 
-    /*
     lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
     lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
-      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
-    */
     phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
+      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
 
     ( 
@@ -1602,6 +1602,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     endStackCollapseNoop 
   ) tempRSTSSMax replicateWord
+
+*/
+
+    tempSpiralStreamTakeSceneStride 
+    tempReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
@@ -2801,9 +2807,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   setTable
+/*
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
+*/
   initializeAndFocusOnNewClass
 
   tempCalibrateHeightReticles
@@ -2965,7 +2973,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   rayBufferPopulateFromRangeBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
 ) "tempRayUsefulPhrases" store
 
-
+(
+  deactivateSensorStreaming bringUpAllNonessentialSystems 
+  assumeBeeHome 1 changeToHeight 
+  quarterImpulse 0.01 setGridSize
+) "tempReset" store
 
 
 
