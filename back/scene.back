@@ -766,11 +766,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 /* internal */
 (
-  sceneClearPredictedObjects tempUpdateMaps scenePredictFocusedObject  tempUpdateMaps
+  scenePredictFocusedObject  tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToFocusedSceneObject" store
 (
-  sceneClearPredictedObjects tempUpdateMaps scenePredictBestObject tempUpdateMaps
+  scenePredictBestObject tempUpdateMaps
   0 tempMoveToSceneObject
 ) "tempServoToBestSceneObject" store
 /* end internal */
@@ -1250,6 +1250,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempMapBestClass" store
 
 (
+  sceneClearPredictedObjects tempUpdateMaps
   tempServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
 
   0 sceneMapSceneObject

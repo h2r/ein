@@ -28,7 +28,7 @@ typedef struct _GaussianMapChannel {
   double sigmasquared;
   double samples;
   void zero();
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 
   void multS(double scalar); 
   void addC(_GaussianMapChannel * channel); 
@@ -58,7 +58,7 @@ typedef struct _GaussianMapCell {
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double noisyOrDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood);
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 } GaussianMapCell;
 
 class GaussianMap {
@@ -96,7 +96,7 @@ class GaussianMap {
   void loadFromFile(string filename);
   
   void writeCells(FileStorage & fsvO);
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 
   void rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out);
   void rgbMuToMat(Mat& out);
