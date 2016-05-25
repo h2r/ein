@@ -5833,8 +5833,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   double zone_kernel_width = 101;
   GET_NUMERIC_ARG(ms, zone_kernel_width);
 
-  double plane_scale = 1.0;
-  GET_NUMERIC_ARG(ms, plane_scale);
+  double vignette_scale = 1.0;
+  GET_NUMERIC_ARG(ms, vignette_scale);
 
 
 
@@ -5865,20 +5865,25 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   for (int ay = 0; ay < zone_kernel_width; ay++) {
     for (int ax = 0; ax < zone_kernel_width; ax++) {
 
-      double delta_x = (zone_kernel_half_width-ax) * cell_width * plane_scale;
-      double delta_y = (zone_kernel_half_width-ay) * cell_width * plane_scale;
+      //double delta_x = (zone_kernel_half_width-ax) * cell_width * vignette_scale;
+      //double delta_y = (zone_kernel_half_width-ay) * cell_width * vignette_scale;
+      double delta_x = (zone_kernel_half_width-ax) * cell_width;
+      double delta_y = (zone_kernel_half_width-ay) * cell_width;
       double delta_z = z_to_use - array_z;
       double gap_path_length_squared = delta_x*delta_x + delta_y*delta_y + delta_z*delta_z;
       double gap_path_length = sqrt( gap_path_length_squared );
+      double gap_path_length_plane = vignette_scale * sqrt( delta_x*delta_x + delta_y*delta_y );
 
       //double val_cos = ( 1.0 / gap_path_length ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
-      double val_cos = (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      //double val_cos = (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
+      double val_cos = ( 1.0 / (gap_path_length_plane + 1.0) ) * (1.0 + cos( phi + gap_path_length / lambda ))/2.0;
       //cout << val_cos << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelCos.at<double>(ay,ax) = val_cos;
       cos_bias = cos_bias + val_cos;
 
       //double val_sin = ( 1.0 / gap_path_length ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
-      double val_sin = ( 1.0 ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      //double val_sin = ( 1.0 ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
+      double val_sin = ( 1.0 / (gap_path_length_plane + 1.0) ) * (1.0 + sin( phi + gap_path_length / lambda ))/2.0;
       //cout << val_sin << " " << ay << " " << ax << " " << gap_path_length << endl;
       zoneKernelSin.at<double>(ay,ax) = val_sin;
       sin_bias = sin_bias + val_sin;
@@ -5893,8 +5898,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       zoneKernelCos.at<double>(ay,ax) = zoneKernelCos.at<double>(ay,ax) - cos_bias;
       zoneKernelSin.at<double>(ay,ax) = zoneKernelSin.at<double>(ay,ax) - sin_bias;
 
-      //cos_norm = cos_norm + zoneKernelCos.at<double>(ay,ax)*zoneKernelCos.at<double>(ay,ax);
-      //sin_norm = sin_norm + zoneKernelSin.at<double>(ay,ax)*zoneKernelSin.at<double>(ay,ax);
+      cos_norm = cos_norm + zoneKernelCos.at<double>(ay,ax)*zoneKernelCos.at<double>(ay,ax);
+      sin_norm = sin_norm + zoneKernelSin.at<double>(ay,ax)*zoneKernelSin.at<double>(ay,ax);
     }
   }
 
@@ -5902,10 +5907,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   sin_norm = std::max(EPSILON, sqrt(sin_norm));
   for (int ay = 0; ay < zone_kernel_width; ay++) {
     for (int ax = 0; ax < zone_kernel_width; ax++) {
-      //zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax) / cos_norm;
-      //zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax) / sin_norm;
-      zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax);
-      zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax);
+      zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax) / cos_norm;
+      zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax) / sin_norm;
+      //zoneKernelCos.at<double>(ay,ax) = gain * zoneKernelCos.at<double>(ay,ax);
+      //zoneKernelSin.at<double>(ay,ax) = gain * zoneKernelSin.at<double>(ay,ax);
     }
   }
 
@@ -5924,6 +5929,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     bias_estimate = one_bias_estimate * zone_kernel_width * zone_kernel_width;
   }
 
+  cout << "EPSILON clipping: " << EPSILON << endl;
   cout << "cos_bias, cos_norm: " << cos_bias << " " << cos_norm << " " << endl;
   cout << "sin_bias, sin_norm: " << sin_bias << " " << sin_norm << " " << endl;
   cout << "bias_estimate: " << bias_estimate << endl;
@@ -5940,22 +5946,22 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     for (int x = 0; x < t_width; x++) {
       // two factors of gain is too much
       double valCos = outputCos.at<Vec3d>(x,y)[2];
-      double valSin = outputSin.at<Vec3d>(x,y)[2];
-      //double valSin = 0.0;
+      //double valSin = outputSin.at<Vec3d>(x,y)[2];
+      double valSin = 0.0;
       double val = (valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->red.counts = val*fake_samples;
       toFill->refAtCell(x,y)->red.squaredcounts = val*val*fake_samples;
       toFill->refAtCell(x,y)->red.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[1];
-      valSin = outputSin.at<Vec3d>(x,y)[1];
+      //valSin = outputSin.at<Vec3d>(x,y)[1];
       val = (valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->green.counts = val*fake_samples;
       toFill->refAtCell(x,y)->green.squaredcounts = val*val*fake_samples;
       toFill->refAtCell(x,y)->green.samples = fake_samples;
 
       valCos = outputCos.at<Vec3d>(x,y)[0];
-      valSin = outputSin.at<Vec3d>(x,y)[0];
+      //valSin = outputSin.at<Vec3d>(x,y)[0];
       val = (valCos * valCos + valSin * valSin);
       toFill->refAtCell(x,y)->blue.counts = val*fake_samples;
       toFill->refAtCell(x,y)->blue.squaredcounts = val*val*fake_samples;
