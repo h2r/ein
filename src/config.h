@@ -83,6 +83,7 @@ typedef enum {
 typedef enum {
   DISCREPANCY_POINT = 0,
   DISCREPANCY_DOT = 1,
+  DISCREPANCY_NOISY_OR = 2,
 } discrepancyModeState;
 
 typedef enum {
@@ -379,9 +380,21 @@ typedef struct pixelToGlobalCache {
 
   double reticlePixelX;
   double reticlePixelY;
+  double reticlePixelXOffset;
+  double reticlePixelYOffset;
+
+  double x_thisZ;
+  double y_thisZ;
+
+  double gXFactor;
+  double gYFactor;
+  double finalXOffset;
+  double finalYOffset;
 
   Mat un_rot_mat;
 
+  double rotx[3];
+  double roty[3];
 
   double dx;
   double cx;
@@ -1112,7 +1125,7 @@ class EinConfig {
   double m_y = 0.94;
   double m_x_h[4];
   double m_y_h[4];
-  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_QUADRATIC;
+  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_HYPERBOLIC;
   sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};

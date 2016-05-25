@@ -10177,10 +10177,13 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/zFraction;
+    // taking out other singularity
+    double x_thisZ = c + ( (cache->x1-c)*(cache->z1) )/zFraction;
+    //int x_thisZ = c + ( (cache->x1-c)*(cache->z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     cache->reticlePixelX = x_thisZ;
+
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
   {
@@ -10194,12 +10197,16 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int y_thisZ = c + ( (cache->y1-c)*(cache->z1-b) )/zFraction;
+    // taking out other singularity
+    double y_thisZ = c + ( (cache->y1-c)*(cache->z1) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     cache->reticlePixelY = y_thisZ;
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
+
+  cache->reticlePixelYOffset = cache->reticlePixelY - ms->config.offY - cache->reticlePixelX;
+  cache->reticlePixelXOffset = cache->reticlePixelX - ms->config.offX - cache->reticlePixelY;
 
   // account for rotation of the end effector 
   Quaternionf eeqform(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
@@ -10220,6 +10227,13 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   Point center = Point(cache->reticlePixelX, cache->reticlePixelY);
 
   cache->un_rot_mat = getRotationMatrix2D( center, angle, scale );
+  cache->rotx[0] = cache->un_rot_mat.at<double>(0, 0);
+  cache->rotx[1] = cache->un_rot_mat.at<double>(0, 1);
+  cache->rotx[2] = cache->un_rot_mat.at<double>(0, 2);
+  cache->roty[0] = cache->un_rot_mat.at<double>(1, 0);
+  cache->roty[1] = cache->un_rot_mat.at<double>(1, 1);
+  cache->roty[2] = cache->un_rot_mat.at<double>(1, 2);
+
 
   cache->dx = ms->config.d_x/ms->config.m_x;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
@@ -10244,8 +10258,13 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->by = (cache->b42y+cache->b31y)/2.0;
 
   
+  cache->x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
+  cache->y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
+  cache->gXFactor = (cache->dx) / (cache->x_thisZ-cache->cx) ;
+  cache->gYFactor = (cache->dy) / (cache->y_thisZ-cache->cy) ;
 
-  
+  cache->finalXOffset = cache->givenEEPose.px - cache->dx - cache->cx*cache->gXFactor;
+  cache->finalYOffset = cache->givenEEPose.py - cache->dy - cache->cy*cache->gYFactor;
 }
 
 
@@ -10257,32 +10276,35 @@ void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, do
 
 void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
 
-  int rotatedPX = (cache->un_rot_mat.at<double>(0, 0) * pX +
-		   cache->un_rot_mat.at<double>(0, 1) * pY +
-		   cache->un_rot_mat.at<double>(0, 2) * 1);
-  int rotatedPY = (cache->un_rot_mat.at<double>(1, 0) * pX +
-		   cache->un_rot_mat.at<double>(1, 1) * pY +
-		   cache->un_rot_mat.at<double>(1, 2) * 1);
+  double rotatedPX = (cache->rotx[0] * pX +
+                      cache->rotx[1] * pY +
+                      cache->rotx[2] * 1);
+  double rotatedPY = (cache->roty[0] * pX +
+                      cache->roty[1] * pY +
+                      cache->roty[2] * 1);
   //assert(0);
 
-  double oldPx = rotatedPX;
-  double oldPy = rotatedPY;
-
-  pX = cache->reticlePixelX + (oldPy - cache->reticlePixelY) - ms->config.offX;
-  pY = cache->reticlePixelY + (oldPx - cache->reticlePixelX) - ms->config.offY;
+  pX = cache->reticlePixelXOffset + rotatedPY;
+  pY = cache->reticlePixelYOffset + rotatedPX;
 
 /*
   double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
   *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
   double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
-1  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
-*/
-  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
-  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
-
-  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
   *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+*/
+  // taking out other singularity
+
+  //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
+  //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
+  //*gX = cache->givenEEPose.px - cache->dx + (pX-cache->cx)*cache->gXFactor;
+  *gX = cache->finalXOffset + pX * cache->gXFactor;
+
+  //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
+  //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
+  //*gY = cache->givenEEPose.py - cache->dy + (pY-cache->cy)*cache->gYFactor;
+  *gY = cache->finalYOffset + pY * cache->gYFactor;
 
 }
 
@@ -10322,7 +10344,9 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
+    //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
     //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
@@ -10357,7 +10381,9 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
+    //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
     //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
@@ -10449,7 +10475,9 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
+    //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
     //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
@@ -10477,7 +10505,9 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
+    //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
     //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
@@ -10565,7 +10595,9 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
+    //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
     //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
@@ -10593,7 +10625,9 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     double b = (b42+b31)/2.0;
 
     double zFraction = (gZ); // (gZ-b)
-    int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
+    // taking out other singularity
+    double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
+    //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
     //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
