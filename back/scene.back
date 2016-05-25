@@ -1220,6 +1220,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
   tempScanBase setC3dPoseBase
+
+  "Ok, check the predicted map and make sure the object was added correctly." print
+  "If it was, you can add 3d grasps." print
 ) "tempSceneLock3dGrasp" store
 
 
