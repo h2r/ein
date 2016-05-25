@@ -28,7 +28,7 @@ typedef struct _GaussianMapChannel {
   double sigmasquared;
   double samples;
   void zero();
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 
   void multS(double scalar); 
   void addC(_GaussianMapChannel * channel); 
@@ -58,7 +58,7 @@ typedef struct _GaussianMapCell {
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double noisyOrDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood);
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 } GaussianMapCell;
 
 class GaussianMap {
@@ -96,7 +96,7 @@ class GaussianMap {
   void loadFromFile(string filename);
   
   void writeCells(FileStorage & fsvO);
-  void recalculateMusAndSigmas(shared_ptr<MachineState> ms);
+  void recalculateMusAndSigmas(MachineState * ms);
 
   void rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out);
   void rgbMuToMat(Mat& out);
@@ -202,7 +202,8 @@ class Scene {
   bool isDiscrepantCell(double threshold, int x, int y);
   bool isDiscrepantCellBilin(double threshold, double x, double y);
   bool isDiscrepantMetersBilin(double threshold, double x, double y);
-  void composePredictedMap(double threshold=0.5);
+  void composePredictedMap(double threshold);
+  void composePredictedMap();
   void addPredictedObjectsToObservedMap(double threshold=0.5, double learning_weight = 1.0);
   void initializePredictedMapWithBackground();
   void measureDiscrepancy();
@@ -223,9 +224,9 @@ class Scene {
   // object only makes map better, but must "win" on at least a fraction of its pixels (prior on number of parts)
   void proposeObject();
 
-  void findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i);
+  void findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
   void tryToAddObjectToScene(int class_idx);
-  void findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_score, int * l_max_i);
+  void findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
   void tryToAddBestObjectToScene();
   shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
   shared_ptr<SceneObject> getPredictedObject(double x, double y, double theta, int class_idx);
