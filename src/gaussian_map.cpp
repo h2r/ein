@@ -5258,7 +5258,18 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       ROS_ERROR("Stream image null.");
     }
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+
+    int success = 0;
+    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+      success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+      success = 1;
+      tArmP = ms->config.currentEEPose;
+      z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+    } else {
+      assert(0);
+    }
+
     if (success != 1) {
       ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
       continue;
