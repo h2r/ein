@@ -5304,6 +5304,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
       double frac = double(boty - topy) / double(numThreads);
       int ttopy = floor(topy + i*frac);
       int tboty = floor(topy + (i+1)*frac);
+
+      //cout << ttopy << " " << tboty << " " << frac << endl;
       
       //for (int py = topy; py <= boty; py++) 
       for (int py = ttopy; py < tboty; py++) 
