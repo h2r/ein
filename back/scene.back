@@ -2980,6 +2980,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   quarterImpulse 0.01 setGridSize
 ) "tempReset" store
 
+(
+  ( 
+    ( 
+      tempMapFocusedAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+    ) time 
+  ) 
+  108 replicateWord
+) "tempDribble" store
 
 
 
