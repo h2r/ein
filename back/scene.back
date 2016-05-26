@@ -3038,6 +3038,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 
+(
+  3 changeToHeight
+    cameraGetCurrentHeightReticleY  
+    cameraGetCurrentHeightReticleX  
+  sceneSetVanishingPointFromPixel
+
+  /* 
+  moveCropToCenterVanishingPointSlideHeightReticles
+  */
+) "tempSpoofVanishingPoint" store
 
 
 
