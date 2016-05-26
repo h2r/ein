@@ -5256,7 +5256,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   }
 
   for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
-    streamImage * tsi = setIsbIdxNoLoad(ms, i);
+    streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
 
     if (tsi == NULL) {
       ROS_ERROR("Stream image null.");
