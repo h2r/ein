@@ -2472,6 +2472,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // move speed not set so that you can control for aliasing from repl
     ms->pushWord("yDown");
+    ms->pushWord("eighthTurn");
+    ms->evaluateProgram("( oZUp ) 5 replicateWord");
   }
 
   ms->pushWord("setGripperMaskAA"); 

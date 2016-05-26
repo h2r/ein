@@ -2683,6 +2683,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     waitUntilAtCurrentPosition
 
     tempUpdateMagCoreNoClean
+    endStackCollapseNoop
 
 
       tempChrThisHeight 1 +
@@ -2726,7 +2727,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   
   1.375 "magCalBase" store
-  50 "magCalSteps" store
+  64 "magCalSteps" store
   0.04 "magCalDelta" store
 
   0 changeToHeight
@@ -2811,10 +2812,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   setTable
-/*
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
+/*
 */
   initializeAndFocusOnNewClass
 
@@ -2985,16 +2986,55 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   ( 
-    ( 
-      tempMapFocusedAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
-    ) time 
-  ) 
-  108 replicateWord
+    tempMapFocusedAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+  ) time 
+) "tempDribbleCore" store
+
+(
+  setPlaceModeToHold
+
+    tempDribbleCore
+    108 
+  replicateWord
 ) "tempDribble" store
 
+(
+  setPlaceModeToHold
 
+  ( 1 ) (
+    tempDribbleCore
+    endStackCollapseNoop
+  ) while
+) "tempInfiniteDribble" store
 
-
+(
+  ( 1 ) (
+    neutralFace
+    -1 0.1 setHeadPanTargetSpeed 
+    4.0 waitForSeconds 
+    1 0.1 setHeadPanTargetSpeed
+    4.0 waitForSeconds 
+    0 0.1 setHeadPanTargetSpeed
+    4.0 waitForSeconds 
+    happyFace
+    (
+      nod
+      1.0 waitForSeconds 
+    ) 4 replicateWord
+    (
+      happyFace
+      0.1 waitForSeconds 
+      sadFace
+      0.1 waitForSeconds 
+    ) 2 replicateWord
+    (
+      publishWristViewToFace
+	  1.0 20.0 divide
+	7.0 times
+      waitForSeconds
+    ) 80 replicateWord
+  ) while
+) "tempIdolDance" store
 
 
 
