@@ -7678,6 +7678,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneSetVanishingPointFromPixel x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
 
   // XXX optionally add a translation of the height reticles here to avoid going into "dead" configurations
+  /*
   double delta_x = pixel_scene_x - ms->config.vanishingPointReticle.px;
   double delta_y = pixel_scene_x - ms->config.vanishingPointReticle.py;
 
@@ -7690,6 +7691,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.heightReticles[1].py += delta_y;
   ms->config.heightReticles[2].py += delta_y;
   ms->config.heightReticles[3].py += delta_y;
+  */
 
   ms->config.vanishingPointReticle.px = pixel_scene_x;
   ms->config.vanishingPointReticle.py = pixel_scene_y;
