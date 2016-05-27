@@ -3030,7 +3030,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     (
       publishWristViewToFace
 	  1.0 20.0 divide
-	7.0 times
+	3.0 times
       waitForSeconds
     ) 80 replicateWord
   ) while
