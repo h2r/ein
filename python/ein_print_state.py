@@ -11,9 +11,14 @@ class EinPrint:
         self.state = None
         self.call_stack = []
         self.data_stack = []
-        
+        self.lastrun = rospy.get_rostime()
 
     def state_callback(self, msg):
+        if rospy.get_rostime() - self.lastrun < rospy.Duration(0.25):
+            return
+
+        self.lastrun = rospy.get_rostime()
+            
         state = str(msg.state_string)
 
         rows, cols = os.popen('stty size', 'r').read().split()
