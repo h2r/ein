@@ -1732,6 +1732,24 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 END_WORD
 REGISTER_WORD(Help)
 
+WORD(SetHelp)
+virtual string description() {
+  return "Set the help text for a word.  Usage:  \"<help text>\" \"<word name>\" setHelp.";
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  
+  shared_ptr<Word> word;
+  GET_WORD_ARG(ms, Word, word);
+  string description;
+  GET_STRING_ARG(ms, description);
+  word->setDescription(description);
+}
+
+END_WORD
+REGISTER_WORD(SetHelp)
+
+
 
 WORD(CurrentIKModeString)
 virtual void execute(std::shared_ptr<MachineState> ms)
