@@ -2889,9 +2889,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
       try {
         ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
       } catch (tf::TransformException ex){
-        cout << "Tf error: " << __FILE__ << ":" << __LINE__ << endl;
-        ROS_ERROR("%s", ex.what());
-        throw;
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << ex.what();
+        //ROS_ERROR("%s", ex.what());
+        //throw;
       }
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
@@ -2925,9 +2926,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
       try {
         ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
-        cout << "Tf error: " << __FILE__ << ":" << __LINE__ << endl;
-        ROS_ERROR("%s", ex.what());
-        throw;
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << ex.what();
+        //ROS_ERROR("%s", ex.what());
+        //throw;
       }
     }
 
@@ -2960,9 +2962,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
       try {
         ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
-        cout << "Tf error: " << __FILE__ << ":" << __LINE__ << endl;
-        ROS_ERROR("%s", ex.what());
-        throw;
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << ex.what();
+        //throw;
       }
     }
 
@@ -2992,9 +2994,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
       try {
         ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
-        cout << "Tf error: " << __FILE__ << ":" << __LINE__ << endl;
-        ROS_ERROR("%s", ex.what());
-        throw;
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << ex.what();
+        //ROS_ERROR("%s", ex.what());
+        //throw;
       }
     }
 
@@ -15053,7 +15056,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.tfListener = new tf::TransformListener();
   cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
-  //ms->config.tfListener->setUsingDedicatedThread(true);
+  ms->config.tfListener->setUsingDedicatedThread(true);
+  cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
 
   ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
