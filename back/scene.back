@@ -1175,6 +1175,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     "tempSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
   ) ifte
+
   0.0 sceneSetScoreThresh
 ) "tempSwapToBlocks" store
 
@@ -1197,7 +1198,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) (
     "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
   ) ifte
-  0.1 sceneSetScoreThresh
 ) "tempRestoreFromBlocks" store
 
 (
@@ -2993,6 +2993,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempDribbleCore" store
 
 (
+  ( 
+    tempMapBestAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+  ) time 
+) "tempDribbleBestCore" store
+
+(
   setPlaceModeToHold
 
     tempDribbleCore
@@ -3008,6 +3014,15 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     endStackCollapseNoop
   ) while
 ) "tempInfiniteDribble" store
+
+(
+  setPlaceModeToHold
+
+  ( 1 ) (
+    tempDribbleBestCore
+    endStackCollapseNoop
+  ) while
+) "tempInfiniteDribbleBest" store
 
 (
   ( 1 ) (
