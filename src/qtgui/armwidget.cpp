@@ -2,7 +2,7 @@
 
 
 
-ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(parent),
+ArmWidget::ArmWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
 								       ms(_ms),
 								       ui(new Ui::ArmWidget),
 								       wristView(this, EIN_WINDOW_KEEPRATIO)
@@ -30,7 +30,7 @@ ArmWidget::ArmWidget(QWidget * parent, shared_ptr<MachineState> _ms) : QWidget(p
     ui->dataStackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
 
-    wristView.setMouseCallBack(pilotCallbackFunc, ms.get());
+    wristView.setMouseCallBack(pilotCallbackFunc, ms);
 
     QStringList wordList;
     for (int i = 0; i < words.size(); i++) {

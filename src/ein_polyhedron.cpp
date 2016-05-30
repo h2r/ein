@@ -19,7 +19,7 @@ typedef enum {
 
 
 WORD(SetClosestBlueBoxMemoryToFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   eePose targetPose;
   GET_ARG(ms, EePoseWord, targetPose);
@@ -29,7 +29,7 @@ END_WORD
 REGISTER_WORD(SetClosestBlueBoxMemoryToFocusedClass)
 
 WORD(PlayLoopL)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("playLoopL");
   ms->pushWord("playLoop");
@@ -40,7 +40,7 @@ END_WORD
 REGISTER_WORD(PlayLoopL)
 
 WORD(PlayLoop)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("quarterImpulse");
 
@@ -72,7 +72,7 @@ END_WORD
 REGISTER_WORD(PlayLoop)
 
 WORD(PlayLoopP)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("quarterImpulse");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -106,7 +106,7 @@ END_WORD
 REGISTER_WORD(PlayLoopP)
 
 WORD(ScanLoop)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
 // if clear, start over

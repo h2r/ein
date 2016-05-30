@@ -3,7 +3,7 @@
 namespace ein_words {
 
 WORD(StreamLabel)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   string thisLabel;
   GET_ARG(ms, StringWord, thisLabel);
@@ -28,7 +28,7 @@ END_WORD
 REGISTER_WORD(StreamLabel)
 
 WORD(RestoreIkShare)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.ikShare = 1.0;
 }
@@ -36,7 +36,7 @@ END_WORD
 REGISTER_WORD(RestoreIkShare)
 
 WORD(ShutdownToSensorsAndMovement)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.shouldIRender = 0;
   ms->config.shouldIDoIK = 1;
@@ -50,7 +50,7 @@ END_WORD
 REGISTER_WORD(ShutdownToSensorsAndMovement)
 
 WORD(ShutdownAllNonessentialSystems)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.shouldIRender = 0;
   ms->config.shouldIDoIK = 0;
@@ -63,7 +63,7 @@ END_WORD
 REGISTER_WORD(ShutdownAllNonessentialSystems)
 
 WORD(BringUpAllNonessentialSystems)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.shouldIRender = 1;
   ms->config.shouldIDoIK = 1;
@@ -77,7 +77,7 @@ END_WORD
 REGISTER_WORD(BringUpAllNonessentialSystems)
 
 WORD(ActivateSensorStreaming)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   activateSensorStreaming(ms);
 }
@@ -85,7 +85,7 @@ END_WORD
 REGISTER_WORD(ActivateSensorStreaming)
 
 WORD(DeactivateSensorStreaming)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   deactivateSensorStreaming(ms);
 }
@@ -93,7 +93,7 @@ END_WORD
 REGISTER_WORD(DeactivateSensorStreaming)
 
 WORD(SetSisFlags)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "Setting should I stream flags...";
   int tSisLabel = 0;
@@ -121,7 +121,7 @@ END_WORD
 REGISTER_WORD(SetSisFlags)
 
 WORD(DisableDiskStreaming)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.diskStreamingEnabled= 0;
 }
@@ -129,7 +129,7 @@ END_WORD
 REGISTER_WORD(DisableDiskStreaming)
 
 WORD(EnableDiskStreaming)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.diskStreamingEnabled = 1;
 }
@@ -137,7 +137,7 @@ END_WORD
 REGISTER_WORD(EnableDiskStreaming)
 
 WORD(ClearStreamBuffers)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.streamImageBuffer.resize(0);
   ms->config.streamPoseBuffer.resize(0);
@@ -147,7 +147,7 @@ END_WORD
 REGISTER_WORD(ClearStreamBuffers)
 
 WORD(PopulateStreamBuffers)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.streamImageBuffer.resize(0);
   ms->config.streamPoseBuffer.resize(0);
@@ -171,7 +171,7 @@ END_WORD
 REGISTER_WORD(PopulateStreamBuffers)
 
 WORD(IntegrateRangeStreamBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int thisFc = ms->config.focusedClass;
   if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
@@ -232,7 +232,7 @@ END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)
 
 WORD(StreamPushImageStreamIndex)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord( make_shared<DoubleWord>(ms->config.sibCurIdx) );
 }
@@ -240,7 +240,7 @@ END_WORD
 REGISTER_WORD(StreamPushImageStreamIndex)
 
 WORD(StreamPushImageStreamSize)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord( make_shared<DoubleWord>(ms->config.streamImageBuffer.size()) );
 }
@@ -248,7 +248,7 @@ END_WORD
 REGISTER_WORD(StreamPushImageStreamSize)
 
 WORD(RewindImageStreamBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "rewindImageStreamBuffer" << endl;
   setIsbIdx(ms, 0);
@@ -257,7 +257,7 @@ END_WORD
 REGISTER_WORD(RewindImageStreamBuffer)
 
 WORD(RewindImageStreamBufferNLNK)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "rewindImageStreamBufferNLNK" << endl;
   setIsbIdxNoLoadNoKick(ms, 0);
@@ -266,7 +266,7 @@ END_WORD
 REGISTER_WORD(RewindImageStreamBufferNLNK)
 
 WORD(IntegrateImageStreamBufferCrops)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int thisFc = ms->config.focusedClass;
   if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
@@ -351,7 +351,7 @@ END_WORD
 REGISTER_WORD(IntegrateImageStreamBufferCrops)
 
 WORD(SetExpectedCropsToStream)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
@@ -363,7 +363,7 @@ END_WORD
 REGISTER_WORD(SetExpectedCropsToStream)
 
 WORD(IncrementImageStreamBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
   cout << "incrementImageStreamBuffer: Incrementing to " << nextIdx << " out of " << ms->config.streamImageBuffer.size() << endl;
@@ -380,7 +380,7 @@ END_WORD
 REGISTER_WORD(IncrementImageStreamBuffer)
 
 WORD(IncrementImageStreamBufferNoLoadNoKick)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
   //cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
@@ -397,7 +397,7 @@ END_WORD
 REGISTER_WORD(IncrementImageStreamBufferNoLoadNoKick)
 
 WORD(IncrementImageStreamBufferNoLoad)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int nextIdx = ms->config.sibCurIdx + 1;
   //cout << "incrementImageStreamBufferNoLoad: Incrementing to " << nextIdx << endl;
@@ -414,7 +414,7 @@ END_WORD
 REGISTER_WORD(IncrementImageStreamBufferNoLoad)
 
 WORD(ImageStreamBufferLoadCurrent)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int thisIdx = ms->config.sibCurIdx;
   //cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
@@ -431,7 +431,7 @@ END_WORD
 REGISTER_WORD(ImageStreamBufferLoadCurrent)
 
 WORD(StreamCropsAsFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
 
   streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
   if (tsi == NULL) {
@@ -487,7 +487,7 @@ END_WORD
 REGISTER_WORD(StreamCropsAsFocusedClass)
 
 WORD(StreamCenterCropAsFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
 
   streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
   if (tsi == NULL) {
@@ -545,7 +545,7 @@ END_WORD
 REGISTER_WORD(StreamCenterCropAsFocusedClass)
 
 WORD(SaveAccumulatedStreamToServoImage)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   cout << "saveAccumulatedStreamToServoImage ";
   if ((ms->config.focusedClass > -1) && (ms->config.accumulatedStreamImageBytes.rows >1) && (ms->config.accumulatedStreamImageBytes.cols > 1)) {
     string thisLabelName = ms->config.classLabels[ms->config.focusedClass];
@@ -592,7 +592,7 @@ END_WORD
 REGISTER_WORD(SaveAccumulatedStreamToServoImage)
 
 WORD(IntegrateImageStreamBufferServoImages)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
 
   cout << "Searching image stream for servo images..." << endl;
 
@@ -620,14 +620,14 @@ END_WORD
 REGISTER_WORD(IntegrateImageStreamBufferServoImages)
 
 WORD(ResetAccumulatedStreamImage)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   resetAccumulatedStreamImage(ms);
 }
 END_WORD
 REGISTER_WORD(ResetAccumulatedStreamImage)
 
 WORD(IterateIsbAndAccumulateHeightImages)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   streamImage * tsi = setIsbIdxNoLoad(ms, ms->config.sibCurIdx);
   if (tsi == NULL) {
     cout << "iterateIsbAndAccumulateHeightImages: setIsbIdxNoLoad returned null. Returning." << endl;
@@ -719,7 +719,7 @@ END_WORD
 REGISTER_WORD(IterateIsbAndAccumulateHeightImages)
 
 WORD(SetMapAutoPick)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
@@ -731,7 +731,7 @@ END_WORD
 REGISTER_WORD(SetMapAutoPick)
 
 WORD(MapAndPickL)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     ms->pushWord("mapAndPickL");
     ms->pushWord("mapAndPick");
@@ -746,7 +746,7 @@ END_WORD
 REGISTER_WORD(MapAndPickL)
 
 WORD(MapAndPick)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     ms->pushWord("pickAllBlueBoxes");
     ms->pushWord("mappingPatrol");
@@ -755,7 +755,7 @@ END_WORD
 REGISTER_WORD(MapAndPick)
 
 WORD(PickAllBlueBoxes)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int foundOne = 0;
   int foundClass = -1;
@@ -787,7 +787,7 @@ END_WORD
 REGISTER_WORD(PickAllBlueBoxes)
 
 WORD(SetRandomPositionAfterPick)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
@@ -799,7 +799,7 @@ END_WORD
 REGISTER_WORD(SetRandomPositionAfterPick)
 
 WORD(SetStreamPicks)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
@@ -811,7 +811,7 @@ END_WORD
 REGISTER_WORD(SetStreamPicks)
 
 WORD(MoveAndStreamAimedShot)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.streamPicks) {
 	cout << "Looking down the barrel." << endl;
@@ -884,7 +884,7 @@ END_WORD
 REGISTER_WORD(MoveAndStreamAimedShot)
 
 WORD(StreamGraspResult)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "streamGraspResult: " << endl;
   if (ms->config.streamPicks) {

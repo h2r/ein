@@ -84,109 +84,108 @@ using namespace cv;
 
 using namespace ein;
 
-extern MachineState machineState;
-extern shared_ptr<MachineState> pMachineState;
 
 
 
-int ARE_GENERIC_PICK_LEARNING(shared_ptr<MachineState> ms);
-int ARE_GENERIC_HEIGHT_LEARNING(shared_ptr<MachineState> ms);
+
+int ARE_GENERIC_PICK_LEARNING(MachineState * ms);
+int ARE_GENERIC_HEIGHT_LEARNING(MachineState * ms);
 
 
-int getColorReticleX(shared_ptr<MachineState> ms);
-int getColorReticleY(shared_ptr<MachineState> ms);
+int getColorReticleX(MachineState * ms);
+int getColorReticleY(MachineState * ms);
 
 void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j);
 void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y); 
-void voidMapRegion(shared_ptr<MachineState> ms, double xc, double yc);
-void clearMapForPatrol(shared_ptr<MachineState> ms);
-void initializeMap(shared_ptr<MachineState> ms);
-void randomizeNanos(shared_ptr<MachineState> ms, ros::Time * time);
+void voidMapRegion(MachineState * ms, double xc, double yc);
+void clearMapForPatrol(MachineState * ms);
+void initializeMap(MachineState * ms);
+void randomizeNanos(MachineState * ms, ros::Time * time);
 int blueBoxForPixel(int px, int py);
-int skirtedBlueBoxForPixel(shared_ptr<MachineState> ms, int px, int py, int skirtPixels);
+int skirtedBlueBoxForPixel(MachineState * ms, int px, int py, int skirtPixels);
 bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j);
 bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y);
-void markMapAsCompleted(shared_ptr<MachineState> ms);
+void markMapAsCompleted(MachineState * ms);
 
 
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx);
-vector<BoxMemory> memoriesForClass(shared_ptr<MachineState> ms, int classIdx, int * memoryIdxOfFirst);
-int getBoxMemoryOfLabel(std::shared_ptr<MachineState> ms, string label, int * idxOfLabel, BoxMemory * out);
-int placementPoseLabel1AboveLabel2By3dFirst(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out);
-int placementPoseLabel1AboveLabel2By(std::shared_ptr<MachineState> ms, string label1, string label2, double zAbove, eePose * out);
-int placementPoseHeldAboveLabel2By(std::shared_ptr<MachineState> ms, string label2, double zAbove, eePose * out);
-int placementPoseLabel1BetweenLabel2AndLabel3(std::shared_ptr<MachineState> ms, string label1, 
+vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx);
+vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx, int * memoryIdxOfFirst);
+int getBoxMemoryOfLabel(MachineState * ms, string label, int * idxOfLabel, BoxMemory * out);
+int placementPoseLabel1AboveLabel2By3dFirst(MachineState * ms, string label1, string label2, double zAbove, eePose * out);
+int placementPoseLabel1AboveLabel2By(MachineState * ms, string label1, string label2, double zAbove, eePose * out);
+int placementPoseHeldAboveLabel2By(MachineState * ms, string label2, double zAbove, eePose * out);
+int placementPoseLabel1BetweenLabel2AndLabel3(MachineState * ms, string label1, 
   string label2, string label3, eePose * out);
-void recordBlueBoxInHistogram(shared_ptr<MachineState> ms, int idx);
-void computeClassificationDistributionFromHistogram(shared_ptr<MachineState> ms);
+void recordBlueBoxInHistogram(MachineState * ms, int idx);
+void computeClassificationDistributionFromHistogram(MachineState * ms);
 
 // XXX TODO searched and mapped are redundant. just need one to talk about the fence.
 bool cellIsMapped(int i, int j);
-bool positionIsMapped(shared_ptr<MachineState> ms, double x, double y);
+bool positionIsMapped(MachineState * ms, double x, double y);
 bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
 bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
 bool boxMemoryContains(BoxMemory b, double x, double y);
-bool boxMemoryIntersectsMapCell(shared_ptr<MachineState> ms, BoxMemory b, int map_i, int map_j);
+bool boxMemoryIntersectsMapCell(MachineState * ms, BoxMemory b, int map_i, int map_j);
 const ros::Duration mapMemoryTimeout(10);
 
 // XXX TODO these just check the corners, they should check all the interior points instead
-bool isBoxMemoryIkPossible(shared_ptr<MachineState> ms, BoxMemory b);
-bool isBlueBoxIkPossible(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot);
+bool isBoxMemoryIkPossible(MachineState * ms, BoxMemory b);
+bool isBlueBoxIkPossible(MachineState * ms, cv::Point tbTop, cv::Point tbBot);
 
-bool isCellInPursuitZone(shared_ptr<MachineState> ms, int i, int j);
-bool isCellInPatrolZone(shared_ptr<MachineState> ms, int i, int j);
+bool isCellInPursuitZone(MachineState * ms, int i, int j);
+bool isCellInPatrolZone(MachineState * ms, int i, int j);
 
-bool isCellInteresting(shared_ptr<MachineState> ms, int i, int j);
-void markCellAsInteresting(shared_ptr<MachineState> ms, int i, int j);
-void markCellAsNotInteresting(shared_ptr<MachineState> ms, int i, int j);
+bool isCellInteresting(MachineState * ms, int i, int j);
+void markCellAsInteresting(MachineState * ms, int i, int j);
+void markCellAsNotInteresting(MachineState * ms, int i, int j);
 
-bool isCellIkColliding(shared_ptr<MachineState> ms, int i, int j);
-bool isCellIkPossible(shared_ptr<MachineState> ms, int i, int j);
-bool isCellIkImpossible(shared_ptr<MachineState> ms, int i, int j);
+bool isCellIkColliding(MachineState * ms, int i, int j);
+bool isCellIkPossible(MachineState * ms, int i, int j);
+bool isCellIkImpossible(MachineState * ms, int i, int j);
 
 
 //
 // start pilot prototypes 
 ////////////////////////////////////////////////
 
-int getMostRecentRingImageAndPose(shared_ptr<MachineState> ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
-int getRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
-int getRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double &value, int drawSlack = 0);
-int getRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
+int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
+int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
+int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack = 0);
+int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
 
 
 extern "C" {
 double cephes_incbet(double a, double b, double x) ;
 }
-void setRingImageAtTime(shared_ptr<MachineState> ms, ros::Time t, Mat& imToSet);
-void setRingRangeAtTime(shared_ptr<MachineState> ms, ros::Time t, double rgToSet);
-void setRingPoseAtTime(shared_ptr<MachineState> ms, ros::Time t, geometry_msgs::Pose epToSet);
-void imRingBufferAdvance(shared_ptr<MachineState> ms);
-void rgRingBufferAdvance(shared_ptr<MachineState> ms);
-void epRingBufferAdvance(shared_ptr<MachineState> ms);
-void allRingBuffersAdvance(shared_ptr<MachineState> ms, ros::Time t);
+void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet);
+void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet);
+void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet);
+void imRingBufferAdvance(MachineState * ms);
+void rgRingBufferAdvance(MachineState * ms);
+void epRingBufferAdvance(MachineState * ms);
+void allRingBuffersAdvance(MachineState * ms, ros::Time t);
 
-void recordReadyRangeReadings(shared_ptr<MachineState> ms);
-void doEndpointCallback(shared_ptr<MachineState> ms, const baxter_core_msgs::EndpointState& eps);
-int classIdxForName(shared_ptr<MachineState> ms, string name);
+void recordReadyRangeReadings(MachineState * ms);
+void doEndpointCallback(MachineState * ms, const baxter_core_msgs::EndpointState& eps);
+int classIdxForName(MachineState * ms, string name);
 
-void initClassFolders(std::shared_ptr<MachineState> ms, string folderName);
-void writeClassToFolder(std::shared_ptr<MachineState> ms, int idx, string folderName);
-void writeAerialGradientsToServoCrop(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
-void writeThumbnail(std::shared_ptr<MachineState> ms, int idx, string servoCrop_file_path);
-void writeIr2D(std::shared_ptr<MachineState> ms, int idx, string this_range_path);
-void write3dGrasps(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
-void writeGraspMemory(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
-void writeSceneModel(std::shared_ptr<MachineState> ms, int idx, string this_grasp_path);
+void initClassFolders(MachineState * ms, string folderName);
+void writeClassToFolder(MachineState * ms, int idx, string folderName);
+void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path);
+void writeThumbnail(MachineState * ms, int idx, string servoCrop_file_path);
+void writeIr2D(MachineState * ms, int idx, string this_range_path);
+void write3dGrasps(MachineState * ms, int idx, string this_grasp_path);
+void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
+void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
-void saveAccumulatedStreamToPath(shared_ptr<MachineState> ms, string path);
-streamImage * setIsbIdx(std::shared_ptr<MachineState> ms, int idx);
-streamImage * setIsbIdxNoLoad(std::shared_ptr<MachineState> ms, int idx);
-streamImage * setIsbIdxNoLoadNoKick(std::shared_ptr<MachineState> ms, int idx);
-void resetAccumulatedStreamImage(std::shared_ptr<MachineState> ms);
-int getStreamPoseAtTime(std::shared_ptr<MachineState> ms, double tin, eePose * outArm, eePose * outBase);
-void castRangeRay(std::shared_ptr<MachineState> ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
-void update2dRangeMaps(std::shared_ptr<MachineState> ms, Vector3d castPoint);
+void saveAccumulatedStreamToPath(MachineState * ms, string path);
+streamImage * setIsbIdx(MachineState * ms, int idx);
+streamImage * setIsbIdxNoLoad(MachineState * ms, int idx);
+streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx);
+void resetAccumulatedStreamImage(MachineState * ms);
+int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
+void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
+void update2dRangeMaps(MachineState * ms, Vector3d castPoint);
 
 bool streamRangeComparator(streamRange i, streamRange j);
 bool streamPoseComparator(streamEePose i, streamEePose j);
@@ -195,159 +194,159 @@ bool streamJointsComparator(streamJoints i, streamJoints j);
 bool streamWordComparator(streamWord i, streamWord j);
 bool streamLabelComparator(streamLabel i, streamLabel j);
 
-void activateSensorStreaming(std::shared_ptr<MachineState> ms);
-void deactivateSensorStreaming(std::shared_ptr<MachineState> ms);
+void activateSensorStreaming(MachineState * ms);
+void deactivateSensorStreaming(MachineState * ms);
 
-int didSensorStreamTimeout(std::shared_ptr<MachineState> ms);
+int didSensorStreamTimeout(MachineState * ms);
 
-void populateStreamImageBuffer(std::shared_ptr<MachineState> ms);
-void populateStreamPoseBuffer(std::shared_ptr<MachineState> ms);
-void populateStreamRangeBuffer(std::shared_ptr<MachineState> ms);
-void populateStreamWordBuffer(std::shared_ptr<MachineState> ms);
-void populateStreamLabelBuffer(std::shared_ptr<MachineState> ms);
+void populateStreamImageBuffer(MachineState * ms);
+void populateStreamPoseBuffer(MachineState * ms);
+void populateStreamRangeBuffer(MachineState * ms);
+void populateStreamWordBuffer(MachineState * ms);
+void populateStreamLabelBuffer(MachineState * ms);
 
-void streamImageAsClass(std::shared_ptr<MachineState> ms, Mat im, int classToStreamIdx, double now);
-void streamRangeAsClass(std::shared_ptr<MachineState> ms, double range, int classToStreamIdx, double now);
-void streamPoseAsClass(std::shared_ptr<MachineState> ms, eePose poseIn, int classToStreamIdx, double now);
-void streamWordAsClass(std::shared_ptr<MachineState> ms, string wordIn, string commandIn, int classToStreamIdx, double now);
-void streamLabelAsClass(std::shared_ptr<MachineState> ms, string labelIn, int classToStreamIdx, double now);
+void streamImageAsClass(MachineState * ms, Mat im, int classToStreamIdx, double now);
+void streamRangeAsClass(MachineState * ms, double range, int classToStreamIdx, double now);
+void streamPoseAsClass(MachineState * ms, eePose poseIn, int classToStreamIdx, double now);
+void streamWordAsClass(MachineState * ms, string wordIn, string commandIn, int classToStreamIdx, double now);
+void streamLabelAsClass(MachineState * ms, string labelIn, int classToStreamIdx, double now);
 
-void writeRangeBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
-void writePoseBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
-void writeWordBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
-void writeLabelBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
+void writeRangeBatchAsClass(MachineState * ms, int classToStreamIdx);
+void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx);
+void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx);
+void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx);
 
-void checkAndStreamWord(std::shared_ptr<MachineState> ms, string wordIn, string commandIn);
+void checkAndStreamWord(MachineState * ms, string wordIn, string commandIn);
 
 void writeSideAndSerialToFileStorage(FileStorage& fsvO);
-void readSideAndSerialFromFileStorage(std::shared_ptr<MachineState> ms, FileStorage fsvI, string * serial, string * side);
-string appendSideAndSerial(std::shared_ptr<MachineState> ms, string root);
+void readSideAndSerialFromFileStorage(MachineState * ms, FileStorage fsvI, string * serial, string * side);
+string appendSideAndSerial(MachineState * ms, string root);
 
-void populateStreamJointsBuffer(std::shared_ptr<MachineState> ms);
-void streamJointsAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx, double now);
-void writeJointsBatchAsClass(std::shared_ptr<MachineState> ms, int classToStreamIdx);
-
-
-
-bool isInGripperMask(shared_ptr<MachineState> ms, int x, int y);
-bool isInGripperMaskBlocks(shared_ptr<MachineState> ms, int x, int y);
-bool isGripperGripping(shared_ptr<MachineState> ms);
-void initialize3DParzen(shared_ptr<MachineState> ms);
-void l2Normalize3DParzen(shared_ptr<MachineState> ms);
-void initializeParzen(shared_ptr<MachineState> ms);
-void l2NormalizeParzen(shared_ptr<MachineState> ms);
-void l2NormalizeFilter(shared_ptr<MachineState> ms);
+void populateStreamJointsBuffer(MachineState * ms);
+void streamJointsAsClass(MachineState * ms, int classToStreamIdx, double now);
+void writeJointsBatchAsClass(MachineState * ms, int classToStreamIdx);
 
 
-cv::Vec3b getCRColor(shared_ptr<MachineState> ms);
-cv::Vec3b getCRColor(shared_ptr<MachineState> ms, Mat im);
+
+bool isInGripperMask(MachineState * ms, int x, int y);
+bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
+bool isGripperGripping(MachineState * ms);
+void initialize3DParzen(MachineState * ms);
+void l2Normalize3DParzen(MachineState * ms);
+void initializeParzen(MachineState * ms);
+void l2NormalizeParzen(MachineState * ms);
+void l2NormalizeFilter(MachineState * ms);
+
+
+cv::Vec3b getCRColor(MachineState * ms);
+cv::Vec3b getCRColor(MachineState * ms, Mat im);
 Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 
 
 
-void scanXdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
-void scanYdirection(shared_ptr<MachineState> ms, double speedOnLines, double speedBetweenLines);
+void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
+void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
 
-Eigen::Quaternionf getGGRotation(shared_ptr<MachineState> ms, int givenGraspGear);
-void setGGRotation(shared_ptr<MachineState> ms, int thisGraspGear);
+Eigen::Quaternionf getGGRotation(MachineState * ms, int givenGraspGear);
+void setGGRotation(MachineState * ms, int thisGraspGear);
 
-Eigen::Quaternionf getCCRotation(shared_ptr<MachineState> ms, int givenGraspGear, double angle);
-void setCCRotation(shared_ptr<MachineState> ms, int thisGraspGear);
-void publishVolumetricMap(shared_ptr<MachineState> ms);
+Eigen::Quaternionf getCCRotation(MachineState * ms, int givenGraspGear, double angle);
+void setCCRotation(MachineState * ms, int thisGraspGear);
+void publishVolumetricMap(MachineState * ms);
 
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
 
 
 
-void renderRangeogramView(shared_ptr<MachineState> ms);
-void renderObjectMapView(shared_ptr<MachineState> leftArm, shared_ptr<MachineState> rightArm);
-void renderObjectMapViewOneArm(shared_ptr<MachineState> ms);
+void renderRangeogramView(MachineState * ms);
+void renderObjectMapView(MachineState * leftArm, MachineState * rightArm);
+void renderObjectMapViewOneArm(MachineState * ms);
 void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
-void doObjectMapCallbackFunc(int event, int x, int y, int flags, shared_ptr<MachineState> ms);
+void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms);
 
 
-void renderAccumulatedImageAndDensity(shared_ptr<MachineState> ms);
+void renderAccumulatedImageAndDensity(MachineState * ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
-gsl_matrix * mapCellToPolygon(shared_ptr<MachineState> ms, int map_i, int map_j) ;
+gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
 
-void pilotInit(shared_ptr<MachineState> ms);
-void spinlessPilotMain(shared_ptr<MachineState> ms);
+void pilotInit(MachineState * ms);
+void spinlessPilotMain(MachineState * ms);
 
-int doCalibrateGripper(shared_ptr<MachineState> ms);
-int calibrateGripper(shared_ptr<MachineState> ms);
-int shouldIPick(shared_ptr<MachineState> ms, int classToPick);
-int getLocalGraspGear(shared_ptr<MachineState> ms, int globalGraspGearIn);
-int getGlobalGraspGear(shared_ptr<MachineState> ms, int localGraspGearIn);
-void convertGlobalGraspIdxToLocal(shared_ptr<MachineState> ms, const int rx, const int ry, 
+int doCalibrateGripper(MachineState * ms);
+int calibrateGripper(MachineState * ms);
+int shouldIPick(MachineState * ms, int classToPick);
+int getLocalGraspGear(MachineState * ms, int globalGraspGearIn);
+int getGlobalGraspGear(MachineState * ms, int localGraspGearIn);
+void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry, 
                                   int * localX, int * localY);
 
-void convertLocalGraspIdxToGlobal(shared_ptr<MachineState> ms, const int localX, const int localY,
+void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int localY,
                                   int * rx, int * ry);
 
-void changeTargetClass(shared_ptr<MachineState> ms, int);
+void changeTargetClass(MachineState * ms, int);
 
-void zeroGraspMemoryAndRangeMap(shared_ptr<MachineState> ms);
-void zeroClassGraspMemory(shared_ptr<MachineState> ms);
-void guard3dGrasps(shared_ptr<MachineState> ms);
-void guardSceneModels(shared_ptr<MachineState> ms);
-void guardGraspMemory(shared_ptr<MachineState> ms);
-void loadSampledGraspMemory(shared_ptr<MachineState> ms);
-void loadMarginalGraspMemory(shared_ptr<MachineState> ms);
-void loadPriorGraspMemory(shared_ptr<MachineState> ms, priorType);
+void zeroGraspMemoryAndRangeMap(MachineState * ms);
+void zeroClassGraspMemory(MachineState * ms);
+void guard3dGrasps(MachineState * ms);
+void guardSceneModels(MachineState * ms);
+void guardGraspMemory(MachineState * ms);
+void loadSampledGraspMemory(MachineState * ms);
+void loadMarginalGraspMemory(MachineState * ms);
+void loadPriorGraspMemory(MachineState * ms, priorType);
 void estimateGlobalGraspGear();
-void drawMapRegisters(shared_ptr<MachineState> ms);
+void drawMapRegisters(MachineState * ms);
 
 
-void guardHeightMemory(shared_ptr<MachineState> ms);
-void loadSampledHeightMemory(shared_ptr<MachineState> ms);
-void loadMarginalHeightMemory(shared_ptr<MachineState> ms);
-void loadPriorHeightMemory(shared_ptr<MachineState> ms, priorType);
+void guardHeightMemory(MachineState * ms);
+void loadSampledHeightMemory(MachineState * ms);
+void loadMarginalHeightMemory(MachineState * ms);
+void loadPriorHeightMemory(MachineState * ms, priorType);
 double convertHeightIdxToGlobalZ(MachineState * ms, int);
 double convertHeightIdxToLocalZ(MachineState * ms, int);
-int convertHeightGlobalZToIdx(shared_ptr<MachineState> ms, double);
-void testHeightConversion(shared_ptr<MachineState> ms);
-void drawHeightMemorySample(shared_ptr<MachineState> ms);
-void copyHeightMemoryTriesToClassHeightMemoryTries(shared_ptr<MachineState> ms);
+int convertHeightGlobalZToIdx(MachineState * ms, double);
+void testHeightConversion(MachineState * ms);
+void drawHeightMemorySample(MachineState * ms);
+void copyHeightMemoryTriesToClassHeightMemoryTries(MachineState * ms);
 
-void applyGraspFilter(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void prepareGraspFilter(shared_ptr<MachineState> ms, int i);
-void prepareGraspFilter1(shared_ptr<MachineState> ms);
-void prepareGraspFilter2(shared_ptr<MachineState> ms);
-void prepareGraspFilter3(shared_ptr<MachineState> ms);
-void prepareGraspFilter4(shared_ptr<MachineState> ms);
+void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
+void prepareGraspFilter(MachineState * ms, int i);
+void prepareGraspFilter1(MachineState * ms);
+void prepareGraspFilter2(MachineState * ms);
+void prepareGraspFilter3(MachineState * ms);
+void prepareGraspFilter4(MachineState * ms);
 
-void copyRangeMapRegister(shared_ptr<MachineState> ms, double * src, double * target);
-void copyGraspMemoryRegister(shared_ptr<MachineState> ms, double * src, double * target);
+void copyRangeMapRegister(MachineState * ms, double * src, double * target);
+void copyGraspMemoryRegister(MachineState * ms, double * src, double * target);
 void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void loadLocalTargetClassRangeMap(shared_ptr<MachineState> ms, double * rangeMapRegA, double * rangeMapRegB);
-void copyGraspMemoryTriesToClassGraspMemoryTries(shared_ptr<MachineState> ms);
-void copyClassGraspMemoryTriesToGraspMemoryTries(shared_ptr<MachineState> ms);
+void loadLocalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
+void copyGraspMemoryTriesToClassGraspMemoryTries(MachineState * ms);
+void copyClassGraspMemoryTriesToGraspMemoryTries(MachineState * ms);
 
-void selectMaxTarget(shared_ptr<MachineState> ms, double minDepth);
-void selectMaxTargetThompsonContinuous2(shared_ptr<MachineState> ms, double minDepth);
+void selectMaxTarget(MachineState * ms, double minDepth);
+void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth);
 
-void recordBoundingBoxSuccess(shared_ptr<MachineState> ms);
-void recordBoundingBoxFailure(shared_ptr<MachineState> ms);
+void recordBoundingBoxSuccess(MachineState * ms);
+void recordBoundingBoxFailure(MachineState * ms);
 
-void restartBBLearning(shared_ptr<MachineState> ms);
+void restartBBLearning(MachineState * ms);
 
 eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
-void moveCurrentGripperRayToCameraVanishingRay(shared_ptr<MachineState> ms);
-Mat makeGCrop(shared_ptr<MachineState> ms, int etaX, int etaY);
+void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms);
+Mat makeGCrop(MachineState * ms, int etaX, int etaY);
 void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
-void gradientServo(shared_ptr<MachineState> ms);
-void gradientServoLatentClass(shared_ptr<MachineState> ms);
-void continuousServo(shared_ptr<MachineState> ms);
-void synchronicServo(shared_ptr<MachineState> ms);
-void darkServo(shared_ptr<MachineState> ms);
-void faceServo(shared_ptr<MachineState> ms, vector<Rect> faces);
+void gradientServo(MachineState * ms);
+void gradientServoLatentClass(MachineState * ms);
+void continuousServo(MachineState * ms);
+void synchronicServo(MachineState * ms);
+void darkServo(MachineState * ms);
+void faceServo(MachineState * ms, vector<Rect> faces);
 int simulatedServo();
 
-void initRangeMaps(shared_ptr<MachineState> ms);
-void initRangeMapsNoLoad(shared_ptr<MachineState> ms);
+void initRangeMaps(MachineState * ms);
+void initRangeMapsNoLoad(MachineState * ms);
 
-int isThisGraspMaxedOut(shared_ptr<MachineState> ms, int i);
+int isThisGraspMaxedOut(MachineState * ms, int i);
 
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
@@ -365,24 +364,24 @@ void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, 
 void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
 cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
 
-void paintEEPoseOnWrist(shared_ptr<MachineState> ms, eePose toPaint, cv::Scalar theColor);
+void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor);
 
 double vectorArcTan(MachineState * ms, double y, double x);
 void initVectorArcTan(MachineState * ms);
 
-void mapBlueBox(shared_ptr<MachineState> ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
-void mapBox(shared_ptr<MachineState> ms, BoxMemory boxMemory);
+void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
+void mapBox(MachineState * ms, BoxMemory boxMemory);
 
-void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
-void globalToMapBackground(shared_ptr<MachineState> ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
+void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
-void loadCalibration(shared_ptr<MachineState> ms, string inFileName);
-void saveCalibration(shared_ptr<MachineState> ms, string outFileName);
+void loadCalibration(MachineState * ms, string inFileName);
+void saveCalibration(MachineState * ms, string outFileName);
 
-void findDarkness(shared_ptr<MachineState> ms, int * xout, int * yout);
-void findLight(shared_ptr<MachineState> ms, int * xout, int * yout);
-void findOptimum(shared_ptr<MachineState> ms, int * xout, int * yout, int sign);
+void findDarkness(MachineState * ms, int * xout, int * yout);
+void findLight(MachineState * ms, int * xout, int * yout);
+void findOptimum(MachineState * ms, int * xout, int * yout, int sign);
 
 void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * localUnitY, Vector3d * localUnitZ);
 
@@ -396,85 +395,72 @@ int doubleToByte(double in);
 
 
 
-void gridKeypoints(shared_ptr<MachineState> ms, int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
+void gridKeypoints(MachineState * ms, int gImW, int gImH, cv::Point top, cv::Point bot, int strideX, int strideY, vector<KeyPoint>& keypoints, int period);
 
 bool isFiniteNumber(double x);
 
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
-void bowGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
-void kNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
-void posekNNGetFeatures(shared_ptr<MachineState> ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
+void bowGetFeatures(MachineState * ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
+void kNNGetFeatures(MachineState * ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
+void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
-void drawDensity(shared_ptr<MachineState> ms, double scale);
-void goCalculateDensity(shared_ptr<MachineState> ms);
-void goFindBlueBoxes(shared_ptr<MachineState> ms);
-void goClassifyBlueBoxes(shared_ptr<MachineState> ms);
+void drawDensity(MachineState * ms, double scale);
+void goCalculateDensity(MachineState * ms);
+void goFindBlueBoxes(MachineState * ms);
+void goClassifyBlueBoxes(MachineState * ms);
 void goFindRedBoxes();
 
-void resetAccumulatedImageAndMass(shared_ptr<MachineState> ms);
-void substituteStreamAccumulatedImageQuantities(shared_ptr<MachineState> ms);
-void substituteStreamImageQuantities(shared_ptr<MachineState> ms);
+void resetAccumulatedImageAndMass(MachineState * ms);
+void substituteStreamAccumulatedImageQuantities(MachineState * ms);
+void substituteStreamImageQuantities(MachineState * ms);
 
-void substituteAccumulatedImageQuantities(shared_ptr<MachineState> ms);
-void substituteLatestImageQuantities(shared_ptr<MachineState> ms);
+void substituteAccumulatedImageQuantities(MachineState * ms);
+void substituteLatestImageQuantities(MachineState * ms);
 
-void loadROSParamsFromArgs(shared_ptr<MachineState> ms);
-void saveROSParams(shared_ptr<MachineState> ms);
+void loadROSParamsFromArgs(MachineState * ms);
+void saveROSParams(MachineState * ms);
 
-void spinlessNodeMain(shared_ptr<MachineState> ms);
-void nodeInit(shared_ptr<MachineState> ms);
-void detectorsInit(shared_ptr<MachineState> ms);
+void spinlessNodeMain(MachineState * ms);
+void nodeInit(MachineState * ms);
+void detectorsInit(MachineState * ms);
 void initRedBoxes();
 
-void tryToLoadRangeMap(shared_ptr<MachineState> ms, std::string classDir, const char *className, int i);
-void clearAllRangeMaps(shared_ptr<MachineState> ms);
+void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *className, int i);
+void clearAllRangeMaps(MachineState * ms);
 
 void processSaliency(Mat in, Mat out);
 
-void happy(shared_ptr<MachineState> ms);
-void sad(shared_ptr<MachineState> ms);
-void neutral(shared_ptr<MachineState> ms);
+void happy(MachineState * ms);
+void sad(MachineState * ms);
+void neutral(MachineState * ms);
 
 
-void guardViewers(shared_ptr<MachineState> ms);
+void guardViewers(MachineState * ms);
 
-int findClosestBlueBoxMemory(shared_ptr<MachineState> ms, eePose targetPose, int classToSearch = -1);
-void fillRecognizedObjectArrayFromBlueBoxMemory(shared_ptr<MachineState> ms, object_recognition_msgs::RecognizedObjectArray * roa);
-void promoteBlueBoxes(shared_ptr<MachineState> ms);
-void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut);
-void targetBoxMemory(shared_ptr<MachineState> ms, int idx);
+int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSearch = -1);
+void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa);
+void promoteBlueBoxes(MachineState * ms);
+void fillEinStateMsg(MachineState * ms, EinState * stateOut);
+void targetBoxMemory(MachineState * ms, int idx);
 
-bool isFocusedClassValid(std::shared_ptr<MachineState> ms);
-void initializeAndFocusOnTempClass(shared_ptr<MachineState> ms);
-void initializeAndFocusOnNewClass(shared_ptr<MachineState> ms);
+bool isFocusedClassValid(MachineState * ms);
+void initializeAndFocusOnTempClass(MachineState * ms);
+void initializeAndFocusOnNewClass(MachineState * ms);
 
 
-double computeSimilarity(std::shared_ptr<MachineState> ms, int class1, int class2);
-double computeSimilarity(std::shared_ptr<MachineState> ms, Mat im1, Mat im2);
+double computeSimilarity(MachineState * ms, int class1, int class2);
+double computeSimilarity(MachineState * ms, Mat im1, Mat im2);
 
-void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
-void normalizeForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output);
+void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
+void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void publishConsoleMessage(MachineState * ms, string msg);
 
-#define CONSOLE(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << args; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
-
-#define CONSOLE_ERROR(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
 
 
 ////////////////////////////////////////////////

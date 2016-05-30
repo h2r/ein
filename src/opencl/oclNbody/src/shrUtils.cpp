@@ -1544,7 +1544,7 @@ compareDataAsFloat( const T* reference, const T* data, const unsigned int len,
     ARGCHECK(epsilon >= 0);
 
     // If we set epsilon to be 0, let's set a minimum threshold
-    float max_error = MAX( (float)epsilon, MIN_EPSILON_ERROR );
+    float max_error = OCLMAX( (float)epsilon, MIN_EPSILON_ERROR );
     int error_count = 0;
     bool result = true;
 
@@ -1586,7 +1586,7 @@ compareDataAsFloatThreshold( const T* reference, const T* data, const unsigned i
     ARGCHECK(epsilon >= 0);
 
     // If we set epsilon to be 0, let's set a minimum threshold
-    float max_error = MAX( (float)epsilon, MIN_EPSILON_ERROR);
+    float max_error = OCLMAX( (float)epsilon, MIN_EPSILON_ERROR);
     int error_count = 0;
     bool result = true;
 

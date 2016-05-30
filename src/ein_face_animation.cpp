@@ -12,7 +12,7 @@ CONFIG_GETTER_DOUBLE(FaceAnimationGetRate, ms->config.animationRate);
 
 
 WORD(FaceAnimationFindEmotions)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 	map<string,int> emotionInd; 
 	DIR *dir; 
 	String animationDirName = ms->config.data_directory + "/animation/"; 
@@ -42,7 +42,7 @@ END_WORD
 REGISTER_WORD(FaceAnimationFindEmotions)
 
 WORD(FaceAnimationLoadAllEmotions) 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 	for (auto const& x: ms->config.emotionIndex) { 
 		std::stringstream program;
 		program <<  "\"" << x.first << "\" faceAnimationLoadEmotion";
@@ -54,7 +54,7 @@ REGISTER_WORD(FaceAnimationLoadAllEmotions)
 
 
 WORD(FaceAnimationLoadEmotion)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
     string emotionName;
     GET_STRING_ARG(ms, emotionName);
 
@@ -93,7 +93,7 @@ END_WORD
 REGISTER_WORD(FaceAnimationLoadEmotion)
 
 WORD(FaceAnimationSetEmotionValue)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 	// if animation is not enabled
 	if (!ms->config.currentAnimationMode) {
 		// fail out nicely
@@ -125,7 +125,7 @@ END_WORD
 REGISTER_WORD(FaceAnimationSetEmotionValue)
 
 WORD(ChangeAnimationState) 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 	AnimationState target = ms->config.targetAnimationState; 
 	AnimationState current = ms->config.currentAnimationState; 
 	int value = current.value; 
@@ -185,7 +185,7 @@ REGISTER_WORD(ChangeAnimationState)
 
 
 WORD(PublishImageToFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 	string fileName; 
     GET_STRING_ARG(ms, fileName);
 	Mat image = imread(fileName); 
