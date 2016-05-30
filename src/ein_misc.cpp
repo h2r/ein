@@ -52,7 +52,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   {
     EinState state;
     fillEinStateMsg(ms, &state);
-    ms->config.einPub.publish(state);
+    ms->config.einStatePub.publish(state);
   }
 }
 END_WORD
@@ -705,7 +705,7 @@ WORD(Print)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
-    cout << word->repr() << endl;
+    publishConsoleMessage(ms->p, word->repr());
   }
 }
 END_WORD
@@ -1745,7 +1745,7 @@ virtual string description() {
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  ms->evaluateProgram("derefToTruth pushHelp");
+  ms->evaluateProgram("derefToTruth pushHelp print");
 }
 END_WORD
 REGISTER_WORD(Help)
