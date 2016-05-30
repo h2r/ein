@@ -555,6 +555,9 @@ REGISTER_WORD(XDown)
 
 WORD(XUp)
 CODE('e') 
+virtual string description() {
+  return "Move end effector up in the x dimension one unit.  Change unit size with setGridSize.  Usage:  xUp";
+}
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose.px += ms->config.bDelta;
 }
