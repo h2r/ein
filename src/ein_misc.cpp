@@ -1815,21 +1815,42 @@ virtual void execute(MachineState * ms)
   shared_ptr<CompoundWord> listWord;
   GET_WORD_ARG(ms, CompoundWord, listWord);
 
-  ms->pushWord(")");
+  ms->pushWord("]");
 
   for (int i = 0; i < listWord->size(); i++) {
-    ms->pushWord(listWord->getWord(i));
     for (int j = 0; j < lambdaWord->size(); j++) {
       ms->pushWord(lambdaWord->getWord(j));
     }
+    ms->pushWord(listWord->getWord(i));
   }
-  ms->pushWord("(");
+  ms->pushWord("[");
 
 }
 END_WORD
 REGISTER_WORD(Map)
 
 
+WORD(Accumulate)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> lambdaWord;
+  GET_WORD_ARG(ms, CompoundWord, lambdaWord);
+
+  shared_ptr<CompoundWord> listWord;
+  GET_WORD_ARG(ms, CompoundWord, listWord);
+
+  for (int i = 0; i < listWord->size(); i++) {
+    ms->pushData(listWord->getWord(listWord->size() - 1 - i));
+  }
+
+  for (int i = 0; i < listWord->size() - 1; i++) {
+    for (int j = 0; j < lambdaWord->size(); j++) {
+      ms->pushWord(lambdaWord->getWord(j));
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(Accumulate)
 
 
 WORD(CurrentIKModeString)
@@ -2084,7 +2105,7 @@ virtual vector<string> names() {
 }
 virtual void execute(MachineState * ms)
 {
-  ROS_ERROR_STREAM("Close parenthesis should never execute." << endl);
+  CONSOLE_ERROR(ms, "Close parenthesis should never execute.");
   ms->pushWord("pauseStackExecution");
 }
 END_WORD
@@ -2137,7 +2158,7 @@ virtual void execute(MachineState * ms)
   std::shared_ptr<Word> word = ms->popWord();
 
   if (word == NULL) {
-    cout << "sP found no word... pausing stack execution." << endl;
+    CONSOLE_ERROR(ms, "sP found no word...");
     ms->pushWord("pauseStackExecution");
     return;
   } else {
@@ -2164,7 +2185,7 @@ virtual void execute(MachineState * ms)
 	  while (open_needed > 0) {
 	    std::shared_ptr<Word> datum = ms->popData();
 	    if (datum == NULL) {
-	      cout << "sP found no datum... pausing stack execution." << endl;
+	      CONSOLE_ERROR(ms, "sP found no datum.");
 	      ms->pushWord("pauseStackExecution");
 	      return;
 	    } else {
