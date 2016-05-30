@@ -461,19 +461,6 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void publishConsoleMessage(MachineState * ms, string msg);
 
-#define CONSOLE(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << args; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
-
-#define CONSOLE_ERROR(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
 
 
 ////////////////////////////////////////////////
