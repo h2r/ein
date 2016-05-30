@@ -746,6 +746,12 @@ END_WORD
 REGISTER_WORD(Swap)
 
 WORD(Slide)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("'");
+  return result;
+}
 virtual void execute(std::shared_ptr<MachineState> ms) {
   std::shared_ptr<Word> word = ms->popWord();
   if (word == NULL) {
@@ -1719,35 +1725,110 @@ END_WORD
 REGISTER_WORD(ReplicateWord)
 
 
-WORD(Help)
+WORD(PushHelp)
+virtual string description() {
+  return "Push help text for the word on the data stack.";
+}
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  
   shared_ptr<Word> word;
   GET_WORD_ARG(ms, Word, word);
-  
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(word->description());
   ms->pushWord(outword);
 }
 END_WORD
-REGISTER_WORD(Help)
+REGISTER_WORD(PushHelp)
 
-WORD(SetHelp)
+WORD(Help)
 virtual string description() {
-  return "Set the help text for a word.  Usage:  \"<help text>\" \"<word name>\" setHelp.";
+  return "Return help text for a word, dereferencing the symbol if necessary.  Usage:   ' < word >   help.";
 }
 virtual void execute(std::shared_ptr<MachineState> ms)
 {
-  
-  shared_ptr<Word> word;
-  GET_WORD_ARG(ms, Word, word);
+  ms->evaluateProgram("derefToTruth pushHelp");
+}
+END_WORD
+REGISTER_WORD(Help)
+
+
+
+WORD(SetHelp)
+virtual string description() {
+  return "Make a new compound word with specified description text.  Usage:  <compound word> < help text > setHelp -> < compound word with help text >. ";
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
   string description;
   GET_STRING_ARG(ms, description);
-  word->setDescription(description);
+  
+  shared_ptr<CompoundWord> cWord;
+  GET_WORD_ARG(ms, CompoundWord, cWord);
+
+  shared_ptr<CompoundWord> cp = CompoundWord::copy(cWord);
+  cp->setDescription(description);
+  cout << "getting description: " << description<< endl;
+  ms->pushData(cp);
 }
 
 END_WORD
 REGISTER_WORD(SetHelp)
+
+
+WORD(Define)
+virtual string description() {
+  return "Store a new compound word with specified body, description, and name.  Usage:  <compound word> < help text > < name > define. ";
+}
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<StringWord> name;
+  GET_WORD_ARG(ms, StringWord, name);
+
+  shared_ptr<StringWord> description;
+  GET_WORD_ARG(ms, StringWord, description);
+
+  shared_ptr<CompoundWord> body;
+  GET_WORD_ARG(ms, CompoundWord, body);
+
+  // Then set up the store
+  ms->pushData(name);
+  ms->pushWord("store");
+  ms->pushWord("swap");
+
+  // First set the help of the compound word
+  ms->pushData(body);
+  ms->pushData(description);
+  ms->pushWord("setHelp");
+}
+END_WORD
+REGISTER_WORD(Define)
+
+
+
+
+
+WORD(Map)
+virtual void execute(std::shared_ptr<MachineState> ms)
+{
+  shared_ptr<CompoundWord> lambdaWord;
+  GET_WORD_ARG(ms, CompoundWord, lambdaWord);
+
+  shared_ptr<CompoundWord> listWord;
+  GET_WORD_ARG(ms, CompoundWord, listWord);
+
+  ms->pushWord(")");
+
+  for (int i = 0; i < listWord->size(); i++) {
+    ms->pushWord(listWord->getWord(i));
+    for (int j = 0; j < lambdaWord->size(); j++) {
+      ms->pushWord(lambdaWord->getWord(j));
+    }
+  }
+  ms->pushWord("(");
+
+}
+END_WORD
+REGISTER_WORD(Map)
+
 
 
 
@@ -1759,6 +1840,8 @@ virtual void execute(std::shared_ptr<MachineState> ms)
 }
 END_WORD
 REGISTER_WORD(CurrentIKModeString)
+
+
 
 
 
@@ -2522,6 +2605,86 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(CommandOtherArm)
+
+
+
+WORD(Deref)
+virtual string description() {
+  return "Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  < symbol word > deref -> < value > ";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> w;
+  GET_WORD_ARG(ms, Word, w);
+
+  std::shared_ptr<SymbolWord> sWord = std::dynamic_pointer_cast<SymbolWord>(w);
+
+  if (sWord != NULL) {
+    shared_ptr<Word> outword = sWord->getReferencedWord(ms);
+    if (outword != NULL) {
+      ms->pushData(outword);
+    } else {
+      cout << "No reference for symbol " << sWord->name() << endl;
+      ms->pushWord("pauseStackExecution");
+    }
+  } else {
+    ms->pushData(w);
+  }
+}
+END_WORD
+REGISTER_WORD(Deref)
+
+
+WORD(DerefToTruth)
+virtual string description() {
+  return "Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  < symbol word > deref -> < value > ";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> w;
+  GET_WORD_ARG(ms, Word, w);
+
+  std::shared_ptr<SymbolWord> sWord = std::dynamic_pointer_cast<SymbolWord>(w);
+
+  if (sWord != NULL) {
+    shared_ptr<Word> outword = sWord->getReferencedWord(ms);
+    if (outword != NULL) {
+      ms->pushData(outword);
+      ms->pushWord("derefToTruth");
+    } else {
+      cout << "No reference for symbol " << sWord->name() << endl;
+      ms->pushWord("pauseStackExecution");
+    }
+  } else {
+    ms->pushData(w);
+  }
+}
+END_WORD
+REGISTER_WORD(DerefToTruth)
+
+
+WORD(Repr)
+virtual string description() {
+  return "Takes an argument from the data stack pushes the string representation onto the data stack.  Usage:  < word > repr -> string";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> w;
+  GET_WORD_ARG(ms, Word, w);
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(w->repr());
+  ms->pushData(outword);
+}
+END_WORD
+REGISTER_WORD(Repr)
+
+WORD(Eval)
+virtual string description() {
+  return "Takes a string from the data stack; evaluates the string as a back program.  Usage:  < string > eval -> whatever the program does";
+}
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string program;
+  GET_STRING_ARG(ms, program);
+  ms->evaluateProgram(program);
+}
+END_WORD
+REGISTER_WORD(Eval)
 
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
