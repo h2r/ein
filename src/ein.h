@@ -10,6 +10,7 @@
 #define PROGRAM_NAME "ein"
 
 #include <ein/EinState.h>
+#include <ein/EinConsole.h>
 
 #include <vector>
 #include <string>
@@ -459,6 +460,7 @@ void prepareForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat
 void normalizeForCrossCorrelation(std::shared_ptr<MachineState> ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
+void publishConsoleMessage(MachineState * ms, string msg);
 ////////////////////////////////////////////////
 // end node prototypes 
 #endif /* _EIN_H_ */
