@@ -4480,7 +4480,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   {
     EinState state;
     fillEinStateMsg(ms, &state);
-    ms->config.einPub.publish(state);
+    ms->config.einStatePub.publish(state);
   }
 
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
@@ -4521,6 +4521,13 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     renderObjectMapView(left_arm, right_arm);
   }
 }
+void publishConsoleMessage(MachineState * ms, string msg) {
+  EinConsole consoleMsg;
+  consoleMsg.msg = msg;
+  ms->config.einConsolePub.publish(consoleMsg);
+  ROS_INFO_STREAM("Console: " << msg);
+}
+
 
 
 int renderInit(shared_ptr<MachineState> ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
@@ -14804,6 +14811,8 @@ void fillEinStateMsg(shared_ptr<MachineState> ms, EinState * stateOut) {
   for (int i = 0; i < words.size(); i++) {
     stateOut->words.push_back(words[i]->repr());
   }
+
+  stateOut->state_string = ms->currentState();
 }
 
 bool isFocusedClassValid(std::shared_ptr<MachineState> ms) {
@@ -15052,8 +15061,11 @@ void initializeArm(std::shared_ptr<MachineState> ms, string left_or_right_arm) {
 
 
   ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
-  string topic = "/ein_" + ms->config.left_or_right_arm + "/state";
-  ms->config.einPub = n.advertise<EinState>(topic, 10);
+  string state_topic = "/ein/" + ms->config.left_or_right_arm + "/state";
+  ms->config.einStatePub = n.advertise<EinState>(state_topic, 10);
+
+  string console_topic = "/ein/" + ms->config.left_or_right_arm + "/console";
+  ms->config.einConsolePub = n.advertise<EinConsole>(console_topic, 10);
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 

@@ -23,26 +23,28 @@ string pickModeToString(pickMode mode) {
 string MachineState::currentState()
  {
     stringstream state;
-    state.precision(7);
-    int w = 10;
+
+    int w = 5;
     state << fixed;
     state << setfill(' ');
-    state << "CI: " << setw(70) << std::left;
+    state << "CI: " << setw(40) << std::left;
     if (current_instruction != NULL) {
       state << current_instruction->name();
     } else {
       state << "NULL";
     }
+    state.precision(0);
     state << "Hz: " << config.aveFrequencyRange << endl;
-    state << "Current EE Position (x,y,z): "  << setw(w) << config.currentEEPose.px << " " << setw(w) << config.currentEEPose.py << " " << setw(w) << config.currentEEPose.pz << endl;
-    state << "Current EE Orientation (x,y,z,w): " << setw(w) << config.currentEEPose.qx << " " << setw(w) << config.currentEEPose.qy << " " << setw(w) << config.currentEEPose.qz << " " << setw(w) << config.currentEEPose.qw << endl;
-    state << "True EE Position (x,y,z): " <<  setw(w) << config.trueEEPose.position.x << " " << setw(w) << config.trueEEPose.position.y << " " << setw(w) << config.trueEEPose.position.z << endl;
-    state << "True EE Orientation (x,y,z,w): "  << setw(w) << config.trueEEPose.orientation.x << " " << setw(w) << config.trueEEPose.orientation.y << " " << setw(w) << config.trueEEPose.orientation.z << " " << setw(w) << config.trueEEPose.orientation.w << endl;
+    state.precision(3);
+    state << "Target EE (x,y,z): "  << setw(w) << config.currentEEPose.px << " " << setw(w) << config.currentEEPose.py << " " << setw(w) << config.currentEEPose.pz << endl;
+    state << "Target EE (x,y,z,w): " << setw(w) << config.currentEEPose.qx << " " << setw(w) << config.currentEEPose.qy << " " << setw(w) << config.currentEEPose.qz << " " << setw(w) << config.currentEEPose.qw << endl;
+    state << "  True EE (x,y,z): " <<  setw(w) << config.trueEEPose.position.x << " " << setw(w) << config.trueEEPose.position.y << " " << setw(w) << config.trueEEPose.position.z << endl;
+    state << "  True EE (x,y,z,w): "  << setw(w) << config.trueEEPose.orientation.x << " " << setw(w) << config.trueEEPose.orientation.y << " " << setw(w) << config.trueEEPose.orientation.z << " " << setw(w) << config.trueEEPose.orientation.w << endl;
 
     double poseError = eePose::distance(config.trueEEPoseEEPose, config.currentEEPose);
     double orError = eePose::distanceQ(config.trueEEPoseEEPose, config.currentEEPose);
     eePose difference = config.trueEEPoseEEPose.minusP(config.currentEEPose);
-    state << "position, orientation error distance: "  << poseError << ", " << orError << endl;
+    state << "pose error: "  << poseError << ", " << orError << endl;
 
     //state << "position error (x,y,z): "  << setw(w) << difference.px << " " << setw(w) << difference.py << " " << setw(w) << difference.pz << endl;
     //state << "orientation error (x,y,z,w): " << setw(w) << difference.qx << " " << setw(w) << difference.qy << " " << setw(w) << difference.qz << " " << setw(w) << difference.qw << endl;
@@ -54,6 +56,7 @@ string MachineState::currentState()
     //state << "gradientServoTakeClosest: " << config.gradientTakeClosest << endl;
     //state << "synchronicTakeClosest: " << config.synchronicTakeClosest << endl;
     state << "ikMode: " << ikModeToString(config.currentIKMode) << endl;
+    state << "zeroGMode: " << config.zero_g_toggle << endl;
     state << "focusedClass: " << config.focusedClass;
     if (config.focusedClass != -1) {
       state << " " << config.classLabels[config.focusedClass];

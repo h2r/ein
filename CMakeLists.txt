@@ -48,6 +48,7 @@ find_package(OpenCL)
 add_message_files(
   FILES
   EinState.msg
+  EinConsole.msg
 )
 
 generate_messages(
