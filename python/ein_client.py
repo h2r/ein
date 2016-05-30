@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import rospy
 import std_msgs
-import roslib
-#roslib.load_manifest("baxter_pick_and_place")
 import readline
 
 from ein.msg import EinState
