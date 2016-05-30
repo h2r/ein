@@ -88,7 +88,8 @@ stuff "./baxter.sh"
 #######
 screen -t " replL"
 stuff "./baxter.sh"
-stuff "rosrun ein ein_client.py left"
+#stuff "rosrun ein ein_client.py left"
+stuff "ARM=left screen -m -c src/ein/ein_client.screenrc"
 screen -t " einL"
 stuff "./baxter.sh"
 stuff "catkin_make && gdb --args ./devel/lib/ein/ein  _data_directory:=\"$(rospack find ein)/default\" physical left"
