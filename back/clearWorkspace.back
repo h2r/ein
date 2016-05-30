@@ -129,8 +129,6 @@
   pop
 ) "cw_tri_flick" store
 
-0.35 "cw_clearWorkspace_discrepancy_thresh_val" store
-20 "cw_clearWorkspace_discrepancy_thresh_cells" store
 3 "cw_clearWorkspace_max" store
 (
   tempSwapToBlocks

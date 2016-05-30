@@ -31,7 +31,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  4.0 sceneSetBackgroundStdDevY
+  16.0 sceneSetBackgroundStdDevY
   4.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
@@ -76,7 +76,7 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 0.02 "tempSpiralGridSizeDefault" store
 tempSpiralGridSizeDefault "tempSpiralGridSize" store
-200 "tempSpiralStreamTakeSceneSamplesDefault" store
+500 "tempSpiralStreamTakeSceneSamplesDefault" store
 tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
 
@@ -1128,12 +1128,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.04 "tempBlockMaxGraspThickness" store
+0.035 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.035 "tempBlockGripperThrow" store
+0.02 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
 0.03 "tempBlockTargetContactWidth" store
 (
@@ -1175,6 +1175,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     "tempSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
   ) ifte
+  0.0 sceneSetScoreThresh
 ) "tempSwapToBlocks" store
 
 (
@@ -1196,6 +1197,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) (
     "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
   ) ifte
+  0.1 sceneSetScoreThresh
 ) "tempRestoreFromBlocks" store
 
 (
@@ -1419,7 +1421,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-400 "tempReconstructStreamTakeSceneSamples" store
+500 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
