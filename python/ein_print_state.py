@@ -7,7 +7,7 @@ class EinPrint:
     def __init__(self, topic):
 
         self.state_subscriber = rospy.Subscriber(topic, 
-                                                 EinState, self.state_callback)
+                                                 EinState, self.state_callback, queue_size=1)
         self.state = None
         self.call_stack = []
         self.data_stack = []
@@ -27,10 +27,10 @@ class EinPrint:
         state +="".rjust(lines_to_add, "\n")
         #print "num_lines: ", num_lines, "rows", rows, "lines to add", lines_to_add
         print state
-
+        rospy.sleep(0.1)
     def spin(self):
         while not rospy.is_shutdown():
-            rospy.sleep(0.2)
+            rospy.sleep(0.3)
 
 
 def main():
