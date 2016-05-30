@@ -6,9 +6,9 @@
 
 namespace MY_NAMESPACE {
 
-void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
-void queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIKFast(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIKFastDebug(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
-eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles);
+eePose ikfast_computeFK(MachineState * ms, vector<double> joint_angles);
 
 }

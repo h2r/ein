@@ -8,7 +8,7 @@ namespace ein_words {
 
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   double ddrX = (ms->config.drX)/ms->config.rmDelta;
   double ddrY = (ms->config.drY)/ms->config.rmDelta;
   double ttrX = (ms->config.trX-ms->config.rmcX)/ms->config.rmDelta;
@@ -128,7 +128,7 @@ REGISTER_WORD(PaintReticles)
 
 WORD(FullRender)
 CODE(1114183)     // numlock + G 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (!ms->config.shouldIRender) {
     //ms->pushWord(1114177); // manual render
   }
@@ -142,7 +142,7 @@ REGISTER_WORD(FullRender)
 WORD(DrawMapRegisters)
 // numlock + a 
 CODE(1048673)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   drawMapRegisters(ms);
 }
@@ -150,7 +150,7 @@ END_WORD
 REGISTER_WORD(DrawMapRegisters)
 
 WORD(GuiShowAll)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.dogSnoutViewWindow->setVisible(true);
 
@@ -183,7 +183,7 @@ END_WORD
 REGISTER_WORD(GuiShowAll)
 
 WORD(GuiHideAll)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.dogSnoutViewWindow->setVisible(false);
 
@@ -218,7 +218,7 @@ END_WORD
 REGISTER_WORD(GuiHideAll)
 
 WORD(GuiCustom1)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ROS_WARN_STREAM("___________________");
   ROS_ERROR_STREAM("Called word guiCustom1.");
@@ -257,7 +257,7 @@ END_WORD
 REGISTER_WORD(GuiCustom1)
 
 WORD(PublishWristViewToFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Size toBecome(1024,600);
   sensor_msgs::Image msg;
 
@@ -278,7 +278,7 @@ END_WORD
 REGISTER_WORD(PublishWristViewToFace)
 
 WORD(PublishImageFileToFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string imfilename_post;
   GET_STRING_ARG(ms, imfilename_post);
   
@@ -305,7 +305,7 @@ REGISTER_WORD(PublishImageFileToFace)
 
 
 WORD(BlankFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::stringstream program;
   program << "\"black.tif\" publishImageFileToFace";
   ms->evaluateProgram(program.str());  
@@ -315,7 +315,7 @@ REGISTER_WORD(BlankFace)
 
 
 WORD(HappyFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::stringstream program;
   program << "\"ursula_yes.tif\" publishImageFileToFace";
   ms->evaluateProgram(program.str());  
@@ -325,7 +325,7 @@ REGISTER_WORD(HappyFace)
 
 
 WORD(SadFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::stringstream program;
   program << "\"ursula_no.tif\" publishImageFileToFace";
   ms->evaluateProgram(program.str());  
@@ -335,7 +335,7 @@ REGISTER_WORD(SadFace)
 
 
 WORD(NeutralFace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::stringstream program;
   program << "\"ursula_neutral.tif\" publishImageFileToFace";
   ms->evaluateProgram(program.str());  

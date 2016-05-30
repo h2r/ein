@@ -13,7 +13,7 @@ CONFIG_SETTER_DOUBLE(SetPickFlushFactor, ms->config.pickFlushFactor)
 
 WORD(FindBestOfFourGraspsUsingMemory)
 CODE(1048620)     // numlock + ,
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   cout << "Selecting best of 4 grasps...  numlock + , useContinuousGraspTransform = " << ms->config.useContinuousGraspTransform << endl;
 
   if (ms->config.useContinuousGraspTransform) {
@@ -109,7 +109,7 @@ REGISTER_WORD(FindBestOfFourGraspsUsingMemory)
 
 WORD(AssumeWinningGgAndXyInLocalPose)
 CODE(1114175)     // numlock + ?
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   double targetX = ms->config.trX;
   double targetY = ms->config.trY;
 
@@ -135,7 +135,7 @@ END_WORD
 REGISTER_WORD(AssumeWinningGgAndXyInLocalPose)
 
 WORD(SetSnapToFlushGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
 
@@ -146,7 +146,7 @@ END_WORD
 REGISTER_WORD(SetSnapToFlushGrasp)
 
 WORD(MoveToTargetZAndGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   //ms->pushWord("moveToTargetZAndGraspA");
 
   cout << "moveToTargetZAndGrasp: snapToFlushGrasp is " << ms->config.snapToFlushGrasp << endl;
@@ -219,7 +219,7 @@ REGISTER_WORD(MoveToTargetZAndGrasp)
 
 WORD(MoveToTargetZAndGraspA)
 CODE(1048682)     // numlock + j
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   ms->pushWord("closeGripper"); 
 
   cout << this->name() <<": "  << ms->config.classGraspZsSet.size() << " " << ms->config.classGraspZs.size() << endl;
@@ -287,7 +287,7 @@ REGISTER_WORD(MoveToTargetZAndGraspA)
 
 WORD(ShakeItUpAndDown)
 CODE(131081)   // capslock + tab
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.eepReg5 = ms->config.currentEEPose;
 
   ms->config.eepReg6 = ms->config.currentEEPose;
@@ -318,7 +318,7 @@ END_WORD
 REGISTER_WORD(ShakeItUpAndDown)
 
 WORD(TryToMoveToTheLastPrePickHeight)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentEEPose.pz = ms->config.lastPrePickPose.pz;
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
   cout << "trying to move to the last pre pick height..." << endl;
@@ -328,7 +328,7 @@ REGISTER_WORD(TryToMoveToTheLastPrePickHeight)
 
 WORD(TryToMoveToTheLastPickHeight)
 CODE( 262241)     // ctrl + a
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double deltaZ = (ms->config.lastPickPose.pz) - ms->config.currentEEPose.pz;
   double zTimes = fabs(floor(deltaZ / ms->config.bDelta)); 
   int numNoOps = 2;
@@ -379,7 +379,7 @@ REGISTER_WORD(TryToMoveToTheLastPickHeight)
 
 
 WORD(IfNoGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (isGripperGripping(ms))  {
     ms->popWord();
   }
@@ -388,7 +388,7 @@ END_WORD
 REGISTER_WORD(IfNoGrasp)
 
 WORD(IfGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (!isGripperGripping(ms))  {
     ms->popWord();
   }
@@ -401,7 +401,7 @@ REGISTER_WORD(IfGrasp)
 
 WORD(ShakeItOff1)
 CODE( 131151)     // capslock + o
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
+  virtual void execute(MachineState * ms)       {
   int depthToPlunge = 24;
   int flexThisFar = 80;
   cout << "SHAKING IT OFF!!!" << endl;
@@ -437,7 +437,7 @@ REGISTER_WORD(ShakeItOff1)
 
 WORD(LoadTargetClassRangeMapIntoRegister1)
 CODE(131162)     // capslock + z
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadGlobalTargetClassRangeMap(ms->p, ms->config.rangeMap, ms->config.rangeMapReg1);
 }
 END_WORD
@@ -445,7 +445,7 @@ REGISTER_WORD(LoadTargetClassRangeMapIntoRegister1)
 
 WORD(CountGrasp)
 CODE(196717)     // capslock + M
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   // ATTN 19
   int i = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.localMaxGG;
   int j = ms->config.localMaxX + ms->config.localMaxY * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0;
@@ -544,7 +544,7 @@ REGISTER_WORD(CountGrasp)
 
 WORD(CheckGrasp)
 CODE(196718)     // capslock + N 
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   if (ms->config.gripperMoving) {
     ms->pushWord("checkGrasp"); // check grasp
   } else {
@@ -566,7 +566,7 @@ END_WORD
 REGISTER_WORD(CheckGrasp)
 
 WORD(CheckIfJammed)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   if (ms->config.gripperMoving) {
@@ -602,7 +602,7 @@ REGISTER_WORD(CheckIfJammed)
 
 WORD(CheckAndCountGrasp)
 CODE(196713)     // capslock + I
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   if (ms->config.currentGraspMode == GRASP_3D) {
@@ -903,7 +903,7 @@ REGISTER_WORD(CheckAndCountGrasp)
 
 // XX We should get rid of this one and put the shake and count behaviors elsewhere. 
 WORD(PrepareForAndExecuteGraspFromMemoryLearning)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
 
   ms->pushWord("visionCycle"); // vision cycle
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
@@ -990,7 +990,7 @@ END_WORD
 REGISTER_WORD(PrepareForAndExecuteGraspFromMemoryLearning)
 
 WORD(SetGraspModeToCrane)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "Setting grasp mode to GRASP_CRANE." << endl;
   ms->config.currentGraspMode = GRASP_CRANE;
 }
@@ -998,7 +998,7 @@ END_WORD
 REGISTER_WORD(SetGraspModeToCrane)
 
 WORD(SetGraspModeTo3D)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "Setting grasp mode to GRASP_3D." << endl;
   ms->config.currentGraspMode = GRASP_3D;
 }
@@ -1006,7 +1006,7 @@ END_WORD
 REGISTER_WORD(SetGraspModeTo3D)
 
 WORD(PrepareForAndExecuteGraspFromMemory)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("executePreparedGrasp"); 
   ms->pushWord("prepareForGraspFromMemory"); 
 }
@@ -1014,7 +1014,7 @@ END_WORD
 REGISTER_WORD(PrepareForAndExecuteGraspFromMemory)
 
 WORD(ExecutePreparedGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
 
   if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
@@ -1047,7 +1047,7 @@ END_WORD
 REGISTER_WORD(ExecutePreparedGrasp)
 
 WORD(PrepareForGraspFromMemory)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   //ms->pushWord("waitUntilAtCurrentPosition"); 
   ms->pushWord("assumeWinningGgAndXyInLocalPose"); 
@@ -1081,7 +1081,7 @@ REGISTER_WORD(PrepareForGraspFromMemory)
 
 WORD(IncrementGraspGear)
 CODE(196712)     // capslock + H
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   cout << "increment ms->config.currentGraspGear was is: " << ms->config.currentGraspGear << " ";
   int thisGraspGear = (ms->config.currentGraspGear + 1) % ms->config.totalGraspGears;
   
@@ -1099,7 +1099,7 @@ END_WORD
 REGISTER_WORD(IncrementGraspGear)
 
 WORD(DecrementGraspGear)
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   cout << "decrement ms->config.currentGraspGear was is: " << ms->config.currentGraspGear << " ";
   int thisGraspGear = (ms->config.currentGraspGear -1 + ms->config.totalGraspGears) % ms->config.totalGraspGears;
   
@@ -1121,7 +1121,7 @@ REGISTER_WORD(DecrementGraspGear)
 
 WORD(ShiftGraspGear)
 CODE(1114155)     // numlock + +
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushNoOps(50);
   int thisGraspGear = (ms->config.currentGraspGear+4) % ms->config.totalGraspGears;
   
@@ -1140,7 +1140,7 @@ REGISTER_WORD(ShiftGraspGear)
 
 WORD(PrepareToApplyGraspFilterFor1)
 CODE(1048681)     // numlock + i
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   prepareGraspFilter1(ms);
 }
 END_WORD
@@ -1148,7 +1148,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor1)
 
 WORD(PrepareToApplyGraspFilterFor2)
 CODE(1048687)     // numlock + o
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   prepareGraspFilter2(ms);
 }
 END_WORD
@@ -1156,7 +1156,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor2)
 
 WORD(PrepareToApplyGraspFilterFor3)
 CODE(1048693)     // numlock + u
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   prepareGraspFilter3(ms);
 }
 END_WORD
@@ -1164,7 +1164,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor3)
 
 WORD(PrepareToApplyGraspFilterFor4)
 CODE(1048688)     // numlock + p
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   prepareGraspFilter4(ms);
 }
 END_WORD
@@ -1172,7 +1172,7 @@ REGISTER_WORD(PrepareToApplyGraspFilterFor4)
 
 WORD(SelectBestAvailableGrasp)
 CODE(1048630)  // numlock + 6
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "Selecting best of 4 grasps... numlock + 6" << endl;
 
   ms->pushWord("selectMaxTargetCumulative");
@@ -1240,7 +1240,7 @@ REGISTER_WORD(SelectBestAvailableGrasp)
 
 WORD(SelectMaxTargetNotCumulative)
 CODE(1048691)     // numlock + s
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   selectMaxTarget(ms, VERYBIGNUMBER);
 }
 END_WORD
@@ -1248,7 +1248,7 @@ REGISTER_WORD(SelectMaxTargetNotCumulative)
 
 WORD(SelectMaxTargetCumulative)
 CODE(1114195)     // numlock + S
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   selectMaxTarget(ms, ms->config.maxD);
 }
 END_WORD
@@ -1256,7 +1256,7 @@ REGISTER_WORD(SelectMaxTargetCumulative)
 
 WORD(ApplyGraspFilter)
 CODE(1048692)  // numlock + t
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   applyGraspFilter(ms, ms->config.rangeMapReg1, ms->config.rangeMapReg2);
 }
 END_WORD
@@ -1265,7 +1265,7 @@ REGISTER_WORD(ApplyGraspFilter)
 
 WORD(Blur)
 CODE(1048697)  // numlock + y
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double tfilter[9] = { 1.0/16.0, 1.0/8.0, 1.0/16.0, 
                         1.0/8.0, 1.0/4.0, 1.0/8.0, 
                         1.0/16.0, 1.0/8.0, 1.0/16.0};
@@ -1278,7 +1278,7 @@ REGISTER_WORD(Blur)
 
 WORD(ShiftIntoGraspGear1)
 CODE(1048625)      // numlock + 1
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisGraspGear = 0;
   
   //   set drX
@@ -1296,7 +1296,7 @@ REGISTER_WORD(ShiftIntoGraspGear1)
 
 WORD(ShiftIntoGraspGear2)
 CODE(1048626)     // numlock + 2
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisGraspGear = 1;
   //   set drX
   ms->config.drX = ms->config.ggX[thisGraspGear];
@@ -1313,7 +1313,7 @@ REGISTER_WORD(ShiftIntoGraspGear2)
 
 WORD(ShiftIntoGraspGear3)
 CODE(1048627)     // numlock + 3
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisGraspGear = 2;
   
   //   set drX
@@ -1332,7 +1332,7 @@ REGISTER_WORD(ShiftIntoGraspGear3)
 
 WORD(ShiftIntoGraspGear4)
 CODE(1048628)      // numlock + 4
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisGraspGear = 3;
   //   set drX
   ms->config.drX = ms->config.ggX[thisGraspGear];
@@ -1347,7 +1347,7 @@ REGISTER_WORD(ShiftIntoGraspGear4)
 
 WORD(ResetAerialGradientTemporalFrameAverage)
 CODE(262237)      // ctrl + ]
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "resetting aerialGradientTemporalFrameAverage." << endl;
   ms->config.aerialGradientTemporalFrameAverage *= 0.0;
 }
@@ -1357,7 +1357,7 @@ REGISTER_WORD(ResetAerialGradientTemporalFrameAverage)
 
 WORD(SynchronicServoDoNotTakeClosest)
 CODE(131139)  // capslock + c
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.synchronicTakeClosest = 0;
   cout << "synchronicTakeClosest = 0" << endl;
   ms->config.synServoLockFrames = 0;
@@ -1367,7 +1367,7 @@ REGISTER_WORD(SynchronicServoDoNotTakeClosest)
 
 WORD(SynchronicServoTakeClosest)
 CODE(196707)     // capslock + C
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // XXX deprecate
   ms->config.synchronicTakeClosest = 1;
   cout << "synchronicTakeClosest = 1" << endl;
@@ -1379,7 +1379,7 @@ REGISTER_WORD(SynchronicServoTakeClosest)
 
 WORD(TwoDPatrolStart)
 CODE(131159)     // capslock + w
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   ms->config.eepReg2 = ms->config.beeHome;
   ms->config.bailAfterSynchronic = 0;
   ms->config.graspAttemptCounter = 0;
@@ -1412,7 +1412,7 @@ REGISTER_WORD(TwoDPatrolStart)
 
 WORD(TwoDPatrolContinue)
 CODE(131141) // capslock + e
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.thisGraspPicked = UNKNOWN;
   ms->config.thisGraspReleased = UNKNOWN;
   neutral(ms);
@@ -1479,7 +1479,7 @@ REGISTER_WORD(TwoDPatrolContinue)
 
 WORD(SynchronicServo)
 CODE(131156)    // capslock + t
-virtual void execute(std::shared_ptr<MachineState> ms) { 
+virtual void execute(MachineState * ms) { 
   ms->pushWord("synchronicServoRepeat");
   ms->pushWord("synchronicServoTakeClosest");
   // XXX TODO take closest needs to be set to the default and a better way of selecting the target factored.
@@ -1488,7 +1488,7 @@ END_WORD
 REGISTER_WORD(SynchronicServo)
 
 WORD(SynchronicServoRepeat)
-virtual void execute(std::shared_ptr<MachineState> ms) { 
+virtual void execute(MachineState * ms) { 
   ms->pushWord("synchronicServoA");
   if (ms->config.currentBoundingBoxMode == MAPPING) {
     ms->pushWord("visionCycleNoClassify");
@@ -1504,7 +1504,7 @@ END_WORD
 REGISTER_WORD(SynchronicServoRepeat)
 
 WORD(SynchronicServoA)
-virtual void execute(std::shared_ptr<MachineState> ms) { 
+virtual void execute(MachineState * ms) { 
   synchronicServo(ms);
 }
 END_WORD
@@ -1512,7 +1512,7 @@ REGISTER_WORD(SynchronicServoA)
 
 WORD(GradientServo)
 CODE(196728)   // capslock + X
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentGradientServoIterations = 0;
   ms->config.gshHistogram = eePose::zero();
   ms->config.gshCounts = 0.0;
@@ -1523,7 +1523,7 @@ END_WORD
 REGISTER_WORD(GradientServo)
 
 WORD(ContinuousServoL)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("continuousServoL");
   ms->pushWord("continuousServo");
   //ms->pushWord("comeToStop");
@@ -1532,7 +1532,7 @@ END_WORD
 REGISTER_WORD(ContinuousServoL)
 
 WORD(ContinuousServo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // XXX there is some issue when the orientation is changing, 
   //  convergence isn't instantaneous unless waitUntilAtCurrentPosition is called
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -1547,7 +1547,7 @@ END_WORD
 REGISTER_WORD(ContinuousServo)
 
 WORD(ContinuousServoPrep)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("densityA");
   ms->pushWord("waitUntilEndpointCallbackReceived");
   ms->pushWord("waitUntilImageCallbackReceived");
@@ -1556,14 +1556,14 @@ END_WORD
 REGISTER_WORD(ContinuousServoPrep)
 
 WORD(ContinuousServoA)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   continuousServo(ms);
 }
 END_WORD
 REGISTER_WORD(ContinuousServoA)
 
 WORD(GradientServoPrep)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // ATTN 8
   if (0) {
     ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
@@ -1589,7 +1589,7 @@ END_WORD
 REGISTER_WORD(GradientServoPrep)
 
 WORD(GradientServoB)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.currentGradientServoMode == FOCUSED_CLASS) {
     gradientServo(ms);
   } else if (ms->config.currentGradientServoMode == LATENT_CLASS) {
@@ -1602,7 +1602,7 @@ END_WORD
 REGISTER_WORD(GradientServoB)
 
 WORD(GradientServoA)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("gradientServoB");
   ms->pushWord("gradientServoPrep");
 }
@@ -1611,7 +1611,7 @@ REGISTER_WORD(GradientServoA)
 
 
 WORD(GradientServoIfBlueBoxes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     // XXX changeTargetClass should come after?
     ms->pushWord("gradientServo");
@@ -1622,7 +1622,7 @@ END_WORD
 REGISTER_WORD(GradientServoIfBlueBoxes)
 
 WORD(PixelServo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   //ms->pushWord("comeToStop");
   ms->pushWord("pixelServoA");
 }
@@ -1630,7 +1630,7 @@ END_WORD
 REGISTER_WORD(PixelServo)
 
 WORD(PixelServoA)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double servoDeltaX = 0.0;
   double servoDeltaY = 0.0;
   double servoDeltaTheta = 0.0;
@@ -1645,7 +1645,7 @@ END_WORD
 REGISTER_WORD(PixelServoA)
 
 WORD(PixelServoPutVanishingPointUnderGripper)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
@@ -1658,7 +1658,7 @@ END_WORD
 REGISTER_WORD(PixelServoPutVanishingPointUnderGripper)
 
 WORD(PixelServoPutGripperUnderVanishingPoint)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
@@ -1674,7 +1674,7 @@ END_WORD
 REGISTER_WORD(PixelServoPutGripperUnderVanishingPoint)
 
 WORD(PixelServoPickUnderVanishingPoint)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("tenthImpulse ( zUp ) 10 replicateWord waitUntilAtCurrentPosition 1 changeToHeight");
   ms->pushWord("waitUntilGripperNotMoving");
   
@@ -1706,7 +1706,7 @@ END_WORD
 REGISTER_WORD(PixelServoPickUnderVanishingPoint)
 
 WORD(LockTargetIfBlueBoxes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if ( (ms->config.bLabels.size() > 0) && (ms->config.pilotClosestBlueBoxNumber != -1) ) {
     ms->pushWord("recordPostTargetLock");
     ms->pushWord("prepareForGraspFromMemory");
@@ -1717,7 +1717,7 @@ END_WORD
 REGISTER_WORD(LockTargetIfBlueBoxes)
 
 WORD(RecordPostTargetLock)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.blueBoxMemories.size() > 0) {
     BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
     lastAdded->cameraTime = ros::Time::now();
@@ -1734,7 +1734,7 @@ END_WORD
 REGISTER_WORD(RecordPostTargetLock)
 
 WORD(RecordPreTargetLock)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.blueBoxMemories.size() > 0) {
     BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
     lastAdded->lockedPose = ms->config.currentEEPose;
@@ -1812,7 +1812,7 @@ REGISTER_WORD(RecordPreTargetLock)
 WORD(GradientServoTakeClosest)
 // capslock + numlock + h
 CODE(1179720)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     // XXX deprecate
     ms->config.gradientTakeClosest = 1;
@@ -1822,7 +1822,7 @@ END_WORD
 REGISTER_WORD(GradientServoTakeClosest)
 
 WORD(DarkServo)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.darkServoIterations = 0;
   ms->pushWord("darkServoA");
@@ -1831,7 +1831,7 @@ END_WORD
 REGISTER_WORD(DarkServo)
 
 WORD(DarkServoA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int numPause = 4;
   ms->config.darkServoIterations++;
@@ -1850,7 +1850,7 @@ END_WORD
 REGISTER_WORD(DarkServoA)
 
 WORD(DarkServoB)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.darkServoIterations > ms->config.darkServoTimeout) {
     cout << "darkServo timed out, continuing..." << endl;
@@ -1866,7 +1866,7 @@ REGISTER_WORD(DarkServoB)
 
 
 WORD(GoToPrePickPose)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentEEPose = ms->config.lastPrePickPose;
 }
@@ -1874,7 +1874,7 @@ END_WORD
 REGISTER_WORD(GoToPrePickPose)
 
 WORD(GoToLastPickPose)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentEEPose = ms->config.lastPickPose;
 }
@@ -1882,7 +1882,7 @@ END_WORD
 REGISTER_WORD(GoToLastPickPose)
 
 WORD(AssumeLastPickOrientation)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentEEPose.copyQ(ms->config.lastPickPose);
 }
@@ -1890,7 +1890,7 @@ END_WORD
 REGISTER_WORD(AssumeLastPickOrientation)
 
 WORD(SetAerialGradientsToBarsLengthWidthGap)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int barHalfLength = 0;
   int barWidth = 0;

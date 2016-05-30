@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 
 
-EinWindow::EinWindow(QWidget *parent, shared_ptr<MachineState> _ms) :
+EinWindow::EinWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),
     ui(new Ui::EinWindow),
     myView(parent, EIN_WINDOW_KEEPRATIO)

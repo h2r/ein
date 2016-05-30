@@ -197,7 +197,7 @@ public: \
 
 #define CONFIG_GETTER_INT(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<IntegerWord>(configName)); \
 } \
 END_WORD \
@@ -205,7 +205,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_SETTER_INT(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int value; \
   GET_INT_ARG(ms, value); \
   configName = value;	\
@@ -216,7 +216,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_SETTER_ENUM(backName, configName, cast)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int value; \
   GET_INT_ARG(ms, value); \
   configName = cast value;	\
@@ -226,7 +226,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_GETTER_DOUBLE(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<DoubleWord>(configName)); \
 } \
 END_WORD \
@@ -234,7 +234,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_SETTER_DOUBLE(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   double value; \
   GET_NUMERIC_ARG(ms, value); \
   configName = value;	\
@@ -244,7 +244,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_GETTER_STRING(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<StringWord>(configName)); \
 } \
 END_WORD \
@@ -252,7 +252,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_SETTER_STRING(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   string value; \
   GET_ARG(ms, StringWord, value); \
   configName = value;	\
@@ -262,7 +262,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_GETTER_POSE(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<EePoseWord>(configName)); \
 } \
 END_WORD \
@@ -270,7 +270,7 @@ REGISTER_WORD(backName)
 
 #define CONFIG_SETTER_POSE(backName, configName)	\
 WORD(backName) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   eePose value; \
   GET_ARG(ms, EePoseWord, value); \
   configName = value;	\

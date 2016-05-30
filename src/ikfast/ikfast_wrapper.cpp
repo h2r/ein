@@ -9,12 +9,12 @@
 using namespace IKFAST_NAMESPACE;
 
 
-void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
+void queryIKService(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 namespace MY_NAMESPACE {
 
-int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionListBase<IkReal> &solutions);
-bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
+int ikfast_solve(MachineState * ms, geometry_msgs::Pose pose, double free, IkSolutionListBase<IkReal> &solutions);
+bool ikfast_search(MachineState * ms, geometry_msgs::Pose pose, double free, std::vector<double>& solutions);
 
 bool ikfast_obeys_limits(vector<double> joints, vector<double> joint_min_vector, vector<double> joint_max_vector, double tolerance);
 double ikfast_joint_error(vector<double> p1, vector<double> p2);
@@ -24,7 +24,7 @@ void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vec
 /**
  * Computes forward kinematics using IK fast and returns an eePose in base. 
  */
-eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles) {
+eePose ikfast_computeFK(MachineState * ms, vector<double> joint_angles) {
   bool valid = true;
 
   IkReal eerot[9],eetrans[3];
@@ -67,7 +67,7 @@ eePose ikfast_computeFK(shared_ptr<MachineState> ms, vector<double> joint_angles
 }
 
 
-int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions) {
+int ikfast_solve(MachineState * ms, geometry_msgs::Pose pose, double free, IkSolutionList<IkReal> &solutions) {
 
   KDL::Frame pose_frame;
   tf::poseMsgToKDL(pose, pose_frame);
@@ -109,7 +109,7 @@ int ikfast_solve(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double 
   return solutions.GetNumSolutions();
 }
 
-bool ikfast_search(shared_ptr <MachineState> ms, geometry_msgs::Pose pose, double free, std::vector<double>& outsol)  {
+bool ikfast_search(MachineState * ms, geometry_msgs::Pose pose, double free, std::vector<double>& outsol)  {
   ROS_DEBUG_STREAM_NAMED("ikfast","searchPositionIK");
 
   vector<double> current_joints;
@@ -300,7 +300,7 @@ void ikfast_getSolution(const IkSolutionList<IkReal> &solutions, int i, std::vec
 
 
 
-void queryIKFast(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+void queryIKFast(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
 
 
   string transform = ms->config.left_or_right_arm + "_arm_mount";
@@ -376,7 +376,7 @@ double ikfast_joint_error_weighted(vector<double> p1, vector<double> p2, vector<
 
 
 
-void queryIKFastDebug(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {      
+void queryIKFastDebug(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {      
   queryIKService(ms, thisResult, thisRequest);
   
   cout << "computing ikfast" << endl;
