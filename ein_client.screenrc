@@ -14,13 +14,13 @@ split -v
 focus
 screen -t " call_stack" 
 stuff "./baxter.sh"
-stuff "rosrun ein ein_stack.py $ARM call"
+stuff "rosrun ein ein_print_stack.py $ARM call"
 
 split -v
 focus
 screen -t " data_stack" 
 stuff "./baxter.sh"
-stuff "rosrun ein ein_stack.py $ARM data"
+stuff "rosrun ein ein_print_stack.py $ARM data"
 
 
 focus
