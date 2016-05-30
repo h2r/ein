@@ -319,11 +319,15 @@ public:
   }
 
   static bool isSymbol(string token);
+  string repr();
   
   SymbolWord(string _s) {
     s = _s;
   }
+  shared_ptr<Word> getReferencedWord(shared_ptr<MachineState> ms);
+
   virtual void execute(std::shared_ptr<MachineState> ms);
+
 
   string name() {
     stringstream ss;
@@ -462,13 +466,23 @@ public:
 class CompoundWord : public Word {
  private:
   vector<std::shared_ptr<Word> > stack;
+  string description_text;
  public:
   CompoundWord() {
+  }
+  CompoundWord(string description) {
+    description_text = description;
   }
   void pushWord(shared_ptr<Word> word) {
     stack.push_back(word);
   }
   void pushWord(shared_ptr<MachineState> ms, string word);
+  void setDescription(string d) {
+    description_text = d;
+  }
+  virtual string description() {
+    return description_text;
+  }
 
   int size();
   shared_ptr<Word> popWord();
@@ -478,6 +492,7 @@ class CompoundWord : public Word {
   string repr();
   string name();
   string to_string();
+  static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 
 class AiboPoseWord: public Word
