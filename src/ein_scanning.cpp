@@ -1894,6 +1894,37 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 END_WORD
 REGISTER_WORD(MoveCropToCenterVanishingPoint)
 
+WORD(MoveCropToCenterVanishingPointSlideHeightReticles)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  Size sz = ms->config.accumulatedImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
+  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
+
+  ms->config.cropUpperLeftCorner.px += Vx;
+  ms->config.cropUpperLeftCorner.py += Vy;
+  ms->config.vanishingPointReticle.px -= Vx;
+  ms->config.vanishingPointReticle.py -= Vy;
+
+  ms->config.heightReticles[0].px -= Vx;
+  ms->config.heightReticles[1].px -= Vx;
+  ms->config.heightReticles[2].px -= Vx;
+  ms->config.heightReticles[3].px -= Vx;
+
+  ms->config.heightReticles[0].py -= Vy;
+  ms->config.heightReticles[1].py -= Vy;
+  ms->config.heightReticles[2].py -= Vy;
+  ms->config.heightReticles[3].py -= Vy;
+
+  cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
+  ms->pushWord("moveCropToProperValue");
+}
+END_WORD
+REGISTER_WORD(MoveCropToCenterVanishingPointSlideHeightReticles)
+
+
 WORD(MoveToSetVanishingPointHeightLow)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.currentEEPose.pz = ms->config.minHeight - ms->config.currentTableZ;
@@ -2472,6 +2503,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
     // move speed not set so that you can control for aliasing from repl
     ms->pushWord("yDown");
+    ms->pushWord("eighthTurn");
+    ms->evaluateProgram("( oZUp ) 5 replicateWord");
   }
 
   ms->pushWord("setGripperMaskAA"); 

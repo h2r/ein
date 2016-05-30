@@ -450,7 +450,8 @@ class EinConfig {
   ros::Publisher headPub;
   ros::Publisher nodPub;
   ros::Publisher stiffPub;
-  ros::Publisher einPub;
+  ros::Publisher einStatePub;
+  ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;
   ros::Publisher rec_objs_blue_memory;
   ros::Publisher markers_blue_memory;
