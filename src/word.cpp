@@ -437,12 +437,13 @@ shared_ptr<Word> SymbolWord::getReferencedWord(shared_ptr<MachineState> ms) {
   }
 }
 
+
 void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
   shared_ptr<Word> w = getReferencedWord(ms);
   if (w != NULL) {
     ms->pushWord(w);
   } else {
-    cout << "No value for symbol word " << repr() << endl;
+    CONSOLE_ERROR(ms->p, "No value for symbol word " << repr() << ".");
     ms->pushWord("pauseStackExecution"); 
   }
 }
