@@ -301,10 +301,6 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
   } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
-    //}
-  //else if (ms->variables.count(token) > 0) {
-  ///std::shared_ptr<Word> word = ms->variables[token];
-    //return word;
   } else if (SymbolWord::isSymbol(token)) {
     std::shared_ptr<Word> word = SymbolWord::parse(token);
     return word;
@@ -425,21 +421,31 @@ void renderCoreView(shared_ptr<MachineState> ms) {
 }
 
 
+string SymbolWord::repr() {
+  return s;
+}
 
-
-void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
+shared_ptr<Word> SymbolWord::getReferencedWord(shared_ptr<MachineState> ms) {
   if (name_to_word.count(s) > 0) {
     std::shared_ptr<Word> word = name_to_word[s];
-    ms->pushWord(word);
+    return word;
   } else if (ms->variables.count(s) > 0) {
     std::shared_ptr<Word> word = ms->variables[s];
-    ms->pushWord(word);
+    return word;
+  } else {
+    return NULL;
+  }
+}
+
+void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
+  shared_ptr<Word> w = getReferencedWord(ms);
+  if (w != NULL) {
+    ms->pushWord(w);
   } else {
     cout << "No value for symbol word " << repr() << endl;
     ms->pushWord("pauseStackExecution"); 
   }
 }
-
 
 
 void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
@@ -487,6 +493,9 @@ string CompoundWord::repr()  {
     state << stack[stack.size() - i - 1]->repr() << " ";
   }
   state << ")";
+  if (description() != "") {
+    state << " \"" << description() << "\" setHelp";
+  }
   return state.str();
 }
 
@@ -496,6 +505,14 @@ string CompoundWord::to_string() {
 
 string CompoundWord::name() {
   return repr();
+}
+
+shared_ptr<CompoundWord> CompoundWord::copy(shared_ptr<CompoundWord> cWord) {
+  shared_ptr<CompoundWord> cp = make_shared<CompoundWord>(cWord->description());
+  for (int i = 0; i < cWord->size(); i++) {
+    cp->pushWord(cWord->getWord(i));
+  }
+  return cp;
 }
 
 bool CommentWord::isComment(string token) {
@@ -521,6 +538,7 @@ std::shared_ptr<CommentWord> CommentWord::parse(string token)  {
     return NULL;
   }
 }  
+
 
 bool SymbolWord::isSymbol(string token)
  {
