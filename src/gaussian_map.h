@@ -98,7 +98,7 @@ class GaussianMap {
   void writeCells(FileStorage & fsvO);
   void recalculateMusAndSigmas(MachineState * ms);
 
-  void rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out);
+  void rgbDiscrepancyMuToMat(MachineState * ms, Mat& out);
   void rgbMuToMat(Mat& out);
   void rgbSigmaSquaredToMat(Mat& out);
   void rgbCountsToMat(Mat& out);
@@ -177,9 +177,9 @@ class Scene {
 
   double cell_width = 0.01;
 
-  std::shared_ptr<MachineState> ms;
+  MachineState * ms;
 
-  Scene(shared_ptr<MachineState> ms, int w, int h, double cw, eePose pose);
+  Scene(MachineState * ms, int w, int h, double cw, eePose pose);
   void reallocate();
 
   vector< shared_ptr<GaussianMap> > depth_stack;
@@ -254,7 +254,7 @@ class Scene {
   void readPredictedObjects(FileNode & fn);
   void writePredictedObjects(FileStorage & fsvO);
 
-  static shared_ptr<Scene> createFromFile(shared_ptr<MachineState> ms, string filename);
+  static shared_ptr<Scene> createFromFile(MachineState * ms, string filename);
 };
 
 

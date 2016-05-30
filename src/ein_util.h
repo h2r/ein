@@ -58,12 +58,12 @@ typedef enum {
 #define O_FILTER_SPOON_SHAFT_WIDTH 2
 
 
-void pushGridSign(shared_ptr<MachineState> ms, double speed);
+void pushGridSign(MachineState * ms, double speed);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
-void initializeMachine(shared_ptr<MachineState> ms);
+void initializeMachine(MachineState * ms);
 string formatTime(ros::Time time);
 bool copyDir(string src, string dest);
 
@@ -73,7 +73,7 @@ void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO);
 Mat readMatFromYaml(FileNode & fsvO);
 void writeMatToYaml(Mat m, FileStorage & fsvO);
 
-string sceneModelFile(shared_ptr<MachineState> ms, string label);
+string sceneModelFile(MachineState * ms, string label);
 
 
 #endif /* _EIN_UTIL_H_ */

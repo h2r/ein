@@ -17,14 +17,14 @@ class WordAction: public QAction {
     Q_OBJECT
 
 public:
-  WordAction(QMenu*, shared_ptr<MachineState> ms, shared_ptr<Word> word);
+  WordAction(QMenu*, MachineState * ms, shared_ptr<Word> word);
 
 public slots:
  void pushWord();
  void execute();
 
  private:
-  shared_ptr<MachineState> ms;
+  MachineState * ms;
   shared_ptr<Word> word;
   
 };

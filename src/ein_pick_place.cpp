@@ -1,7 +1,7 @@
 #include "ein_words.h"
 #include "ein.h"
 
-void targetBoxMemory(shared_ptr<MachineState> ms, int memoryIdx) {
+void targetBoxMemory(MachineState * ms, int memoryIdx) {
   BoxMemory memory = ms->config.blueBoxMemories[memoryIdx];
   ms->config.targetBlueBox = memoryIdx;
 
@@ -17,7 +17,7 @@ void targetBoxMemory(shared_ptr<MachineState> ms, int memoryIdx) {
 namespace ein_words {
 
 WORD(TwoPartPlaceObjectOnObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   
   string firstObjectLabel;
   GET_ARG(ms, StringWord, firstObjectLabel);
@@ -45,7 +45,7 @@ END_WORD
 REGISTER_WORD(TwoPartPlaceObjectOnObject)
 
 WORD(PlaceHeldObjectOnObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string secondObjectLabel;
   GET_ARG(ms, StringWord, secondObjectLabel);
   // this is specified in mm
@@ -70,7 +70,7 @@ END_WORD
 REGISTER_WORD(PlaceHeldObjectOnObject)
 
 WORD(DucksInARow)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   eePose destPose;
   CONSUME_EEPOSE(destPose,ms);
 
@@ -86,7 +86,7 @@ END_WORD
 REGISTER_WORD(DucksInARow)
 
 WORD(CornellMugsOnTables)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   
   // cTableHeight moves with the flush factor
   double cTableHeight = -0.017;//-0.045;//0.0;//0.025;
@@ -115,21 +115,21 @@ REGISTER_WORD(CornellMugsOnTables)
 
 
 WORD(SqueezeDuck)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("returnObject .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt .20 waitForSeconds 0 openGripperInt .20 waitForSeconds 40 openGripperInt pickFocusedClass setPlaceModeToHold 1 changeToHeight assumeBeeHome endArgs \"duck\" setClassLabels ;");
 }
 END_WORD
 REGISTER_WORD(SqueezeDuck)
 
 WORD(QuiveringPalm)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("setGridSizeCoarse \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord \"0.03\" waitForSeconds oZDown 6 replicateWord \"0.03\" waitForSeconds oZUp 6 replicateWord setGridSizeCoarse \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localXDown 8 replicateWord \"0.03\" waitForSeconds localXUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord \"0.03\" waitForSeconds localYDown 8 replicateWord \"0.03\" waitForSeconds localYUp 4 replicateWord zDown setMovementSpeedMoveSlow");
 }
 END_WORD
 REGISTER_WORD(QuiveringPalm)
 
 WORD(MoveObjectToObjectByAmount)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string firstObjectLabel;
   string secondObjectLabel;
   double cTableHeight = 0;
@@ -151,7 +151,7 @@ END_WORD
 REGISTER_WORD(MoveObjectToObjectByAmount)
 
 WORD(MoveObjectBetweenObjectAndObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string firstObjectLabel;
   string secondObjectLabel;
   string thirdObjectLabel;
@@ -173,7 +173,7 @@ END_WORD
 REGISTER_WORD(MoveObjectBetweenObjectAndObject)
 
 WORD(SetTheYcbTable)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
 // XXX broken unless you do something with AssumeDeliveryPose
 // XXX ms->config.currentEEPose.pz = oldz;
@@ -227,7 +227,7 @@ END_WORD
 REGISTER_WORD(SetTheYcbTable)
 
 WORD(MoveObjectToPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string className;
   GET_ARG(ms, StringWord, className);
   {
@@ -244,7 +244,7 @@ END_WORD
 REGISTER_WORD(MoveObjectToPose)
 
 WORD(MoveTargetObjectToPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   eePose destPose;
   GET_ARG(ms, EePoseWord, destPose);
   {
@@ -258,7 +258,7 @@ END_WORD
 REGISTER_WORD(MoveTargetObjectToPose)
 
 WORD(DeliverObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string className;
   GET_ARG(ms, StringWord, className);
   {
@@ -275,7 +275,7 @@ END_WORD
 REGISTER_WORD(DeliverObject)
 
 WORD(UnmapTargetBlueBox)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int idxToRemove = ms->config.targetBlueBox;
   if ((idxToRemove >= 0) && (idxToRemove < ms->config.blueBoxMemories.size())) {
   } else {
@@ -336,7 +336,7 @@ END_WORD
 REGISTER_WORD(UnmapTargetBlueBox)
 
 WORD(DeliverTargetObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.bailAfterGradient = 1;
 
   ms->config.pilotTarget.px = -1;
@@ -395,7 +395,7 @@ REGISTER_WORD(DeliverTargetObject)
 
 
 WORD(DeliverTargetBoxMemory)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
 
   //ms->pushWord("unmapTargetBlueBox");
@@ -446,7 +446,7 @@ END_WORD
 REGISTER_WORD(DeliverTargetBoxMemory)
 
 WORD(PlaceObjectInDeliveryZone)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.currentPlaceMode == PLACE_REGISTER) {
   ms->pushWord("idler"); 
   ms->pushWord("unmapTargetBlueBox");
@@ -588,7 +588,7 @@ REGISTER_WORD(PlaceObjectInDeliveryZone)
 
 
 WORD(AssumeDeliveryPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double oldz = ms->config.currentEEPose.pz;
   ms->config.currentEEPose = ms->config.placeTarget;
   cout << "assumeDeliveryPose: " << ms->config.currentEEPose << endl;
@@ -604,35 +604,35 @@ REGISTER_WORD(AssumeDeliveryPose)
 
   
 WORD(SetPlaceModeToHold)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPlaceMode = HOLD;
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToHold)
 
 WORD(SetPlaceModeToShake)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPlaceMode = SHAKE;
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToShake)
 
 WORD(SetPlaceModeToHand)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPlaceMode = HAND;
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToHand)
 
 WORD(SetPlaceModeToRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPlaceMode = PLACE_REGISTER;
 }
 END_WORD
 REGISTER_WORD(SetPlaceModeToRegister)
 
 WORD(ReturnObject)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "Returning object." << endl;
   if (ms->config.snapToFlushGrasp) {
@@ -657,7 +657,7 @@ END_WORD
 REGISTER_WORD(ReturnObject)
 
 WORD(SetBreakGraspTiesWithNoise)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int valToSet = 0;
   GET_ARG(ms, IntegerWord, valToSet);
@@ -669,7 +669,7 @@ END_WORD
 REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
 WORD(SetStiffness)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 /*
 Don't use this code, if stiff == 1 the robot flails dangerously...
@@ -687,7 +687,7 @@ REGISTER_WORD(SetStiffness)
 
 
 WORD(TurnAboutY)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("replicateWord");
@@ -706,7 +706,7 @@ END_WORD
 REGISTER_WORD(TurnAboutY)
 
 WORD(UnTurnAboutY)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord("replicateWord");
@@ -725,7 +725,7 @@ END_WORD
 REGISTER_WORD(UnTurnAboutY)
 
 WORD(PressAndGrasp)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double p_rushToHeight = 0.05;
   ms->config.currentEEPose.pz = -ms->config.currentTableZ + ms->config.pickFlushFactor + p_rushToHeight;
@@ -738,7 +738,7 @@ END_WORD
 REGISTER_WORD(PressAndGrasp)
 
 WORD(PressAndGraspA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   if (ms->config.currentMovementState == BLOCKED) {
@@ -797,7 +797,7 @@ END_WORD
 REGISTER_WORD(PressAndGraspA)
 
 WORD(SetPressPose)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.pressPose = ms->config.currentEEPose;
 }
@@ -805,7 +805,7 @@ END_WORD
 REGISTER_WORD(SetPressPose)
 
 WORD(PressAndRelease)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("pressAndReleaseA");
   ms->pushWord("setMovementStateToMoving");
@@ -816,7 +816,7 @@ END_WORD
 REGISTER_WORD(PressAndRelease)
 
 WORD(PressAndReleaseA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
@@ -871,7 +871,7 @@ END_WORD
 REGISTER_WORD(PressAndReleaseA)
 
 WORD(RegisterWrench)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.targetWrench = ms->config.trueEEWrench; 
 
@@ -881,7 +881,7 @@ END_WORD
 REGISTER_WORD(RegisterWrench)
 
 WORD(RegisterWrenchA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "registerWrenchA: ";
   double totalDiff = 0.0;
@@ -904,7 +904,7 @@ END_WORD
 REGISTER_WORD(RegisterWrenchA)
 
 WORD(WaitUntilEffort)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.waitUntilEffortCounter = 0;
   ms->pushWord("waitUntilEffortA");
@@ -914,7 +914,7 @@ END_WORD
 REGISTER_WORD(WaitUntilEffort)
 
 WORD(WaitUntilEffortA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.waitUntilEffortCounter < ms->config.waitUntilEffortCounterTimeout) {
 
@@ -947,7 +947,7 @@ END_WORD
 REGISTER_WORD(WaitUntilEffortA)
 
 WORD(RegisterEffort)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("registerEffortA");
   ms->pushWord("setEffortHere");
@@ -956,7 +956,7 @@ END_WORD
 REGISTER_WORD(RegisterEffort)
 
 WORD(RegisterEffortA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "registerEffortA: ";
   double totalDiff = 0.0;
@@ -982,7 +982,7 @@ END_WORD
 REGISTER_WORD(RegisterEffortA)
 
 WORD(SetEffortHere)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   for (int i = 0; i < NUM_JOINTS; i++) {
     ms->config.target_joint_actual_effort[i] = ms->config.last_joint_actual_effort[i];
@@ -993,7 +993,7 @@ END_WORD
 REGISTER_WORD(SetEffortHere)
 
 WORD(PressUntilEffortInit)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("setEffortThresh");
   ms->pushWord("7.0");
@@ -1010,7 +1010,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortInit)
 
 WORD(PressUntilEffort)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("waitSetCurrentWaitMode");
   ms->config.pressUntilEffortStart = ros::Time::now();
@@ -1026,7 +1026,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffort)
 
 WORD(PressUntilEffortA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if ( ros::Time::now().toSec() - ms->config.pressUntilEffortStart.toSec() < ms->config.pressUntilEffortTimeout ) {
     //cout << "pressUntilEffortA: ";
@@ -1071,7 +1071,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortA)
 
 WORD(PressUntilEffortOrTwistInit)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("setEffortThresh");
   ms->pushWord("7.0");
@@ -1090,7 +1090,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortOrTwistInit)
 
 WORD(PressUntilEffortOrTwist)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.pressUntilEffortStart = ros::Time::now();
   ms->pushWord("waitSetCurrentWaitMode");
@@ -1107,7 +1107,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortOrTwist)
 
 WORD(PressUntilEffortStart)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("setSpeed");
   ms->pushWord("waitSetCurrentWaitMode");
@@ -1121,7 +1121,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortStart)
 
 WORD(PressUntilEffortCombo)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   // restore
   ms->pushWord("setW1GoThresh");
@@ -1155,7 +1155,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortCombo)
 
 WORD(PressUntilEffortOrTwistA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double qdistance = eePose::distanceQ(ms->config.pressPose, ms->config.trueEEPoseEEPose);
 
@@ -1206,7 +1206,7 @@ END_WORD
 REGISTER_WORD(PressUntilEffortOrTwistA)
 
 WORD(Stay)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "Stay!" << endl;
   ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
@@ -1215,7 +1215,7 @@ END_WORD
 REGISTER_WORD(Stay)
 
 WORD(StayNoRoll)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "StayNoRoll!" << endl;
   ms->config.currentEEPose.copyP(ms->config.trueEEPoseEEPose);
@@ -1224,7 +1224,7 @@ END_WORD
 REGISTER_WORD(StayNoRoll)
 
 WORD(StayZOnly)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "StayZOnly!" << endl;
   ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz;
@@ -1233,7 +1233,7 @@ END_WORD
 REGISTER_WORD(StayZOnly)
 
 WORD(RockInit)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   ms->pushWord("setSpeed");
@@ -1245,7 +1245,7 @@ END_WORD
 REGISTER_WORD(RockInit)
 
 WORD(Rock)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -1330,7 +1330,7 @@ END_WORD
 REGISTER_WORD(Rock)
 
 WORD(RockA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double totalDiff = 0.0;
   for (int i = 0; i < NUM_JOINTS; i++) {
@@ -1355,7 +1355,7 @@ END_WORD
 REGISTER_WORD(RockA)
 
 WORD(RockB)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double totalDiff = 0.0;
   for (int i = 0; i < NUM_JOINTS; i++) {
@@ -1370,7 +1370,7 @@ END_WORD
 REGISTER_WORD(RockB)
 
 WORD(RockC)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.rockDiffB  > ms->config.rockDiffA) {
     ms->pushWord("waitUntilAtCurrentPosition");
@@ -1403,7 +1403,7 @@ END_WORD
 REGISTER_WORD(RockC)
 
 WORD(RockDA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentEEPose.copyP(ms->config.eepReg1);
 }
@@ -1411,7 +1411,7 @@ END_WORD
 REGISTER_WORD(RockDA)
 
 WORD(RockD)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("rockDA");
   ms->pushWord("waitUntilAtCurrentPosition");
@@ -1424,7 +1424,7 @@ END_WORD
 REGISTER_WORD(RockD)
 
 WORD(Roll)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 }
 END_WORD
@@ -1432,7 +1432,7 @@ REGISTER_WORD(Roll)
 
 
 WORD(PickClosestBlueBox)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double bestDistance = VERYBIGNUMBER;
   BoxMemory bestBox;
   int bestI;

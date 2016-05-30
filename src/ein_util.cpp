@@ -100,7 +100,7 @@ std::string operationStatusToString(operationStatusType mode)
 }
 
 
-void pushGridSign(shared_ptr<MachineState> ms, double speed) {
+void pushGridSign(MachineState * ms, double speed) {
 
   if (speed == NOW_THATS_COARSE) {
     ms->pushWord("setGridSizeNowThatsCoarse"); 
@@ -169,7 +169,7 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 
-void initializeMachine(shared_ptr<MachineState> ms) {
+void initializeMachine(MachineState * ms) {
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
   ms->evaluateProgram("cameraFitQuadratic 1 cameraSetCalibrationMode");
@@ -314,6 +314,6 @@ bool copyDir(string src, string dest) {
 
 }
 
-string sceneModelFile(shared_ptr<MachineState> ms, string label) {
+string sceneModelFile(MachineState * ms, string label) {
   return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
 }

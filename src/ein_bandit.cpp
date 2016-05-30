@@ -10,7 +10,7 @@ CONFIG_SETTER_ENUM(BanditSetPickMode, ms->config.currentPickMode, (pickMode));
 
 WORD(SetRandomPositionAndOrientationForHeightLearning)
 CODE( 1179687)     // capslock + numlock + '
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double param_numTries = 1000;
 
@@ -50,7 +50,7 @@ REGISTER_WORD(SetRandomPositionAndOrientationForHeightLearning)
 
 WORD(BeginHeightLearning)
 CODE(1245242)     // capslock + numlock + :
-virtual void execute(std::shared_ptr<MachineState> ms)       {
+virtual void execute(MachineState * ms)       {
   ms->config.eepReg3 = ms->config.beeHome;
   ms->config.heightAttemptCounter = 0;
   ms->config.heightSuccessCounter = 0;
@@ -75,7 +75,7 @@ REGISTER_WORD(BeginHeightLearning)
 
 WORD(ContinueHeightLearning)
 CODE(1179707)     // capslock + numlock + ;
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
+  virtual void execute(MachineState * ms)       {
   cout << "continuing bounding box learning with currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
   ms->config.synServoLockFrames = 0;
   ms->config.currentGradientServoIterations = 0;
@@ -137,7 +137,7 @@ REGISTER_WORD(ContinueHeightLearning)
 
 WORD(RecordHeightLearnTrial)
 CODE(1179694)     // capslock + numlock + .
-  virtual void execute(std::shared_ptr<MachineState> ms)       {
+  virtual void execute(MachineState * ms)       {
 
   double param_bbLearnThresh = 0.05;//0.04;
   double param_bbQuatThresh = 1000;//0.05;
@@ -170,7 +170,7 @@ REGISTER_WORD(RecordHeightLearnTrial)
 
 WORD(LoadSampledGraspMemory)
 CODE(131117)     // capslock + -
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadSampledGraspMemory(ms);
   drawMapRegisters(ms);
 }
@@ -179,7 +179,7 @@ REGISTER_WORD(LoadSampledGraspMemory)
 
 WORD(LoadMarginalGraspMemory)
 CODE(131133)     // capslock + =
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadMarginalGraspMemory(ms);
   drawMapRegisters(ms);
 }
@@ -188,7 +188,7 @@ REGISTER_WORD(LoadMarginalGraspMemory)
 
 WORD(LoadPriorGraspMemoryAnalytic)
 CODE(196360)     // capslock + backspace
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
   copyGraspMemoryTriesToClassGraspMemoryTries(ms);
   loadMarginalGraspMemory(ms);
@@ -206,7 +206,7 @@ REGISTER_WORD(LoadPriorGraspMemoryAnalytic)
 
 WORD(LoadPriorGraspMemoryUniform)
 CODE(261896)     // capslock + shift + backspace
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadPriorGraspMemory(ms, UNIFORM_PRIOR);
   copyGraspMemoryTriesToClassGraspMemoryTries(ms);
   loadMarginalGraspMemory(ms);
@@ -223,7 +223,7 @@ REGISTER_WORD(LoadPriorGraspMemoryUniform)
 
 WORD(LoadSampledHeightMemory)
 CODE(1179693)     // capslock + numlock + -
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadSampledHeightMemory(ms);
   drawHeightMemorySample(ms);
 }
@@ -232,7 +232,7 @@ REGISTER_WORD(LoadSampledHeightMemory)
 
 WORD(LoadMarginalHeightMemory)
 CODE(1179709)     // capslock + numlock + =
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadMarginalHeightMemory(ms);
   drawHeightMemorySample(ms);
 }
@@ -241,7 +241,7 @@ REGISTER_WORD(LoadMarginalHeightMemory)
 
 WORD(LoadPriorHeightMemoryAnalytic)
 CODE(1244936)     // capslock + numlock + backspace
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
@@ -252,7 +252,7 @@ REGISTER_WORD(LoadPriorHeightMemoryAnalytic)
 
 WORD(LoadPriorHeightMemoryUniform)
 CODE(1310472)     // capslock + numlock + shift + backspace
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   loadPriorHeightMemory(ms, UNIFORM_PRIOR);
   copyHeightMemoryTriesToClassHeightMemoryTries(ms);
   loadMarginalHeightMemory(ms);
@@ -264,7 +264,7 @@ REGISTER_WORD(LoadPriorHeightMemoryUniform)
 
 WORD(SetPickModeToStaticPrior)
 CODE(1179731)     // capslock + numlock + s
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPickMode = STATIC_PRIOR;
   cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
@@ -273,7 +273,7 @@ REGISTER_WORD(SetPickModeToStaticPrior)
 
 WORD(SetPickModeToLearningSampling)
 CODE(1179716)     // capslock + numlock + d
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPickMode = LEARNING_SAMPLING;
   cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
@@ -282,7 +282,7 @@ REGISTER_WORD(SetPickModeToLearningSampling)
 
 WORD(SetPickModeToLearningAlgorithmC)
 CODE(1245284) // capslock + numlock + D
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPickMode = LEARNING_ALGORITHMC;
   cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
@@ -291,7 +291,7 @@ REGISTER_WORD(SetPickModeToLearningAlgorithmC)
 
 WORD(SetPickModeToStaticMarginals)
 CODE(1179718)     // capslock + numlock + f
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentPickMode = STATIC_MARGINALS;
   cout << "currentPickMode = " << pickModeToString(ms->config.currentPickMode) << endl;
 }
@@ -300,7 +300,7 @@ REGISTER_WORD(SetPickModeToStaticMarginals)
 
 
 WORD(SetBoundingBoxModeToMapping)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentBoundingBoxMode = MAPPING;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
@@ -309,7 +309,7 @@ REGISTER_WORD(SetBoundingBoxModeToMapping)
 
 WORD(SetBoundingBoxModeToStaticPrior)
 CODE(1179722)     // capslock + numlock + j
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentBoundingBoxMode = STATIC_PRIOR;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
@@ -318,7 +318,7 @@ REGISTER_WORD(SetBoundingBoxModeToStaticPrior)
 
 WORD(SetBoundingBoxModeToLearningSampling)
 CODE(1179723)     // capslock + numlock + k
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentBoundingBoxMode = LEARNING_SAMPLING;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
@@ -327,7 +327,7 @@ REGISTER_WORD(SetBoundingBoxModeToLearningSampling)
 
 WORD(SetBoundingBoxModeToLearningAlgorithmC)
 CODE(1245291)     // capslock + numlock + K
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentBoundingBoxMode = LEARNING_ALGORITHMC;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
@@ -336,7 +336,7 @@ REGISTER_WORD(SetBoundingBoxModeToLearningAlgorithmC)
 
 WORD(SetBoundingBoxModeToStaticMarginals)
 CODE(1179724)     // capslock + numlock + l
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentBoundingBoxMode = STATIC_MARGINALS;
   cout << "currentBoundingBoxMode  =  " << pickModeToString(ms->config.currentBoundingBoxMode) << endl;
 }
@@ -345,7 +345,7 @@ REGISTER_WORD(SetBoundingBoxModeToStaticMarginals)
 
 WORD(UniformlySampleHeight)
 CODE(1245246)      // capslock + numlock + >
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisRandThompsonHeight = lrand48() % ms->config.hmWidth;
   if (ms->config.currentBoundingBoxMode == MAPPING) {
     thisRandThompsonHeight = ms->config.mappingHeightIdx;
@@ -365,7 +365,7 @@ REGISTER_WORD(UniformlySampleHeight)
 WORD(SetGraspMemoriesFromClassGraspMemories)  
 // capslock + numlock + i
 CODE(1179721)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   copyClassGraspMemoryTriesToGraspMemoryTries(ms);
 }
 END_WORD
@@ -375,7 +375,7 @@ REGISTER_WORD(SetGraspMemoriesFromClassGraspMemories)
 WORD(SetHeightMemoriesFromClassHeightMemories)
 // capslock + numlock + I 
 CODE(1245289)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
         cout << "Loading height memories." << endl;
         if ((ms->config.classHeightMemoryTries[ms->config.targetClass].rows > 1) && (ms->config.classHeightMemoryPicks[ms->config.targetClass].cols == 1)) {
@@ -396,7 +396,7 @@ REGISTER_WORD(SetHeightMemoriesFromClassHeightMemories)
 
 
 WORD(MoveToMappingHeight)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms->p, ms->config.mappingHeightIdx);
   ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
@@ -407,7 +407,7 @@ REGISTER_WORD(MoveToMappingHeight)
 
 WORD(SampleHeight)
 CODE(1245247)   // capslock + numlock + ?
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
     
   if (ms->config.currentBoundingBoxMode != STATIC_PRIOR) {
     if (ms->config.currentBoundingBoxMode == MAPPING) {
@@ -466,7 +466,7 @@ END_WORD
 REGISTER_WORD(SampleHeight)
 
 WORD(PickFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   
   if (isFocusedClassValid(ms)) {
     cout << "pickFocusedClass: focused class valid, proceeding to pick." << endl;
@@ -496,7 +496,7 @@ END_WORD
 REGISTER_WORD(PickFocusedClass)
 
 WORD(FocusedGraspLearning)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.graspAttemptCounter = 0;
   ms->config.graspSuccessCounter = 0;
@@ -516,7 +516,7 @@ END_WORD
 REGISTER_WORD(FocusedGraspLearning)
 
 WORD(FocusedGraspLearningA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ARE_GENERIC_PICK_LEARNING(ms)) {
     if (ms->config.thompsonHardCutoff) {

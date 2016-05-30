@@ -15,7 +15,7 @@ class ArmWidget : public QWidget
   Q_OBJECT
   
 public: 
-  ArmWidget(QWidget * parent, shared_ptr<MachineState> ms);
+  ArmWidget(QWidget * parent, MachineState * ms);
   void update();
   DefaultEinViewPort wristView;
 
@@ -28,7 +28,7 @@ private:
     StackModel * callStackModel;
 
     CaptureLineEdit * captureLineEdit;
-    shared_ptr<MachineState> ms;
+    MachineState * ms;
     
     QCompleter * completer;
 
