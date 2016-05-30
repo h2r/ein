@@ -1901,6 +1901,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
       }
     }
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+    // don't sort because all are searched below
   } else {
     assert(0);
   }
@@ -4913,8 +4914,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
   Mat fake_filter = ms->config.class_scene_models[tfc]->discrepancy_magnitude;
-  int w = fake_filter.cols;
-  int h = fake_filter.rows;
+  int w = fake_filter.rows;
+  int h = fake_filter.cols;
   // count cells
   double num_pos = 0;
   double num_neg = 0;
@@ -4944,43 +4945,51 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double counts_scale = 1e4;
 
+cout << "tfc: " << tfc << endl;
   // fill out proper values
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
       double this_x_m, this_y_m;
-      ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
+      ms->config.class_scene_models[tfc]->cellToMeters(x,y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
 	fake_filter.at<double>(x,y) = scale*pos_factor;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*192;
+cout << "a ";
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*192;
 	} else {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
+cout << "b ";
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*64;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
+cout << "c ";
 	fake_filter.at<double>(x,y) = -negative_space_weight_ratio*scale*neg_factor;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*128;
       } else {
+cout << "d ";
 	fake_filter.at<double>(x,y) = 0.0;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*128;
       }
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts / counts_scale, 2.0)*counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts / counts_scale, 2.0)*counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts / counts_scale, 2.0)*counts_scale;
+
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
     }
+cout << endl;
   }
   ms->config.class_scene_models[tfc]->discrepancy_density = fake_filter.clone();
   // XXX push a table flush 3d crane grasp at the center
