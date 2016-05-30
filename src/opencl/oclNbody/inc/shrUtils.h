@@ -105,9 +105,9 @@ enum shrBOOL
 };
 
 // Standardized MAX, MIN and CLAMP
-#define MAX(a, b) ((a > b) ? a : b)
-#define MIN(a, b) ((a < b) ? a : b)
-#define CLAMP(a, b, c) MIN(MAX(a, b), c)    // double sided clip of input a
+#define OCLMAX(a, b) ((a > b) ? a : b)
+#define OCLMIN(a, b) ((a < b) ? a : b)
+#define CLAMP(a, b, c) OCLMIN(OCLMAX(a, b), c)    // double sided clip of input a
 #define TOPCLAMP(a, b) (a < b ? a:b)	    // single top side clip of input a
 
 // Error and Exit Handling Macros... 
