@@ -112,7 +112,7 @@ SSDP_ENABLE=1
   x = r; \
   cout << "dgbi got: " << r << " for " << #x << endl; 
 
-void dogReconnect(std::shared_ptr<MachineState> ms) {
+void dogReconnect(MachineState * ms) {
   ms->pack[ms->focusedMember].aibo_socket_did_connect = 0;
   ms->pack[ms->focusedMember].dog_needs_reinit = 1;
   close(ms->pack[ms->focusedMember].aibo_socket_desc);
@@ -162,7 +162,7 @@ string EinAiboJoints::toString() {
   buf << "mouth: " <<  mouth << " ";
   return buf.str();
 }
-bool dogIsStopped(std::shared_ptr<MachineState> ms, int member) {
+bool dogIsStopped(MachineState * ms, int member) {
   EinAiboConfig & dog = ms->pack[member];
   cout << "Intended joints: " << dog.targetJoints.toString() << endl;
   cout << "True joints: " << dog.trueJoints.toString() << endl;
@@ -173,7 +173,7 @@ bool dogIsStopped(std::shared_ptr<MachineState> ms, int member) {
   return false;
 }
 
-void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string message) {
+void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
   if (ms->pack.size() == 0) {
     ROS_ERROR_STREAM("No pack; need to initialize.");
@@ -196,7 +196,7 @@ void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, string messag
   }
 }
 
-void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, char *buf, int size) {
+void sendOnDogSocket(MachineState * ms, int member, char *buf, int size) {
   int p_send_poll_timeout = 5000;
   struct pollfd fd = { ms->pack[member].aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
@@ -215,7 +215,7 @@ void sendOnDogSocket(std::shared_ptr<MachineState> ms, int member, char *buf, in
   }
 }
 
-void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
+void flushDogBuffer(MachineState * ms, int member) {
   int p_flush_wait_milliseconds = 250;
 
   int read_size = 1;
@@ -253,7 +253,7 @@ void flushDogBuffer(std::shared_ptr<MachineState> ms, int member) {
   }
 }
 
-int getBytesFromDog(std::shared_ptr<MachineState> ms, int member, int bytesToGet, int timeout) {
+int getBytesFromDog(MachineState * ms, int member, int bytesToGet, int timeout) {
   int read_size = 1;
   ms->pack[member].aibo_sock_buf_valid_bytes = 0;
   int sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
@@ -297,7 +297,7 @@ int getBytesFromDog(std::shared_ptr<MachineState> ms, int member, int bytesToGet
 }
 
 // returns the byte after the searched string
-int readBytesFromDogUntilString(std::shared_ptr<MachineState> ms, int member, int timeout, string toFind) {
+int readBytesFromDogUntilString(MachineState * ms, int member, int timeout, string toFind) {
   int read_size = 1;
   ms->pack[member].aibo_sock_buf_valid_bytes = 0;
   int sbStart = ms->pack[member].aibo_sock_buf_valid_bytes;
@@ -353,7 +353,7 @@ int readBytesFromDogUntilString(std::shared_ptr<MachineState> ms, int member, in
 }
 
 // returns the byte after the searched string
-int findStringInDogBuffer(std::shared_ptr<MachineState> ms, int member, string toFind, int start) {
+int findStringInDogBuffer(MachineState * ms, int member, string toFind, int start) {
   int searchedBytes = 0;
   for (searchedBytes = start; searchedBytes < (ms->pack[member].aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
     if (toFind.compare(0, toFind.size(), &(ms->pack[member].aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
@@ -378,7 +378,7 @@ int findStringInDogBuffer(std::shared_ptr<MachineState> ms, int member, string t
 namespace ein_words {
 
 WORD(DogSendPack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -390,7 +390,7 @@ END_WORD
 REGISTER_WORD(DogSendPack)
 
 WORD(DogDoPack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<Word> w1;
   GET_WORD_ARG(ms, Word, w1);
 
@@ -403,7 +403,7 @@ END_WORD
 REGISTER_WORD(DogDoPack)
 
 WORD(DogStop)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   string message("stopall;");
@@ -413,14 +413,14 @@ END_WORD
 REGISTER_WORD(DogStop)
 
 WORD(DogIncrementFocusedMember)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->focusedMember = (ms->focusedMember + 1) % ms->pack.size();
 }
 END_WORD
 REGISTER_WORD(DogIncrementFocusedMember)
 
 WORD(DogDecrementPackMember)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->focusedMember = (ms->focusedMember - 1) % ms->pack.size();
 }
 END_WORD
@@ -428,7 +428,7 @@ REGISTER_WORD(DogDecrementPackMember)
 
 
 WORD(DogSetPackSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int toSet = 0;
   GET_INT_ARG(ms, toSet);
 
@@ -443,7 +443,7 @@ END_WORD
 REGISTER_WORD(DogSetPackSize)
 
 WORD(DogDispersePack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pack.resize(2);
   for (int m = 0; m < ms->pack.size(); m++) {
     stringstream ss;
@@ -455,7 +455,7 @@ END_WORD
 REGISTER_WORD(DogDispersePack)
 
 WORD(DogSetFocusedMember)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int toSet = 0;
   GET_INT_ARG(ms, toSet);
   if ((toSet >= 0) && (toSet < ms->pack.size())) {
@@ -469,14 +469,14 @@ END_WORD
 REGISTER_WORD(DogSetFocusedMember)
 
 WORD(DogFocusedMember)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord(make_shared<IntegerWord>(ms->focusedMember));
 }
 END_WORD
 REGISTER_WORD(DogFocusedMember)
 
 WORD(DogBark)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("socketSend");
   ms->pushWord(make_shared<StringWord>("speaker.play(\"bark.wav\");"));
 }
@@ -484,28 +484,28 @@ END_WORD
 REGISTER_WORD(DogBark)
 
 WORD(DogFocusedIP)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord(make_shared<StringWord>(ms->pack[ms->focusedMember].ip_string));
 }
 END_WORD
 REGISTER_WORD(DogFocusedIP)
 
 WORD(DogNeedsReinit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord(make_shared<IntegerWord>(ms->pack[ms->focusedMember].dog_needs_reinit));
 }
 END_WORD
 REGISTER_WORD(DogNeedsReinit)
 
 WORD(DogSignalReinitDone)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pack[ms->focusedMember].dog_needs_reinit = 0;
 }
 END_WORD
 REGISTER_WORD(DogSignalReinitDone)
 
 WORD(SocketOpen)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   signal(SIGCHLD,SIG_IGN);
   string t_ip;
   int t_port = 0;
@@ -549,7 +549,7 @@ REGISTER_WORD(SocketOpen)
 
 
 WORD(DogSocketDidConnect)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<IntegerWord> word = std::make_shared<IntegerWord>(ms->pack[ms->focusedMember].aibo_socket_did_connect);
   ms->pushWord(word);
 }
@@ -557,7 +557,7 @@ END_WORD
 REGISTER_WORD(DogSocketDidConnect)
 
 WORD(SocketClose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // destroy old socket
   close(ms->pack[ms->focusedMember].aibo_socket_desc);
 }
@@ -565,7 +565,7 @@ END_WORD
 REGISTER_WORD(SocketClose)
 
 WORD(SocketSend)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // send to dog
   string message;
   GET_STRING_ARG(ms, message);
@@ -576,7 +576,7 @@ END_WORD
 REGISTER_WORD(SocketSend)
 
 WORD(SocketRead)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // return if not ready to read.
   // 1 millisecond timeout
   struct pollfd fd;
@@ -617,21 +617,21 @@ REGISTER_WORD(SocketRead)
 
 
 WORD(DogWhistle)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"192.168.1.127\" 54000 socketOpen");
 }
 END_WORD
 REGISTER_WORD(DogWhistle)
 
 WORD(DogMotorsOn)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"motors on;\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogMotorsOn)
 
 WORD(DogMotorsOff)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"motors off;\" socketSend");
 }
 END_WORD
@@ -640,21 +640,21 @@ REGISTER_WORD(DogMotorsOff)
 //// start swtrans.u wrappers
 
 WORD(DogLayDown)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.LayDown();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogLayDown)
 
 WORD(DogStandUp)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.StandUp();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogStandUp)
 
 WORD(DogSitDown)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.SitDown();\" socketSend");
 }
 END_WORD
@@ -689,7 +689,7 @@ Variables:
 //// start motion.u wrappers
 
 WORD(DogWalkSeconds)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify in seconds
   double duration = 0.0;
   GET_NUMERIC_ARG(ms, duration);
@@ -702,7 +702,7 @@ END_WORD
 REGISTER_WORD(DogWalkSeconds)
 
 WORD(DogTurnSeconds)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify in seconds
   double duration = 0.0;
   GET_NUMERIC_ARG(ms, duration);
@@ -715,7 +715,7 @@ END_WORD
 REGISTER_WORD(DogTurnSeconds)
 
 WORD(DogWalkMeters)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify in meters measured with robot.walkspeed = 1s
   // this is not meant to be very accurate
   double meters = 0.0;
@@ -729,7 +729,7 @@ END_WORD
 REGISTER_WORD(DogWalkMeters)
 
 WORD(DogTurnRadians)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify in meters measured with robot.turnspeed = 1s
   double radians = 0.0;
   GET_NUMERIC_ARG(ms, radians);
@@ -744,56 +744,56 @@ REGISTER_WORD(DogTurnRadians)
 
 // this might not work...
 WORD(DogStopWalkTurn)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.stopturn(), robot.stopwalk();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogStopWalkTurn)
 
 WORD(DogInitial)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.initial();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogInitial)
 
 WORD(DogStretch)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.stretch();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogStretch)
 
 WORD(DogLay)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.lay();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogLay)
 
 WORD(DogSit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.sit();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogSit)
 
 WORD(DogBeg)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.beg();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogBeg)
 
 WORD(DogStand)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.stand();\" socketSend");
 }
 END_WORD
 REGISTER_WORD(DogStand)
 
 WORD(DogSetTurnSpeed)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify the period in seconds
   double seconds = 0.0;
   GET_NUMERIC_ARG(ms, seconds);
@@ -806,7 +806,7 @@ END_WORD
 REGISTER_WORD(DogSetTurnSpeed)
 
 WORD(DogSetWalkSpeed)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // specify the period in seconds
   double seconds = 0.0;
   GET_NUMERIC_ARG(ms, seconds);
@@ -821,7 +821,7 @@ REGISTER_WORD(DogSetWalkSpeed)
 //// end motion.u wrappers
 
 WORD(DogFormatImageDefault)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   ros::NodeHandle n("~");
   stringstream ss;
@@ -835,7 +835,7 @@ REGISTER_WORD(DogFormatImageDefault)
 
 // XXX this should be redone to detect and handle format using new dog read methods
 WORD(DogGetImage)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   int this_dog = ms->focusedMember;
 
@@ -898,7 +898,7 @@ END_WORD
 REGISTER_WORD(DogGetImage)
 
 WORD(DogPublishSnout)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   {
     sensor_msgs::Image msg;
@@ -919,7 +919,7 @@ END_WORD
 REGISTER_WORD(DogPublishSnout)
 
 WORD(DogGetSensoryMotorStates)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   // read until there is nothing
@@ -1041,7 +1041,7 @@ END_WORD
 REGISTER_WORD(DogGetSensoryMotorStates)
 
 WORD(DogGetIndicators)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   // read until there is nothing
@@ -1107,7 +1107,7 @@ REGISTER_WORD(DogGetIndicators)
 #define DOG_SEND_INDICATOR_VAR(x) << " " << #x << ".val = " << ms->pack[this_dog].intendedIndicators.x << ","
 
 WORD(DogSendMotorState)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   stringstream ss;
@@ -1214,7 +1214,7 @@ END_WORD
 REGISTER_WORD(DogSendMotorState)
 
 WORD(DogSendIndicators)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   stringstream ss;
@@ -1254,7 +1254,7 @@ END_WORD
 REGISTER_WORD(DogSendIndicators)
 
 WORD(DogStay)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   ms->pack[this_dog].intendedPose = ms->pack[this_dog].truePose;
   ms->pack[this_dog].intendedGain[0] = ms->pack[this_dog].trueGain[0];
@@ -1265,7 +1265,7 @@ END_WORD
 REGISTER_WORD(DogStay)
 
 WORD(DogPushIntendedPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->pack[this_dog].intendedPose);
@@ -1275,7 +1275,7 @@ END_WORD
 REGISTER_WORD(DogPushIntendedPose)
 
 WORD(DogPushIntendedGain)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int t_gain= 0;
   GET_INT_ARG(ms, t_gain);
 
@@ -1288,7 +1288,7 @@ END_WORD
 REGISTER_WORD(DogPushIntendedGain)
 
 WORD(DogPushTrueGain)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int t_gain= 0;
   GET_INT_ARG(ms, t_gain);
 
@@ -1301,7 +1301,7 @@ END_WORD
 REGISTER_WORD(DogPushTrueGain)
 
 WORD(DogCreatePose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   EinAiboJoints toPush;
@@ -1332,7 +1332,7 @@ END_WORD
 REGISTER_WORD(DogCreatePose)
 
 WORD(DogSetIntendedPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   shared_ptr<AiboPoseWord> word ;
@@ -1344,7 +1344,7 @@ END_WORD
 REGISTER_WORD(DogSetIntendedPose)
 
 WORD(DogSetIntendedGain)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int t_gain = 0;
   GET_INT_ARG(ms, t_gain);
 
@@ -1361,7 +1361,7 @@ REGISTER_WORD(DogSetIntendedGain)
 
 #define AIBO_POSE_ACCESSOR(J, C, D) \
 WORD(AiboPose ## J) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   shared_ptr<AiboPoseWord> word ; \
   GET_WORD_ARG(ms, AiboPoseWord, word); \
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
@@ -1371,7 +1371,7 @@ END_WORD \
 REGISTER_WORD(AiboPose ## J) \
 \
 WORD(SetAiboPose ## J) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   double value; \
   GET_NUMERIC_ARG(ms, value); \
    \
@@ -1412,7 +1412,7 @@ AIBO_POSE_ACCESSOR(Mouth   , word->value().mouth   , newPose.mouth   )
 
 #define AIBO_POSE_DELTAS(J, C, D) \
 WORD(Dog ## J ## Up) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   C += D; \
 } \
@@ -1420,7 +1420,7 @@ END_WORD \
 REGISTER_WORD(Dog ## J ## Up) \
 \
 WORD(Dog ## J ## Down) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   C -= D; \
 } \
@@ -1428,7 +1428,7 @@ END_WORD \
 REGISTER_WORD(Dog ## J ## Down) \
 \
 WORD(Dog ## J ## By) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
 \
   double amount = 0.0; \
@@ -1438,7 +1438,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(Dog ## J ## By) \
 WORD(Dog ## J ## To) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
 \
   double amount = 0.0; \
@@ -1450,7 +1450,7 @@ REGISTER_WORD(Dog ## J ## To) \
 
 #define AIBO_POSE_DELTAS_GAIN(J, C, D) \
 WORD(Dog ## J ## Up) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   C += D; \
   C = min( max( 0.0, C ), 18.0 ); \
@@ -1459,7 +1459,7 @@ END_WORD \
 REGISTER_WORD(Dog ## J ## Up) \
 \
 WORD(Dog ## J ## Down) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   C -= D; \
   C = min( max( 0.0, C ), 18.0 ); \
@@ -1468,7 +1468,7 @@ END_WORD \
 REGISTER_WORD(Dog ## J ## Down) \
 \
 WORD(Dog ## J ## By) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
 \
   double amount = 0.0; \
@@ -1480,7 +1480,7 @@ END_WORD \
 REGISTER_WORD(Dog ## J ## By) \
 \
 WORD(Dog ## J ## To) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
 \
   double amount = 0.0; \
@@ -1569,7 +1569,7 @@ AIBO_POSE_DELTAS_GAIN(TailTiltDGain, ms->pack[this_dog].intendedGain[2].tailTilt
 AIBO_POSE_DELTAS_GAIN(MouthDGain, ms->pack[this_dog].intendedGain[2].mouth, ms->pack[this_dog].dogGainGridSize)
 
 WORD(DogSetPoseGridSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double newgrid = 0.0;
@@ -1581,7 +1581,7 @@ END_WORD
 REGISTER_WORD(DogSetPoseGridSize)
 
 WORD(DogSetGainGridSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double newgrid = 0.0;
@@ -1594,7 +1594,7 @@ REGISTER_WORD(DogSetGainGridSize)
 
 #define AIBO_INDICATOR_ACCESSORS(J, C) \
 WORD(Dog ## J) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
   ms->pushData(vword); \
@@ -1602,7 +1602,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) { \
 END_WORD \
 REGISTER_WORD(Dog ## J) \
 WORD(DogSet ## J) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   double value; \
   GET_NUMERIC_ARG(ms, value); \
@@ -1641,7 +1641,7 @@ AIBO_INDICATOR_ACCESSORS(IntendedEarR, ms->pack[this_dog].intendedIndicators.ear
 
 #define AIBO_SENSOR_ACCESSORS(J, C) \
 WORD(Dog ## J) \
-virtual void execute(std::shared_ptr<MachineState> ms) { \
+virtual void execute(MachineState * ms) { \
   int this_dog = ms->focusedMember; \
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
   ms->pushData(vword); \
@@ -1694,7 +1694,7 @@ AIBO_SENSOR_ACCESSORS(AccelerometerY, ms->pack[this_dog].trueSensors.acceleromet
 AIBO_SENSOR_ACCESSORS(AccelerometerZ, ms->pack[this_dog].trueSensors.accelerometer[2]);
 
 WORD(DogReplaceWristImageWithSnoutImage)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   if (!isSketchyMat(ms->pack[this_dog].snoutCamImage)) {
     if ( (ms->pack[this_dog].snoutCamImage.rows == 400) && 
@@ -1714,7 +1714,7 @@ END_WORD
 REGISTER_WORD(DogReplaceWristImageWithSnoutImage)
 
 WORD(DogSendToneSin)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double d = 0.0;
@@ -1791,7 +1791,7 @@ double triangleWave(double t) {
 }
 
 WORD(DogSendToneSquare)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double d = 0.0;
@@ -1830,7 +1830,7 @@ END_WORD
 REGISTER_WORD(DogSendToneSquare)
 
 WORD(DogMorse)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   //double dmp = ms->pack[this_dog].dog_morse_period;
@@ -1971,7 +1971,7 @@ END_WORD
 REGISTER_WORD(DogMorse)
 
 WORD(DogChirpSin)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double sigma = 1.0;
@@ -2013,7 +2013,7 @@ END_WORD
 REGISTER_WORD(DogChirpSin)
 
 WORD(DogChirpSquare)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double sigma = 1.0;
@@ -2056,7 +2056,7 @@ REGISTER_WORD(DogChirpSquare)
 
 
 WORD(DogWarbleSin)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double warb_width_seconds = 1.0;
@@ -2104,7 +2104,7 @@ END_WORD
 REGISTER_WORD(DogWarbleSin)
 
 WORD(DogWarbleSquare)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double warb_width_seconds = 1.0;
@@ -2153,7 +2153,7 @@ REGISTER_WORD(DogWarbleSquare)
 
 
 WORD(DogVoiceInit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   double seconds = 0;
@@ -2172,7 +2172,7 @@ END_WORD
 REGISTER_WORD(DogVoiceInit)
 
 WORD(DogVoiceClear)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
 
   if (ms->pack[this_dog].voice_buffer != NULL) {
@@ -2186,7 +2186,7 @@ END_WORD
 REGISTER_WORD(DogVoiceClear)
 
 WORD(DogVoiceTrackTone)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume frequency start end dogVoiceTrackTone
   int this_dog = ms->focusedMember;
 
@@ -2213,7 +2213,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTrackTone)
 
 WORD(DogVoiceTrackWarble)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume frequency start end window_sigma repetition_period dogVoiceTrackWarble
   int this_dog = ms->focusedMember;
 
@@ -2249,7 +2249,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTrackWarble)
 
 WORD(DogVoiceTrackWarbleNotes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
   int this_dog = ms->focusedMember;
 
@@ -2415,7 +2415,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTrackWarbleNotes)
 
 WORD(DogVoiceTimeTrackWarbleSinNotes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
   int this_dog = ms->focusedMember;
 
@@ -2567,7 +2567,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTimeTrackWarbleSinNotes)
 
 WORD(DogVoiceTimeTrackWarbleSquareNotes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
   int this_dog = ms->focusedMember;
 
@@ -2719,7 +2719,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTimeTrackWarbleSquareNotes)
 
 WORD(DogVoiceTetraTrackWarbleNotes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
   int this_dog = ms->focusedMember;
 
@@ -2892,7 +2892,7 @@ END_WORD
 REGISTER_WORD(DogVoiceTetraTrackWarbleNotes)
 
 WORD(DogVoiceSing)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   int tone_samples = ms->pack[this_dog].voice_buffer_size;
   int tone_length = 2*tone_samples;
@@ -2934,7 +2934,7 @@ void write_little_endian(unsigned int word, int num_bytes, uchar *out) {
 }
 
 WORD(DogVoiceToPCM)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   int tone_samples = ms->pack[this_dog].voice_buffer_size;
   int tone_length = 2*tone_samples;
@@ -3015,7 +3015,7 @@ REGISTER_WORD(DogVoiceToPCM)
 
 
 WORD(DogWriteIntendedFromTrue)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int this_dog = ms->focusedMember;
   EinAiboConfig & dog = ms->pack[this_dog];
 
@@ -3031,13 +3031,13 @@ REGISTER_WORD(DogWriteIntendedFromTrue)
 /*
 
 WORD(DogVoice)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(DogVoice)
 
 WORD(Dog)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\"robot.();\" socketSend");
 }
 END_WORD
@@ -3045,7 +3045,7 @@ REGISTER_WORD(Dog)
 
 
 WORD(Dog)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("\";\" socketSend");
 }
 END_WORD
@@ -3063,7 +3063,7 @@ REGISTER_WORD(Dog)
   // lay down density at parts probably not background
 
 WORD(DogComeToStop)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("dogComeToStopA");
   ms->pushWord("dogGetSensoryMotorStates");
   ms->pushWord("endStackCollapseNoop");
@@ -3080,7 +3080,7 @@ REGISTER_WORD(DogComeToStop)
 
 
 WORD(DogComeToStopA)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ros::Duration comeToStopLength = ros::Time::now() - ms->aiboComeToStopTime;
   cout << "Length: " << comeToStopLength << endl;
   if (comeToStopLength > ros::Duration(10, 0)) {

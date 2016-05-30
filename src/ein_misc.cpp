@@ -9,7 +9,7 @@ namespace ein_words {
 
 
 WORD(Mkdir)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     string dirname;
     GET_STRING_ARG(ms, dirname);
@@ -29,7 +29,7 @@ END_WORD
 REGISTER_WORD(Mkdir)
 
 WORD(Mkdirs)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     string dirname;
     GET_STRING_ARG(ms, dirname);
@@ -48,7 +48,7 @@ REGISTER_WORD(Mkdirs)
 
 
 WORD(PublishState)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     EinState state;
     fillEinStateMsg(ms, &state);
@@ -59,21 +59,21 @@ END_WORD
 REGISTER_WORD(PublishState)
 
 WORD(Drand48)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushData(std::make_shared<DoubleWord>(drand48()));
 }
 END_WORD
 REGISTER_WORD(Drand48)
 
 WORD(Now)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushData(std::make_shared<DoubleWord>(ros::Time::now().toSec()));
 }
 END_WORD
 REGISTER_WORD(Now)
 
 WORD(Throw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   throw runtime_error("test");
   
 }
@@ -81,7 +81,7 @@ END_WORD
 REGISTER_WORD(Throw)
 
 WORD(ThrowOpenCV)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Mat m;
   m.rowRange(100, 100);
 }
@@ -89,7 +89,7 @@ END_WORD
 REGISTER_WORD(ThrowOpenCV)
 
 WORD(SeeHz)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double its = 0;
   GET_NUMERIC_ARG(ms, its);
@@ -109,7 +109,7 @@ END_WORD
 REGISTER_WORD(SeeHz)
 
 WORD(EndArgs)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // marks the end of a list of arguments 
   ms->pushData("endArgs");
 }
@@ -117,7 +117,7 @@ END_WORD
 REGISTER_WORD(EndArgs)
 
 WORD(UploadObjectToDatabase)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   stringstream cmd;
   string className;
   GET_ARG(ms, StringWord, className);
@@ -134,21 +134,21 @@ REGISTER_WORD(UploadObjectToDatabase)
 
 WORD(ZeroGToggle)
 CODE('z')
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
 }
 END_WORD
 REGISTER_WORD(ZeroGToggle)
 
 WORD(ZeroGOn)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 1;
 }
 END_WORD
 REGISTER_WORD(ZeroGOn)
 
 WORD(ZeroGOff)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 0;
 }
 END_WORD
@@ -156,14 +156,14 @@ REGISTER_WORD(ZeroGOff)
 
 WORD(ClearStack)
 CODE('r') 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->clearStack();
 }
 END_WORD
 REGISTER_WORD(ClearStack)
 
 WORD(ClearStacks)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->clearData();
   ms->clearStack();
 }
@@ -172,7 +172,7 @@ REGISTER_WORD(ClearStacks)
 
 WORD(Beep)
 CODE(1245308)     // capslock + numlock + |
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "\a"; cout.flush();
 }
 END_WORD
@@ -181,7 +181,7 @@ REGISTER_WORD(Beep)
 
 WORD(ChangeToCounterTable)
 CODE(1179735) // capslock + numlock + w
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentTableZ = ms->config.counterTableZ;
 }
 END_WORD
@@ -189,7 +189,7 @@ REGISTER_WORD(ChangeToCounterTable)
   
 WORD(ChangeToPantryTable)
 CODE(1179717)    // capslock + numlock + e
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.currentTableZ = ms->config.pantryTableZ;
 }
 END_WORD
@@ -206,7 +206,7 @@ virtual vector<string> names() {
   return result;
 }
 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // XXX This word is special cased.  It needs to be special cased,
   // because if the stack is paused, then the word to unpause the
   // stack is never executed, because the stack is paused.  So the
@@ -226,7 +226,7 @@ virtual vector<string> names() {
   return result;
 }
 CODE('Y') 
-virtual void execute(std::shared_ptr<MachineState> ms)  {
+virtual void execute(MachineState * ms)  {
   publishConsoleMessage(ms->p, "STACK EXECUTION PAUSED.  Press enter to continue.");
   ms->execute_stack = 0;
   ms->config.endThisStackCollapse = 1;
@@ -238,7 +238,7 @@ REGISTER_WORD(PauseStackExecution)
  
 WORD(PauseAndReset)
 CODE('c') 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->execute_stack = 0;
   ms->config.lastPtheta = INFINITY;
 }
@@ -247,7 +247,7 @@ REGISTER_WORD(PauseAndReset)
 
 
 WORD(PushState)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string state = ms->currentState();
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(state);
   ms->pushData(outword);
@@ -259,7 +259,7 @@ REGISTER_WORD(PushState)
 
 WORD(PrintState)
 CODE('u')
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("print");
   ms->pushWord("pushState");
 }
@@ -268,7 +268,7 @@ REGISTER_WORD(PrintState)
 
 WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "targetClass-- " << endl;
   if (ms->config.numClasses > 0) {
     int newTargetClass = (ms->config.targetClass - 1 + ms->config.numClasses) % ms->config.numClasses;
@@ -286,7 +286,7 @@ virtual vector<string> names() {
   result.push_back("||");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -307,7 +307,7 @@ virtual vector<string> names() {
   result.push_back("&&");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -321,7 +321,7 @@ END_WORD
 REGISTER_WORD(And)
 
 WORD(Exp)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(exp(v1));
@@ -331,7 +331,7 @@ END_WORD
 REGISTER_WORD(Exp)
 
 WORD(Pow)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -344,7 +344,7 @@ END_WORD
 REGISTER_WORD(Pow)
 
 WORD(Max)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -357,7 +357,7 @@ END_WORD
 REGISTER_WORD(Max)
 
 WORD(Min)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -370,7 +370,7 @@ END_WORD
 REGISTER_WORD(Min)
 
 WORD(Floor)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
 
@@ -381,7 +381,7 @@ END_WORD
 REGISTER_WORD(Floor)
 
 WORD(Ceil)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
 
@@ -399,7 +399,7 @@ virtual vector<string> names() {
   result.push_back("+");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   //double v1;
   //GET_NUMERIC_ARG(ms, v1);
   //double v2;
@@ -440,7 +440,7 @@ virtual vector<string> names() {
   result.push_back("<");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -460,7 +460,7 @@ virtual vector<string> names() {
   result.push_back(">");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -479,7 +479,7 @@ virtual vector<string> names() {
   result.push_back("<=");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -498,7 +498,7 @@ virtual vector<string> names() {
   result.push_back(">=");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -518,7 +518,7 @@ virtual vector<string> names() {
   result.push_back("*");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -538,7 +538,7 @@ virtual vector<string> names() {
   result.push_back("/");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -558,7 +558,7 @@ virtual vector<string> names() {
   result.push_back("-");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double v1;
   GET_NUMERIC_ARG(ms, v1);
   double v2;
@@ -578,7 +578,7 @@ virtual vector<string> names() {
   result.push_back("=");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   std::shared_ptr<Word> p1 = ms->popData();
   std::shared_ptr<Word> p2 = ms->popData();
@@ -608,7 +608,7 @@ virtual vector<string> names() {
   result.push_back("!");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   bool condition;
   GET_BOOLEAN_ARG(ms, condition);
 
@@ -624,7 +624,7 @@ REGISTER_WORD(Not)
 
 
 WORD(Ift)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> then;
   bool condition;
   
@@ -642,7 +642,7 @@ REGISTER_WORD(Ift)
 
 
 WORD(Ifte)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> then;
   std::shared_ptr<Word> else_;
   bool condition;
@@ -664,13 +664,13 @@ REGISTER_WORD(Ifte)
 
 
 WORD(Start)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(Start)
 
 WORD(Next)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   vector <std::shared_ptr<Word> > words_in_loop;
   
   while (true) {
@@ -702,7 +702,7 @@ END_WORD
 REGISTER_WORD(Next)
 
 WORD(Print)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
     publishConsoleMessage(ms->p, word->repr());
@@ -712,7 +712,7 @@ END_WORD
 REGISTER_WORD(Print)
 
 WORD(Dup)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word == NULL) {
     cout << "Must take an argument." << endl;
@@ -725,7 +725,7 @@ END_WORD
 REGISTER_WORD(Dup)
 
 WORD(Pop)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
 }
 END_WORD
@@ -733,7 +733,7 @@ REGISTER_WORD(Pop)
 
 
 WORD(Swap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word1;
   std::shared_ptr<Word> word2;
   GET_WORD_ARG(ms, Word, word1);
@@ -752,7 +752,7 @@ virtual vector<string> names() {
   result.push_back("'");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popWord();
   if (word == NULL) {
     cout << "Slide Must take an argument from the call stack." << endl;
@@ -764,7 +764,7 @@ END_WORD
 REGISTER_WORD(Slide)
 
 WORD(Slip)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word == NULL) {
     cout << "Slide Must take an argument from the data stack." << endl;
@@ -779,7 +779,7 @@ REGISTER_WORD(Slip)
 
 
 WORD(SetEEPosePX)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -797,7 +797,7 @@ END_WORD
 REGISTER_WORD(SetEEPosePX)
 
 WORD(SetEEPosePY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -816,7 +816,7 @@ REGISTER_WORD(SetEEPosePY)
 
 
 WORD(SetEEPosePZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -836,7 +836,7 @@ REGISTER_WORD(SetEEPosePZ)
 
 
 WORD(SetEEPoseQX)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -854,7 +854,7 @@ END_WORD
 REGISTER_WORD(SetEEPoseQX)
 
 WORD(SetEEPoseQY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -872,7 +872,7 @@ END_WORD
 REGISTER_WORD(SetEEPoseQY)
 
 WORD(SetEEPoseQZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -890,7 +890,7 @@ END_WORD
 REGISTER_WORD(SetEEPoseQZ)
 
 WORD(SetEEPoseQW)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double value;
   GET_NUMERIC_ARG(ms, value);
 
@@ -910,7 +910,7 @@ REGISTER_WORD(SetEEPoseQW)
 
 
 WORD(EePosePX)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().px);
@@ -921,7 +921,7 @@ REGISTER_WORD(EePosePX)
 
 
 WORD(EePosePY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().py);
@@ -932,7 +932,7 @@ REGISTER_WORD(EePosePY)
 
 
 WORD(EePosePZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().pz);
@@ -943,7 +943,7 @@ REGISTER_WORD(EePosePZ)
 
 
 WORD(EePoseQX)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qx);
@@ -954,7 +954,7 @@ REGISTER_WORD(EePoseQX)
 
 
 WORD(EePoseQY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qy);
@@ -965,7 +965,7 @@ REGISTER_WORD(EePoseQY)
 
 
 WORD(EePoseQZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qz);
@@ -976,7 +976,7 @@ REGISTER_WORD(EePoseQZ)
 
 
 WORD(EePoseQW)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<EePoseWord> word ;
   GET_WORD_ARG(ms, EePoseWord, word);
   shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(word->value().qw);
@@ -989,7 +989,7 @@ REGISTER_WORD(EePoseQW)
 
 
 WORD(Store)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> nameword = ms->popData();
   std::shared_ptr<Word> valueword = ms->popData();
   if (nameword == NULL || valueword == NULL) {
@@ -1005,7 +1005,7 @@ END_WORD
 REGISTER_WORD(Store)
 
 WORD(Expand)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> nameword = ms->popWord();
   string name = nameword->to_string();
   shared_ptr<Word> value = ms->variables[name];
@@ -1027,7 +1027,7 @@ REGISTER_WORD(Expand)
 
 
 WORD(Import)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string filename;
   GET_ARG(ms, StringWord, filename);
   std::stringstream fname;
@@ -1049,7 +1049,7 @@ REGISTER_WORD(Import)
 
 
 WORD(Fetch)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> nameword = ms->popWord();
   string name = nameword->to_string();
   shared_ptr<Word> value = ms->variables[name];
@@ -1070,7 +1070,7 @@ REGISTER_WORD(Fetch)
 
 WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   cout << "targetClass++ " << endl;
   if (ms->config.numClasses > 0) {
@@ -1082,7 +1082,7 @@ END_WORD
 REGISTER_WORD(IncrementTargetClass)
 
 WORD(ChangeTargetClassToClosestBlueBox)
-virtual void execute(std::shared_ptr<MachineState> ms)  {
+virtual void execute(MachineState * ms)  {
   if (ms->config.pilotClosestBlueBoxNumber == -1) {
     cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
     return;
@@ -1096,7 +1096,7 @@ REGISTER_WORD(ChangeTargetClassToClosestBlueBox)
 
 WORD(Noop)
 CODE('C')
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
 }
@@ -1104,7 +1104,7 @@ END_WORD
 REGISTER_WORD(Noop)
 
 WORD(EndStackCollapseNoop)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.endThisStackCollapse = 1;
 }
@@ -1112,7 +1112,7 @@ END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
 
 WORD(ExportWords)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.txt";
   cout << "Writing words to " << wordFileName << endl;
@@ -1129,7 +1129,7 @@ REGISTER_WORD(ExportWords)
 
 WORD(PixelGlobalTest)
 CODE(65609) // I
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.paintEEandReg1OnWrist = !ms->config.paintEEandReg1OnWrist;
 }
@@ -1138,7 +1138,7 @@ REGISTER_WORD(PixelGlobalTest)
 
 WORD(IncMx)
 CODE(65361) // left arrow 
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.m_x += .01;
   ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
@@ -1149,7 +1149,7 @@ REGISTER_WORD(IncMx)
 
 WORD(DecMx)
 CODE(65363) // right arrow 
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.m_x -= .01;
   ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
@@ -1160,7 +1160,7 @@ REGISTER_WORD(DecMx)
 
 WORD(IncMy)
 CODE(65362) // up arrow 
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.m_y += .01;
   ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
@@ -1171,7 +1171,7 @@ REGISTER_WORD(IncMy)
 
 WORD(DecMy)
 CODE(65364) // down arrow 
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.m_y -= .01;
   ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
@@ -1181,7 +1181,7 @@ END_WORD
 REGISTER_WORD(DecMy)
 
 WORD(CameraZeroNonLinear)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   // kill quadratic and constant terms
   // or use modes instead
@@ -1196,7 +1196,7 @@ CONFIG_GETTER_INT(SceneGetFixationMode, ms->config.currentSceneFixationMode);
 CONFIG_SETTER_ENUM(SceneSetFixationMode, ms->config.currentSceneFixationMode, (sceneFixationMode));
 
 WORD(CameraFitQuadratic)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double bBZ[4];
   bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
@@ -1268,7 +1268,7 @@ END_WORD
 REGISTER_WORD(CameraFitQuadratic)
 
 WORD(CameraFitHyperbolic)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double bBZ[4];
   bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
@@ -1353,7 +1353,7 @@ END_WORD
 REGISTER_WORD(CameraFitHyperbolic)
 
 WORD(CameraPrintParams)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double gZ = ms->config.currentEEPose.pz;
 
@@ -1438,7 +1438,7 @@ REGISTER_WORD(CameraPrintParams)
 
 
 WORD(EndStackCollapse)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.endCollapse = 1;
 }
@@ -1446,7 +1446,7 @@ END_WORD
 REGISTER_WORD(EndStackCollapse)
 
 WORD(CollapseStack)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.endCollapse = 0;
 }
@@ -1454,7 +1454,7 @@ END_WORD
 REGISTER_WORD(CollapseStack)
 
 WORD(ShakeHeadPositive)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentHeadPanCommand.target = 3.1415926/2.0;
 #ifdef RETHINK_SDK_1_2_0
@@ -1469,7 +1469,7 @@ REGISTER_WORD(ShakeHeadPositive)
 
 
 WORD(ShakeHeadNegative)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentHeadPanCommand.target = -3.1415926/2.0;
 #ifdef RETHINK_SDK_1_2_0
@@ -1483,7 +1483,7 @@ END_WORD
 REGISTER_WORD(ShakeHeadNegative)
 
 WORD(CenterHead)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentHeadPanCommand.target = 0;
 #ifdef RETHINK_SDK_1_2_0
@@ -1497,7 +1497,7 @@ END_WORD
 REGISTER_WORD(CenterHead)
 
 WORD(SetHeadPanTargetSpeed)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double t_target;
   double t_speed;
@@ -1518,7 +1518,7 @@ END_WORD
 REGISTER_WORD(SetHeadPanTargetSpeed)
 
 WORD(SilenceSonar)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentSonarCommand.data = 0;
   ms->config.sonarPub.publish(ms->config.currentSonarCommand);
@@ -1527,7 +1527,7 @@ END_WORD
 REGISTER_WORD(SilenceSonar)
 
 WORD(UnSilenceSonar)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentSonarCommand.data = 1;
   ms->config.sonarPub.publish(ms->config.currentSonarCommand);
@@ -1536,7 +1536,7 @@ END_WORD
 REGISTER_WORD(UnSilenceSonar)
 
 WORD(Nod)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentHeadNodCommand.data = 1;
   ms->config.nodPub.publish(ms->config.currentHeadNodCommand);
@@ -1545,7 +1545,7 @@ END_WORD
 REGISTER_WORD(Nod)
 
 WORD(ResetAuxiliary)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->pushWord("nod");
   ms->pushWord("centerHead");
@@ -1564,7 +1564,7 @@ END_WORD
 REGISTER_WORD(ResetAuxiliary)
 
 WORD(WaitUntilImageCallbackReceived)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.lastImageCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
@@ -1575,7 +1575,7 @@ END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceived)
 
 WORD(WaitUntilImageCallbackReceivedA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.lastImageCallbackRequest >= ms->config.lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
@@ -1589,7 +1589,7 @@ END_WORD
 REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 
 WORD(WaitUntilAccelerometerCallbackReceived)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.lastAccelerometerCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
@@ -1599,7 +1599,7 @@ END_WORD
 REGISTER_WORD(WaitUntilAccelerometerCallbackReceived)
 
 WORD(WaitUntilAccelerometerCallbackReceivedA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.lastAccelerometerCallbackRequest >= ms->config.lastAccelerometerCallbackReceived) {
     ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
@@ -1612,7 +1612,7 @@ END_WORD
 REGISTER_WORD(WaitUntilAccelerometerCallbackReceivedA)
 
 WORD(WaitUntilEndpointCallbackReceived)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.lastEndpointCallbackRequest = ros::Time::now();
   ms->pushWord("waitUntilEndpointCallbackReceivedA");
@@ -1622,7 +1622,7 @@ END_WORD
 REGISTER_WORD(WaitUntilEndpointCallbackReceived)
 
 WORD(WaitUntilEndpointCallbackReceivedA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.lastEndpointCallbackRequest >= ms->config.lastEndpointCallbackReceived) {
     ms->pushWord("waitUntilEndpointCallbackReceivedA");
@@ -1637,7 +1637,7 @@ REGISTER_WORD(WaitUntilEndpointCallbackReceivedA)
 
 
 WORD(WaitUntilRingBufferImageAtCurrentPosition)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   Mat ringImage;
@@ -1664,7 +1664,7 @@ REGISTER_WORD(WaitUntilRingBufferImageAtCurrentPosition)
 
 
 WORD(WriteXMLEnvironment)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   // For Dipendra
   ofstream ofile;
@@ -1691,7 +1691,7 @@ END_WORD
 REGISTER_WORD(WriteXMLEnvironment)
 
 WORD(DisableRobot)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
 }
@@ -1699,7 +1699,7 @@ END_WORD
 REGISTER_WORD(DisableRobot)
 
 WORD(EnableRobot)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
 }
@@ -1707,7 +1707,7 @@ END_WORD
 REGISTER_WORD(EnableRobot)
 
 WORD(ReplicateWord)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   double v1;
@@ -1729,7 +1729,7 @@ WORD(PushHelp)
 virtual string description() {
   return "Push help text for the word on the data stack.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   shared_ptr<Word> word;
   GET_WORD_ARG(ms, Word, word);
@@ -1743,7 +1743,7 @@ WORD(Help)
 virtual string description() {
   return "Return help text for a word, dereferencing the symbol if necessary.  Usage:   ' < word >   help.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->evaluateProgram("derefToTruth pushHelp print");
 }
@@ -1756,7 +1756,7 @@ WORD(SetHelp)
 virtual string description() {
   return "Make a new compound word with specified description text.  Usage:  <compound word> < help text > setHelp -> < compound word with help text >. ";
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   string description;
   GET_STRING_ARG(ms, description);
@@ -1778,7 +1778,7 @@ WORD(Define)
 virtual string description() {
   return "Store a new compound word with specified body, description, and name.  Usage:  <compound word> < help text > < name > define. ";
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   shared_ptr<StringWord> name;
   GET_WORD_ARG(ms, StringWord, name);
@@ -1807,7 +1807,7 @@ REGISTER_WORD(Define)
 
 
 WORD(Map)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> lambdaWord;
   GET_WORD_ARG(ms, CompoundWord, lambdaWord);
@@ -1833,7 +1833,7 @@ REGISTER_WORD(Map)
 
 
 WORD(CurrentIKModeString)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   shared_ptr<StringWord> currentIkModeWord = make_shared<StringWord>(ikModeToString(ms->config.currentIKMode));
   ms->pushWord(currentIkModeWord);
@@ -1846,7 +1846,7 @@ REGISTER_WORD(CurrentIKModeString)
 
 
 WORD(IkModeService)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentIKMode = IKSERVICE;
 }
@@ -1855,7 +1855,7 @@ REGISTER_WORD(IkModeService)
 
 
 WORD(IkModeIkFast)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentIKMode = IKFAST;
 }
@@ -1864,7 +1864,7 @@ REGISTER_WORD(IkModeIkFast)
 
 
 WORD(IkModeIkFastDebug)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.currentIKMode = IKFASTDEBUG;
 }
@@ -1872,7 +1872,7 @@ END_WORD
 REGISTER_WORD(IkModeIkFastDebug)
 
 WORD(ResetAveragedWrenchNorm)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.averagedWrechAcc = 0;
   ms->config.averagedWrechMass = 0;
@@ -1882,7 +1882,7 @@ REGISTER_WORD(ResetAveragedWrenchNorm)
 
 
 WORD(AnalogIOCommand)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   string component;
   double value;
@@ -1900,7 +1900,7 @@ END_WORD
 REGISTER_WORD(AnalogIOCommand)
 
 WORD(TorsoFanOn)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->evaluateProgram("100 \"torso_fan\" analogIOCommand");
 }
@@ -1908,7 +1908,7 @@ END_WORD
 REGISTER_WORD(TorsoFanOn)
 
 WORD(TorsoFanOff)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->evaluateProgram("1 \"torso_fan\" analogIOCommand");
 }
@@ -1916,7 +1916,7 @@ END_WORD
 REGISTER_WORD(TorsoFanOff)
 
 WORD(TorsoFanAuto)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->evaluateProgram("0 \"torso_fan\" analogIOCommand");
 }
@@ -1925,7 +1925,7 @@ REGISTER_WORD(TorsoFanAuto)
 
 
 WORD(SetTorsoFanLevel)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double value;
   GET_NUMERIC_ARG(ms, value);
@@ -1939,7 +1939,7 @@ REGISTER_WORD(SetTorsoFanLevel)
 
 
 WORD(DigitalIOCommand)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   string component;
   int value;
@@ -1957,7 +1957,7 @@ END_WORD
 REGISTER_WORD(DigitalIOCommand)
 
 WORD(SetRedHalo)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double value;
   GET_NUMERIC_ARG(ms, value);
@@ -1973,7 +1973,7 @@ END_WORD
 REGISTER_WORD(SetRedHalo)
 
 WORD(SetGreenHalo)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   double value;
   GET_NUMERIC_ARG(ms, value);
@@ -1989,7 +1989,7 @@ END_WORD
 REGISTER_WORD(SetGreenHalo)
 
 WORD(SetSonarLed)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int value;
   GET_ARG(ms, IntegerWord, value);
@@ -2005,7 +2005,7 @@ END_WORD
 REGISTER_WORD(SetSonarLed)
 
 WORD(LightsOn)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   std::stringstream program;
   program << "100 setGreenHalo 100 setRedHalo 4095 setSonarLed ";
@@ -2016,7 +2016,7 @@ END_WORD
 REGISTER_WORD(LightsOn)
 
 WORD(LightsOff)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   std::stringstream program;
   program << "0 setGreenHalo 0 setRedHalo 32768 setSonarLed ";
@@ -2027,7 +2027,7 @@ END_WORD
 REGISTER_WORD(LightsOff)
 
 WORD(SwitchSonarLed)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int value;
   int led;
@@ -2048,7 +2048,7 @@ END_WORD
 REGISTER_WORD(SwitchSonarLed)
 
 WORD(PrintStacks)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   cout << endl << "~~~~~~~~~ printing stacks ~~~~~~~~~" << endl << endl ;
@@ -2068,7 +2068,7 @@ END_WORD
 REGISTER_WORD(PrintStacks)
 
 WORD(ClearData)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->clearData();
 }
@@ -2082,7 +2082,7 @@ virtual vector<string> names() {
   result.push_back(")");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ROS_ERROR_STREAM("Close parenthesis should never execute." << endl);
   ms->pushWord("pauseStackExecution");
@@ -2097,7 +2097,7 @@ virtual vector<string> names() {
   result.push_back("(");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
 
   //cout << "Open parenthesis executing." << endl;
@@ -2119,7 +2119,7 @@ virtual vector<string> names() {
   result.push_back("|S");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int scopeLevel = 0;
   GET_ARG(ms, IntegerWord, scopeLevel);
@@ -2213,21 +2213,21 @@ REGISTER_WORD(SP)
 
 
 WORD(ExecutionModeInstant)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->execution_mode = INSTANT;
 }
 END_WORD
 REGISTER_WORD(ExecutionModeInstant)
 
 WORD(ExecutionModeStep)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->execution_mode = STEP;
 }
 END_WORD
 REGISTER_WORD(ExecutionModeStep)
 
 WORD(Exec)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<Word> aWord;
   GET_WORD_ARG(ms, Word, aWord);
   ms->pushWord(aWord);
@@ -2236,7 +2236,7 @@ END_WORD
 REGISTER_WORD(Exec)
 
 WORD(CastToInteger)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double number = 0.0;
   GET_NUMERIC_ARG(ms, number);
   ms->pushData(std::make_shared<IntegerWord>(number));
@@ -2245,7 +2245,7 @@ END_WORD
 REGISTER_WORD(CastToInteger)
 
 WORD(Assert)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   bool value;
   GET_BOOLEAN_ARG(ms, value);
   if (!value) {
@@ -2258,7 +2258,7 @@ REGISTER_WORD(Assert)
 
 
 WORD(AssertNo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   bool value;
   GET_BOOLEAN_ARG(ms, value);
   if (value) {
@@ -2271,7 +2271,7 @@ REGISTER_WORD(AssertNo)
 
 
 WORD(While)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<CompoundWord> block;
   shared_ptr<CompoundWord> condition;
   GET_WORD_ARG(ms, CompoundWord, block);
@@ -2308,7 +2308,7 @@ REGISTER_WORD(While)
 
 
 WORD(LeftOrRightArm)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<StringWord> left_or_right = make_shared<StringWord>(ms->config.left_or_right_arm);
   ms->pushWord(left_or_right);
 }
@@ -2316,7 +2316,7 @@ END_WORD
 REGISTER_WORD(LeftOrRightArm)
 
 WORD(IsGripperGripping)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<IntegerWord> isGripping = make_shared<IntegerWord>(isGripperGripping(ms));
   ms->pushWord(isGripping);
 }
@@ -2335,7 +2335,7 @@ REGISTER_WORD(IsGripperGripping)
 */
 
 WORD(NumBlueBoxes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<IntegerWord> numBlueBoxes = make_shared<IntegerWord>(ms->config.bTops.size());
   ms->pushWord(numBlueBoxes);  
 }
@@ -2344,7 +2344,7 @@ REGISTER_WORD(NumBlueBoxes)
 
 
 WORD(DateString)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ros::Time thisNow = ros::Time::now();
   ms->pushWord(make_shared<StringWord>(formatTime(thisNow)));
 }
@@ -2359,7 +2359,7 @@ virtual vector<string> names() {
   result.push_back("{");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   ms->pushData("oP");
   ms->pushData("oB");
@@ -2517,7 +2517,7 @@ virtual vector<string> names() {
   result.push_back("|B");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ROS_ERROR_STREAM("sB should never execute." << endl);
   ms->pushWord("pauseStackExecution");
 }
@@ -2531,7 +2531,7 @@ virtual vector<string> names() {
   result.push_back("}");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ROS_ERROR_STREAM("Close bracket should never execute." << endl);
   ms->pushWord("pauseStackExecution");
 }
@@ -2545,7 +2545,7 @@ virtual vector<string> names() {
   result.push_back(name());
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int numToReserve = 0;
   GET_INT_ARG(ms, numToReserve);
   ms->pushCopies(std::make_shared<IntegerWord>(0), max(int(numToReserve - ms->data_stack.size()), int(0)));
@@ -2561,7 +2561,7 @@ virtual vector<string> names() {
   result.push_back("[");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("slide (");
 }
 END_WORD
@@ -2574,7 +2574,7 @@ virtual vector<string> names() {
   result.push_back("]");
   return result;
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("1 |S )");
 }
 END_WORD
@@ -2582,7 +2582,7 @@ REGISTER_WORD(CSB)
 
 
 WORD(Time)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<CompoundWord> block;
   GET_WORD_ARG(ms, CompoundWord, block);
 
@@ -2595,7 +2595,7 @@ END_WORD
 REGISTER_WORD(Time)
 
 WORD(CommandOtherArm)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string string_in;
   GET_STRING_ARG(ms, string_in);
 
@@ -2612,7 +2612,7 @@ WORD(Deref)
 virtual string description() {
   return "Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  < symbol word > deref -> < value > ";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<Word> w;
   GET_WORD_ARG(ms, Word, w);
 
@@ -2638,7 +2638,7 @@ WORD(DerefToTruth)
 virtual string description() {
   return "Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  < symbol word > deref -> < value > ";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<Word> w;
   GET_WORD_ARG(ms, Word, w);
 
@@ -2665,7 +2665,7 @@ WORD(Repr)
 virtual string description() {
   return "Takes an argument from the data stack pushes the string representation onto the data stack.  Usage:  < word > repr -> string";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   shared_ptr<Word> w;
   GET_WORD_ARG(ms, Word, w);
   shared_ptr<StringWord> outword = std::make_shared<StringWord>(w->repr());
@@ -2678,7 +2678,7 @@ WORD(Eval)
 virtual string description() {
   return "Takes a string from the data stack; evaluates the string as a back program.  Usage:  < string > eval -> whatever the program does";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string program;
   GET_STRING_ARG(ms, program);
   ms->evaluateProgram(program);
