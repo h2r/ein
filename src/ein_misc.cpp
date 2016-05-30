@@ -214,7 +214,6 @@ virtual void execute(MachineState * ms) {
   // executeStack, and always executes it, whether or not the stack is
   // paused.
   ms->execute_stack = 1;
-  CONSOLE(ms, "Executing stack.");
 }
 END_WORD
 REGISTER_WORD(ExecuteStack)
