@@ -3000,10 +3000,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   setPlaceModeToHold
-
-    tempDribbleCore
-    108 
-  replicateWord
+  tempDribbleCore
 ) "tempDribble" store
 
 (
