@@ -18,6 +18,21 @@ extern vector<shared_ptr<Word> > words;
 // // code here
 // CODE(123)
 
+#define CONSOLE(ms, args) \
+    { \
+  std::stringstream __publish__console__message__stream__ss__; \
+  __publish__console__message__stream__ss__ << args; \
+  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+    }
+
+#define CONSOLE_ERROR(ms, args) \
+    { \
+  std::stringstream __publish__console__message__stream__ss__; \
+  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
+  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+    }
+
+
 
 #define WORD(gName) \
 class gName: public Word \
@@ -43,11 +58,11 @@ public: \
 {\
   shared_ptr<Word> word = ms->popData();\
   if (word == NULL) {\
-    cout << "Stack empty, returning." << endl;\
+    CONSOLE_ERROR(ms, "Stack empty, returning.");   \
     return;\
   } else {\
     if (word->name().compare("endArgs") == 0) {\
-      cout << " found endArgs, discarding and returning." << endl;\
+      CONSOLE_ERROR(ms, " found endArgs, discarding and returning.");       \
       return;\
     } else {\
     }\
@@ -55,9 +70,9 @@ public: \
 \
   std::shared_ptr<EePoseWord> destWord = std::dynamic_pointer_cast<EePoseWord>(word);\
   if (destWord == NULL) {\
-    cout << "Must pass a pose as an argument to " << this->name() << endl;\
-    cout << " Instead got word: " << word->name() << " repr: " << word->repr() << endl;\
-    cout << " Pushing it back on the stack." << endl;\
+    CONSOLE_ERROR(ms, "Must pass a pose as an argument to " << this->name()); \
+    CONSOLE_ERROR(ms, " Instead got word: " << word->name() << " repr: " << word->repr()); \
+    CONSOLE_ERROR(ms, " Pushing it back on the stack.");                    \
     ms->pushWord(word);\
     return;\
   } else {\
@@ -70,9 +85,8 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_ARG " << #type << " " << #x << " found no argument..." << endl;\
-    cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_ARG " << #type << " " << #x << " found no argument..."); \
+    CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
     ms->pushWord("pauseStackExecution");\
     return;\
   } else {\
@@ -80,12 +94,11 @@ public: \
   std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
 \
   if (hTypeWord == NULL) {\
-    cout << "Oops, GET_ARG " << #type << " " << #x << " found an argument, but not " << #type << "..." << endl;\
-    cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-    cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_ARG " << #type << " " << #x << " found an argument, but not " << #type << "..."); \
+    CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
+    CONSOLE_ERROR(ms, "  Instead got word: " << hWord->name() << " repr: " << hWord->repr()); \
     ms->pushWord("pauseStackExecution");\
-    cout << "Pushing the bad word back on the data stack." << endl;\
+    CONSOLE_ERROR(ms, "Pushing the bad word back on the data stack.");      \
     ms->pushData(hWord);\
     return;\
   }\
@@ -97,9 +110,8 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_NUMERIC_ARG " << " " << #x << " found no argument..." << endl;\
-    cout << "  Must pass a numeric argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_NUMERIC_ARG " << " " << #x << " found no argument..."); \
+    CONSOLE_ERROR(ms, "  Must pass a numeric argument to " << this->name()); \
     ms->pushWord("pauseStackExecution");\
     return;\
   } else {\
@@ -112,12 +124,11 @@ public: \
     if (doubleWord != NULL) {\
       x =  doubleWord->value();\
     } else { \
-      cout << "Oops, GET_NUMERIC_ARG " << #x << " found an argument, but not a number..." << endl;\
-      cout << "  Must pass a number as an argument to " << this->name() << endl;\
-      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-      cout << "  Pausing." << endl;\
+      CONSOLE_ERROR(ms, "Oops, GET_NUMERIC_ARG " << #x << " found an argument, but not a number..."); \
+      CONSOLE_ERROR(ms, "  Must pass a number as an argument to " << this->name()); \
+      CONSOLE_ERROR(ms, "  Instead got word: " << hWord->name() << " repr: " << hWord->repr()); \
       ms->pushWord("pauseStackExecution");	\
-      cout << "Pushing the bad word back on the data stack." << endl;\
+      CONSOLE_ERROR(ms, "Pushing the bad word back on the data stack.");    \
       ms->pushData(hWord);\
       return;\
     }	     \
@@ -132,11 +143,10 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_BOOLEAN_ARG " << " " << #x << " found no argument..." << endl;\
-    cout << "  Must pass a boolean argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
-    ms->pushWord("pauseStackExecution");\
-    return;\
+  CONSOLE_ERROR(ms, "Oops, GET_BOOLEAN_ARG " << " " << #x << " found no argument..."); \
+  CONSOLE_ERROR(ms, "  Must pass a boolean argument to " << this->name());  \
+  ms->pushWord("pauseStackExecution");                                  \
+  return;                                                               \
   }  \
   x =  hWord->to_bool();			\
 }
@@ -159,9 +169,8 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_INT_ARG " << " " << #x <<  " found no argument..." << endl;\
-    cout << "  Must pass a numeric argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_INT_ARG " << " " << #x <<  " found no argument..."); \
+    CONSOLE_ERROR(ms, "  Must pass a numeric argument to " << this->name()); \
     ms->pushWord("pauseStackExecution");\
     return;\
   }  \
@@ -174,9 +183,8 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_WORD_ARG " << #type << " " << #x << " found no argument..." << endl;\
-    cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG " << #type << " " << #x << " found no argument..."); \
+    CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
     ms->pushWord("pauseStackExecution");\
     return;\
   } else {\
@@ -184,12 +192,11 @@ public: \
   x = std::dynamic_pointer_cast<type>(hWord);\
 \
   if (x == NULL) {\
-    cout << "Oops, GET_WORD_ARG " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
-    cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-    cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..."); \
+    CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
+    CONSOLE_ERROR(ms, "  Instead got word: " << hWord->name() << " repr: " << hWord->repr()); \
     ms->pushWord("pauseStackExecution");\
-    cout << "Pushing the bad word back on the data stack." << endl;\
+    CONSOLE_ERROR(ms, "Pushing the bad word back on the data stack.");      \
     ms->pushData(hWord);\
     return;\
   }\
@@ -285,21 +292,21 @@ REGISTER_WORD(backName)
 int tfc = ms->config.focusedClass;\
 if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM(this->name() << ": Invalid focused class, not grabbing..." << endl); \
+  CONSOLE_ERROR(ms, this->name() << ": Invalid focused class, not grabbing..."); \
   return;\
 }\
 
 #define REQUIRE_VALID_CLASS(ms, tfc) \
 if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM("Invalid focused class, not grabbing..." << endl); \
+  CONSOLE_ERROR(ms, "Invalid focused class, not grabbing..."); \
   return;\
 }\
 
 #define REQUIRE_VALID_SCENE_OBJECT(ms, tfc) \
 if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
 } else {\
-  ROS_ERROR_STREAM(this->name() << ": Invalid scene object, class, not grabbing..." << endl); \
+  CONSOLE_ERROR(ms, this->name() << ": Invalid scene object, class, not grabbing..."); \
   return;\
 }\
 
@@ -311,13 +318,12 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
     shared_ptr<Word> hWord = ms->popData();\
 \
     if (hWord == NULL) {\
-      cout << "oops, GET_WORD_ARG_VALUE_LIST expects endArgs" << endl;\
+      CONSOLE_ERROR(ms, "oops, GET_WORD_ARG_VALUE_LIST expects endArgs");   \
       ms->clearStack();\
       return;\
 \
-      cout << "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " found no argument..." << endl;\
-      cout << "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name() << endl;\
-      cout << "  Pausing." << endl;\
+      CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " found no argument..."); \
+      CONSOLE_ERROR(ms, "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name()); \
       ms->pushWord("pauseStackExecution");\
       return;\
     } else {\
@@ -333,12 +339,11 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
     std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
 \
     if (hTypeWord == NULL) {\
-      cout << "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
-      cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-      cout << "  Pausing." << endl;\
+      CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG_VALUE_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..."); \
+      CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
+      CONSOLE_ERROR(ms, "  Instead got word: " << hWord->name() << " repr: " << hWord->repr()); \
       ms->pushWord("pauseStackExecution");\
-      cout << "Pushing the bad word back on the data stack." << endl;\
+      CONSOLE_ERROR(ms, "Pushing the bad word back on the data stack.");    \
       ms->pushData(hWord);\
       return;\
     } else {\
@@ -355,20 +360,18 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
     shared_ptr<Word> hWord = ms->popData();\
 \
     if (hWord == NULL) {\
-      cout << "oops, GET_WORD_ARG_LIST expects endArgs" << endl;\
+      CONSOLE_ERROR(ms, "oops, GET_WORD_ARG_LIST expects endArgs"); \
       ms->clearStack();\
       return;\
 \
-      cout << "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " found no argument..." << endl;\
-      cout << "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name() << endl;\
-      cout << "  Pausing." << endl;\
+      CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " found no argument..."); \
+      CONSOLE_ERROR(ms, "  Must pass: endArgs ( list of " << #type << " ) as an argument to " << this->name()); \
       ms->pushWord("pauseStackExecution");\
       return;\
     } else {\
     }\
 \
     if (hWord->name().compare("endArgs") == 0) {\
-      cout << " found endArgs" << endl;\
       hMore_args = 0;\
       break;\
     } else {\
@@ -377,12 +380,11 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
     std::shared_ptr<type> hTypeWord = std::dynamic_pointer_cast<type>(hWord);\
 \
     if (hTypeWord == NULL) {\
-      cout << "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..." << endl;\
-      cout << "  Must pass " << #type << " as an argument to " << this->name() << endl;\
-      cout << "  Instead got word: " << hWord->name() << " repr: " << hWord->repr() << endl;\
-      cout << "  Pausing." << endl;\
+      CONSOLE_ERROR(ms, "Oops, GET_WORD_ARG_LIST " << #type << " " << #x << " " << #ms << " found an argument, but not " << #type << "..."); \
+      CONSOLE_ERROR(ms, "  Must pass " << #type << " as an argument to " << this->name()); \
+      CONSOLE_ERROR(ms, "  Instead got word: " << hWord->name() << " repr: " << hWord->repr()); \
       ms->pushWord("pauseStackExecution");\
-      cout << "Pushing the bad word back on the data stack." << endl;\
+      CONSOLE_ERROR(ms, "Pushing the bad word back on the data stack.");    \
       ms->pushData(hWord);\
       return;\
     } else {\
