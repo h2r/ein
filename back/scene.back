@@ -48,7 +48,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   tempRegularizeBackground
 
   sceneClearObservedMap sceneClearPredictedObjects 
-) "tempInit" store
+) "Initialize scene parameters." "tempInit" define
 
 0.1 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
