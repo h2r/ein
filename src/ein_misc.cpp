@@ -227,7 +227,7 @@ virtual vector<string> names() {
 }
 CODE('Y') 
 virtual void execute(std::shared_ptr<MachineState> ms)  {
-  cout << "STACK EXECUTION PAUSED, press 'y' to continue." << endl;
+  publishConsoleMessage(ms->p, "STACK EXECUTION PAUSED.  Press enter to continue.");
   ms->execute_stack = 0;
   ms->config.endThisStackCollapse = 1;
 }

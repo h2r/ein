@@ -321,6 +321,20 @@ virtual void execute(std::shared_ptr<MachineState> ms)       {
 END_WORD
 REGISTER_WORD(PushClassLabels)
 
+
+WORD(ReloadClassLabels)
+virtual void execute(std::shared_ptr<MachineState> ms)  {
+  ms->pushWord("setClassLabels");
+  for (int i = 0; i < ms->config.classLabels.size(); i++) {
+    ms->pushWord(make_shared<StringWord>(ms->config.classLabels[i]));
+  }
+  ms->pushWord("endArgs");
+
+}
+END_WORD
+REGISTER_WORD(ReloadClassLabels)
+
+
 WORD(ClearClassLabels)
 virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.classLabels.resize(0);
@@ -1372,6 +1386,29 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 }
 END_WORD
 REGISTER_WORD(InitializeAndFocusOnTempClass)
+
+
+WORD(RenameFocusedClass)
+virtual void execute(std::shared_ptr<MachineState> ms) {
+  string newname;
+  GET_STRING_ARG(ms, newname);
+
+  int idx = ms->config.focusedClass;
+
+  if ((idx <= -1) || (idx >= ms->config.classLabels.size())) {
+    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    ms->pushWord("pauseStackExecution");
+    return;
+  }
+
+  string oldfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  string newfolder = ms->config.data_directory + "/objects/" + newname + "/";
+  rename(oldfolder, newfolder);
+  ms->config.classLabels[idx] = newname;
+  ms->pushWord("reloadClassLabels");
+}
+END_WORD
+REGISTER_WORD(RenameFocusedClass)
 
 
 WORD(WriteFocusedClass)
