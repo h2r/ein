@@ -1899,6 +1899,13 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TouchDown)
 
+WORD(PressDown)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("currentPose  0 currentTableZ - pickFlushFactor + pickFlushFactor + setEEPosePZ assumePose pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo");
+}
+END_WORD
+REGISTER_WORD(PressDown)
+
 WORD(SetControlModeEePosition)
 virtual void execute(MachineState * ms) {
   ms->config.currentControlMode = EEPOSITION;
