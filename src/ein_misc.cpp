@@ -432,6 +432,23 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Plus)
 
+
+
+WORD(Sum)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram(" ( + ) accumulate");
+}
+END_WORD
+REGISTER_WORD(Sum)
+
+WORD(Prod)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram(" ( * ) accumulate");
+}
+END_WORD
+REGISTER_WORD(Prod)
+
+
 WORD(Langle)
 CODE('<') 
 virtual vector<string> names() {
@@ -1851,6 +1868,52 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(Accumulate)
+
+
+WORD(Car)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> word;
+  GET_WORD_ARG(ms, CompoundWord, word);
+
+  if (word->size() != 0) {
+    ms->pushData(word->getWord(word->size() - 1));
+  }
+}
+END_WORD
+REGISTER_WORD(Car)
+
+WORD(Append)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> w1;
+  GET_WORD_ARG(ms, CompoundWord, w1);
+
+  shared_ptr<CompoundWord> w2;
+  GET_WORD_ARG(ms, CompoundWord, w2);
+
+  shared_ptr<CompoundWord> newWord = CompoundWord::copy(w1);
+  for (int i = 0; i < w2->size(); i++) {
+    newWord->pushWord(w2->getWord(i));
+  }
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(Append)
+
+
+WORD(Cdr)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> word;
+  GET_WORD_ARG(ms, CompoundWord, word);
+
+  shared_ptr<CompoundWord> newWord = CompoundWord::copy(word);
+  newWord->popWord();
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(Cdr)
 
 
 WORD(CurrentIKModeString)
