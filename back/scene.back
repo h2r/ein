@@ -1,4 +1,4 @@
-robotSerial "_bg_" leftOrRightArm + + "bg" store
+[ robotSerial "_bg_" leftOrRightArm ] join "bg" store
 
 (  assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition 
 /* 0.562500 0.478750 0.069192 -0.001253 0.999999 -0.000147 0.000237 createEEPose moveEeToPoseWord */
