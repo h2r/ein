@@ -435,6 +435,12 @@ REGISTER_WORD(Plus)
 
 
 WORD(Sum)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("join");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram(" ( + ) accumulate");
 }
