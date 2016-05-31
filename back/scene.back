@@ -31,7 +31,7 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
 ) "tempCaptureCore" store
 
 (
-  16.0 sceneSetBackgroundStdDevY
+  4.0 sceneSetBackgroundStdDevY
   4.0 sceneSetBackgroundStdDevColor
 ) "tempRegularizeBackground" store
 
