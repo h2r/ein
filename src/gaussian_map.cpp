@@ -5264,6 +5264,8 @@ virtual void execute(MachineState * ms) {
     ROS_ERROR("Gripper mask is messed up.");
   }
 
+  eePose lastPose = eePose::identity();
+
   for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
     streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
 
@@ -5282,6 +5284,12 @@ virtual void execute(MachineState * ms) {
     } else {
       assert(0);
     }
+
+    if (eePose::distance(lastPose, tArmP) == 0) {
+      //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+      ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP);
+    }
+    lastPose = tArmP;
 
     if (success != 1) {
       ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);

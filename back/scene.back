@@ -40,9 +40,10 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   4.0 sceneSetFocusedSceneStdDevColor
 ) "tempRegularizeFocusedClassModel" store
 
+0.1 "tempDefaultScoreThresh" store
 ( 
   sceneSetDiscrepancyModeNoisyOr
-  0.1 sceneSetScoreThresh
+  tempDefaultScoreThresh sceneSetScoreThresh
   bg sceneLoadBackgroundMap 
   5 sceneSetCellCountThreshold 
   tempRegularizeBackground
@@ -1177,6 +1178,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ) ifte
 
   0.0 sceneSetScoreThresh
+  0.0 "tempDefaultScoreThresh" store
 ) "tempSwapToBlocks" store
 
 (
@@ -1837,7 +1839,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       +
     print
 
-    0.04 setSpeed pressUntilEffortCombo openGripper liftArm
+    pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo openGripper liftArm
   ) 10 replicateWord
 ) "tempEvaluateObject" store
 
@@ -2986,20 +2988,38 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   quarterImpulse 0.01 setGridSize
 ) "tempReset" store
 
+
+
+
+(
+  setPlaceModeToHold
+  /*
+  51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
+  */
+) "tempDribblePrep" store
+
+(
+  isGripperGripping (
+    perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed pressDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+  ) ift
+) "tempDribblePlace" store
+
 (
   ( 
-    tempMapFocusedAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+    tempMapFocusedAndPick tempGoHome 
+    tempDribblePlace
   ) time 
 ) "tempDribbleCore" store
 
 (
   ( 
-    tempMapBestAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+    tempMapBestAndPick tempGoHome 
+    tempDribblePlace
   ) time 
 ) "tempDribbleBestCore" store
 
 (
-  setPlaceModeToHold
+  tempDribblePrep
 
     tempDribbleCore
     108 
@@ -3007,7 +3027,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempDribble" store
 
 (
-  setPlaceModeToHold
+  tempDribblePrep
 
   ( 1 ) (
     tempDribbleCore
