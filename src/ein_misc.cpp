@@ -432,6 +432,29 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Plus)
 
+
+
+WORD(Sum)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("join");
+  return result;
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram(" ( + ) accumulate");
+}
+END_WORD
+REGISTER_WORD(Sum)
+
+WORD(Prod)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram(" ( * ) accumulate");
+}
+END_WORD
+REGISTER_WORD(Prod)
+
+
 WORD(Langle)
 CODE('<') 
 virtual vector<string> names() {
@@ -1815,21 +1838,88 @@ virtual void execute(MachineState * ms)
   shared_ptr<CompoundWord> listWord;
   GET_WORD_ARG(ms, CompoundWord, listWord);
 
-  ms->pushWord(")");
+  ms->pushWord("]");
 
   for (int i = 0; i < listWord->size(); i++) {
-    ms->pushWord(listWord->getWord(i));
     for (int j = 0; j < lambdaWord->size(); j++) {
       ms->pushWord(lambdaWord->getWord(j));
     }
+    ms->pushWord(listWord->getWord(i));
   }
-  ms->pushWord("(");
+  ms->pushWord("[");
 
 }
 END_WORD
 REGISTER_WORD(Map)
 
 
+WORD(Accumulate)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> lambdaWord;
+  GET_WORD_ARG(ms, CompoundWord, lambdaWord);
+
+  shared_ptr<CompoundWord> listWord;
+  GET_WORD_ARG(ms, CompoundWord, listWord);
+
+  for (int i = 0; i < listWord->size(); i++) {
+    ms->pushData(listWord->getWord(listWord->size() - 1 - i));
+  }
+
+  for (int i = 0; i < listWord->size() - 1; i++) {
+    for (int j = 0; j < lambdaWord->size(); j++) {
+      ms->pushWord(lambdaWord->getWord(j));
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(Accumulate)
+
+
+WORD(Car)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> word;
+  GET_WORD_ARG(ms, CompoundWord, word);
+
+  if (word->size() != 0) {
+    ms->pushData(word->getWord(word->size() - 1));
+  }
+}
+END_WORD
+REGISTER_WORD(Car)
+
+WORD(Append)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> w1;
+  GET_WORD_ARG(ms, CompoundWord, w1);
+
+  shared_ptr<CompoundWord> w2;
+  GET_WORD_ARG(ms, CompoundWord, w2);
+
+  shared_ptr<CompoundWord> newWord = CompoundWord::copy(w1);
+  for (int i = 0; i < w2->size(); i++) {
+    newWord->pushWord(w2->getWord(i));
+  }
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(Append)
+
+
+WORD(Cdr)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> word;
+  GET_WORD_ARG(ms, CompoundWord, word);
+
+  shared_ptr<CompoundWord> newWord = CompoundWord::copy(word);
+  newWord->popWord();
+  ms->pushData(newWord);
+}
+END_WORD
+REGISTER_WORD(Cdr)
 
 
 WORD(CurrentIKModeString)
@@ -2084,7 +2174,7 @@ virtual vector<string> names() {
 }
 virtual void execute(MachineState * ms)
 {
-  ROS_ERROR_STREAM("Close parenthesis should never execute." << endl);
+  CONSOLE_ERROR(ms, "Close parenthesis should never execute.");
   ms->pushWord("pauseStackExecution");
 }
 END_WORD
@@ -2137,7 +2227,7 @@ virtual void execute(MachineState * ms)
   std::shared_ptr<Word> word = ms->popWord();
 
   if (word == NULL) {
-    cout << "sP found no word... pausing stack execution." << endl;
+    CONSOLE_ERROR(ms, "sP found no word...");
     ms->pushWord("pauseStackExecution");
     return;
   } else {
@@ -2164,7 +2254,7 @@ virtual void execute(MachineState * ms)
 	  while (open_needed > 0) {
 	    std::shared_ptr<Word> datum = ms->popData();
 	    if (datum == NULL) {
-	      cout << "sP found no datum... pausing stack execution." << endl;
+	      CONSOLE_ERROR(ms, "sP found no datum.");
 	      ms->pushWord("pauseStackExecution");
 	      return;
 	    } else {
