@@ -18,7 +18,7 @@ class Word:  public enable_shared_from_this<Word> {
   
 public:
 
-  virtual void execute(std::shared_ptr<MachineState> ms);
+  virtual void execute(MachineState * ms);
   virtual string name() = 0;
 
   virtual string description() {
@@ -268,7 +268,7 @@ public:
     return false;
   }
 
-  virtual void execute(std::shared_ptr<MachineState> ms) {
+  virtual void execute(MachineState * ms) {
     
   }
 
@@ -319,11 +319,15 @@ public:
   }
 
   static bool isSymbol(string token);
+  string repr();
   
   SymbolWord(string _s) {
     s = _s;
   }
-  virtual void execute(std::shared_ptr<MachineState> ms);
+  shared_ptr<Word> getReferencedWord(MachineState * ms);
+
+  virtual void execute(MachineState * ms);
+
 
   string name() {
     stringstream ss;
@@ -462,22 +466,33 @@ public:
 class CompoundWord : public Word {
  private:
   vector<std::shared_ptr<Word> > stack;
+  string description_text;
  public:
   CompoundWord() {
+  }
+  CompoundWord(string description) {
+    description_text = description;
   }
   void pushWord(shared_ptr<Word> word) {
     stack.push_back(word);
   }
-  void pushWord(shared_ptr<MachineState> ms, string word);
+  void pushWord(MachineState * ms, string word);
+  void setDescription(string d) {
+    description_text = d;
+  }
+  virtual string description() {
+    return description_text;
+  }
 
   int size();
   shared_ptr<Word> popWord();
   shared_ptr<Word> getWord(int i);
 
-  virtual void execute(std::shared_ptr<MachineState> ms);
+  virtual void execute(MachineState * ms);
   string repr();
   string name();
   string to_string();
+  static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 
 class AiboPoseWord: public Word
@@ -549,7 +564,7 @@ public:
 std::map<int, std::shared_ptr<Word> > create_character_code_to_word(std::vector<std::shared_ptr<Word> > words);
 std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::shared_ptr<Word> > words);
 
-std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token);
+std::shared_ptr<Word> parseToken(MachineState * ms, string token);
 std::shared_ptr<Word> nameToWord(string name);
 
 extern std::vector<std::shared_ptr<Word> > words;
@@ -558,11 +573,11 @@ extern std::map<string, std::shared_ptr<Word> > name_to_word;
 
 void initializeWords();
 
-void renderCoreView(shared_ptr<MachineState> ms);
+void renderCoreView(MachineState * ms);
 
 /*
 WORD()
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
     ms->pushWord("");
 }

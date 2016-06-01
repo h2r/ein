@@ -19,7 +19,7 @@ class EinWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit EinWindow(QWidget *parent, shared_ptr<MachineState> _ms);
+    explicit EinWindow(QWidget *parent, MachineState * _ms);
     ~EinWindow();
     void showImage(CvMat mat);
     Q_INVOKABLE void updateImage(const Mat image) ;
@@ -43,7 +43,7 @@ signals:
 
 private:
     Ui::EinWindow *ui;
-    shared_ptr<MachineState> ms;
+    MachineState * ms;
     DefaultEinViewPort myView;
     //OpenGlEinViewPort myView;
 };

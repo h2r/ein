@@ -5,12 +5,12 @@
 #include "tokenizer.hpp"
 
 
-void Word::execute(std::shared_ptr<MachineState> ms) {
+void Word::execute(MachineState * ms) {
   shared_ptr<Word> shared_this = this->shared_from_this();
   ms->pushData(shared_this);
 }
 
-//void exec_word(std::shared_ptr<MachineState> ms) {
+//void exec_word(MachineState * ms) {
 //  for (unsigned int i = 0; i < mstack.size(); i++) {
 //    ms->pushWord(stack[i]);
 //  }
@@ -60,7 +60,7 @@ bool MachineState::pushWord(int code) {
 }
 
 bool MachineState::pushWord(string token) {
-  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
+  std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushWord(word);
   }
@@ -68,7 +68,7 @@ bool MachineState::pushWord(string token) {
 
 bool MachineState::pushWord(std::shared_ptr<Word> word) {
   call_stack.push_back(word);
-  std::shared_ptr<MachineState> ms = this->sharedThis;
+  MachineState * ms = this;
   checkAndStreamWord(ms, word->name(), "push");
   return true;
 }
@@ -84,7 +84,7 @@ bool MachineState::pushData(int code) {
 }
 
 bool MachineState::pushData(string token) {
-  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
+  std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushData(word);
   }
@@ -92,8 +92,7 @@ bool MachineState::pushData(string token) {
 
 bool MachineState::pushData(std::shared_ptr<Word> word) {
   data_stack.push_back(word);
-  std::shared_ptr<MachineState> ms = this->sharedThis;
-  checkAndStreamWord(ms, word->name(), "pushData");
+  checkAndStreamWord(this, word->name(), "pushData");
   return true;
 }
 
@@ -106,15 +105,15 @@ shared_ptr<Word> MachineState::popData() {
     std::shared_ptr<Word> word = data_stack.back();
     data_stack.pop_back();
     if (word != NULL) {
-      std::shared_ptr<MachineState> ms = this->sharedThis;
+      MachineState * ms = this;
       checkAndStreamWord(ms, word->name(), "popData");
     } else {
-      std::shared_ptr<MachineState> ms = this->sharedThis;
+      MachineState * ms = this;
       checkAndStreamWord(ms, "", "popData");
     }
     return word; 
   } else {
-    std::shared_ptr<MachineState> ms = this->sharedThis;
+    MachineState * ms = this;
     checkAndStreamWord(ms, "", "popData");
     return NULL;
   }
@@ -132,7 +131,7 @@ bool MachineState::pushControl(int code) {
 }
 
 bool MachineState::pushControl(string token) {
-  std:shared_ptr<Word> word = parseToken(this->sharedThis, token);
+  std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushControl(word);
   }
@@ -140,7 +139,7 @@ bool MachineState::pushControl(string token) {
 
 bool MachineState::pushControl(std::shared_ptr<Word> word) {
   control_stack.push_back(word);
-  std::shared_ptr<MachineState> ms = this->sharedThis;
+  MachineState * ms = this;
   checkAndStreamWord(ms, word->name(), "pushControl");
   return true;
 }
@@ -148,23 +147,23 @@ bool MachineState::pushControl(std::shared_ptr<Word> word) {
 
 void MachineState::clearStack() {
   call_stack.resize(0);
-  std::shared_ptr<MachineState> ms = this->sharedThis;
+  MachineState * ms = this;
   checkAndStreamWord(ms, "", "clear");
 }
 
 void MachineState::clearData() {
   data_stack.resize(0);
-  std::shared_ptr<MachineState> ms = this->sharedThis;
+  MachineState * ms = this;
   checkAndStreamWord(ms, "", "clearData");
 }
 
 void MachineState::execute(shared_ptr<Word> word) {
   if (word != NULL) {
     current_instruction = word;
-    std::shared_ptr<MachineState> ms = this->sharedThis;
+    MachineState * ms = this;
     checkAndStreamWord(ms, word->name(), "execute");
     try {
-      word->execute(shared_from_this());
+      word->execute(this);
     } catch( ... ) {
       cout << "Exception in Word: ";
       cout <<  word->name() << endl;
@@ -180,15 +179,15 @@ shared_ptr<Word> MachineState::popWord() {
     std::shared_ptr<Word> word = call_stack.back();
     call_stack.pop_back();
     if (word != NULL) {
-      std::shared_ptr<MachineState> ms = this->sharedThis;
+      MachineState * ms = this;
       checkAndStreamWord(ms, word->name(), "pop");
     } else {
-      std::shared_ptr<MachineState> ms = this->sharedThis;
+      MachineState * ms = this;
       checkAndStreamWord(ms, "", "pop");
     }
     return word; 
   } else {
-    std::shared_ptr<MachineState> ms = this->sharedThis;
+    MachineState * ms = this;
     checkAndStreamWord(ms, "", "pop");
     return NULL;
   }
@@ -270,7 +269,7 @@ vector<string> tokenize_string(const string program) {
 }
 
 void MachineState::evaluateProgram(const string program)  {
-  shared_ptr<MachineState> ms = this->sharedThis;
+  MachineState * ms = this;
 
   ms->config.forthCommand = program;
   vector<string> tokens = tokenize_string(program);
@@ -288,7 +287,7 @@ void MachineState::evaluateProgram(const string program)  {
 }
 
 
-std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token) {
+std::shared_ptr<Word> parseToken(MachineState * ms, string token) {
   if (IntegerWord::isInteger(token)) {
     return IntegerWord::parse(token);
   } else if (DoubleWord::isDouble(token)) {
@@ -301,10 +300,6 @@ std::shared_ptr<Word> parseToken(std::shared_ptr<MachineState> ms, string token)
   } else if (name_to_word.count(token) > 0) {
     std::shared_ptr<Word> word = name_to_word[token];
     return word;
-    //}
-  //else if (ms->variables.count(token) > 0) {
-  ///std::shared_ptr<Word> word = ms->variables[token];
-    //return word;
   } else if (SymbolWord::isSymbol(token)) {
     std::shared_ptr<Word> word = SymbolWord::parse(token);
     return word;
@@ -334,7 +329,7 @@ void initializeWords() {
 }
 
 
-void renderCoreView(shared_ptr<MachineState> ms) {
+void renderCoreView(MachineState * ms) {
 
   Mat coreImage(800, 800, CV_64F);
   coreImage = 0.0*coreImage;
@@ -425,24 +420,49 @@ void renderCoreView(shared_ptr<MachineState> ms) {
 }
 
 
+string SymbolWord::repr() {
+  return s;
+}
 
-
-void SymbolWord::execute(std::shared_ptr<MachineState> ms) {
+shared_ptr<Word> SymbolWord::getReferencedWord(MachineState * ms) {
   if (name_to_word.count(s) > 0) {
     std::shared_ptr<Word> word = name_to_word[s];
-    ms->pushWord(word);
+    return word;
   } else if (ms->variables.count(s) > 0) {
     std::shared_ptr<Word> word = ms->variables[s];
-    ms->pushWord(word);
+    return word;
   } else {
-    cout << "No value for symbol word " << repr() << endl;
+    return NULL;
+  }
+}
+
+#define CONSOLE(ms, args) \
+    { \
+  std::stringstream __publish__console__message__stream__ss__; \
+  __publish__console__message__stream__ss__ << args; \
+  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+    }
+
+#define CONSOLE_ERROR(ms, args) \
+    { \
+  std::stringstream __publish__console__message__stream__ss__; \
+  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
+  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+    }
+
+
+void SymbolWord::execute(MachineState * ms) {
+  shared_ptr<Word> w = getReferencedWord(ms);
+  if (w != NULL) {
+    ms->pushWord(w);
+  } else {
+    CONSOLE_ERROR(ms->p, "No value for symbol word " << repr() << ".");
     ms->pushWord("pauseStackExecution"); 
   }
 }
 
 
-
-void CompoundWord::execute(std::shared_ptr<MachineState> ms) {
+void CompoundWord::execute(MachineState * ms) {
   for (int i = 0; i < stack.size(); i++) {
     ms->pushWord(stack[i]);
   }
@@ -468,7 +488,7 @@ shared_ptr<Word> CompoundWord::getWord(int i) {
   return stack[i];
 }
 
-void CompoundWord::pushWord(shared_ptr<MachineState> ms, string token)
+void CompoundWord::pushWord(MachineState * ms, string token)
 {
   shared_ptr<Word> word = parseToken(ms, token);
   if (word != NULL) {
@@ -487,6 +507,9 @@ string CompoundWord::repr()  {
     state << stack[stack.size() - i - 1]->repr() << " ";
   }
   state << ")";
+  if (description() != "") {
+    state << " \"" << description() << "\" setHelp";
+  }
   return state.str();
 }
 
@@ -496,6 +519,14 @@ string CompoundWord::to_string() {
 
 string CompoundWord::name() {
   return repr();
+}
+
+shared_ptr<CompoundWord> CompoundWord::copy(shared_ptr<CompoundWord> cWord) {
+  shared_ptr<CompoundWord> cp = make_shared<CompoundWord>(cWord->description());
+  for (int i = 0; i < cWord->size(); i++) {
+    cp->pushWord(cWord->getWord(i));
+  }
+  return cp;
 }
 
 bool CommentWord::isComment(string token) {
@@ -521,6 +552,7 @@ std::shared_ptr<CommentWord> CommentWord::parse(string token)  {
     return NULL;
   }
 }  
+
 
 bool SymbolWord::isSymbol(string token)
  {

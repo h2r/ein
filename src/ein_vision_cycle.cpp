@@ -7,7 +7,7 @@
 namespace ein_words {
 
 WORD(ClearStackIntoMappingPatrol)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->clearStack();
   ms->pushWord("mappingPatrol");
   ms->execute_stack = 1;
@@ -18,7 +18,7 @@ REGISTER_WORD(ClearStackIntoMappingPatrol)
 
 
 WORD(MapServo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.currentMapServoMode == HISTOGRAM_CLASSIFY) {
     ms->pushWord("gradientServoIfBlueBoxes");
     ms->pushWord("mapClosestBlueBox");
@@ -72,7 +72,7 @@ END_WORD
 REGISTER_WORD(MapServo)
 
 WORD(MapLocal)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
   ms->pushWord("filterBoxMemories");
   ms->pushWord("shiftIntoGraspGear1");
@@ -88,7 +88,7 @@ REGISTER_WORD(MapLocal)
 
 WORD(MappingPatrol)
 CODE(196727) // capslock + W
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "mappingPatrol" << endl;
   ms->pushWord("moveToNextMapPosition");
 }
@@ -96,7 +96,7 @@ END_WORD
 REGISTER_WORD(MappingPatrol)
 
 WORD(SetMapServoMode)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int modeGot = 0;
   GET_ARG(ms, IntegerWord, modeGot);
   cout << "setMapServoMode was: " << ms->config.currentMapServoMode << " setting " << modeGot << endl;
@@ -106,7 +106,7 @@ END_WORD
 REGISTER_WORD(SetMapServoMode)
 
 WORD(MappingPatrolA)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "mappingPatrolA" << endl;
   ms->config.bailAfterSynchronic = 1;
   ms->config.bailAfterGradient = 1;
@@ -141,42 +141,42 @@ END_WORD
 REGISTER_WORD(MappingPatrolA)
 
 WORD(ToggleShouldIDoIK)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.shouldIDoIK = !ms->config.shouldIDoIK;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIDoIK)
 
 WORD(ToggleShouldIRender)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.shouldIRender = !ms->config.shouldIRender;
 }
 END_WORD
 REGISTER_WORD(ToggleShouldIRender)
 
 WORD(ToggleDrawClearanceMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.drawClearanceMap = !ms->config.drawClearanceMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawClearanceMap)
 
 WORD(ToggleDrawIKMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.drawIKMap = !ms->config.drawIKMap;
 }
 END_WORD
 REGISTER_WORD(ToggleDrawIKMap)
 
 WORD(ToggleUseGlow)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.useGlow = !ms->config.useGlow;
 }
 END_WORD
 REGISTER_WORD(ToggleUseGlow)
 
 WORD(ToggleUseFade)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.useFade = !ms->config.useFade;
 }
 END_WORD
@@ -190,7 +190,7 @@ CONFIG_SETTER_INT(SetSearchProximity, ms->config.searchProximity)
 
 
 WORD(FillClearanceMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     int proximity = ms->config.pursuitProximity;
     for (int i = 0; i < ms->config.mapWidth; i++) {
@@ -263,7 +263,7 @@ END_WORD
 REGISTER_WORD(FillClearanceMap)
 
 WORD(PointToClearanceMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   int currentI, currentJ;
   mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &currentI, &currentJ);
@@ -313,7 +313,7 @@ END_WORD
 REGISTER_WORD(PointToClearanceMap)
 
 WORD(SaveIkMapAtHeight)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ofstream ofile;
   string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMapAtHeight";
   cout << "Saving ikMapAtHeight to " << fileName << endl;
@@ -325,7 +325,7 @@ END_WORD
 REGISTER_WORD(SaveIkMapAtHeight)
 
 WORD(LoadIkMapAtHeight)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // binary seems overkill but consider that this map is
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
@@ -341,7 +341,7 @@ REGISTER_WORD(LoadIkMapAtHeight)
 
 
 WORD(SaveIkMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ofstream ofile;
   string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "IkMap";
   cout << "Saving ikMap to " << fileName << endl;
@@ -353,7 +353,7 @@ END_WORD
 REGISTER_WORD(SaveIkMap)
 
 WORD(LoadIkMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // binary seems overkill but consider that this map is
   //  for only one height and is 360kB in binary... how
   //  big would it be in yml, and what if we want another height?
@@ -374,7 +374,7 @@ WORD(FillIkMapAtHeights)
 virtual string description() {
   return "Fill the IK map at different heights.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double ikStep = (ms->config.ikMapEndHeight - ms->config.ikMapStartHeight) / (ms->config.numIkMapHeights - 1);
 
   for (int i = 0; i < ms->config.numIkMapHeights; i++) {
@@ -392,7 +392,7 @@ WORD(FillIkMapFromCachedHeights)
 virtual string description() {
   return "Fill the IK map by taking the and of the result at all the different heights.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   for (int i = 0; i < ms->config.mapWidth; i++) {
     for (int j = 0; j < ms->config.mapHeight; j++) {
       bool result = IK_GOOD;
@@ -416,7 +416,7 @@ WORD(FillIkMapFromCachedHeightIdx)
 virtual string description() {
   return "Fill the IK map by taking the height idx from the cache.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int heightIdx;
   GET_INT_ARG(ms, heightIdx);
   if (heightIdx >= ms->config.numIkMapHeights) {
@@ -442,7 +442,7 @@ WORD(CopyIkMapToHeightIdx)
 virtual string description() {
   return "Copy the ik map to the height index.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int heightIdx;
   GET_INT_ARG(ms, heightIdx);
   for (int i = 0; i < ms->config.mapWidth; i++) {
@@ -459,7 +459,7 @@ WORD(ClearIkMap)
 virtual string description() {
   return "Reset the IK Map so that every cell is good.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   for (int i = 0; i < ms->config.mapWidth; i++) {
     for (int j = 0; j < ms->config.mapHeight; j++) {
       ms->config.ikMap[i + ms->config.mapWidth * j] = IK_GOOD;
@@ -475,7 +475,7 @@ WORD(FillIkMap)
 virtual string description() {
   return "Fill the IK map for the current range starting at the i and j and height on the stack.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int cellsPerQuery = 200;
 
   int currentI, currentJ;
@@ -568,14 +568,14 @@ virtual string description() {
   return "Fill the IK map using data at the current EE height.  We run at height 2 usually.";
 }
 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("0 0 currentPose eePosePZ fillIkMap");
 }
 END_WORD
 REGISTER_WORD(FillIkMapAtCurrentHeight)
 
 WORD(MoveToNextMapPosition)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int p_maxNextTries = 100;
   for (int tries = 0; tries < p_maxNextTries; tries++) {
     //ros::Time oldestTime = ros::Time::now();
@@ -686,7 +686,7 @@ END_WORD
 REGISTER_WORD(MoveToNextMapPosition)
 
 WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   object_recognition_msgs::RecognizedObjectArray roaO;
   fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roaO);
   ms->config.rec_objs_blue_memory.publish(roaO);
@@ -696,7 +696,7 @@ REGISTER_WORD(PublishRecognizedObjectArrayFromBlueBoxMemory)
 
 
 WORD(RecordAllBlueBoxes)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "Recording blue boxes: " << ms->config.bTops.size() << endl;
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     BoxMemory box;
@@ -718,7 +718,7 @@ END_WORD
 REGISTER_WORD(RecordAllBlueBoxes)
 
 WORD(VoidCurrentMapRegion)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   voidMapRegion(ms, ms->config.currentEEPose.px, ms->config.currentEEPose.py);
   cout << "Voiding the region of the map around ms->config.currentEEPose." << endl;
 }
@@ -726,7 +726,7 @@ END_WORD
 REGISTER_WORD(VoidCurrentMapRegion)
 
 WORD(ClearMapForPatrol)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   clearMapForPatrol(ms);
   cout << "Clearing the map for a new patrol." << endl;
 }
@@ -734,7 +734,7 @@ END_WORD
 REGISTER_WORD(ClearMapForPatrol)
 
 WORD(MarkMapAsCompleted)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   markMapAsCompleted(ms);
   cout << "Marking whole map as completed." << endl;
 }
@@ -742,7 +742,7 @@ END_WORD
 REGISTER_WORD(MarkMapAsCompleted)
 
 WORD(InitializeMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   initializeMap(ms);
 }
 END_WORD
@@ -764,7 +764,7 @@ CONFIG_GETTER_INT(MapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 CONFIG_SETTER_INT(SetMapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 
 WORD(MapEmptySpace)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
       
@@ -836,7 +836,7 @@ REGISTER_WORD(MapEmptySpace)
 
 
 WORD(MapClosestBlueBox)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   if (ms->config.pilotClosestBlueBoxNumber == -1) {
     cout << "Not mapping closest bbox since it is " << ms->config.pilotClosestBlueBoxNumber << endl;
@@ -888,7 +888,7 @@ REGISTER_WORD(MapClosestBlueBox)
 
 
 WORD(FilterBoxMemories)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   set<int> boxMemoryIndexesToKeep;
 
   for (int b_i = 0; b_i < ms->config.blueBoxMemories.size(); b_i++) {
@@ -924,7 +924,7 @@ REGISTER_WORD(FilterBoxMemories)
 
 WORD(ClearBlueBoxMemories)
 CODE(196709) // capslock + E
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "Clearing blue box memory: " << ms->config.blueBoxMemories.size() << endl;
   ms->config.blueBoxMemories.resize(0);
 }
@@ -933,7 +933,7 @@ REGISTER_WORD(ClearBlueBoxMemories)
 
 WORD(VisionCycle)
 CODE(131153)  // capslock + q
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("mapEmptySpace");
   ms->pushWord("goClassifyBlueBoxes"); 
   ms->pushWord("goFindBlueBoxes"); 
@@ -945,7 +945,7 @@ END_WORD
 REGISTER_WORD(VisionCycle)
 
 WORD(Density)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("densityA");
   //ms->pushWord("waitUntilImageCallbackReceived");
   //ms->pushCopies("waitUntilImageCallbackReceived", 5);
@@ -956,7 +956,7 @@ REGISTER_WORD(Density)
 
 WORD(DensityA)
 CODE(131121)     // capslock + 1
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   substituteLatestImageQuantities(ms);
   goCalculateDensity(ms);
 }
@@ -964,7 +964,7 @@ END_WORD
 REGISTER_WORD(DensityA)
 
 WORD(StreamedDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   substituteStreamImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
@@ -973,7 +973,7 @@ END_WORD
 REGISTER_WORD(StreamedDensity)
 
 WORD(StreamedAccumulatedDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   substituteStreamAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
@@ -982,7 +982,7 @@ END_WORD
 REGISTER_WORD(StreamedAccumulatedDensity)
 
 WORD(AccumulatedDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   substituteAccumulatedImageQuantities(ms);
   goCalculateDensity(ms);
   renderAccumulatedImageAndDensity(ms);
@@ -991,7 +991,7 @@ END_WORD
 REGISTER_WORD(AccumulatedDensity)
 
 WORD(ResetAccumulatedDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   resetAccumulatedImageAndMass(ms);
 }
 END_WORD
@@ -999,7 +999,7 @@ REGISTER_WORD(ResetAccumulatedDensity)
 
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   if (ms->config.temporalDensity != NULL && ms->config.preDensity != NULL) {
     //cout << "ms->config.preDensity<<<<***" << endl;
     Size sz = ms->config.objectViewerImage.size();
@@ -1017,7 +1017,7 @@ REGISTER_WORD(ResetTemporalMap)
 
 WORD(GoFindBlueBoxes)
 CODE(131122) // capslock + 2
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   goFindBlueBoxes(ms);
 }
 END_WORD
@@ -1025,7 +1025,7 @@ REGISTER_WORD(GoFindBlueBoxes)
 
 WORD(GoClassifyBlueBoxes)
 CODE(131123) // capslock + 3
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.lastVisionCycle = ros::Time::now();
   ms->config.oscilStart = ros::Time::now();
   goClassifyBlueBoxes(ms);
@@ -1034,7 +1034,7 @@ END_WORD
 REGISTER_WORD(GoClassifyBlueBoxes)
 
 WORD(AssumeFacePose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   //eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,
   //                   .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
@@ -1050,7 +1050,7 @@ REGISTER_WORD(AssumeFacePose)
 
 /*
 WORD(DetectFaces)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   vector<Rect> faces = faceDetectAndDisplay(faceViewName, ms->config.faceViewImage);
 }
 END_WORD
@@ -1058,7 +1058,7 @@ REGISTER_WORD(DetectFaces)
 
 
 WORD(FaceServo)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.faceServoIterations = 0;
   ms->pushWord("faceServoA");
@@ -1067,7 +1067,7 @@ END_WORD
 REGISTER_WORD(FaceServo)
 
 WORD(FaceServoA)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   ms->config.faceServoIterations++;
   ms->pushWord("endStackCollapseNoop");
@@ -1081,7 +1081,7 @@ END_WORD
 REGISTER_WORD(FaceServoA)
 
 WORD(FaceServoB)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   if (ms->config.faceServoIterations > ms->config.faceServoTimeout) {
     cout << "faceServo timed out, continuing..." << endl;
@@ -1096,7 +1096,7 @@ REGISTER_WORD(FaceServoB)
 */
 
 WORD(StereoPair)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // display the result 
   ms->pushWord("stereoDisplay");
   // calculate disparity and depth
@@ -1115,7 +1115,7 @@ END_WORD
 REGISTER_WORD(StereoPair)
 
 WORD(StereoPrep)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord("accumulatedDensity");
   ms->pushCopies("waitUntilImageCallbackReceived", 10);
   ms->pushWord("resetAccumulatedDensity");
@@ -1127,7 +1127,7 @@ END_WORD
 REGISTER_WORD(StereoPrep)
 
 WORD(StereoPairCache1)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.stereoImage1 = ms->config.accumulatedImage.clone();
   Size sz = ms->config.stereoImage1.size();
   int imW = sz.width;
@@ -1146,7 +1146,7 @@ END_WORD
 REGISTER_WORD(StereoPairCache1)
 
 WORD(StereoPairCache2)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.stereoImage2 = ms->config.accumulatedImage.clone();
   Size sz = ms->config.stereoImage2.size();
   int imW = sz.width;
@@ -1165,7 +1165,7 @@ END_WORD
 REGISTER_WORD(StereoPairCache2)
 
 WORD(StereoCalculate)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // simplifying assumption that the movement between the two views
   //  was along the x axis
 
@@ -1290,7 +1290,7 @@ END_WORD
 REGISTER_WORD(StereoCalculate)
 
 WORD(StereoDisplay)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Size sz = ms->config.objectViewerYCbCrBlur.size();
   int imW = sz.width;
   int imH = sz.height;
@@ -1323,7 +1323,7 @@ WORD(MapWaypoints)
 virtual string description() {
   return "Maps objects at locations specified by EePoseWords underneath.";
 }
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   cout << "Entering mapWaypoints" << endl;
 
@@ -1346,7 +1346,7 @@ END_WORD
 REGISTER_WORD(MapWaypoints)
 
 WORD(SetTrackbarLoHi)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   int newLo = 0;
   int newHi = 0;

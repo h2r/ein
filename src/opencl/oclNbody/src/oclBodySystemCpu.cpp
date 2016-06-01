@@ -233,7 +233,7 @@ void randomizeBodies(NBodyConfig config, float* pos, float* vel, float* color, f
     default:
     case NBODY_CONFIG_RANDOM:
         {
-            float scale = clusterScale * MAX(1.0f, numBodies / (1024.f));
+            float scale = clusterScale * OCLMAX(1.0f, numBodies / (1024.f));
             float vscale = velocityScale * scale;
 
 	    int p = 0, v = 0;
@@ -322,7 +322,7 @@ void randomizeBodies(NBodyConfig config, float* pos, float* vel, float* color, f
         break;
     case NBODY_CONFIG_EXPAND:
         {
-            float scale = clusterScale * MAX(1.0f, numBodies / (1024.f));
+            float scale = clusterScale * OCLMAX(1.0f, numBodies / (1024.f));
             float vscale = scale * velocityScale;
 
 	    int p = 0, v = 0;
