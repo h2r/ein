@@ -4894,8 +4894,10 @@ virtual void execute(MachineState * ms) {
 
   // XXX TODO
   double breadth_m, length_m;
+  double this_collar_width_m = 0.001;
   GET_NUMERIC_ARG(ms, breadth_m);
   GET_NUMERIC_ARG(ms, length_m);
+  GET_NUMERIC_ARG(ms, this_collar_width_m);
 
   stringstream ss;
   ss << "ideal_block_" << length_m << "_" << breadth_m;
@@ -4906,7 +4908,7 @@ virtual void execute(MachineState * ms) {
 
   double scale = 1;
   double negative_space_weight_ratio = 1.0;
-  double this_collar_width_m = 0.02;
+  // gives room for the gripper itself
   double this_cw = ms->config.scene->cell_width; 
   int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
   int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
@@ -4940,8 +4942,12 @@ virtual void execute(MachineState * ms) {
   // l2 norm is sqrt(num_pos)
   //double pos_factor = 1.0/sqrt(num_pos);
   //double neg_factor = 10.0/sqrt(num_neg);
-  double pos_factor = 1.0/(num_pos);
-  double neg_factor = 3.0/(num_neg);
+  //double pos_factor = 1.0/(num_pos);
+  //double neg_factor = 3.0/(num_neg);
+  double pos_factor = 1.0;
+  double neg_factor = 1.0;
+  //double pos_factor = (num_pos+num_neg)/num_pos;
+  //double neg_factor = (num_pos+num_neg)/num_neg;
 
   double counts_scale = 1e4;
 
@@ -5287,7 +5293,9 @@ virtual void execute(MachineState * ms) {
 
     if (eePose::distance(lastPose, tArmP) == 0) {
       //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-      ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP);
+      ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP <<
+	"dropping frame..." << endl);
+      continue;
     }
     lastPose = tArmP;
 
