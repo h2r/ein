@@ -2882,12 +2882,14 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.pose.orientation.z = 0;
     pose.pose.orientation.w = 1;
 
-    pose.header.stamp = ros::Time(0);
+    //pose.header.stamp = ros::Time(0);
+    pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
 
     if (ms->config.currentRobotMode != SIMULATED) {    
       try {
-        ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", hand_pose);
+        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", hand_pose);
       } catch (tf::TransformException ex){
         cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
         cout << ex.what();
@@ -2907,6 +2909,13 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     handEEPose.qz = hand_pose.pose.orientation.z;
     handEEPose.qw = hand_pose.pose.orientation.w;
   }
+
+  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
+    //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+    ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
+  }
+  ms->config.lastHandEEPose = handEEPose;
+  
   ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
   {
     geometry_msgs::PoseStamped pose;
@@ -2918,13 +2927,15 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.pose.orientation.z = ms->config.handEndEffectorOffset.qz;
     pose.pose.orientation.w = ms->config.handEndEffectorOffset.qw;
 
-    pose.header.stamp = ros::Time(0);
+    //pose.header.stamp = ros::Time(0);
+    pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
     if (ms->config.currentRobotMode != SIMULATED) {    
       try {
-        ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
         cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
         cout << ex.what();
@@ -2954,13 +2965,15 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.pose.orientation.z = ms->config.handCameraOffset.qz;
     pose.pose.orientation.w = ms->config.handCameraOffset.qw;
 
-    pose.header.stamp = ros::Time(0);
+    //pose.header.stamp = ros::Time(0);
+    pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
     if (ms->config.currentRobotMode != SIMULATED) {    
       try {
-        ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
         cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
         cout << ex.what();
@@ -2986,13 +2999,15 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.pose.orientation.z = ms->config.handRangeOffset.qz;
     pose.pose.orientation.w = ms->config.handRangeOffset.qw;
 
-    pose.header.stamp = ros::Time(0);
+    //pose.header.stamp = ros::Time(0);
+    pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
     
     geometry_msgs::PoseStamped transformed_pose;
     if (ms->config.currentRobotMode != SIMULATED) {    
       try {
-        ms->config.tfListener->transformPose("base", ros::Time(0), pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
+        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
       } catch (tf::TransformException ex){
         cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
         cout << ex.what();

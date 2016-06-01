@@ -742,6 +742,7 @@ class EinConfig {
   double averagedWrechMass = 0;
   double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
+  eePose lastHandEEPose;
 
   eePose trueCameraPose;
   eePose trueRangePose;
