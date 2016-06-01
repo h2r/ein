@@ -1,4 +1,4 @@
-robotSerial "_bg_" leftOrRightArm + + "bg" store
+[ robotSerial "_bg_" leftOrRightArm ] join "bg" store
 
 (  assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition 
 /* 0.562500 0.478750 0.069192 -0.001253 0.999999 -0.000147 0.000237 createEEPose moveEeToPoseWord */
@@ -40,15 +40,16 @@ robotSerial "_bg_" leftOrRightArm + + "bg" store
   4.0 sceneSetFocusedSceneStdDevColor
 ) "tempRegularizeFocusedClassModel" store
 
+0.1 "tempDefaultScoreThresh" store
 ( 
   sceneSetDiscrepancyModeNoisyOr
-  0.1 sceneSetScoreThresh
+  tempDefaultScoreThresh sceneSetScoreThresh
   bg sceneLoadBackgroundMap 
   5 sceneSetCellCountThreshold 
   tempRegularizeBackground
 
   sceneClearObservedMap sceneClearPredictedObjects 
-) "tempInit" store
+) "Initialize scene parameters." "tempInit" define
 
 0.1 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
@@ -76,7 +77,7 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
 0.02 "tempSpiralGridSizeDefault" store
 tempSpiralGridSizeDefault "tempSpiralGridSize" store
-200 "tempSpiralStreamTakeSceneSamplesDefault" store
+500 "tempSpiralStreamTakeSceneSamplesDefault" store
 tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
 
@@ -1133,9 +1134,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.035 "tempBlockGripperThrow" store
+0.02 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
-0.03 "tempBlockTargetContactWidth" store
+0.01 "tempBlockTargetContactWidth" store
+0.005 "tempBlockCollarWidth" store
 (
   tempBlockUsingBlocks not (
     0.00 "scenePredictedMapThresh" store
@@ -1149,7 +1151,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
       tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
     ) ( 
-      tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      tempBlockCollarWidth tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
       thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
     ) while
 
@@ -1165,7 +1167,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
       tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
     ) ( 
-      tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      tempBlockCollarWidth tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
       thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
     ) while
 
@@ -1175,6 +1177,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     "tempSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
   ) ifte
+
+  0.0 sceneSetScoreThresh
+  0.0 "tempDefaultScoreThresh" store
 ) "tempSwapToBlocks" store
 
 (
@@ -1222,6 +1227,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
 
   tempScanBase setC3dPoseBase
+
+  "Ok, check the predicted map and make sure the object was added correctly." print
+  "If it was, you can add 3d grasps." print
 ) "tempSceneLock3dGrasp" store
 
 
@@ -1416,7 +1424,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.01 "tempReconstructWithZDeltaZ" store
-400 "tempReconstructStreamTakeSceneSamples" store
+500 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1832,7 +1840,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       +
     print
 
-    0.04 setSpeed pressUntilEffortCombo openGripper liftArm
+    pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo openGripper liftArm
   ) 10 replicateWord
 ) "tempEvaluateObject" store
 
@@ -2680,6 +2688,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     waitUntilAtCurrentPosition
 
     tempUpdateMagCoreNoClean
+    endStackCollapseNoop
 
 
       tempChrThisHeight 1 +
@@ -2723,7 +2732,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   
   1.375 "magCalBase" store
-  50 "magCalSteps" store
+  64 "magCalSteps" store
   0.04 "magCalDelta" store
 
   0 changeToHeight
@@ -2808,10 +2817,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   setTable
-/*
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
+/*
 */
   initializeAndFocusOnNewClass
 
@@ -2980,21 +2989,103 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   quarterImpulse 0.01 setGridSize
 ) "tempReset" store
 
+
+
+
+(
+  setPlaceModeToHold
+  /*
+  51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
+  */
+) "tempDribblePrep" store
+
+(
+  isGripperGripping (
+    perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed pressDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+  ) ift
+) "tempDribblePlace" store
+
 (
   ( 
-    ( 
-      tempMapFocusedAndPick tempGoHome perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed touchDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
-    ) time 
-  ) 
-  108 replicateWord
+    tempMapFocusedAndPick tempGoHome 
+    tempDribblePlace
+  ) time 
+) "tempDribbleCore" store
+
+(
+  ( 
+    tempMapBestAndPick tempGoHome 
+    tempDribblePlace
+  ) time 
+) "tempDribbleBestCore" store
+
+(
+  tempDribblePrep
+
+    ( tempDribbleCore )
+    108 
+  replicateWord
 ) "tempDribble" store
 
+(
+  tempDribblePrep
+
+  ( 1 ) (
+    tempDribbleCore
+    endStackCollapseNoop
+  ) while
+) "tempInfiniteDribble" store
+
+(
+  setPlaceModeToHold
+
+  ( 1 ) (
+    tempDribbleBestCore
+    endStackCollapseNoop
+  ) while
+) "tempInfiniteDribbleBest" store
+
+(
+  ( 1 ) (
+    neutralFace
+    -1 0.1 setHeadPanTargetSpeed 
+    4.0 waitForSeconds 
+    1 0.1 setHeadPanTargetSpeed
+    4.0 waitForSeconds 
+    0 0.1 setHeadPanTargetSpeed
+    4.0 waitForSeconds 
+    happyFace
+    (
+      nod
+      1.0 waitForSeconds 
+    ) 4 replicateWord
+    (
+      happyFace
+      0.1 waitForSeconds 
+      sadFace
+      0.1 waitForSeconds 
+    ) 2 replicateWord
+    (
+      publishWristViewToFace
+	  1.0 20.0 divide
+	3.0 times
+      waitForSeconds
+    ) 80 replicateWord
+  ) while
+) "tempIdolDance" store
 
 
 
+(
+  3 changeToHeight
+    cameraGetCurrentHeightReticleY  
+    cameraGetCurrentHeightReticleX  
+  sceneSetVanishingPointFromPixel
 
-
-
+  /* 
+  moveCropToCenterVanishingPointSlideHeightReticles
+  */
+) "tempSpoofVanishingPoint" store
 
 
 

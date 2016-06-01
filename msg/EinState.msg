@@ -20,3 +20,5 @@ string[] call_stack
 string[] data_stack
 
 string[] words
+
+string state_string

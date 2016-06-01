@@ -37,7 +37,7 @@ void fillIkRequest(eePose givenEEPose, baxter_core_msgs::SolvePositionIK * given
   fillIkRequest(poses, givenIkRequest);
 }
 
-void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
+void reseedIkRequest(MachineState * ms, eePose *givenEEPose, baxter_core_msgs::SolvePositionIK * givenIkRequest, int it, int itMax) {
 
   double jointSeedAmplitude = (3.1415926 * double(it) / double(itMax));
   double jointSeedAmplitudeMin = 0.02;
@@ -63,7 +63,7 @@ void reseedIkRequest(shared_ptr<MachineState> ms, eePose *givenEEPose, baxter_co
   }
 }
 
-bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision, int i) {
+bool willIkResultFail(MachineState * ms, baxter_core_msgs::SolvePositionIK thisIkRequest, int thisIkCallResult, bool * likelyInCollision, int i) {
   bool thisIkResultFailed = 0;
   *likelyInCollision = 0;
 
@@ -92,7 +92,7 @@ bool willIkResultFail(shared_ptr<MachineState> ms, baxter_core_msgs::SolvePositi
   return thisIkResultFailed;
 }
 
-void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+void queryIKService(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
     // fill in 
 
     *thisResult = ms->config.ikClient.call(*thisRequest);
@@ -112,7 +112,7 @@ void queryIKService(shared_ptr<MachineState> ms, int * thisResult, baxter_core_m
 }
 
 
-void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
+void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest) {
   // cache for later
   eePose currentEEPoseRequested;
   {
@@ -210,7 +210,7 @@ void queryIK(shared_ptr<MachineState> ms, int * thisResult, baxter_core_msgs::So
   }
 }
 
-vector<ikMapState> ikAtPoses(shared_ptr<MachineState> ms, vector<eePose> poses) {
+vector<ikMapState> ikAtPoses(MachineState * ms, vector<eePose> poses) {
   baxter_core_msgs::SolvePositionIK thisIkRequest;
   fillIkRequest(poses, &thisIkRequest);
 
@@ -248,7 +248,7 @@ vector<ikMapState> ikAtPoses(shared_ptr<MachineState> ms, vector<eePose> poses) 
 
 }
 
-ikMapState ikAtPose(shared_ptr<MachineState> ms, eePose pose) {
+ikMapState ikAtPose(MachineState * ms, eePose pose) {
   vector<eePose> poses;
   poses.push_back(pose);
   vector<ikMapState> results = ikAtPoses(ms, poses);

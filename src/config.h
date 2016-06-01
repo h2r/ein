@@ -450,7 +450,8 @@ class EinConfig {
   ros::Publisher headPub;
   ros::Publisher nodPub;
   ros::Publisher stiffPub;
-  ros::Publisher einPub;
+  ros::Publisher einStatePub;
+  ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;
   ros::Publisher rec_objs_blue_memory;
   ros::Publisher markers_blue_memory;
@@ -741,6 +742,7 @@ class EinConfig {
   double averagedWrechMass = 0;
   double averagedWrechDecay = 0.95;
   eePose trueEEPoseEEPose;
+  eePose lastHandEEPose;
 
   eePose trueCameraPose;
   eePose trueRangePose;
@@ -1681,7 +1683,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
   MachineState();
-  std::shared_ptr<MachineState> sharedThis;
   MachineState * p;
 
   std::vector<std::shared_ptr<Word> > call_stack;

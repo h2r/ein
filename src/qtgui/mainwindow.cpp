@@ -8,7 +8,7 @@
 #include "wordaction.h"
 
 
-MainWindow::MainWindow(QWidget *parent, shared_ptr<MachineState> _right_arm, shared_ptr<MachineState> _left_arm) :
+MainWindow::MainWindow(QWidget *parent, MachineState * _right_arm, MachineState * _left_arm) :
   QMainWindow(parent), ui(new Ui::MainWindow), rightArmWidget(this, _right_arm), leftArmWidget(this, _left_arm), right_arm(_right_arm), left_arm(_left_arm), 
   objectMapView(parent, EIN_WINDOW_KEEPRATIO)
 {

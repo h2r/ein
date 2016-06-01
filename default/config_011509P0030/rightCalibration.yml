@@ -1,23 +1,23 @@
 %YAML:1.0
 savedTime:
-   - 1.4528087575228813e+09
+   - 1.4636924965880818e+09
 currentTableZ:
-   - 2.0745295761317578e-01
+   - 2.8683630447912006e-01
 cropUpperLeftCorner:
    - 320.
    - 200.
 vanishingPointReticle:
-   - 323.
-   - 185.
+   - 309.
+   - 189.
 heightReticles:
-   - 331.
-   - 335.
+   - 336.
    - 337.
-   - 342.
-   - 155.
-   - 151.
-   - 141.
-   - 116.
+   - 343.
+   - 357.
+   - 164.
+   - 156.
+   - 146.
+   - 122.
 colorReticles:
    - 462
    - 450
@@ -48,21 +48,21 @@ colorReticles:
    - 155
    - 155
 lensCorrections:
-   - 5.2339931112405480e-01
-   - 3.5991514706843425e-01
-   - 2.8267483223277684e-01
-   - 2.4054851189700427e-01
-   - 1.2046103641010544e+00
-   - 1.5296457427396679e+00
-   - 1.6995239335187391e+00
-   - 1.7200000000000002e+00
+   - 1.7450000000000003e+00
+   - 1.7650000000000006e+00
+   - 1.7650000000000006e+00
+   - 1.7650000000000006e+00
+   - 8.2500000000000029e-01
+   - 8.0500000000000027e-01
+   - 8.0500000000000027e-01
+   - 8.0500000000000027e-01
 gear0offset:
    - 2.3000000044703484e-02
    - 2.3000000044703484e-02
    - 1.6722800210118294e-02
    - 0.
-cameraExposure: 100
-cameraGain: 10
-cameraWhiteBalanceRed: 1024
-cameraWhiteBalanceGreen: 1216
-cameraWhiteBalanceBlue: 3000
+cameraExposure: 80
+cameraGain: 25
+cameraWhiteBalanceRed: 1124
+cameraWhiteBalanceGreen: 1024
+cameraWhiteBalanceBlue: 2048

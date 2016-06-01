@@ -21,7 +21,7 @@ void _GaussianMapChannel::zero() {
   samples = 0.0;
 }
 
-shared_ptr<Scene> Scene::createFromFile(shared_ptr<MachineState> ms, string filename) {
+shared_ptr<Scene> Scene::createFromFile(MachineState * ms, string filename) {
   shared_ptr<Scene> scene = make_shared<Scene>(ms, 1, 1, 0.02, eePose::identity());
   scene->loadFromFile(filename);
   return scene;
@@ -68,7 +68,7 @@ double safeSigmaSquared(double sigmasquared) {
 // }
 
 
-double computeLogLikelihood(shared_ptr<MachineState> ms, GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
+double computeLogLikelihood(MachineState * ms, GaussianMapChannel & channel1, GaussianMapChannel & channel2) {
   /*double total = 0.0;
   for (int i = 0; i < 256; i++) {
     total += exp(computeEnergy(channel1, i));
@@ -674,7 +674,7 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   out = big;
 }
 
-void GaussianMap::rgbDiscrepancyMuToMat(shared_ptr<MachineState> ms, Mat& out) {
+void GaussianMap::rgbDiscrepancyMuToMat(MachineState * ms, Mat& out) {
   out = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -917,7 +917,7 @@ void SceneObject::readFromFileNode(FileNode& it) {
 
 
 
-Scene::Scene(shared_ptr<MachineState> _ms, int w, int h, double cw, eePose pose) {
+Scene::Scene(MachineState * _ms, int w, int h, double cw, eePose pose) {
 
   if (w % 2 == 0) {
     cout << "Scene parity error: tried to allocate width: " << w << " so adding 1..." << endl;
@@ -1901,6 +1901,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
       }
     }
   } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+    // don't sort because all are searched below
   } else {
     assert(0);
   }
@@ -2645,7 +2646,7 @@ void TransitionTable::loadFromFile(string filename) {
 namespace ein_words {
 
  WORD(SceneScoreObjectAtPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
 
@@ -2665,7 +2666,7 @@ REGISTER_WORD(SceneScoreObjectAtPose)
 
 
 WORD(SceneComputeScore)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double score = ms->config.scene->computeScore();
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
   ms->pushWord(newWord);
@@ -2675,7 +2676,7 @@ END_WORD
 REGISTER_WORD(SceneComputeScore)
 
 WORD(SceneComputeProbabilityOfMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double score = ms->config.scene->computeProbabilityOfMap();
   std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(score);
   ms->pushWord(newWord);
@@ -2686,7 +2687,7 @@ REGISTER_WORD(SceneComputeProbabilityOfMap)
 
 
 WORD(SceneSaveSceneAbsolute)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string dir;
   GET_STRING_ARG(ms, dir);
   ms->config.scene->saveToFile(dir);
@@ -2698,7 +2699,7 @@ REGISTER_WORD(SceneSaveSceneAbsolute)
 
 
 WORD(SceneSaveScene)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2715,7 +2716,7 @@ END_WORD
 REGISTER_WORD(SceneSaveScene)
 
 WORD(SceneRenderScene)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
 }
 END_WORD
@@ -2726,7 +2727,7 @@ virtual string description() {
   return "Load the object model.  Takes an object name as argument, which must be a directory name in the objects directory.";
 }
 
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string object_name;
   GET_STRING_ARG(ms, object_name);
   
@@ -2740,7 +2741,7 @@ REGISTER_WORD(SceneLoadObjectModel)
 
 
 WORD(SceneLoadFocusedObjectModel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   std::stringstream buffer;
   buffer << "\"" << sceneModelFile(ms, ms->config.focusedClassLabel) << "\" sceneLoadSceneRaw";
   ms->evaluateProgram(buffer.str());
@@ -2749,7 +2750,7 @@ END_WORD
 REGISTER_WORD(SceneLoadFocusedObjectModel)
 
 WORD(SceneLoadSceneRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string file;
   GET_STRING_ARG(ms, file);
   ms->config.scene->loadFromFile(file);
@@ -2761,7 +2762,7 @@ REGISTER_WORD(SceneLoadSceneRaw)
 
 
 WORD(SceneLoadScene)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2779,7 +2780,7 @@ REGISTER_WORD(SceneLoadScene)
 
 
 WORD(SceneSaveBackgroundMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2796,7 +2797,7 @@ END_WORD
 REGISTER_WORD(SceneSaveBackgroundMap)
 
 WORD(SceneLoadBackgroundMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2815,7 +2816,7 @@ REGISTER_WORD(SceneLoadBackgroundMap)
 
 
 WORD(SceneRenderBackgroundMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Mat backgroundImage;
   ms->config.scene->background_map->rgbMuToMat(backgroundImage);
   Mat rgb = backgroundImage.clone();  
@@ -2828,7 +2829,7 @@ REGISTER_WORD(SceneRenderBackgroundMap)
 
 
 WORD(SceneSaveObservedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2845,7 +2846,7 @@ END_WORD
 REGISTER_WORD(SceneSaveObservedMap)
 
 WORD(SceneLoadObservedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2862,7 +2863,7 @@ END_WORD
 REGISTER_WORD(SceneLoadObservedMap)
 
 WORD(SceneSaveDiscrepancyMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2878,7 +2879,7 @@ END_WORD
 REGISTER_WORD(SceneSaveDiscrepancyMap)
 
 WORD(SceneLoadDiscrepancyMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string message;
   GET_STRING_ARG(ms, message);
 
@@ -2894,7 +2895,7 @@ END_WORD
 REGISTER_WORD(SceneLoadDiscrepancyMap)
 
 WORD(SceneSaveFocusedSceneModel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms, tfc);
   guardSceneModels(ms);
 
@@ -2913,7 +2914,7 @@ END_WORD
 REGISTER_WORD(SceneSaveFocusedSceneModel)
 
 WORD(SceneLoadFocusedSceneModel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
 
@@ -2932,14 +2933,14 @@ END_WORD
 REGISTER_WORD(SceneLoadFocusedSceneModel)
 
 WORD(SceneClearPredictedObjects)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->predicted_objects.resize(0);
 }
 END_WORD
 REGISTER_WORD(SceneClearPredictedObjects)
 
 WORD(SceneAddPredictedFocusedObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
 
@@ -2954,7 +2955,7 @@ END_WORD
 REGISTER_WORD(SceneAddPredictedFocusedObject)
 
 WORD(SceneAddPredictedObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   double x_in=0, y_in=0, theta_in=0; 
@@ -2970,7 +2971,7 @@ END_WORD
 REGISTER_WORD(SceneAddPredictedObject)
 
 WORD(ScenePredictFocusedObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
   ms->config.scene->tryToAddObjectToScene(tfc);
@@ -2979,7 +2980,7 @@ END_WORD
 REGISTER_WORD(ScenePredictFocusedObject)
 
 WORD(ScenePredictBestObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
   ms->config.scene->tryToAddBestObjectToScene();
 }
@@ -2987,7 +2988,7 @@ END_WORD
 REGISTER_WORD(ScenePredictBestObject)
 
 WORD(ScenePushTotalDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   Mat tsd = ms->config.scene->discrepancy_density;
@@ -3057,7 +3058,7 @@ END_WORD
 REGISTER_WORD(ScenePushTotalDiscrepancy)
 
 WORD(ScenePushTotalRelevantOneMinusDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double thresh = 0.0;
   GET_NUMERIC_ARG(ms, thresh);
   guardSceneModels(ms);
@@ -3084,7 +3085,7 @@ END_WORD
 REGISTER_WORD(ScenePushTotalRelevantOneMinusDiscrepancy)
 
 WORD(ScenePushFocusedClassModelArea)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   ms->pushWord(make_shared<DoubleWord>(ms->config.class_scene_models[tfc]->width * ms->config.class_scene_models[tfc]->height));
@@ -3093,7 +3094,7 @@ END_WORD
 REGISTER_WORD(ScenePushFocusedClassModelArea)
 
 WORD(ScenePushFocusedClassTotalDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
@@ -3105,7 +3106,7 @@ END_WORD
 REGISTER_WORD(ScenePushFocusedClassTotalDiscrepancy)
 
 WORD(ScenePushTotalLogDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   Mat tsd = ms->config.scene->discrepancy_density;
@@ -3191,7 +3192,7 @@ END_WORD
 REGISTER_WORD(ScenePushTotalLogDiscrepancy)
 
 WORD(ScenePushTotalDiscrepancyMagnitude)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   Mat tsd = ms->config.scene->discrepancy_magnitude;
@@ -3202,7 +3203,7 @@ END_WORD
 REGISTER_WORD(ScenePushTotalDiscrepancyMagnitude)
 
 WORD(SceneTakeBeforeDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
   ms->config.scene->discrepancy_before = ms->config.scene->discrepancy_density;
 }
@@ -3211,7 +3212,7 @@ REGISTER_WORD(SceneTakeBeforeDensity)
 
 
 WORD(SceneTakeAfterDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
   ms->config.scene->discrepancy_after = ms->config.scene->discrepancy_density;
 }
@@ -3226,7 +3227,7 @@ bool doubleAscending(const double &i, const double &j) {
 }
 
 WORD(SceneHighPrecisionBeforeAfterDiffOfLogs)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   Mat tsd_b = ms->config.scene->discrepancy_before;
@@ -3335,7 +3336,7 @@ END_WORD
 REGISTER_WORD(SceneHighPrecisionBeforeAfterDiffOfLogs)
 
 WORD(SceneIsNewConfiguration)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   guardSceneModels(ms);
 
   /*
@@ -3385,7 +3386,7 @@ END_WORD
 REGISTER_WORD(SceneIsNewConfiguration)
 
 WORD(SceneInit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 901; //1001; //1501; // 1001 // 601;
   int p_height = 901; //1001; //1501; // 1001 / 601;
@@ -3398,7 +3399,7 @@ END_WORD
 REGISTER_WORD(SceneInit)
 
 WORD(SceneInitFromEePose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   eePose destPose;
   GET_ARG(ms,EePoseWord,destPose);
   // XXX THIS ONE IS FINER GRAINED since it is centerered
@@ -3417,7 +3418,7 @@ END_WORD
 REGISTER_WORD(SceneInitFromEePose)
 
 WORD(SceneInitFromEePoseScale)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   eePose destPose;
   GET_ARG(ms,EePoseWord,destPose);
   double gridSize = 0.0;
@@ -3439,7 +3440,7 @@ END_WORD
 REGISTER_WORD(SceneInitFromEePoseScale)
 
 WORD(SceneInitDimensions)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
@@ -3459,7 +3460,7 @@ REGISTER_WORD(SceneInitDimensions)
 
 
 WORD(SceneInitSmall)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double p_cell_width = 0.0025; //0.01;
   int p_width = 50; // 601;
   int p_height = 50; // 601;
@@ -3471,7 +3472,7 @@ REGISTER_WORD(SceneInitSmall)
 
 
 WORD(SceneClearObservedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->observed_map->zero();
   Mat observedImage;
   ms->config.scene->observed_map->rgbMuToMat(observedImage);
@@ -3484,14 +3485,14 @@ END_WORD
 REGISTER_WORD(SceneClearObservedMap)
 
 WORD(SceneSetBackgroundFromObserved)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->background_map = ms->config.scene->observed_map->copy();
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
 
 WORD(SceneSetBackgroundStdDevY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double stddev = 0;
   GET_NUMERIC_ARG(ms, stddev);
 
@@ -3505,7 +3506,7 @@ END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevY)
 
 WORD(SceneSetBackgroundStdDevColor)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double stddev = 0;
   GET_NUMERIC_ARG(ms, stddev);
 
@@ -3520,7 +3521,7 @@ END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevColor)
 
 WORD(SceneSetFocusedSceneStdDevY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
 
@@ -3539,7 +3540,7 @@ END_WORD
 REGISTER_WORD(SceneSetFocusedSceneStdDevY)
 
 WORD(SceneSetFocusedSceneStdDevColor)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
 
@@ -3559,14 +3560,14 @@ END_WORD
 REGISTER_WORD(SceneSetFocusedSceneStdDevColor)
 
 WORD(SceneUpdateObservedFromSnout)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 //XXX 
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Mat ringImage;
   eePose thisPose;
   ros::Time time;
@@ -3673,7 +3674,7 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 
 // XXX TODO NOT DONE
 WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int thisIdx = ms->config.sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
@@ -3822,14 +3823,14 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
 
 WORD(SceneUpdateObservedFromStreamBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("sceneUpdateObservedFromStreamBufferNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
 
 WORD(SceneRenderObservedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     Mat image;
     ms->config.scene->observed_map->rgbMuToMat(image);
@@ -3852,7 +3853,7 @@ END_WORD
 REGISTER_WORD(SceneRenderObservedMap)
 
 WORD(SceneComposePredictedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->composePredictedMap();
   ms->pushWord("sceneRenderPredictedMap");
 }
@@ -3860,7 +3861,7 @@ END_WORD
 REGISTER_WORD(SceneComposePredictedMap)
 
 WORD(SceneComposePredictedMapThreshed)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double threshold = 0.0;
   GET_NUMERIC_ARG(ms, threshold);
   ms->config.scene->composePredictedMap(threshold);
@@ -3870,7 +3871,7 @@ END_WORD
 REGISTER_WORD(SceneComposePredictedMapThreshed)
 
 WORD(SceneRenderPredictedMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   {
     Mat image;
     ms->config.scene->predicted_map->rgbMuToMat(image);
@@ -3892,7 +3893,7 @@ REGISTER_WORD(SceneRenderPredictedMap)
 
 
 WORD(SceneUpdateDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->measureDiscrepancy();
   ms->pushWord("sceneRenderDiscrepancy");
 }
@@ -3900,7 +3901,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateDiscrepancy)
 
 WORD(SceneUpdateAllClassDiscrepancies)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneUpdateAllClassDiscrepancies: refreshing discrepencies of all classes." << endl;
   int nc = ms->config.numClasses;
   for (int i = 0; i < nc; i++) {
@@ -3911,7 +3912,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateAllClassDiscrepancies)
 
 WORD(SceneRenderDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   ms->config.discrepancyWindow->updateImage(image);
@@ -3937,7 +3938,7 @@ END_WORD
 REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneRenderZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   ms->config.discrepancyWindow->updateImage(image);
@@ -3975,7 +3976,7 @@ REGISTER_WORD(SceneRenderZ)
 
 
 WORD(SceneGrabDiscrepantCropAsClass)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   double p_crop_pad = 0.05;
@@ -3990,7 +3991,7 @@ END_WORD
 REGISTER_WORD(SceneGrabDiscrepantCropAsClass)
 
 WORD(SceneDensityFromDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // this enables denisty based models to use the new channel
 // XXX this does not take the rotation of the wrist into account
   Size sz = ms->config.wristCamImage.size();
@@ -4019,7 +4020,7 @@ END_WORD
 REGISTER_WORD(SceneDensityFromDiscrepancy)
 
 WORD(SceneCountDiscrepantCells)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int width = ms->config.scene->width;
   int height = ms->config.scene->height;
   double threshold = 0.0;
@@ -4031,7 +4032,7 @@ END_WORD
 REGISTER_WORD(SceneCountDiscrepantCells)
 
 WORD(SceneExponentialAverageObservedIntoBackground)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double fraction;
   GET_NUMERIC_ARG(ms, fraction);
 
@@ -4044,7 +4045,7 @@ END_WORD
 REGISTER_WORD(SceneExponentialAverageObservedIntoBackground)
 
 WORD(SceneSmoothDiscrepancyDensity)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double sigma;
   GET_NUMERIC_ARG(ms, sigma);
   ms->config.scene->smoothDiscrepancyDensity(sigma);
@@ -4053,7 +4054,7 @@ END_WORD
 REGISTER_WORD(SceneSmoothDiscrepancyDensity)
 
 WORD(ScenePushSceneObjectPose)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int so_idx = 0;
   GET_INT_ARG(ms, so_idx);
   so_idx = min( max( int(0), int(so_idx)), int(ms->config.scene->predicted_objects.size())-1 );
@@ -4070,14 +4071,14 @@ END_WORD
 REGISTER_WORD(ScenePushSceneObjectPose)
 
 WORD(ScenePushNumSceneObjects)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord(make_shared<IntegerWord>(ms->config.scene->predicted_objects.size()));
 }
 END_WORD
 REGISTER_WORD(ScenePushNumSceneObjects)
 
 WORD(ScenePushSceneObjectLabel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int to_map = 0;
   GET_INT_ARG(ms, to_map);
   REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
@@ -4089,7 +4090,7 @@ END_WORD
 REGISTER_WORD(ScenePushSceneObjectLabel)
 
 WORD(SceneMapSceneObject)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int to_map = 0;
   GET_INT_ARG(ms, to_map);
   REQUIRE_VALID_SCENE_OBJECT(ms, to_map);
@@ -4145,7 +4146,7 @@ END_WORD
 REGISTER_WORD(SceneMapSceneObject)
 
 WORD(SceneZeroBox)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // point width height sceneZeroBox
   eePose g_pose;
   GET_ARG(ms, EePoseWord, g_pose);
@@ -4168,7 +4169,7 @@ REGISTER_WORD(SceneZeroBox)
 
 
 WORD(EePoseGetPoseRelativeTo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 /* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
   eePose to_apply;
   GET_ARG(ms, EePoseWord, to_apply);
@@ -4182,7 +4183,7 @@ END_WORD
 REGISTER_WORD(EePoseGetPoseRelativeTo)
 
 WORD(EePoseApplyRelativePoseTo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 /* call with "to_apply base_pose EePoseApplyRelativePoseTo" */
   eePose base_pose;
   GET_ARG(ms, EePoseWord, base_pose);
@@ -4198,21 +4199,21 @@ REGISTER_WORD(EePoseApplyRelativePoseTo)
 CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
 
 WORD(SceneSetDiscrepancyModeDot)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.discrepancyMode = DISCREPANCY_DOT;
 }
 END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModeDot)
 
 WORD(SceneSetDiscrepancyModePoint)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.discrepancyMode = DISCREPANCY_POINT;
 }
 END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModePoint)
 
 WORD(SceneSetDiscrepancyModeNoisyOr)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.discrepancyMode = DISCREPANCY_NOISY_OR;
 }
 END_WORD
@@ -4220,7 +4221,7 @@ REGISTER_WORD(SceneSetDiscrepancyModeNoisyOr)
 
 
 WORD(SceneSetPredictedClassNameToFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->predicted_class_name = ms->config.focusedClassLabel;
   cout << "sceneSetPredictedClassNameToFocusedClass: setting to " << ms->config.scene->predicted_class_name << endl;
 }
@@ -4228,7 +4229,7 @@ END_WORD
 REGISTER_WORD(SceneSetPredictedClassNameToFocusedClass)
 
 WORD(SceneSetAnnotatedClassNameToFocusedClass)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.scene->annotated_class_name = ms->config.focusedClassLabel;
   cout << "sceneSetAnnotatedClassNameToFocusedClass: setting to " << ms->config.scene->annotated_class_name << endl;
 }
@@ -4255,7 +4256,7 @@ int numberOfEqualCharacters(string first, string second) {
   return i;
 }
 
-vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vector<string> scene_files) {
+vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> scene_files) {
 
   double sum_x = 0.0;
   double sum_y = 0.0;
@@ -4405,7 +4406,7 @@ vector<double> poseVarianceOfEvaluationScenes(shared_ptr<MachineState> ms, vecto
 }
 
 WORD(CatScan5VarianceTrialCalculatePoseVariances)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   /* loop over all variance trial files, estimate poses and configurations, 
      and calculate the variance of those estimates.
@@ -4506,7 +4507,7 @@ END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculatePoseVariances)
 
 WORD(CatScan5VarianceTrialAutolabelClassNames)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   /* loop over all variance trial files, estimate poses and configurations, 
      and pause to allow a human to set the true label.
@@ -4563,7 +4564,7 @@ END_WORD
 REGISTER_WORD(CatScan5VarianceTrialAutolabelClassNames)
 
 WORD(CatScan5VarianceTrialAuditClassNames)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   /* loop over all variance trial files, estimate poses and configurations, 
      and pause to allow a human to set the true label.
@@ -4616,7 +4617,7 @@ END_WORD
 REGISTER_WORD(CatScan5VarianceTrialAuditClassNames)
 
 WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsBaseClassAbsolute to load
@@ -4714,7 +4715,7 @@ END_WORD
 REGISTER_WORD(CatScan5VarianceTrialCalculateConfigurationAccuracy)
 
 WORD(CatScan5VarianceTrialCalculateAllClassesAccuracy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   /* loop over all variance trial files and classify under all classes all configurations.
        pre-requisite: you should use setClassLabelsObjectFolderAbsolute to load all
@@ -4885,7 +4886,7 @@ CONFIG_SETTER_ENUM(SceneSetClassificationMode, ms->config.currentSceneClassifica
 CONFIG_GETTER_INT(SceneGetClassificationMode, ms->config.currentSceneClassificationMode)
 
 WORD(SceneFabricateIdealBlockModel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   /* the density filter will not be accurately updated if it is recomposed
       because it contains negative values to enforce comparability. 
      this should only be used with SC_DISCREPANCY_ONLY */
@@ -4893,8 +4894,10 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // XXX TODO
   double breadth_m, length_m;
+  double this_collar_width_m = 0.001;
   GET_NUMERIC_ARG(ms, breadth_m);
   GET_NUMERIC_ARG(ms, length_m);
+  GET_NUMERIC_ARG(ms, this_collar_width_m);
 
   stringstream ss;
   ss << "ideal_block_" << length_m << "_" << breadth_m;
@@ -4905,7 +4908,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   double scale = 1;
   double negative_space_weight_ratio = 1.0;
-  double this_collar_width_m = 0.02;
+  // gives room for the gripper itself
   double this_cw = ms->config.scene->cell_width; 
   int this_w = ceil( (3.0 * this_collar_width_m + breadth_m) / this_cw);
   int this_h = ceil( (3.0 * this_collar_width_m + length_m) / this_cw);
@@ -4913,8 +4916,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
 
   // fill in the magnitude and density maps; positive region sums to 1, negative collar sums to -1
   Mat fake_filter = ms->config.class_scene_models[tfc]->discrepancy_magnitude;
-  int w = fake_filter.cols;
-  int h = fake_filter.rows;
+  int w = fake_filter.rows;
+  int h = fake_filter.cols;
   // count cells
   double num_pos = 0;
   double num_neg = 0;
@@ -4939,48 +4942,60 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   // l2 norm is sqrt(num_pos)
   //double pos_factor = 1.0/sqrt(num_pos);
   //double neg_factor = 10.0/sqrt(num_neg);
-  double pos_factor = 1.0/(num_pos);
-  double neg_factor = 3.0/(num_neg);
+  //double pos_factor = 1.0/(num_pos);
+  //double neg_factor = 3.0/(num_neg);
+  double pos_factor = 1.0;
+  double neg_factor = 1.0;
+  //double pos_factor = (num_pos+num_neg)/num_pos;
+  //double neg_factor = (num_pos+num_neg)/num_neg;
 
   double counts_scale = 1e4;
 
+cout << "tfc: " << tfc << endl;
   // fill out proper values
   for (int y = 0; y < h; y++) {
     for (int x = 0; x < w; x++) {
       double this_x_m, this_y_m;
-      ms->config.class_scene_models[tfc]->cellToMeters(x, y, &this_x_m, &this_y_m);
+      ms->config.class_scene_models[tfc]->cellToMeters(x,y, &this_x_m, &this_y_m);
       if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/2.0)) ) {
 	fake_filter.at<double>(x,y) = scale*pos_factor;
 	if ( (fabs(this_y_m) <= (length_m/2.0)) && (fabs(this_x_m) <= (breadth_m/4.0)) ) {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*192;
+cout << "a ";
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*192;
 	} else {
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*64;
+cout << "b ";
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	  ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*64;
 	}
       } else if ( (fabs(this_y_m) <= (length_m/2.0)) && (  fabs(this_x_m) <= (this_collar_width_m + (   breadth_m/2.0   ))  ) ) {
+cout << "c ";
 	fake_filter.at<double>(x,y) = -negative_space_weight_ratio*scale*neg_factor;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*128;
       } else {
+cout << "d ";
 	fake_filter.at<double>(x,y) = 0.0;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts = counts_scale*128;
-	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts = counts_scale*128;
+	ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts = counts_scale*128;
       }
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.samples = counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->red.counts / counts_scale, 2.0)*counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->blue.counts / counts_scale, 2.0)*counts_scale;
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.squaredcounts = 
-	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x, y)->green.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.samples = counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->red.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->blue.counts / counts_scale, 2.0)*counts_scale;
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.squaredcounts = 
+	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts / counts_scale, 2.0)*counts_scale;
+
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
     }
+cout << endl;
   }
   ms->config.class_scene_models[tfc]->discrepancy_density = fake_filter.clone();
   // XXX push a table flush 3d crane grasp at the center
@@ -5002,7 +5017,7 @@ REGISTER_WORD(SceneFabricateIdealBlockModel)
 
 
 WORD(SceneInitRegisterMax)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneInitRegister: copying and maxing variances..." << endl;
   ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
   int t_height = ms->config.gaussian_map_register->height;
@@ -5020,7 +5035,7 @@ END_WORD
 REGISTER_WORD(SceneInitRegisterMax)
 
 WORD(SceneInitRegisterZero)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneInitRegister: copying and maxing variances..." << endl;
   ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
   int t_height = ms->config.gaussian_map_register->height;
@@ -5038,7 +5053,7 @@ END_WORD
 REGISTER_WORD(SceneInitRegisterZero)
 
 WORD(SceneRecallFromRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneRecallFromRegister: copying..." << endl;
   ms->config.scene->observed_map = ms->config.gaussian_map_register->copy();
 }
@@ -5046,7 +5061,7 @@ END_WORD
 REGISTER_WORD(SceneRecallFromRegister)
 
 WORD(SceneStoreObservedInRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneStoreObservedInRegister: copying..." << endl;
   ms->config.gaussian_map_register = ms->config.scene->observed_map->copy();
 }
@@ -5054,14 +5069,14 @@ END_WORD
 REGISTER_WORD(SceneStoreObservedInRegister)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("sceneUpdateObservedFromStreamBufferAtZNoRecalc sceneRecalculateObservedMusAndSigmas sceneRenderObservedMap");
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
 
 WORD(SceneRecalculateObservedMusAndSigmas)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneRecalculateObservedMusAndSigmas: ." << endl;
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
 }
@@ -5069,7 +5084,7 @@ END_WORD
 REGISTER_WORD(SceneRecalculateObservedMusAndSigmas)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -5219,7 +5234,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
 
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -5255,6 +5270,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     ROS_ERROR("Gripper mask is messed up.");
   }
 
+  eePose lastPose = eePose::identity();
+
   for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
     streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
 
@@ -5273,6 +5290,14 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
     } else {
       assert(0);
     }
+
+    if (eePose::distance(lastPose, tArmP) == 0) {
+      //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+      ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP <<
+	"dropping frame..." << endl);
+      continue;
+    }
+    lastPose = tArmP;
 
     if (success != 1) {
       ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
@@ -5359,7 +5384,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
     
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -5557,7 +5582,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -5772,7 +5797,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetri
 
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
 
@@ -5963,7 +5988,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray)
 
 WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
@@ -6063,7 +6088,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray)
 
 WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
@@ -6235,7 +6260,7 @@ REGISTER_WORD(SceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel)
 
 
 WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX this function, which has not been started, should
 // reproject the reprojection buffer to a photograph at a single depth and store
 // it in the observed map, possibly to be put onto the depth stack
@@ -6438,7 +6463,7 @@ REGISTER_WORD(SceneUpdateObservedFromReprojectionBufferAtZNoRecalc)
 
 
 WORD(SceneCopyObservedToReprojectionBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX
 }
 END_WORD
@@ -6447,7 +6472,7 @@ REGISTER_WORD(SceneCopyObservedToReprojectionBuffer)
 
 
 WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double zToUse = 0.0;
   GET_NUMERIC_ARG(ms, zToUse);
 
@@ -6600,7 +6625,7 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double zToUse = 0.0;
   GET_NUMERIC_ARG(ms, zToUse);
 
@@ -6838,7 +6863,7 @@ CONFIG_SETTER_INT(SceneSetAngularBaffleCols, ms->config.angular_baffle_cols)
 CONFIG_GETTER_INT(SceneDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
 CONFIG_SETTER_INT(SceneSetDepthPatchHalfWidth, ms->config.sceneDepthPatchHalfWidth)
 
-void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
+void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin) {
 
   int sceneDepthPatchHalfWidth = ms->config.sceneDepthPatchHalfWidth;
 
@@ -6948,7 +6973,7 @@ void sceneMinIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<Gau
 
 }
 
-void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared_ptr<GaussianMap> toMin) {
+void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin) {
 
 // XXX 
 // XXX  NOT DONE TODO
@@ -7030,7 +7055,7 @@ void sceneMarginalizeIntoRegisterHelper(std::shared_ptr<MachineState> ms, shared
 }
 
 WORD(SceneFlattenUncertainZWithDepthStack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX TODO RELEASE  this should be good for segmentation and grasp proposal
 //  if the max depth estimate does not own enough of the probability share, this depth is
 //  set to the maximum depth, saying if it was hazy to us consider it background.
@@ -7049,7 +7074,7 @@ END_WORD
 REGISTER_WORD(SceneFlattenUncertainZWithDepthStack)
 
 WORD(SceneMinIntoRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneMinIntoRegister: copying..." << endl;
 
   sceneMinIntoRegisterHelper(ms, ms->config.scene->observed_map);
@@ -7058,7 +7083,7 @@ END_WORD
 REGISTER_WORD(SceneMinIntoRegister)
 
 WORD(SceneTrimDepthWithDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double thresh = 0.0;
   GET_NUMERIC_ARG(ms, thresh);
 
@@ -7085,7 +7110,7 @@ END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
 
 WORD(SceneSmoothSquaredCountsAndSamplesXY)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double p_xySigma = 0.5;
   GET_NUMERIC_ARG(ms, p_xySigma);
   //double darkSigma = 1.0;
@@ -7120,7 +7145,7 @@ END_WORD
 REGISTER_WORD(SceneSmoothSquaredCountsAndSamplesXY)
 
 WORD(SceneSmoothDepthStackInZ)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double this_zSigma = 1.0;
   GET_NUMERIC_ARG(ms, this_zSigma);
 
@@ -7152,7 +7177,7 @@ END_WORD
 REGISTER_WORD(SceneSmoothDepthStackInZ)
 
 WORD(ScenePushOntoDepthStack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "scenePushOntoDepthStack: " << endl;
   ms->config.depth_maps.push_back(ms->config.scene->observed_map->copy());
 }
@@ -7160,7 +7185,7 @@ END_WORD
 REGISTER_WORD(ScenePushOntoDepthStack)
 
 WORD(ScenePushDepthStackSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "scenePushDepthStackSize: " << ms->config.depth_maps.size() << endl;
   ms->pushWord( make_shared<DoubleWord>(ms->config.depth_maps.size()) );
 }
@@ -7168,7 +7193,7 @@ END_WORD
 REGISTER_WORD(ScenePushDepthStackSize)
 
 WORD(SceneClearDepthStack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneClearDepthStack: " << endl;
   ms->config.depth_maps.resize(0);
 }
@@ -7176,7 +7201,7 @@ END_WORD
 REGISTER_WORD(SceneClearDepthStack)
 
 WORD(SceneMinDepthStackIntoRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneMinDepthStackIntoRegister: " << endl;
 
   int tns = ms->config.depth_maps.size();
@@ -7190,7 +7215,7 @@ END_WORD
 REGISTER_WORD(SceneMinDepthStackIntoRegister)
 
 WORD(SceneMarginalizeDepthStackIntoRegister)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   cout << "sceneMarginalizeDepthStackIntoRegister: " << endl;
 
   int tns = ms->config.depth_maps.size();
@@ -7204,7 +7229,7 @@ END_WORD
 REGISTER_WORD(SceneMarginalizeDepthStackIntoRegister)
 
 WORD(SceneRecallDepthStackIndex)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int idx = 0;
   GET_INT_ARG(ms, idx);
   cout << "sceneRecallDepthStackIndex: " << idx << endl;
@@ -7221,7 +7246,7 @@ END_WORD
 REGISTER_WORD(SceneRecallDepthStackIndex)
 
 WORD(SceneAddPredictedToObserved)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   shared_ptr<Scene> focusedScene = ms->config.class_scene_models[tfc];
 
@@ -7233,7 +7258,7 @@ END_WORD
 REGISTER_WORD(SceneAddPredictedToObserved)
 
 WORD(SceneAddDiscrepantPredictedToObserved)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double learning_weight = 0.0;
   GET_NUMERIC_ARG(ms, learning_weight);
   cout << "sceneAddDiscrepantPredictedToObserved: using learning rate " << learning_weight << endl;
@@ -7245,7 +7270,7 @@ REGISTER_WORD(SceneAddDiscrepantPredictedToObserved)
 
 
 WORD(SceneSpawnClassHarmonics)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   vector<shared_ptr<Scene> > scenes;
@@ -7262,7 +7287,7 @@ END_WORD
 REGISTER_WORD(SceneSpawnClassHarmonics)
 
 WORD(SceneCoalesceClassHarmonics)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
 
 }
@@ -7270,7 +7295,7 @@ END_WORD
 REGISTER_WORD(SceneCoalesceClassHarmonics)
 
 WORD(SceneSaveObservedMapImage)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string fname;
   GET_STRING_ARG(ms, fname);
   
@@ -7287,7 +7312,7 @@ REGISTER_WORD(SceneSaveObservedMapImage)
 
 
 WORD(SceneLoadMonochromeBackground)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int r, g, b;
   GET_INT_ARG(ms, b);
   GET_INT_ARG(ms, g);
@@ -7310,7 +7335,7 @@ END_WORD
 REGISTER_WORD(SceneLoadMonochromeBackground)
 
 WORD(SceneCropToDiscrepantRegion)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
 
   double p_crop_pad = 0.05;
@@ -7325,7 +7350,7 @@ END_WORD
 REGISTER_WORD(SceneCropToDiscrepantRegion)
 
 WORD(SceneDepthStackLoadAndPushRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX 
   string depthStackFolderPath;
   GET_STRING_ARG(ms, depthStackFolderPath);
@@ -7366,7 +7391,7 @@ END_WORD
 REGISTER_WORD(SceneDepthStackLoadAndPushRaw)
 
 WORD(SceneDepthStackLoadAndCropRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int x1,y1,x2,y2;
   GET_NUMERIC_ARG(ms,y2);
   GET_NUMERIC_ARG(ms,x2);
@@ -7429,7 +7454,7 @@ END_WORD
 REGISTER_WORD(SceneDepthStackLoadAndCropRaw)
 
 WORD(SceneDepthStackLoadAndMarginalizeRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string depthStackFolderPath;
   GET_STRING_ARG(ms, depthStackFolderPath);
 
@@ -7478,7 +7503,7 @@ END_WORD
 REGISTER_WORD(SceneDepthStackLoadAndMarginalizeRaw)
 
 WORD(SceneDepthStackLoadAndMinRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string depthStackFolderPath;
   GET_STRING_ARG(ms, depthStackFolderPath);
 
@@ -7527,7 +7552,7 @@ END_WORD
 REGISTER_WORD(SceneDepthStackLoadAndMinRaw)
 
 WORD(SceneDepthStackSaveRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string depthStackFolderPath;
   GET_STRING_ARG(ms, depthStackFolderPath);
 
@@ -7544,7 +7569,7 @@ REGISTER_WORD(SceneDepthStackSaveRaw)
 
 
 WORD(SceneRegularizeSceneL2)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   double decay = 1.0;
   GET_NUMERIC_ARG(ms, decay);
   for (int y = 0; y < ms->config.scene->height; y++) {
@@ -7562,7 +7587,7 @@ REGISTER_WORD(SceneRegularizeSceneL2)
 
 
 WORD(ScenePushPixelOfMinVariance)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // convert map cell into global xy
   // convert global xy into pixels
   double minEnergy = DBL_MAX;
@@ -7616,7 +7641,7 @@ END_WORD
 REGISTER_WORD(ScenePushPixelOfMinVariance)
 
 WORD(ScenePushPixelOfMinStackVariance)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // convert map cell into global xy
   // convert global xy into pixels
   double minEnergy = DBL_MAX;
@@ -7671,7 +7696,7 @@ END_WORD
 REGISTER_WORD(ScenePushPixelOfMinStackVariance)
 
 WORD(SceneSetVanishingPointFromPixel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int pixel_scene_x, pixel_scene_y;
   GET_NUMERIC_ARG(ms, pixel_scene_x);
   GET_NUMERIC_ARG(ms, pixel_scene_y);
@@ -7679,6 +7704,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   cout << "sceneSetVanishingPointFromPixel x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
 
   // XXX optionally add a translation of the height reticles here to avoid going into "dead" configurations
+  /*
   double delta_x = pixel_scene_x - ms->config.vanishingPointReticle.px;
   double delta_y = pixel_scene_x - ms->config.vanishingPointReticle.py;
 
@@ -7691,6 +7717,7 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
   ms->config.heightReticles[1].py += delta_y;
   ms->config.heightReticles[2].py += delta_y;
   ms->config.heightReticles[3].py += delta_y;
+  */
 
   ms->config.vanishingPointReticle.px = pixel_scene_x;
   ms->config.vanishingPointReticle.py = pixel_scene_y;
@@ -7699,7 +7726,7 @@ END_WORD
 REGISTER_WORD(SceneSetVanishingPointFromPixel)
 
 WORD(SceneSetHeightReticleFromPixel)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int pixel_scene_x, pixel_scene_y;
   GET_NUMERIC_ARG(ms, pixel_scene_x);
   GET_NUMERIC_ARG(ms, pixel_scene_y);
@@ -7719,21 +7746,21 @@ END_WORD
 REGISTER_WORD(SceneSetHeightReticleFromPixel)
 
 WORD(SceneSetVanishingPointFromVariance)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("scenePushPixelOfMinVariance sceneSetVanishingPointFromPixel");
 }
 END_WORD
 REGISTER_WORD(SceneSetVanishingPointFromVariance)
 
 WORD(SceneSetHeightReticleFromVariance)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->evaluateProgram("scenePushPixelOfMinVariance sceneSetHeightReticleFromPixel");
 }
 END_WORD
 REGISTER_WORD(SceneSetHeightReticleFromVariance)
 
 WORD(ScenePushAverageCrCbSigmaSquared)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double total = 0;
   double samples = 0;
@@ -7771,7 +7798,7 @@ REGISTER_WORD(ScenePushAverageCrCbSigmaSquared)
 /*
 
 WORD(ScenePushDepthStackMinVarIdx)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   // find the index of the depth stack with the least total variance
   double minEnergy = DBL_MAX;
   int minEnergyI = -1;
@@ -7786,19 +7813,19 @@ REGISTER_WORD(ScenePushDepthStackMinVarIdx)
 
 
 WORD(SceneFocusedClassDepthStackClear)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneFocusedClassDepthStackClear)
 
 WORD(SceneFocusedClassDepthStackPushObserved)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneFocusedClassDepthStackPushObserved)
 
 WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
@@ -7808,20 +7835,20 @@ REGISTER_WORD(SceneFocusedClassDepthStackLoadAndPushRaw)
 
 
 WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // updates entire stack from bottom up
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZWithRecastThroughDepthStack)
 
 WORD(SceneTrimDepthWithDiscrepancy)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
 
 WORD(SceneUpdateObservedFromStreamBufferRecast)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX this seems to require determining when a pixel in the stream buffer
 //  hits a cell known to be at a higher height. so this should loop height top down and for each height
 //  throw out pixels for the remaining heights below if they project to a cell at that height, and accumulate 
@@ -7838,21 +7865,21 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferRecast)
 /* 
 
 WORD(GaussianMapCalibrateVanishingPoint)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX
 }
 END_WORD
 REGISTER_WORD(GaussianMapCalibrateVanishingPoint)
 
 WORD(GaussianMapCalibrateMagnifications)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX
 }
 END_WORD
 REGISTER_WORD(GaussianMapCalibrateMagnifications)
 
 WORD(GaussianMapCompilePointCloud)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // XXX
 }
 END_WORD
@@ -7861,38 +7888,38 @@ REGISTER_WORD(GaussianMapCompilePointCloud)
 
 
 WORD(Scene)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(Scene)
 
 WORD(GaussianMap)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(GaussianMap)
 
 WORD()
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD()
 
 WORD(TransitionTableInit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 // zero it out
 }
 END_WORD
 REGISTER_WORD(TransitionTableInit)
 
 WORD(TransitionTableCount)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(TransitionTableCount)
 
 WORD(PlanWithTransitionTable)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
 // takes a desired state and outputs the action that best takes the prescene to that state
 
@@ -7902,21 +7929,21 @@ REGISTER_WORD(PlanWithTransitionTable)
 
 */
 WORD(RayBufferInit)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->config.rayBuffer.resize(0);
 }
 END_WORD
 REGISTER_WORD(RayBufferInit)
 
 WORD(RayBufferSize)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   ms->pushWord(make_shared<DoubleWord>(ms->config.rayBuffer.size()));
 }
 END_WORD
 REGISTER_WORD(RayBufferSize)
 
 WORD(RayBufferSaveRaw)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string file_name;
   GET_STRING_ARG(ms, file_name);
 
@@ -7946,7 +7973,7 @@ END_WORD
 REGISTER_WORD(RayBufferSaveRaw)
 
 WORD(RayBufferPopulateFromRangeBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   int p_printSkip = 1000; 
 
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
@@ -8013,7 +8040,7 @@ END_WORD
 REGISTER_WORD(RayBufferPopulateFromRangeBuffer)
 
 WORD(RayBufferPopulateFromImageBuffer)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
 
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);

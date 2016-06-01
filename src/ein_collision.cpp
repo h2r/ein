@@ -12,7 +12,7 @@
 namespace ein_words {
 
 WORD(InitializeKdlTree)
-virtual void execute(std::shared_ptr<MachineState> ms)
+virtual void execute(MachineState * ms)
 {
   KDL::Tree tree;
   if (!kdl_parser::treeFromString(ms->config.robot_description, tree)){

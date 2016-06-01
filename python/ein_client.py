@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import rospy
+
 import std_msgs
-import roslib
-#roslib.load_manifest("baxter_pick_and_place")
 import readline
 
 from ein.msg import EinState
+from ein.msg import EinConsole
+
+import os
 
 readline.parse_and_bind('tab: complete')
 readline.parse_and_bind('set editing-mode emacs')
@@ -39,20 +41,29 @@ class SimpleCompleter(object):
 
 
 class EinClient:
-    def __init__(self, words, publish_topic, state_topic):
-        print "publish topic: ", publish_topic
-        print "state topic: ", state_topic
+    def __init__(self, words, base_topic, print_console_messages, print_stacks):
+        print "base topic: ", base_topic
 
-        self.forth_command_publisher = rospy.Publisher(publish_topic, 
+        self.print_console_messages = print_console_messages
+        self.print_stacks = print_stacks
+        self.forth_command_publisher = rospy.Publisher("%s/forth_commands" % base_topic, 
                                                        std_msgs.msg.String, queue_size=10)
 
-        self.state_subscriber = rospy.Subscriber(state_topic, 
+        self.state_subscriber = rospy.Subscriber("%s/state" % base_topic, 
                                                  EinState, self.state_callback)
+        self.console_subscriber = rospy.Subscriber("%s/console" % base_topic, 
+                                                   EinConsole, self.einconsole_callback)
+
         self.state = None
         self.call_stack = []
         self.data_stack = []
+        self.console_messages = []
         
         save_history_hook()
+        
+    def einconsole_callback(self, msg):
+        self.console_messages.append(msg.msg)
+        self.console_messages = self.console_messages[-10:]
 
     def state_callback(self, msg):
         #print "received state."
@@ -76,13 +87,16 @@ class EinClient:
 
 
     def ask(self):
-
-        while True:
+        while not rospy.is_shutdown():
             rospy.sleep(0.2)
-            self.printCallStack()
-            self.printDataStack()
+            if self.print_console_messages:
+                print "Console: "
+                print "\t" + "\n\t".join(self.console_messages)
+            if self.print_stacks:
+                self.printCallStack()
+                self.printDataStack()
             try:
-                line = raw_input('Prompt ("stop" to quit): ')
+                line = raw_input('Prompt: ')
             except EOFError:
                 break
     
@@ -103,11 +117,20 @@ def save_history_hook():
 
 def main():
     import sys
-    if (len(sys.argv) != 2):
-        print "usage:  ein_client.py left|right"
-        return
 
-    arm = sys.argv[1]
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Run the ein client.')
+    parser.add_argument('--silence-console-messages', action='store_true',
+                        help='Whether we should silence console messages.')
+    parser.add_argument('--silence-stacks', action='store_true',
+                        help='Whether we should print the stacks.')
+
+    parser.add_argument('arm', nargs=1, choices=("left", "right"),
+                        help='Which arm to use.')
+
+    args = parser.parse_args()
+    arm = args.arm[0]
 
     rospy.init_node("ein_client_%s" % arm, anonymous=True)
     words = []
@@ -117,10 +140,11 @@ def main():
     #print words
 
 
-    client = EinClient(words, 
-                       "/ein/%s/forth_commands" % arm,
-                       "/ein_%s/state" % arm,
-                       )
+    client = EinClient(words, "/ein/%s" % arm, not args.silence_console_messages, not args.silence_stacks)
+    rows, cols = os.popen('stty size', 'r').read().split()
+    rows = int(rows)
+    print "".rjust(rows, "\n")
+
 
     client.ask()
 
