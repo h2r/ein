@@ -5339,7 +5339,8 @@ virtual void execute(std::shared_ptr<MachineState> ms) {
               if (cell != NULL) {
                 //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
                 //cell->newObservation(pixel, z);
-                cell->newObservation(wristViewPixel[px]);
+                //cell->newObservation(wristViewPixel[px]);
+                cell->newObservation(wristViewPixel[px], z);
               numPixels++;
               }
             } else {
