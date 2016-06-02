@@ -5294,8 +5294,8 @@ virtual void execute(MachineState * ms) {
     if (eePose::distance(lastPose, tArmP) == 0) {
       //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
       ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP <<
-	"dropping frame..." << endl);
-      continue;
+	"should be dropping frame but aren't..." << endl);
+      //continue;
     }
     lastPose = tArmP;
 
