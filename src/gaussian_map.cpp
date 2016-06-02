@@ -4944,10 +4944,10 @@ virtual void execute(MachineState * ms) {
   //double neg_factor = 10.0/sqrt(num_neg);
   //double pos_factor = 1.0/(num_pos);
   //double neg_factor = 3.0/(num_neg);
-  double pos_factor = 1.0;
-  double neg_factor = 1.0;
-  //double pos_factor = (num_pos+num_neg)/num_pos;
-  //double neg_factor = (num_pos+num_neg)/num_neg;
+  //double pos_factor = 1.0;
+  //double neg_factor = 1.0;
+  double pos_factor = (num_pos+num_neg)/num_pos;
+  double neg_factor = (num_pos+num_neg)/num_neg;
 
   double counts_scale = 1e4;
 
