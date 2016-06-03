@@ -3008,6 +3008,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   ( 
+    shoreUp
     tempMapFocusedAndPick tempGoHome 
     tempDribblePlace
   ) time 
@@ -3015,6 +3016,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   ( 
+    shoreUp
     tempMapBestAndPick tempGoHome 
     tempDribblePlace
   ) time 
@@ -3038,7 +3040,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempInfiniteDribble" store
 
 (
-  setPlaceModeToHold
+  tempDribblePrep
 
   ( 1 ) (
     tempDribbleBestCore
