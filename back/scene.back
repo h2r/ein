@@ -1130,14 +1130,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.04 "tempBlockMaxGraspThickness" store
+0.06 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
 0.025 "tempBlockGripperThrow" store
 0.005 "tempBlockGraspResolution" store
-0.0075 "tempBlockTargetContactWidth" store
+0.06 "tempBlockTargetContactWidth" store
 0.02 "tempBlockCollarWidth" store
 (
   tempBlockUsingBlocks not (
@@ -3090,6 +3090,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 
+(
+  ikModeIkFast
+  halfImpulse
+  setMovementStateToMoving comeToStop
+  ikModeService
+) "shoreUp" store
 
 
 
