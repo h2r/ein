@@ -3,6 +3,7 @@
 (  assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition 
 /* 0.562500 0.478750 0.069192 -0.001253 0.999999 -0.000147 0.000237 createEEPose moveEeToPoseWord */
 1 changeToHeight waitUntilAtCurrentPosition
+  shoreUp
 ) "tempGoHome" store
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
@@ -926,9 +927,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-  sceneClearObservedMap 
-  waitUntilAtCurrentPosition
-  tempUpdateSpiral 
+  shoreUp
+  tempReconstructTakeScene
   bg sceneSaveObservedMap 
   tempInit
 ) "tempUpdateBg" store
@@ -3024,10 +3024,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   tempDribblePrep
-
-    ( tempDribbleCore )
-    108 
-  replicateWord
+  tempDribbleCore
 ) "tempDribble" store
 
 (
