@@ -318,22 +318,43 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   z.samples        =  (double)(it)["zsamples"];          
 }
 
-void _GaussianMapCell::newObservation(const Vec3b & obs) {
-  red.counts += obs[2];
-  green.counts += obs[1];
-  blue.counts += obs[0];
-  red.squaredcounts += obs[2] * obs[2];
-  green.squaredcounts += obs[1] * obs[1];
-  blue.squaredcounts += obs[0] * obs[0];
+void _GaussianMapCell::newObservation(uchar r, uchar g, uchar b) {
+  red.counts += r;
+  green.counts += g;
+  blue.counts += b;
+  red.squaredcounts += r * r;
+  green.squaredcounts += g * g;
+  blue.squaredcounts += b * b;
   red.samples += 1;
   green.samples += 1;
   blue.samples += 1;
+
+}
+
+void _GaussianMapCell::newObservation(uchar r, uchar g, uchar b, double zobs) {
+  red.counts += r;
+  green.counts += g;
+  blue.counts += b;
+  red.squaredcounts += r * r;
+  green.squaredcounts += g * g;
+  blue.squaredcounts += b * b;
+  red.samples += 1;
+  green.samples += 1;
+  blue.samples += 1;
+  z.counts += zobs;
+  z.squaredcounts += zobs * zobs;
+  z.samples += 1;
+}
+
+void _GaussianMapCell::newObservation(const Vec3b & obs) {
+  newObservation(obs[2], obs[1], obs[0]);
+
 }
 
 void _GaussianMapCell::newObservation(const Vec3b & obs, double zobs) {
   newObservation(obs);
   z.counts += zobs;
-  z.squaredcounts += pow(zobs, 2);
+  z.squaredcounts += zobs * zobs;
   z.samples += 1;
 }
 
@@ -341,9 +362,9 @@ void _GaussianMapCell::newObservation(const Vec3d & obs) {
   red.counts += obs[2];
   green.counts += obs[1];
   blue.counts += obs[0];
-  red.squaredcounts += pow(obs[2], 2);
-  green.squaredcounts += pow(obs[1], 2);
-  blue.squaredcounts += pow(obs[0], 2);
+  red.squaredcounts += obs[2] * obs[2];
+  green.squaredcounts += obs[1] * obs[1];
+  blue.squaredcounts += obs[0] * obs[0];
   red.samples += 1;
   green.samples += 1;
   blue.samples += 1;
@@ -5186,6 +5207,7 @@ virtual void execute(MachineState * ms) {
       {
         uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
         cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
+
       //double opy = py-topy;
       // this is superior
       //if ( (bfrac <= opy) && (opy < tfrac) ) 
@@ -5213,6 +5235,8 @@ virtual void execute(MachineState * ms) {
 	    if (cell != NULL) {
               //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
               //cell->newObservation(pixel, z);
+              //uchar val = img.data[img.step.p[0]*row + img.step.p[1]*col + cn];
+
               cell->newObservation(wristViewPixel[px]);
               numPixels++;
 	    }
@@ -5263,7 +5287,7 @@ virtual void execute(MachineState * ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
-  double z = z_to_use;
+
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
   Mat gripperMask = ms->config.gripperMask;
   if (isSketchyMat(gripperMask)) {
@@ -5271,7 +5295,7 @@ virtual void execute(MachineState * ms) {
   }
 
   eePose lastPose = eePose::identity();
-
+    //#pragma omp parallel for
   for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
     streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
 
@@ -5281,6 +5305,7 @@ virtual void execute(MachineState * ms) {
     eePose tArmP, tBaseP;
 
     int success = 0;
+    double z = z_to_use;
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
       success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
@@ -5331,12 +5356,16 @@ virtual void execute(MachineState * ms) {
       int tboty = floor(topy + (i+1)*frac);
 
       //cout << ttopy << " " << tboty << " " << frac << endl;
+
+      uchar *input = (uchar*) (wristViewYCbCr.data);
       
       //for (int py = topy; py <= boty; py++) 
       for (int py = ttopy; py < tboty; py++) 
         {
           uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
-          cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
+          //cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
+          //uchar* wristViewRow = wristViewYCbCr.ptr<uchar>(py);
+
           //double opy = py-topy;
           // this is superior
           //if ( (bfrac <= opy) && (opy < tfrac) ) 
@@ -5365,8 +5394,14 @@ virtual void execute(MachineState * ms) {
                 //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
                 //cell->newObservation(pixel, z);
                 //cell->newObservation(wristViewPixel[px]);
-                cell->newObservation(wristViewPixel[px], z);
-              numPixels++;
+                //cell->newObservation(wristViewPixel[px][2], 
+                //wristViewPixel[px][1], 
+                //wristViewPixel[px][0], 
+                //z);
+                int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+                cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+                //assert(wristViewPixel[px][2] == input[base_idx + 2]);
+                numPixels++;
               }
             } else {
 	      numNulls++;
