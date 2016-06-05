@@ -53,6 +53,8 @@ typedef struct _GaussianMapCell {
   void newObservation(const Vec3b & obs, double zobs);
   void newObservation(const Vec3d & obs);
   void newObservation(const Vec3d & obs, double zobs);
+  void newObservation(uchar r, uchar g, uchar b);
+  void newObservation(uchar r, uchar g, uchar b, double zobs);
   
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
