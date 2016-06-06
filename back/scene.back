@@ -3002,23 +3002,31 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   isGripperGripping (
-    perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed pressDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition tempGoHome 
+    perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed pressDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition 
   ) ift
 ) "tempDribblePlace" store
 
 (
   ( 
     shoreUp
-    tempMapFocusedAndPick tempGoHome 
+      currentPose
+      dup
+    tempMapFocusedAndPick 
+    moveEeToPoseWord
     tempDribblePlace
+    moveEeToPoseWord
   ) time 
 ) "tempDribbleCore" store
 
 (
   ( 
     shoreUp
-    tempMapBestAndPick tempGoHome 
+      currentPose
+      dup
+    tempMapBestAndPick 
+    moveEeToPoseWord
     tempDribblePlace
+    moveEeToPoseWord
   ) time 
 ) "tempDribbleBestCore" store
 

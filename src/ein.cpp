@@ -1288,7 +1288,7 @@ streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
@@ -1315,7 +1315,7 @@ streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 streamImage * setIsbIdx(MachineState * ms, int idx) {
@@ -1352,7 +1352,7 @@ streamImage * setIsbIdx(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 void resetAccumulatedStreamImage(MachineState * ms) {
