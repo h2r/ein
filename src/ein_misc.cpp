@@ -320,6 +320,34 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(And)
 
+WORD(Cos)
+virtual void execute(MachineState * ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(cos(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Cos)
+
+WORD(Sin)
+virtual void execute(MachineState * ms) {
+  double v1;
+  GET_NUMERIC_ARG(ms, v1);
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(sin(v1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Sin)
+
+WORD(Pi)
+virtual void execute(MachineState * ms) {
+  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(M_PI);
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Pi)
+
 WORD(Exp)
 virtual void execute(MachineState * ms) {
   double v1;

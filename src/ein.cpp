@@ -1288,7 +1288,7 @@ streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
@@ -1315,7 +1315,7 @@ streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 streamImage * setIsbIdxYesLoadNoKick(MachineState *  ms, int idx) {
@@ -1389,7 +1389,7 @@ streamImage * setIsbIdx(MachineState * ms, int idx) {
     return NULL;
   }
 
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+  return &(ms->config.streamImageBuffer[idx]);
 }
 
 void resetAccumulatedStreamImage(MachineState * ms) {
@@ -10364,10 +10364,10 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
 
   double rotatedPX = (cache->rotx[0] * pX +
                       cache->rotx[1] * pY +
-                      cache->rotx[2] * 1);
+                      cache->rotx[2]);
   double rotatedPY = (cache->roty[0] * pX +
                       cache->roty[1] * pY +
-                      cache->roty[2] * 1);
+                      cache->roty[2]);
   //assert(0);
 
   pX = cache->reticlePixelXOffset + rotatedPY;
