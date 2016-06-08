@@ -1899,12 +1899,14 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TouchDown)
 
+/*
 WORD(PressDown)
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram("currentPose  0 currentTableZ - pickFlushFactor + 0.045 + setEEPosePZ assumePose pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo");
 }
 END_WORD
 REGISTER_WORD(PressDown)
+*/
 
 WORD(SetControlModeEePosition)
 virtual void execute(MachineState * ms) {
@@ -2919,6 +2921,50 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TwistWords)
 
+WORD(GaitAnchoredTranslation)
+virtual void execute(MachineState * ms) {
+  eePose startPoseIn;
+  GET_ARG(ms, EePoseWord, startPoseIn);
+
+/*
+  shared_ptr<CompoundWord> qwW;
+  GET_WORD_ARG(ms, CompoundWord, qwW);
+  
+  shared_ptr<CompoundWord> qzW;
+  GET_WORD_ARG(ms, CompoundWord, qzW);
+  
+  shared_ptr<CompoundWord> qyW;
+  GET_WORD_ARG(ms, CompoundWord, qyW);
+  
+  shared_ptr<CompoundWord> qxW;
+  GET_WORD_ARG(ms, CompoundWord, qxW);
+*/
+
+  shared_ptr<CompoundWord> pzW;
+  GET_WORD_ARG(ms, CompoundWord, pzW);
+  
+  shared_ptr<CompoundWord> pyW;
+  GET_WORD_ARG(ms, CompoundWord, pyW);
+  
+  shared_ptr<CompoundWord> pxW;
+  GET_WORD_ARG(ms, CompoundWord, pxW);
+  
+
+  ms->evaluateProgram("currentPose eePosePZ plus currentPose swap setEEPosePZ moveEeToPoseWord");
+  ms->pushWord(pzW);
+
+  ms->evaluateProgram("currentPose eePosePY plus currentPose swap setEEPosePY moveEeToPoseWord");
+  ms->pushWord(pyW);
+
+  ms->evaluateProgram("currentPose eePosePX plus currentPose swap setEEPosePX moveEeToPoseWord");
+  ms->pushWord(pxW);
+
+  ms->pushWord("moveEeToPoseWord");
+  ms->pushWord(make_shared<EePoseWord>(startPoseIn));
+}
+END_WORD
+REGISTER_WORD(GaitAnchoredTranslation)
+
 /*
 currentPose "placeA" store
 currentPose "placeB" store
@@ -2939,6 +2985,7 @@ placeSpeed endArgs [ placeJointPath ] reverseCompound slip planCommandJointsAtRa
 
 */
 
+/*
 WORD(PlanKeepPushingDemonstratedEePoses)
 virtual void execute(MachineState * ms) {
 
@@ -2962,7 +3009,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(PlanStopPushingDemonstratedEePoses)
 
-/*
 WORD(PlanStartPushingDemonstratedEePoses)
 virtual void execute(MachineState * ms) {
 
