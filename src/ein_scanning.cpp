@@ -2059,7 +2059,7 @@ virtual void execute(MachineState * ms) {
 
   int nudgeSteps = 4;
 
-  ms->evaluateProgram("cameraFitQuadratic 1 cameraSetCalibrationMode");
+  ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
   // move back
   // adjust until close	
   // move back over then down 
