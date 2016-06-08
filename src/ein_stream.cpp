@@ -419,7 +419,7 @@ virtual void execute(MachineState * ms)
   int thisIdx = ms->config.sibCurIdx;
   //cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage * result = setIsbIdxNoLoad(ms, thisIdx);  
+    streamImage * result = setIsbIdxYesLoadNoKick(ms, thisIdx);  
     if (result == NULL) {
       cout << "increment failed :(" << endl;
     } else {

@@ -1318,6 +1318,43 @@ streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
   return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
 }
 
+streamImage * setIsbIdxYesLoadNoKick(MachineState *  ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    streamImage &tsi = ms->config.streamImageBuffer[idx];
+    int lastIdx = ms->config.sibCurIdx;
+    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
+      //streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
+      //lsi.image.create(1, 1, CV_8UC3);
+      //lsi.loaded = 0;
+      //cout << "setIsbIdx: last was valid and different." << endl;
+    } else {
+      //cout << "setIsbIdx: last was invalid or the same." << endl;
+    }
+
+    if (tsi.loaded) {
+      //cout << "setIsbIdx: this was loaded." << endl;
+    } else {
+      //cout << "setIsbIdx: this was not loaded." << endl;
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+	tsi.loaded = 0;
+	cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
+	return NULL;
+      } else {
+	tsi.loaded = 1;
+	ms->config.sibCurIdx = idx;
+      }
+    } 
+
+    ms->config.sibCurIdx = idx;
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+
+  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
+}
+
 streamImage * setIsbIdx(MachineState * ms, int idx) {
   if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[idx];
