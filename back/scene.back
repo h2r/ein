@@ -1136,7 +1136,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.01 "tempBlockGraspResolution" store
 */
 0.025 "tempBlockGripperThrow" store
-0.005 "tempBlockGraspResolution" store
+0.025 "tempBlockGraspResolution" store
 0.06 "tempBlockTargetContactWidth" store
 0.02 "tempBlockCollarWidth" store
 (
@@ -1812,7 +1812,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     +
   "tempReconstructWithZTopZ" store 
 
-  tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
 
   /* 
@@ -2086,7 +2086,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "slfgReconstructPoints" store
 
 
-0.02 "slfgRebaseCellWidth" store
+0.001 "slfgRebaseCellWidth" store
 (
   388 "slfgRebaseIterations" store
   0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
@@ -2995,6 +2995,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   setPlaceModeToHold
+  0 waitSetCurrentWaitMode
+
   /*
   51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
   */
@@ -3104,9 +3106,136 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   ikModeService
 ) "shoreUp" store
 
+(
+  "cgDeltaT" store
+  "cgTimeParam" store
+  "cgRadius" store
+  "cgAnchor" store
+) "circleGaitSet" store
+
+(
+    (
+	    cgTimeParam 
+	    pi 2.0 times
+	  times
+	sin
+	cgRadius
+      times
+    )
+    (
+	    cgTimeParam 
+	    pi 2.0 times
+	  times
+	cos 
+	cgRadius 
+      times
+    )
+    (
+      0.0
+    )
+
+    cgAnchor
+  gaitAnchoredTranslation
+
+/*
+  cgAnchor eePosePX plus cgAnchor swap setEEPosePX moveEeToPoseWord
+*/
+  
+      cgTimeParam
+      cgDeltaT
+    plus 
+  "cgTimeParam" store
+) "circleGait" store
+
+(
+  "cgDeltaT" store
+  "cgTimeParam" store
+  "cgRadiusOuter" store
+  "cgRadiusInner" store
+  "cgDistance" store
+  "cgAnchor" store
+) "hypotrochoidGaitSet" store
+
+(
 
 
+    
+      cgRadiusOuter
+      cgRadiusInner
+    minus 
+  "cgRadiusOuterDeed" store
 
+      cgRadiusOuterDeed
+      cgRadiusInner
+    divide
+  "cgTimeRatio" store
+
+    cgDistance
+  "cgRadiusInnerDeed" store
+
+    (
+	      cgTimeParam 
+	      pi 2.0 times
+	    times
+	  sin
+	  cgRadiusOuterDeed
+	times
+		  cgTimeParam 
+		  cgTimeRatio
+		times
+		pi 2.0 times
+	      times
+	    sin
+	    -1.0
+	  times
+	  cgRadiusInnerDeed
+	times
+      plus
+    )
+    (
+	      cgTimeParam 
+	      pi 2.0 times
+	    times
+	  cos 
+	  cgRadiusOuterDeed
+	times
+		  cgTimeParam 
+		  cgTimeRatio
+		times
+	      pi 2.0 times
+	    times
+	  cos	
+	  cgRadiusInnerDeed
+	times
+      plus
+    )
+    (
+      0.0
+    )
+
+    cgAnchor
+  gaitAnchoredTranslation
+
+/*
+  cgAnchor eePosePX plus cgAnchor swap setEEPosePX moveEeToPoseWord
+*/
+  
+      cgTimeParam
+      cgDeltaT
+    plus 
+  "cgTimeParam" store
+) "hypotrochoidGait" store
+
+(
+    currentPose
+    0.10 0.06 0.10
+    0.0 0.03
+  hypotrochoidGaitSet
+) "hypotrochoidGaitSetStar" store
+
+(
+  currentPose  0 currentTableZ - pickFlushFactor + 0.145 + setEEPosePZ assumePose pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo
+) "pressDown" store
 
 
 
