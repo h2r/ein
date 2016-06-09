@@ -1130,13 +1130,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.06 "tempBlockMaxGraspThickness" store
+0.070 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.025 "tempBlockGripperThrow" store
-0.025 "tempBlockGraspResolution" store
+0.03 "tempBlockGripperThrow" store
+0.01 "tempBlockGraspResolution" store
 0.06 "tempBlockTargetContactWidth" store
 0.02 "tempBlockCollarWidth" store
 (
@@ -1436,10 +1436,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 3.361883 "tempReconstructWithZTopZ" store 
 */
 
-0.3483 "tempReconstructWithZTopZ" store 
+0.3883 "tempReconstructWithZTopZ" store 
 0.00 "tempReconstructWithZTotalZ" store
 0.005 "tempReconstructWithZDeltaZ" store
-5000 "tempReconstructStreamTakeSceneSamples" store
+500 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1704,7 +1704,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   10 "tempReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
 
-  0.05 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
   12 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
@@ -1830,9 +1830,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
       eePosePZ
       currentTableZ
     +
+    0.04 minus
   "tempReconstructWithZTopZ" store 
 
-  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tempReconstructWithZTopZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
 
   /* 
@@ -3048,6 +3049,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     moveEeToPoseWord
     tempDribblePlace
     moveEeToPoseWord
+    waitUntilAtCurrentPosition
   ) time 
 ) "tempDribbleCore" store
 
@@ -3060,6 +3062,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     moveEeToPoseWord
     tempDribblePlace
     moveEeToPoseWord
+    waitUntilAtCurrentPosition
   ) time 
 ) "tempDribbleBestCore" store
 
