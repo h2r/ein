@@ -1,5 +1,21 @@
 "scene" import
 "scan" import
-happyFace
 
+"utils" import
+"clearWorkspace" import
+
+"wiki" import
+
+happyFace
 tempInit
+
+(  
+  assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition 
+  shoreUp
+) "goHome" store
+
+
+
+
+
+
