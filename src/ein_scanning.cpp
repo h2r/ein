@@ -1807,6 +1807,9 @@ END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
 WORD(FixCameraLightingToAutomaticParameters)
+virtual string description() {
+  return "Fix the camera lighting using autogain.  The camera parameters will first adjust automatically, then ein will fix them to the automatically adjusted values.";
+}
 virtual void execute(MachineState * ms) {
   stringstream p;
   p << "subscribeCameraParameterTrackerToRosOut 0.25 waitForSeconds ";
@@ -1860,6 +1863,10 @@ REGISTER_WORD(FixCameraLightingNoUpdate)
 
 
 WORD(FixCameraLighting)
+
+virtual string description() {
+  return "Fix the camera lighting.  Usage:  <exposure> <gain> <red> <green> <blue> fixCameraLighting.  You can see the current values with cameraGain, cameraExposure, cameraWhiteBalanceRed, cameraWhiteBlanaceGreen, cameraWhiteBalanceBlue.";
+}
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram("subscribeCameraParameterTrackerToRosOut 0.5 waitForSeconds fixCameraLightingNoUpdate 0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut");
 

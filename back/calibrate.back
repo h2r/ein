@@ -502,10 +502,11 @@
 ) "calibrateBundleHeight" store
 
 (
-  setTable
+/*  setTable
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
+*/
 /*
 */
   initializeAndFocusOnNewClass
