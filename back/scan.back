@@ -32,12 +32,6 @@ workspace4 "outputPileWorkspace" store
 
 "catScan_" robotSerial "_" leftOrRightArm "_" dateString + + + + + "scan_catScanObjectName" store
 
-"utils" import
-"wiki" import
-
-"clearWorkspace" import
-"scene" import
-
 (
   70 30 fixCameraLightingExposureGain
   { |B 
