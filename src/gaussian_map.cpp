@@ -5265,7 +5265,6 @@ virtual void execute(MachineState * ms) {
   int stride = 1;
   GET_INT_ARG(ms, stride);
 
-  Mat bufferImage;
 
 
   Size sz = ms->config.wristViewImage.size();
@@ -5286,7 +5285,6 @@ virtual void execute(MachineState * ms) {
   int topy = imHoT - aahr; 
   int boty = imHoT + aahr; 
   
-  pixelToGlobalCache data;
 
   //computePixelToGlobalCache(ms->p, z, thisPose, &data);
   Mat gripperMask = ms->config.gripperMask;
@@ -5294,125 +5292,123 @@ virtual void execute(MachineState * ms) {
     ROS_ERROR("Gripper mask is messed up.");
   }
 
-  eePose lastPose = eePose::identity();
-    //#pragma omp parallel for
-  for (int i = ms->config.streamImageBuffer.size()-1; i > -1; i-=stride) {
-    streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
+  int numThreads = 8;
 
-    if (tsi == NULL) {
-      ROS_ERROR("Stream image null.");
-    }
-    eePose tArmP, tBaseP;
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
 
-    int success = 0;
-    double z = z_to_use;
-    if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-    } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
-      success = 1;
-      tArmP = ms->config.currentEEPose;
-      z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
-    } else {
-      assert(0);
-    }
-
-    if (eePose::distance(lastPose, tArmP) == 0) {
-      //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-      ROS_ERROR_STREAM("Ooops, duplicate pose from stream buffer: " << i << " " << endl << tArmP <<
-	"should be dropping frame but aren't..." << endl);
-      //continue;
-    }
-    lastPose = tArmP;
-
-    if (success != 1) {
-      ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
-      continue;
-    }
-
-    eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
-    if (fabs(transformed.qz) > 0.01) {
-      ROS_ERROR("  Not doing update because arm not vertical.");
-      return;
-    }
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
     
-    computePixelToPlaneCache(ms->p, z, tArmP, ms->config.scene->anchor_pose, &data);  
-    int numThreads = 8;
-    // there is a faster way to stride it but i am risk averse atm
+    maps[thread] = make_shared<GaussianMap>(ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
     
-    Mat wristViewYCbCr = tsi->image.clone();
-    
-    cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
-    int numPixels = 0;
-    int numNulls = 0;
-    
-    //#pragma omp parallel for
-    for (int i = 0; i < numThreads; i++) {
-      //double frac = double(boty - topy) / double(numThreads);
-      //double bfrac = i*frac;
-      //double tfrac = (i+1)*frac;
+    int thisStart = thread * (ms->config.streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (ms->config.streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
       
-      double frac = double(boty - topy) / double(numThreads);
-      int ttopy = floor(topy + i*frac);
-      int tboty = floor(topy + (i+1)*frac);
-
-      //cout << ttopy << " " << tboty << " " << frac << endl;
-
+      
+      
+      if (tsi == NULL) {
+        ROS_ERROR("Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        ROS_ERROR("  Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms->p, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
       uchar *input = (uchar*) (wristViewYCbCr.data);
       
-      //for (int py = topy; py <= boty; py++) 
-      for (int py = ttopy; py < tboty; py++) 
-        {
-          uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
-          //cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
-          //uchar* wristViewRow = wristViewYCbCr.ptr<uchar>(py);
-
-          //double opy = py-topy;
-          // this is superior
-          //if ( (bfrac <= opy) && (opy < tfrac) ) 
-          //{
-          for (int px = topx; px <= botx; px++) {
-            if (gripperMaskPixel[px] == 0) {
-              continue;
-            }
-            
-            if ( (abhr > 0) && (abhc > 0) ) {
-              if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
-                   (px > imWoT - abhc) && (px < imWoT + abhc) ) {
-                continue;
-              } 
-            } 
-            
-            double x, y;
-            pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
-            
-            if (1) {
-              // single sample update
-              int i, j;
-              ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-              GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-              if (cell != NULL) {
-                //Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-                //cell->newObservation(pixel, z);
-                //cell->newObservation(wristViewPixel[px]);
-                //cell->newObservation(wristViewPixel[px][2], 
-                //wristViewPixel[px][1], 
-                //wristViewPixel[px][0], 
-                //z);
-                int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
-                cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
-                //assert(wristViewPixel[px][2] == input[base_idx + 2]);
-                numPixels++;
-              }
-            } else {
-	      numNulls++;
-            }
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
           }
-          //}
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+          
+          if (1) {
+            // single sample update
+            int i, j;
+            maps[thread]->metersToCell(x, y, &i, &j);
+            GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+            //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+            //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+            
+            
+            if (cell != NULL) {
+              int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+              cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+              numPixels++;
+            }
+          } else {
+            numNulls++;
+          }
         }
+      }
     }
   }
-  //cout << "numPixels numNulls sum apertureSize: " << numPixels << " " << numNulls << " " << numPixels + numNulls << " " << ms->config.angular_aperture_rows * ms->config.angular_aperture_cols << endl;
-  //ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  
+    #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+        break;
+      }
+    }
+    }
+
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
