@@ -1556,15 +1556,17 @@ virtual void execute(MachineState * ms) {
   ms->config.counterTableZ = ms->config.oneTable;
   ms->config.pantryTableZ = ms->config.oneTable;
   ms->config.currentTableZ = ms->config.oneTable;
-
-  if ( fabs(thisTableHeightTime.sec - ms->config.firstTableHeightTime.sec) > ms->config.mostRecentUntabledZWait) {
+  double waited = fabs((thisTableHeightTime - ms->config.firstTableHeightTime).toSec());
+  if ( waited > ms->config.mostRecentUntabledZWait) {
     // do nothing
+    CONSOLE(ms, "Set table to " << ms->config.mostRecentUntabledZLastValue);
   } else {
     double utZDelta = fabs(ms->config.mostRecentUntabledZ - ms->config.mostRecentUntabledZLastValue);
     ms->config.endThisStackCollapse = 1;
     ms->pushWord("setTableA");
-    cout << "Looks like the table reading hasn't steadied for the wait of " << ms->config.mostRecentUntabledZWait << " ." << endl;
-    cout << "  current, last, delta: " << ms->config.mostRecentUntabledZ << " " << ms->config.mostRecentUntabledZLastValue << " " << utZDelta << endl;
+    CONSOLE(ms, "Waiting " << setprecision(2) << waited << "s/" << ms->config.mostRecentUntabledZWait << "s for table reading to stabilize.");
+    CONSOLE(ms, " current: " << std::left << setw(5) << setprecision(3) << ms->config.mostRecentUntabledZ 
+            << "m last: " << std::left<< setw(5) << setprecision(3) << ms->config.mostRecentUntabledZLastValue << "m delta:" << std::left<< setw(5) << setprecision(3) << utZDelta << "m.");
   } 
 }
 END_WORD
@@ -2604,7 +2606,10 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SaveGripperMask)
 
-WORD(CalibrateRGBCameraIntrinsics)
+WORD(CalibrateRGBCameraIntrinsicsPoint)
+virtual string description() {
+  return "Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.";
+}
 virtual void execute(MachineState * ms) {
   ms->pushWord("setMagnification");
   ms->pushWord("comeToStop");
@@ -2635,7 +2640,7 @@ virtual void execute(MachineState * ms) {
 
 }
 END_WORD
-REGISTER_WORD(CalibrateRGBCameraIntrinsics)
+REGISTER_WORD(CalibrateRGBCameraIntrinsicsPoint)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(MachineState * ms) {

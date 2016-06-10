@@ -227,7 +227,7 @@ virtual vector<string> names() {
 }
 CODE('Y') 
 virtual void execute(MachineState * ms)  {
-  publishConsoleMessage(ms->p, "STACK EXECUTION PAUSED.  Press enter to continue.");
+  publishConsoleMessage(ms, "STACK EXECUTION PAUSED.  Press enter to continue.");
   ms->execute_stack = 0;
   ms->config.endThisStackCollapse = 1;
 }
@@ -756,7 +756,7 @@ WORD(Print)
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
-    publishConsoleMessage(ms->p, word->repr());
+    CONSOLE(ms, word->repr());
   }
 }
 END_WORD
@@ -1083,10 +1083,10 @@ virtual void execute(MachineState * ms) {
   GET_ARG(ms, StringWord, filename);
   std::stringstream fname;
   fname << "src/ein/back/" << filename << ".back";
-  cout << "fname: " << fname.str() << endl;
+  CONSOLE(ms, "Importing from file: " << fname.str());
   std::ifstream t(fname.str());
   if (!t.is_open()) {
-    cout << "Ooops, import tried to read " << fname.str() << " but it couldn't open..." << endl;
+    CONSOLE_ERROR(ms, "Import tried to read " << fname.str() << ", but it couldn't open...");
     ms->pushWord("pauseStackExecution");   
     return;
   }
