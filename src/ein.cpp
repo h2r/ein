@@ -2825,7 +2825,7 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
 
 void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
   MachineState * ms = this;
-  cout << "Received " << ms->config.forthCommand << endl;
+  //cout << "Received " << ms->config.forthCommand << endl;
   ms->config.forthCommand = msg->data;
   evaluateProgram(msg->data);
 
@@ -15293,7 +15293,7 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.predictedStdDevWindow = new EinWindow(NULL, ms);
   ms->config.predictedStdDevWindow->setWindowTitle("Gaussian Map Predicted Std Dev View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.predictedStdDevWindow);
-  ms->config.predictedStdDevWindow->setVisible(true);
+  ms->config.predictedStdDevWindow->setVisible(false);
 
 
   ms->config.discrepancyWindow = new EinWindow(NULL, ms);
@@ -15309,7 +15309,7 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.zWindow = new EinWindow(NULL, ms);
   ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.zWindow);
-  ms->config.zWindow->setVisible(true);
+  ms->config.zWindow->setVisible(false);
 
 
 

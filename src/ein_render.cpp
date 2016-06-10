@@ -233,7 +233,7 @@ virtual void execute(MachineState * ms)
   ms->config.heightMemorySampleWindow->setVisible(false);
   ms->config.hiRangemapWindow->setVisible(false);
   ms->config.hiColorRangemapWindow->setVisible(false);
-  ms->config.objectViewerWindow->setVisible(false);
+  ms->config.objectViewerWindow->setVisible(true);
   ms->config.objectMapViewerWindow->setVisible(false);
   ms->config.densityViewerWindow->setVisible(false);
   ms->config.gradientViewerWindow->setVisible(false);

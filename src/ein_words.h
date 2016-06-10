@@ -18,20 +18,6 @@ extern vector<shared_ptr<Word> > words;
 // // code here
 // CODE(123)
 
-#define CONSOLE(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << args; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
-
-#define CONSOLE_ERROR(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
-
 
 
 #define WORD(gName) \

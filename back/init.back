@@ -1,5 +1,6 @@
 "scene" import
 "scan" import
+"calibrate" import
 
 "utils" import
 "clearWorkspace" import
@@ -10,7 +11,10 @@ happyFace
 tempInit
 
 (  
-  assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition 
+  0.562 0.478 0.069 -0.001 0.999 -0.000 0 createEEPose moveEeToPoseWord
+  /* assumeBeeHome  */
+  1 changeToHeight waitUntilAtCurrentPosition 
+
   shoreUp
 ) "goHome" store
 
