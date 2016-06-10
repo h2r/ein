@@ -1,6 +1,0 @@
-{
-  "name": "Ein",
-  "tagline": "Object scanning and pick and place for Baxter. ",
-  "body": "### Pick and Place for Baxter\r\n\r\nEin is a program for pick-and-place for Baxter.  If you want to pick up objects, you can quickly and automatically use Baxter's wrist camera to create a model for detecting, localizing, and manipulating tabletop objects.   Our stack is capable of automatically mapping objects autonomously for long periods of time, and we encourage you to participate in this task as part of the Million Object Challenge. \r\n\r\n### Authors and Contributors\r\nEin was written by John Oberlin and Stefanie Tellex.  You can find more information at http://h2r.cs.brown.edu.\r\n\r\n",
-  "note": "Don't delete this file! It's used internally to help with page regeneration."
-}
