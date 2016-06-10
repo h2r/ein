@@ -165,7 +165,7 @@ void MachineState::execute(shared_ptr<Word> word) {
     try {
       word->execute(this);
     } catch( ... ) {
-      CONSOLE_ERROR("Exception in word: " << word->name());
+      CONSOLE_ERROR(ms, "Exception in word: " << word->name());
       std::exception_ptr p = std::current_exception();
       rethrow_exception(p);
     }
