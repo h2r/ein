@@ -2,3 +2,9 @@ sudo apt-get install ruby-dev ruby-mkrf
 sudo gem install jekyll -v 2.5
 
 
+git clone http://github.com/h2r/ein ein-website
+cd ein-website
+git checkout gh-pages
+jekyll serve
+
+
