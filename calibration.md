@@ -1,8 +1,8 @@
 ---
 layout: page
 title: Calibration
-permalink: /calibration/
-order: 1
+permalink: calibration/
+order: 2
 ---
 
 In your second ten minutes with Ein, we will calibrate the wrist

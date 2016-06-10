@@ -6,7 +6,7 @@ order: 0
 ---
 
 
-This is how to install ein and create a catkin workspace. 
+This page describes how to create a catkin workspace and install Ein.
 
 Install Ubuntu Trusty 14.04 LTS.
 
@@ -33,39 +33,65 @@ Then run
 sudo apt-get install libopencv-nonfree-\*
 ```
 
-and finally 
+Next install other Ein dependencies: 
 
 ```
 sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev exuberant-ctags  ros-indigo-serial
 ```
 
-**Install** the package h2r/ein by going to catkin_ws/src and then cloning.
+Create your catkin workspace:
 
 ```
 mkdir -p ~/catkin_ws/src
+```
+
+Put Ein in it.
+
+```
 cd ~/catkin_ws/src
 git clone http://github.com/h2r/ein
+```
+
+Use wstool to check out the Baxter SDK.  These commands check out the
+most recent version of the SDK; if you are running an older version
+you will need to check out the correct branch. 
+
+```
 wstool init .
 wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/baxter_sdk.rosinstall
 wstool update
-cp baxter/baxter.sh ..
 ```
 
-edit baxter.sh following the instructions in that file.
+Edit baxter.sh to set your ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI
+following the instructions in that file.  Then enter the Baxter ROS
+workspace.
 
 ```
 ./baxter.sh
 ```
 
-Then build:
+Next build for the first time:
 
 ```
 cd .. 
 source /opt/ros/indigo/setup.bash
 catkin_make
-source devel/setup.bash
 catkin_make
 ```
+
+At this point you should be able to run Rethink's tools; for example
+to print the status of the robot:
+
+``` 
+rosrun baxter_tools  enable_robot.py -s
+```
+
+Commands such as `rostopic echo`, `rostopic list` and the like should
+all work.  If these do not work, you may have network problems or ROS
+configuration problems preventing you from connecting to Baxter.  See
+the [Rethink SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for
+more information.
+
 
 Some other stuff you might need to do when installing fresh:
 

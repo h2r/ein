@@ -3,7 +3,7 @@ title: Ein
 email: ein@lists.cs.brown.edu
 description: > # this means to ignore newlines until "baseurl:"
   Ein is a complete pick-and-place stack for Baxter.
-baseurl: "/ein/" # the subpath of your site, e.g. /blog/
+baseurl: "/ein" # the subpath of your site, e.g. /blog
 url: "http://h2r.github.io" # the base hostname & protocol for your site
 #twitter_username: h2r
 github_username:  h2r
@@ -11,3 +11,6 @@ github_username:  h2r
 # Build settings
 markdown: kramdown
 production_url : http://h2r.github.io/ein
+kramdown:
+  input: GFM
+  hard_wrap: false
