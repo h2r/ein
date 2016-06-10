@@ -10,3 +10,4 @@ github_username:  jekyll
 
 # Build settings
 markdown: kramdown
+production_url : http://h2r.github.io/ein
