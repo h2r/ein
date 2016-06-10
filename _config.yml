@@ -5,7 +5,7 @@ description: > # this means to ignore newlines until "baseurl:"
   Ein is a complete pick-and-place stack for Baxter.
 baseurl: "/ein/" # the subpath of your site, e.g. /blog/
 url: "http://h2r.github.io" # the base hostname & protocol for your site
-twitter_username: h2r
+#twitter_username: h2r
 github_username:  h2r
 
 # Build settings

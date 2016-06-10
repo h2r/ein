@@ -5,6 +5,5 @@ permalink: /pickingobjects/
 order: 2
 ---
 
-In your first thirty minutes with Ein, we will calibrate the wrist
-camera on one arm.  Then we will train a model for an object, and pick
-it.
+In your third ten minutes with Ein, we will train a model for an
+object, and pick it.
