@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Welcome to Ein!"
+title:  "Ein's Beta Release!"
 date:   2016-06-10 20:01:12
 categories: ein update
 ---
