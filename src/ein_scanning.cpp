@@ -5755,8 +5755,6 @@ END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)
 
 WORD(IrFixPick)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   cout << "Commencing IR pick fix." << endl;
 
@@ -5813,8 +5811,6 @@ END_WORD
 REGISTER_WORD(IrFixPick)
 
 WORD(SetPickFixMapAnchor)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   ms->config.pfmAnchorPose = ms->config.currentEEPose;
 }
@@ -5822,8 +5818,6 @@ END_WORD
 REGISTER_WORD(SetPickFixMapAnchor)
 
 WORD(ClearClass3dGrasps)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   int class_idx = ms->config.focusedClass;
   cout << "clearClass3dGrasps: " << class_idx << endl;
