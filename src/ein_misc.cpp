@@ -1177,6 +1177,36 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(ExportWords)
 
+WORD(ExportDoc)
+virtual void execute(MachineState * ms)
+{
+  string wordFileName = "ein_words.html";
+  cout << "Writing words to " << wordFileName << endl;
+  ofstream wordFile;
+  wordFile.open(wordFileName);
+  wordFile << "<html>" << endl;
+  wordFile << "<head>" << endl;
+  wordFile << "<title> Ein Documentation </title>" << endl;
+  wordFile << "</head>" << endl;
+
+  wordFile << "<body>" << endl;
+  wordFile << "<table><th><td>Word</td><td>Description</td></tr>" << endl;
+  for (int i = 0; i < words.size(); i++) {
+    wordFile << "<tr><td>";
+    wordFile << words[i]->name() << "</td><td>";
+    string description = words[i]->description();
+    cout << "name: " << words[i]->name() << " description: " << description << endl;
+    wordFile << description << "</td></tr>" << endl;
+  }
+  wordFile << "</table>" << endl;
+  wordFile << "</body>" << endl;
+  wordFile << "</html>" << endl;
+  wordFile.close();
+}
+END_WORD
+REGISTER_WORD(ExportDoc)
+
+
 
 WORD(PixelGlobalTest)
 CODE(65609) // I
