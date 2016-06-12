@@ -53,3 +53,77 @@ off to one side, as shown in the following picture.
 
 ![Robot in Home Position](../assets/baxter_athome.jpg)
 
+Try the following commands for moving to other canonical
+positions.
+
+```
+assumeCrane1
+assumeBackScanningPose
+```
+
+Move back to home position.
+
+```
+xUp
+xDown
+```
+
+Now try moving in the y and z directions.
+
+By default, the robot is keyed to move in 1 cm increments.
+You can change the increment size to 5 cm by issuing
+
+```
+0.05 setGridSize
+```
+
+Note that the grid size is specified in meters. To go back to 1 cm,
+call
+
+```
+0.01 setGridSize
+```
+
+Try moving a long distance, like 20 cm. How fast does the robot move? To move slowly,
+issue 
+
+```
+0.05 setSpeed
+```
+
+The speed is specified with a number between 0.0 and 1.0. There are some shortcut words for 
+certain speeds:
+
+```
+fullImpulse
+halfImpulse
+quarterImpulse
+tenthImpulse
+```
+
+Large movements should generally be carried out in `quarterImpulse` or `tenthImpulse`. 
+Speeds greater than or equal to `halfImpulse` or `0.5` should be used with caution; even the safest
+robot demands attention.
+
+
+setSpeed
+quarterImpulse
+
+waitUntilAtCurrentPosition
+
+oZUp, setGridSize
+
+localXUp
+Local frame remains the same until a rotation is issued.
+
+openGripper, closeGripper
+waitUntilGripperNotMoving
+
+wrist view, reticles, keyboard bindings
+
+mission 1: teleop some picks.
+mission 2: stack some blocks.
+hint: can you make phrases that make your life easier?
+mission 3: knock over some blocks.
+
+
