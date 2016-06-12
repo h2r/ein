@@ -286,7 +286,8 @@ virtual void execute(MachineState * ms) {
   Mat topub = imread(imfilename);
 
   if (isSketchyMat(topub)) {
-    cout << "publishImageFileToFace: cannot load file " << imfilename << endl;
+    CONSOLE_ERROR(ms, "publishImageFileToFace: cannot load file " << imfilename);
+    ms->pushWord("pauseStackExecution");
     return;
   } else {
     sensor_msgs::Image msg;
