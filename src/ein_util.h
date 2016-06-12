@@ -75,5 +75,6 @@ void writeMatToYaml(Mat m, FileStorage & fsvO);
 
 string sceneModelFile(MachineState * ms, string label);
 
+string xmlEncode(const string data);
 
 #endif /* _EIN_UTIL_H_ */

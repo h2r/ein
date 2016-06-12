@@ -292,7 +292,7 @@ virtual void execute(MachineState * ms) {
     {
       double x, y;
       int i, j;
-      pixelToGlobal(ms->p, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
+      pixelToGlobal(ms, memory.top.px-ms->config.mapBlueBoxPixelSkirt, memory.top.py-ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
       mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iTop=i;
       jTop=j;
@@ -300,7 +300,7 @@ virtual void execute(MachineState * ms) {
     {
       double x, y;
       int i, j;
-      pixelToGlobal(ms->p, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
+      pixelToGlobal(ms, memory.bot.px+ms->config.mapBlueBoxPixelSkirt, memory.bot.py+ms->config.mapBlueBoxPixelSkirt, z, &x, &y);
       mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep,x, y, &i, &j);
       iBot=i;
       jBot=j;

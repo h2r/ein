@@ -295,8 +295,8 @@ virtual void execute(MachineState * ms)
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
-    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms->p, ms->config.mappingHeightIdx));
-    pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
 
     double p_dist_thresh = 0.07;
     double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
@@ -325,8 +325,8 @@ virtual void execute(MachineState * ms)
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
-    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms->p, ms->config.mappingHeightIdx));
-    pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
 
     double p_dist_thresh = 0.07;
     double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
@@ -444,8 +444,8 @@ virtual void execute(MachineState * ms)       {
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
-  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms->p, ms->config.mappingHeightIdx));
-  pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
 
   double p_dist_thresh = 0.07;
   double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
@@ -500,8 +500,8 @@ virtual void execute(MachineState * ms)       {
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
-  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms->p, ms->config.mappingHeightIdx));
-  pixelToGlobal(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
+  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
+  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
 
   double p_dist_thresh = 0.07;
   double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);

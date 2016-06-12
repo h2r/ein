@@ -227,7 +227,7 @@ virtual vector<string> names() {
 }
 CODE('Y') 
 virtual void execute(MachineState * ms)  {
-  publishConsoleMessage(ms->p, "STACK EXECUTION PAUSED.  Press enter to continue.");
+  publishConsoleMessage(ms, "STACK EXECUTION PAUSED.  Press enter to continue.");
   ms->execute_stack = 0;
   ms->config.endThisStackCollapse = 1;
 }
@@ -756,7 +756,7 @@ WORD(Print)
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word != NULL) {
-    publishConsoleMessage(ms->p, word->repr());
+    CONSOLE(ms, word->repr());
   }
 }
 END_WORD
@@ -1083,10 +1083,10 @@ virtual void execute(MachineState * ms) {
   GET_ARG(ms, StringWord, filename);
   std::stringstream fname;
   fname << "src/ein/back/" << filename << ".back";
-  cout << "fname: " << fname.str() << endl;
+  CONSOLE(ms, "Importing from file: " << fname.str());
   std::ifstream t(fname.str());
   if (!t.is_open()) {
-    cout << "Ooops, import tried to read " << fname.str() << " but it couldn't open..." << endl;
+    CONSOLE_ERROR(ms, "Import tried to read " << fname.str() << ", but it couldn't open...");
     ms->pushWord("pauseStackExecution");   
     return;
   }
@@ -1169,6 +1169,7 @@ virtual void execute(MachineState * ms)
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
+
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
   }
@@ -1176,6 +1177,27 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(ExportWords)
+
+WORD(ExportDoc)
+virtual void execute(MachineState * ms)
+{
+  string wordFileName = "ein_words.html";
+  cout << "Writing words to " << wordFileName << endl;
+  ofstream wordFile;
+  wordFile.open(wordFileName);
+  wordFile << "<table><tr><th width=\"20%\">Word</th><th>Description</th></tr>" << endl;
+
+  map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
+  std::map<std::string, shared_ptr<Word> >::iterator iter;
+  for (iter = words.begin(); iter != words.end(); ++iter) {
+    wordFile << "<tr><td>" << xmlEncode(iter->first) << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
+  }
+  wordFile << "</table>" << endl;
+  wordFile.close();
+}
+END_WORD
+REGISTER_WORD(ExportDoc)
+
 
 
 WORD(PixelGlobalTest)
@@ -1250,10 +1272,10 @@ WORD(CameraFitQuadratic)
 virtual void execute(MachineState * ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   cout << "cameraFitQuadratic: " << endl;
   {
@@ -1322,10 +1344,10 @@ WORD(CameraFitHyperbolic)
 virtual void execute(MachineState * ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   if (	bBZ[0] == 0 || 
 	bBZ[1] == 0 || 
@@ -1418,10 +1440,10 @@ virtual void execute(MachineState * ms)
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   {
     //double d = ms->config.d_x;

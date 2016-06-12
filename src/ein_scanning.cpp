@@ -832,7 +832,7 @@ REGISTER_WORD(RgbScan)
 
 WORD(SetPhotoPinHere)
 virtual void execute(MachineState * ms) {
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -840,7 +840,7 @@ REGISTER_WORD(SetPhotoPinHere)
 WORD(PutCameraOverPhotoPin)
 virtual void execute(MachineState * ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms->p, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -1556,15 +1556,17 @@ virtual void execute(MachineState * ms) {
   ms->config.counterTableZ = ms->config.oneTable;
   ms->config.pantryTableZ = ms->config.oneTable;
   ms->config.currentTableZ = ms->config.oneTable;
-
-  if ( fabs(thisTableHeightTime.sec - ms->config.firstTableHeightTime.sec) > ms->config.mostRecentUntabledZWait) {
+  double waited = fabs((thisTableHeightTime - ms->config.firstTableHeightTime).toSec());
+  if ( waited > ms->config.mostRecentUntabledZWait) {
     // do nothing
+    CONSOLE(ms, "Set table to " << ms->config.mostRecentUntabledZLastValue);
   } else {
     double utZDelta = fabs(ms->config.mostRecentUntabledZ - ms->config.mostRecentUntabledZLastValue);
     ms->config.endThisStackCollapse = 1;
     ms->pushWord("setTableA");
-    cout << "Looks like the table reading hasn't steadied for the wait of " << ms->config.mostRecentUntabledZWait << " ." << endl;
-    cout << "  current, last, delta: " << ms->config.mostRecentUntabledZ << " " << ms->config.mostRecentUntabledZLastValue << " " << utZDelta << endl;
+    CONSOLE(ms, "Waiting " << setprecision(2) << waited << "s/" << ms->config.mostRecentUntabledZWait << "s for table reading to stabilize.");
+    CONSOLE(ms, " current: " << std::left << setw(5) << setprecision(3) << ms->config.mostRecentUntabledZ 
+            << "m last: " << std::left<< setw(5) << setprecision(3) << ms->config.mostRecentUntabledZLastValue << "m delta:" << std::left<< setw(5) << setprecision(3) << utZDelta << "m.");
   } 
 }
 END_WORD
@@ -1730,7 +1732,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
   }
 }
 END_WORD
@@ -1805,6 +1807,9 @@ END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
 WORD(FixCameraLightingToAutomaticParameters)
+virtual string description() {
+  return "Fix the camera lighting using autogain.  The camera parameters will first adjust automatically, then ein will fix them to the automatically adjusted values.";
+}
 virtual void execute(MachineState * ms) {
   stringstream p;
   p << "subscribeCameraParameterTrackerToRosOut 0.25 waitForSeconds ";
@@ -1858,6 +1863,10 @@ REGISTER_WORD(FixCameraLightingNoUpdate)
 
 
 WORD(FixCameraLighting)
+
+virtual string description() {
+  return "Fix the camera lighting.  Usage:  <exposure> <gain> <red> <green> <blue> fixCameraLighting.  You can see the current values with cameraGain, cameraExposure, cameraWhiteBalanceRed, cameraWhiteBlanaceGreen, cameraWhiteBalanceBlue.";
+}
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram("subscribeCameraParameterTrackerToRosOut 0.5 waitForSeconds fixCameraLightingNoUpdate 0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut");
 
@@ -2181,7 +2190,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2256,7 +2265,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms->p, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2604,7 +2613,10 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SaveGripperMask)
 
-WORD(CalibrateRGBCameraIntrinsics)
+WORD(CalibrateRGBCameraIntrinsicsPoint)
+virtual string description() {
+  return "Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.";
+}
 virtual void execute(MachineState * ms) {
   ms->pushWord("setMagnification");
   ms->pushWord("comeToStop");
@@ -2635,7 +2647,7 @@ virtual void execute(MachineState * ms) {
 
 }
 END_WORD
-REGISTER_WORD(CalibrateRGBCameraIntrinsics)
+REGISTER_WORD(CalibrateRGBCameraIntrinsicsPoint)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(MachineState * ms) {
@@ -5755,8 +5767,6 @@ END_WORD
 REGISTER_WORD(BuildClassSimilarityMatrixFromDensity)
 
 WORD(IrFixPick)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   cout << "Commencing IR pick fix." << endl;
 
@@ -5813,8 +5823,6 @@ END_WORD
 REGISTER_WORD(IrFixPick)
 
 WORD(SetPickFixMapAnchor)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   ms->config.pfmAnchorPose = ms->config.currentEEPose;
 }
@@ -5822,8 +5830,6 @@ END_WORD
 REGISTER_WORD(SetPickFixMapAnchor)
 
 WORD(ClearClass3dGrasps)
-virtual string description() {
-}
 virtual void execute(MachineState * ms) {
   int class_idx = ms->config.focusedClass;
   cout << "clearClass3dGrasps: " << class_idx << endl;
