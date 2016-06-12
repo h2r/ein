@@ -1120,7 +1120,7 @@ void Scene::initializePredictedMapWithBackground() {
 
       if ( background_map->safeBilinAt(cell_background_x, cell_background_y) ) {
 	*(predicted_map->refAtCell(x,y)) = background_map->bilinValAtCell(cell_background_x, cell_background_y);
-	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
+	predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
       }
 
       //cout << "x y bx by: " << x << " " << y << " " << inBase.px << " " << inBase.py << " " << predicted_anchor << " " << background_anchor << " " << toTransform << inBase << inBackground << endl;
@@ -1182,7 +1182,7 @@ void Scene::composePredictedMap(double threshold) {
 	if ( tos->safeBilinAt(cells_object_x, cells_object_y) ) {
 	  if (tos->isDiscrepantMetersBilin(threshold, meters_object_x, meters_object_y)) {
 	    *(predicted_map->refAtCell(x,y)) = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
-	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
+	    predicted_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	  } else {
 	  }
 	} else {
@@ -1249,7 +1249,7 @@ void Scene::addPredictedObjectsToObservedMap(double threshold, double learning_w
 	    GaussianMapCell cell = tos->observed_map->bilinValAtMeters(meters_object_x, meters_object_y);
 	    cell.multS(learning_weight);
 	    observed_map->refAtCell(x,y)->addC(&cell);
-	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
+	    observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
 	  } else {
 	  }
 	} else {
@@ -3623,8 +3623,8 @@ virtual void execute(MachineState * ms) {
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3634,7 +3634,7 @@ virtual void execute(MachineState * ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
       if (1) {
 	// single sample update
@@ -3687,7 +3687,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   }  
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
   ms->pushWord("sceneRenderObservedMap");
 }
 END_WORD
@@ -3774,9 +3774,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data;
   //double z = thisPose.pz + ms->config.currentTableZ;
   double z = transformed.pz;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
   cout << "z: " << z << endl;
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3786,7 +3786,7 @@ virtual void execute(MachineState * ms) {
 	continue;
       }
       double x, y;
-      pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
       
       if (1) {
 	// single sample update
@@ -4020,13 +4020,13 @@ virtual void execute(MachineState * ms) {
   int imH = sz.height;
   pixelToGlobalCache data;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms->p, zToUse, ms->config.currentEEPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, ms->config.currentEEPose, ms->config.scene->anchor_pose, &data);
+  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
+  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->anchor_pose, &data);
   for (int y = 0; y < imH; y++) {
     for (int x = 0; x < imW; x++) {
       double meter_x = 0;
       double meter_y = 0;
-      pixelToGlobalFromCache(ms->p, x, y, &meter_x, &meter_y, &data);
+      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
       int cell_x = 0;
       int cell_y = 0;
       ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
@@ -5014,7 +5014,7 @@ cout << "d ";
       ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.squaredcounts = 
 	pow(ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->green.counts / counts_scale, 2.0)*counts_scale;
 
-      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
+      ms->config.class_scene_models[tfc]->observed_map->refAtCell(x,y)->recalculateMusAndSigmas(ms);
     }
 cout << endl;
   }
@@ -5099,7 +5099,7 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZ)
 WORD(SceneRecalculateObservedMusAndSigmas)
 virtual void execute(MachineState * ms) {
   cout << "sceneRecalculateObservedMusAndSigmas: ." << endl;
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
 REGISTER_WORD(SceneRecalculateObservedMusAndSigmas)
@@ -5179,8 +5179,8 @@ virtual void execute(MachineState * ms) {
   
   pixelToGlobalCache data;
   double z = z_to_use;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5225,7 +5225,7 @@ virtual void execute(MachineState * ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 	  
 	  if (1) {
 	    // single sample update
@@ -5286,7 +5286,7 @@ virtual void execute(MachineState * ms) {
   int boty = imHoT + aahr; 
   
 
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
   Mat gripperMask = ms->config.gripperMask;
   if (isSketchyMat(gripperMask)) {
     ROS_ERROR("Gripper mask is messed up.");
@@ -5346,7 +5346,7 @@ virtual void execute(MachineState * ms) {
         continue;
       }
       pixelToGlobalCache data;      
-      computePixelToPlaneCache(ms->p, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
       
       // there is a faster way to stride it but i am risk averse atm
       
@@ -5373,7 +5373,7 @@ virtual void execute(MachineState * ms) {
           } 
           
           double x, y;
-          pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
           
           if (1) {
             // single sample update
@@ -5444,7 +5444,7 @@ virtual void execute(MachineState * ms) {
   
   pixelToGlobalCache data;
   double z = z_to_use;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
   Mat gripperMask = ms->config.gripperMask;
   if (isSketchyMat(gripperMask)) {
     ROS_ERROR("Gripper mask is messed up.");
@@ -5490,7 +5490,7 @@ virtual void execute(MachineState * ms) {
       return;
     }
     
-    computePixelToPlaneCache(ms->p, z, tArmP, ms->config.scene->anchor_pose, &data);  
+    computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
     int numThreads = 8;
     // there is a faster way to stride it but i am risk averse atm
     
@@ -5534,7 +5534,7 @@ virtual void execute(MachineState * ms) {
             } 
             
             double x, y;
-            pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+            pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
             
             if (1) {
               // single sample update
@@ -5656,9 +5656,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5703,10 +5703,10 @@ virtual void execute(MachineState * ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -5876,9 +5876,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -5917,10 +5917,10 @@ virtual void execute(MachineState * ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -6072,9 +6072,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -6113,10 +6113,10 @@ virtual void execute(MachineState * ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  {
 	    double rx = x_gap;
@@ -6535,9 +6535,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data_gap;
   double z = z_to_use;
   double z_gap = z_to_use + lens_gap;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
-  computePixelToPlaneCache(ms->p, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms, z_gap, thisPose, ms->config.scene->anchor_pose, &data_gap);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
@@ -6582,10 +6582,10 @@ virtual void execute(MachineState * ms) {
 	  } 
 
 	  double x, y;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
 	  double x_gap, y_gap;
-	  pixelToGlobalFromCache(ms->p, px, py, &x_gap, &y_gap, &data_gap);
+	  pixelToGlobalFromCache(ms, px, py, &x_gap, &y_gap, &data_gap);
 	  
 	  if (1) {
 	    // single sample update
@@ -6725,14 +6725,14 @@ virtual void execute(MachineState * ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
-  //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
+  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
   double topMx, topMy, botMx, botMy;
-  pixelToGlobalFromCache(ms->p, topx, topy, &topMx, &topMy, &data);
-  pixelToGlobalFromCache(ms->p, botx, boty, &botMx, &botMy, &data);
+  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
   int topCx, topCy, botCx, botCy;
   ms->config.scene->metersToCell(topMx, topMy, &topCx, &topCy);
   ms->config.scene->metersToCell(botMx, botMy, &botCx, &botCy);
@@ -6761,8 +6761,8 @@ virtual void execute(MachineState * ms) {
 	
 
       int topPx, topPy, botPx, botPy;
-      globalToPixel(ms->p, &topPx, &topPy, zToUse, mx-cellWidthO2, my-cellWidthO2, ms->config.straightDown);
-      globalToPixel(ms->p, &botPx, &botPy, zToUse, mx+cellWidthO2, my+cellWidthO2, ms->config.straightDown);
+      globalToPixel(ms, &topPx, &topPy, zToUse, mx-cellWidthO2, my-cellWidthO2, ms->config.straightDown);
+      globalToPixel(ms, &botPx, &botPy, zToUse, mx+cellWidthO2, my+cellWidthO2, ms->config.straightDown);
 
       if (topPy > botPy) {
 	temp = botPy;
@@ -6878,14 +6878,14 @@ virtual void execute(MachineState * ms) {
   int boty = imHoT + aahr; 
   
   pixelToGlobalCache data;
-  //computePixelToGlobalCache(ms->p, zToUse, thisPose, &data);
-  computePixelToPlaneCache(ms->p, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
+  //computePixelToGlobalCache(ms, zToUse, thisPose, &data);
+  computePixelToPlaneCache(ms, zToUse, thisPose, ms->config.scene->anchor_pose, &data);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
 
   double topMx, topMy, botMx, botMy;
-  pixelToGlobalFromCache(ms->p, topx, topy, &topMx, &topMy, &data);
-  pixelToGlobalFromCache(ms->p, botx, boty, &botMx, &botMy, &data);
+  pixelToGlobalFromCache(ms, topx, topy, &topMx, &topMy, &data);
+  pixelToGlobalFromCache(ms, botx, boty, &botMx, &botMy, &data);
 
   double temp = 0;
   if (topMy > botMy) {
@@ -6910,8 +6910,8 @@ virtual void execute(MachineState * ms) {
   int prePixelsPerCellY, prePixelsPerCellX;
   int postPixelsPerCellY, postPixelsPerCellX;
   double numToApp = 10.0;
-  globalToPixel(ms->p, &prePixelsPerCellX, &prePixelsPerCellY, zToUse, 0, 0, transformed);
-  globalToPixel(ms->p, &postPixelsPerCellX, &postPixelsPerCellY, zToUse, numToApp*ms->config.scene->cell_width, numToApp*ms->config.scene->cell_width, transformed);
+  globalToPixel(ms, &prePixelsPerCellX, &prePixelsPerCellY, zToUse, 0, 0, transformed);
+  globalToPixel(ms, &postPixelsPerCellX, &postPixelsPerCellY, zToUse, numToApp*ms->config.scene->cell_width, numToApp*ms->config.scene->cell_width, transformed);
   double pixelsPerCellXD = (postPixelsPerCellX - prePixelsPerCellX)/numToApp;
   double pixelsPerCellYD = (postPixelsPerCellY - prePixelsPerCellY)/numToApp;
 
@@ -6929,7 +6929,7 @@ virtual void execute(MachineState * ms) {
 
 
   int topCxPx, topCyPy;
-  globalToPixel(ms->p, &topCxPx, &topCyPy, zToUse, topMx-cellWidthO2, topMy-cellWidthO2, transformed);
+  globalToPixel(ms, &topCxPx, &topCyPy, zToUse, topMx-cellWidthO2, topMy-cellWidthO2, transformed);
 
   //cout << "NoRecalcApprox: -- " << pixelsPerCellXD << " " << pixelsPerCellYD << " -- " << topCx << " " << topCy << " " << topCxPx << " " << topCyPy << endl;
 
@@ -7111,9 +7111,9 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 
 	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 
 	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
@@ -7126,9 +7126,9 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 
 	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 
 	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
@@ -7186,9 +7186,9 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 	  ms->config.scene->cellToMeters(1, 1, &meters_scene_x_1, &meters_scene_y_1);
 	  double zToUse = toMin->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 	  thisObservedPixelArea =  fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
 	{
@@ -7199,9 +7199,9 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 
 	  double zToUse = ms->config.gaussian_map_register->refAtCell(x,y)->z.mu;
 	  int pixel_scene_x_0, pixel_scene_y_0;
-	  globalToPixel(ms->p, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
+	  globalToPixel(ms, &pixel_scene_x_0, &pixel_scene_y_0, zToUse, meters_scene_x_0, meters_scene_y_0);
 	  int pixel_scene_x_1, pixel_scene_y_1;
-	  globalToPixel(ms->p, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
+	  globalToPixel(ms, &pixel_scene_x_1, &pixel_scene_y_1, zToUse, meters_scene_x_1, meters_scene_y_1);
 	  thisRegisterPixelArea = fabs( pixel_scene_x_1 - pixel_scene_x_0 ) * fabs( pixel_scene_y_1 - pixel_scene_y_0 );
 	}
 	thisRegisterPixelArea = std::max(thisRegisterPixelArea, 1.0);
@@ -7226,7 +7226,7 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 	    //ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
 	  } else {}
 
-	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms->p);
+	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
       } else {
       }
     }
@@ -7284,7 +7284,7 @@ virtual void execute(MachineState * ms) {
     }
   }
 
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
@@ -7431,7 +7431,7 @@ virtual void execute(MachineState * ms) {
   shared_ptr<Scene> focusedScene = ms->config.class_scene_models[tfc];
 
   ms->config.scene->observed_map->addM(ms->config.scene->predicted_map);
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 
 }
 END_WORD
@@ -7509,7 +7509,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   }
-  bg->recalculateMusAndSigmas(ms->p);
+  bg->recalculateMusAndSigmas(ms);
 }
 END_WORD
 REGISTER_WORD(SceneLoadMonochromeBackground)
@@ -7760,7 +7760,7 @@ virtual void execute(MachineState * ms) {
     }
   }
   //ms->config.scene->observed_map->multS(decay);
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms->p);
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
 }
 END_WORD
 REGISTER_WORD(SceneRegularizeSceneL2)
@@ -7809,7 +7809,7 @@ virtual void execute(MachineState * ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms->p, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
+  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
   cout << "scenePushPixelOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
   cout << "scenePushPixelOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
@@ -7864,7 +7864,7 @@ virtual void execute(MachineState * ms) {
 
   double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
   int pixel_scene_x, pixel_scene_y;
-  globalToPixel(ms->p, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
+  globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
   cout << "scenePushPixelOfMinStackVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
   cout << "scenePushPixelOfMinStackVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
@@ -8297,9 +8297,9 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data2;
   double z = z_to_use;
   double z2 = z_to_use-0.01;
-  //computePixelToGlobalCache(ms->p, z, thisPose, &data);
-  computePixelToPlaneCache(ms->p, z, thisPose, ms->config.scene->anchor_pose, &data);  
-  computePixelToPlaneCache(ms->p, z2, thisPose, ms->config.scene->anchor_pose, &data2);  
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);  
+  computePixelToPlaneCache(ms, z2, thisPose, ms->config.scene->anchor_pose, &data2);  
   int numThreads = 8;
   // there is a faster way to stride it but i am risk averse atm
   //#pragma omp parallel for
@@ -8330,8 +8330,8 @@ virtual void execute(MachineState * ms) {
 
 	  double x, y;
 	  double x2, y2;
-	  pixelToGlobalFromCache(ms->p, px, py, &x, &y, &data);
-	  pixelToGlobalFromCache(ms->p, px, py, &x2, &y2, &data2);
+	  pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFromCache(ms, px, py, &x2, &y2, &data2);
 
 	  int newIdx = ms->config.rayBuffer.size();
 	  ms->config.rayBuffer.resize(newIdx+1);

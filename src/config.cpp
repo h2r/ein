@@ -139,7 +139,7 @@ void Grasp::readFromFileNode(FileNode& it) {
 }
 
 MachineState::MachineState() {
-  this->p = this;
+  this->ms = this;
 }
 
 ostream & operator<<(ostream & os, const Grasp& toPrint)
