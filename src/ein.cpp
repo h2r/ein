@@ -313,13 +313,13 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
   bool error = false;
   int result = getRingPoseAtTime(ms, *time, thisPose, 0, debug);
   if (result != 1) {
-    ROS_ERROR_STREAM("Pose ring buffer error: " << result);
+    CONSOLE_ERROR(ms, "Pose ring buffer error: " << result);
     error = true;
   }
   *pose = eePose::fromGeometryMsgPose(thisPose);
   result = getRingImageAtTime(ms, *time, *image, 0, debug);
   if (result != 1) {
-    ROS_ERROR_STREAM("Image ring buffer error: " << result);
+    CONSOLE_ERROR(ms, "Image ring buffer error: " << result);
     error = true;
   }
   if (error) {
@@ -1694,7 +1694,7 @@ void populateStreamWordBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedWords != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of words.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of words.");
 	    }
 	    cout << " Expected to load " << tnp << " words, loaded " << numLoadedWords << " ..." << endl; cout.flush();
 	  }
@@ -1921,7 +1921,7 @@ void populateStreamLabelBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedLabels != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of labels.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of labels.");
 	    }
 	    cout << " Expected to load " << tnp << " labels, loaded " << numLoadedLabels << " ..." << endl; cout.flush();
 	  }
@@ -2097,7 +2097,7 @@ void populateStreamRangeBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedRanges != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of ranges.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of ranges.");
 	    }
 	    cout << " Expected to load " << tnp << " ranges, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
 	  }
@@ -2186,7 +2186,7 @@ void populateStreamPoseBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedPoses != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	    }
 	    cout << " Expected to load " << tnp << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	  }
@@ -2948,7 +2948,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
   }
 
   if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
-    //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+    //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
     ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
@@ -4229,7 +4229,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 	ikResultFailed = 0;
 	if (ikRetry > 0) {
 	  ROS_WARN_STREAM("___________________");
-	  ROS_ERROR_STREAM("Accepting perturbed IK result.");
+	  CONSOLE_ERROR(ms, "Accepting perturbed IK result.");
 	  cout << "ikRetry: " << ikRetry << endl;
 	  eePose::print(originalCurrentEEPose);
 	  eePose::print(ms->config.currentEEPose);
@@ -4280,7 +4280,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 
   if (ikResultFailed) 
   {
-    ROS_ERROR_STREAM("ikClient says pose request is invalid.");
+    CONSOLE_ERROR(ms, "ikClient says pose request is invalid.");
     ms->config.ik_reset_counter++;
     ms->config.lastIkWasSuccessful = false;
 
@@ -5136,7 +5136,7 @@ void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& d
   } else if (dios.state == 0) {
     ms->config.lastArmOkButtonState = 0;
   } else {
-    ROS_ERROR_STREAM("Unexpected state: " << dios);
+    CONSOLE_ERROR(ms, "Unexpected state: " << dios);
     assert(0);
   }
 
@@ -6592,7 +6592,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
 void changeTargetClass(MachineState * ms, int newTargetClass) {
 
   if ( (newTargetClass < 0) || (newTargetClass >= ms->config.classLabels.size()) ) {
-    ROS_ERROR_STREAM("changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
+    CONSOLE_ERROR(ms, "changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
     newTargetClass = 0;
     ms->config.targetClass = 0;
     ms->config.focusedClass = 0;
@@ -6813,7 +6813,7 @@ void guardGraspMemory(MachineState * ms) {
 
 void guardHeightMemory(MachineState * ms) {
   if (ms->config.focusedClass == -1) {
-    ROS_ERROR_STREAM("Focused class not initialized! " << ms->config.focusedClass);
+    CONSOLE_ERROR(ms, "Focused class not initialized! " << ms->config.focusedClass);
   }
   if (ms->config.classHeightMemoryTries.size() <= ms->config.focusedClass) {
     ms->config.classHeightMemoryTries.resize(ms->config.focusedClass + 1);
@@ -6841,7 +6841,7 @@ int calibrateGripper(MachineState * ms) {
 	return return_value;
       }
     }
-    cout << "Gripper could not calibrate!" << endl;
+    CONSOLE_ERROR(ms, "Gripper could not calibrate!");
     ms->pushWord("pauseStackExecution"); // pause stack execution
     ms->pushCopies("beep", 15); // beep
     return -1;
@@ -9873,7 +9873,7 @@ void synchronicServo(MachineState * ms) {
         ms->pushCopies("waitUntilAtCurrentPosition", 1); 
         
       } else {
-        ROS_ERROR_STREAM("No gradient map for class " << ms->config.targetClass << endl);
+        CONSOLE_ERROR(ms, "No gradient map for class " << ms->config.targetClass << endl);
         ms->clearStack();
       }
 
@@ -10918,7 +10918,7 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	} else if (strvalue == "false") {
 	  value = false;
 	} else {
-	  ROS_ERROR_STREAM("Bad message: " << msg);
+	  CONSOLE_ERROR(ms, "Bad message: " << msg);
 	}
 	//cout << "boolean key: " << key << " value: " << value << endl;
 	if (key == "mirror") {
@@ -12850,7 +12850,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
   double label = -1;
 
   if (ms->config.kNN == NULL) {
-    ROS_ERROR_STREAM("Oops, kNN is NULL, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    CONSOLE_ERROR(ms, "Oops, kNN is NULL, so we better stop here... but we'll continue, setting all labels to 0." << endl);
     for (int i = 0; i < ms->config.bLabels.size(); i++) {
       ms->config.bLabels[i] = 0;
     }
@@ -12860,7 +12860,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
   }
 
   if (ms->config.kNN->get_sample_count() < 1) {
-    ROS_ERROR_STREAM("Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    CONSOLE_ERROR(ms, "Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
     for (int i = 0; i < ms->config.bLabels.size(); i++) {
       ms->config.bLabels[i] = 0;
     }
@@ -13577,7 +13577,7 @@ void detectorsInit(MachineState * ms) {
     cout<<"Reading features and labels... " << featuresPath << " ..." << endl;
     fsfI.open(featuresPath, FileStorage::READ);
     if (!fsfI.isOpened()) {
-      ROS_ERROR_STREAM("Could not find file " << featuresPath << endl);
+      CONSOLE_ERROR(ms, "Could not find file " << featuresPath << endl);
     }
 
     fsfI["features"] >> kNNfeatures;
@@ -13825,7 +13825,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.classPlaceUnderPoints[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " pup poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -13848,7 +13848,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.classPlaceOverPoints[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " pop poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -15464,6 +15464,7 @@ int main(int argc, char **argv) {
   cv::redirectError(opencvError, NULL, NULL);
 
   //a.exec();
+
   
   ros::spin();
   /*  try {

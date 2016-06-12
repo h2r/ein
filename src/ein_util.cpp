@@ -182,7 +182,6 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 
   ms->pushWord("guiCustom1"); 
-  ms->pushWord("printState");
   ms->pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {
@@ -202,8 +201,13 @@ void initializeMachine(MachineState * ms) {
     ms->pushWord("loadGripperMask"); 
     ms->pushWord("initializeConfig");
   }
-
   ms->execute_stack = 1;
+
+  stringstream s;
+  s << "Starting Ein " << ms->config.left_or_right_arm << " at " << ros::Time::now();
+  ms->pushWord("print");
+  ms->pushWord(make_shared<StringWord>(s.str()));
+  
 }
 
 
