@@ -269,7 +269,6 @@ REGISTER_WORD(PrintState)
 WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
 virtual void execute(MachineState * ms) {
-  cout << "targetClass-- " << endl;
   if (ms->config.numClasses > 0) {
     int newTargetClass = (ms->config.targetClass - 1 + ms->config.numClasses) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
@@ -753,10 +752,18 @@ END_WORD
 REGISTER_WORD(Next)
 
 WORD(Print)
+virtual string description() {
+  return "Pop a word from the stack and print it to the Ein console.";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
-  if (word != NULL) {
+  std::shared_ptr<StringWord> s1 = std::dynamic_pointer_cast<StringWord>(w1);
+  if (s1 != NULL) {
+    CONSOLE(ms, s->value());
+  } else if (word != NULL) {
     CONSOLE(ms, word->repr());
+  } else {
+    CONSOLE_ERROR(ms, "Print expects one argument.");
   }
 }
 END_WORD
@@ -1123,7 +1130,6 @@ WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
 virtual void execute(MachineState * ms)
 {
-  cout << "targetClass++ " << endl;
   if (ms->config.numClasses > 0) {
     int newTargetClass = (ms->config.targetClass + 1) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
