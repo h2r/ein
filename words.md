@@ -23,4 +23,5 @@ tr td:first-child {
   width: 800px;
 }
 </style>
+
 {% include ein_words.html %}
