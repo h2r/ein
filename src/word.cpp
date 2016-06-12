@@ -49,6 +49,19 @@ std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::sh
 }
 
 
+map<string, shared_ptr<Word> > MachineState::wordsInNamespace()
+{
+  map<string, shared_ptr<Word> > r;
+  std::map<std::string, shared_ptr<Word> >::iterator iter;
+  for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
+    r[iter->first] = iter->second;
+  }
+  for (int i = 0; i < words.size(); i++) {
+    r[words[i]->repr()] = words[i];
+  }
+  return r;
+}
+
 bool MachineState::pushWord(int code) {
   if (character_code_to_word.count(code) > 0) {
     std::shared_ptr<Word> word = character_code_to_word[code];      
@@ -165,8 +178,7 @@ void MachineState::execute(shared_ptr<Word> word) {
     try {
       word->execute(this);
     } catch( ... ) {
-      cout << "Exception in Word: ";
-      cout <<  word->name() << endl;
+      CONSOLE_ERROR(ms, "Exception in word: " << word->name());
       std::exception_ptr p = std::current_exception();
       rethrow_exception(p);
     }
@@ -304,7 +316,7 @@ std::shared_ptr<Word> parseToken(MachineState * ms, string token) {
     std::shared_ptr<Word> word = SymbolWord::parse(token);
     return word;
   } else {
-    cout << "Cannot parse " << token << endl;
+    CONSOLE_ERROR(ms, "Cannot parse " << token);
     return NULL;
   }
 }
@@ -436,19 +448,6 @@ shared_ptr<Word> SymbolWord::getReferencedWord(MachineState * ms) {
   }
 }
 
-#define CONSOLE(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << args; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
-
-#define CONSOLE_ERROR(ms, args) \
-    { \
-  std::stringstream __publish__console__message__stream__ss__; \
-  __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
-    }
 
 
 void SymbolWord::execute(MachineState * ms) {
@@ -456,7 +455,7 @@ void SymbolWord::execute(MachineState * ms) {
   if (w != NULL) {
     ms->pushWord(w);
   } else {
-    CONSOLE_ERROR(ms->p, "No value for symbol word " << repr() << ".");
+    CONSOLE_ERROR(ms, "No value for symbol word " << repr() << ".");
     ms->pushWord("pauseStackExecution"); 
   }
 }

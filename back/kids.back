@@ -33,3 +33,18 @@ ifte
 
 ( assumeKidPicturePose ( 1 ) ( publishWristViewToFace 0.1 waitForSeconds ) while ) "lookAtKids" store
 
+
+
+( openGripper waitUntilGripperNotMoving ) "kidOpenGripper" store
+( closeGripper waitUntilGripperNotMoving ) "kidCloseGripper" store
+( lightsOn 0.5 waitForSeconds ) "kidLightsOn" store
+( lightsOff 0.5 waitForSeconds ) "kidLightsOff" store
+( torsoFanOn 0.5 waitForSeconds ) "kidFanOn" store
+( torsoFanOff 0.5 waitForSeconds ) "kidFanOff" store
+
+( happyFace 0.5 waitForSeconds ) "kidHappyFace" store
+
+( sadFace 0.5 waitForSeconds ) "kidSadFace" store
+
+( wave ) "kidWave" store
+( tempGoHome ) "kidCrane" store

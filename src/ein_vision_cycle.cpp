@@ -291,11 +291,11 @@ virtual void execute(MachineState * ms) {
   
   double crane1I = 1;
   double crane1J = 0;
-  double craneAngle = vectorArcTan(ms->p, crane1I, crane1J);
+  double craneAngle = vectorArcTan(ms, crane1I, crane1J);
 
   double maxDirI = (minI-currentI);
   double maxDirJ = (minJ-currentJ);
-  double maxDirAngle = vectorArcTan(ms->p, maxDirI, maxDirJ);
+  double maxDirAngle = vectorArcTan(ms, maxDirI, maxDirJ);
 
   ms->config.currentEEPose.px = minX;
   ms->config.currentEEPose.py = minY;
@@ -703,8 +703,8 @@ virtual void execute(MachineState * ms) {
     box.bTop = ms->config.bTops[c];
     box.bBot = ms->config.bBots[c];
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms->p, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms->p, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -779,7 +779,7 @@ virtual void execute(MachineState * ms) {
         double x, y;
         double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
 
-        pixelToGlobal(ms->p, px, py, z, &x, &y);
+        pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
         mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, x, y, &i, &j);
 	
@@ -850,8 +850,8 @@ virtual void execute(MachineState * ms) {
   box.bTop = ms->config.bTops[c];
   box.bBot = ms->config.bBots[c];
   box.cameraPose = ms->config.currentEEPose;
-  box.top = pixelToGlobalEEPose(ms->p, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-  box.bot = pixelToGlobalEEPose(ms->p, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
