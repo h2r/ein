@@ -757,13 +757,13 @@ virtual string description() {
 }
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
-  std::shared_ptr<StringWord> s1 = std::dynamic_pointer_cast<StringWord>(w1);
-  if (s1 != NULL) {
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);
+  if (s != NULL) {
     CONSOLE(ms, s->value());
   } else if (word != NULL) {
     CONSOLE(ms, word->repr());
   } else {
-    CONSOLE_ERROR(ms, "Print expects one argument.");
+    CONSOLE(ms, "");
   }
 }
 END_WORD
@@ -1090,7 +1090,7 @@ virtual void execute(MachineState * ms) {
   GET_ARG(ms, StringWord, filename);
   std::stringstream fname;
   fname << "src/ein/back/" << filename << ".back";
-  CONSOLE(ms, "Importing from file: " << fname.str());
+  CONSOLE(ms, "Importing: " << fname.str());
   std::ifstream t(fname.str());
   if (!t.is_open()) {
     CONSOLE_ERROR(ms, "Import tried to read " << fname.str() << ", but it couldn't open...");
