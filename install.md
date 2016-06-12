@@ -123,7 +123,7 @@ We usually run ein from inside of screen.  Go to the root of your
 catkin workspace and run 
 
 ``` 
-screen -c src/ein/ein_baxter.screenrc
+BAXTER=your_baxter screen -c src/ein/ein_baxter.screenrc
 ```
 
 This command will start a screen session preloaded with useful
@@ -131,3 +131,5 @@ windows.  The ein program for the left arm is primed in window 8; for
 the right arm is primed in window 0.  The repl is primed in window 1
 and 7.  You can switch windows by using backtick-number.  For example,
 typing "`1" switches to window 1.
+
+
