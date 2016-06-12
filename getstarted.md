@@ -33,6 +33,8 @@ orientation.  Double clicking on the map moves the end effector to the
 appropriate location; verify that the robot's arm moves when you
 click.
 
+### Teleoperation
+
 Next, go back to the screen session and change to the Ein console
 window by typing `` `1 `` for the right arm or `` `2 `` for the left
 arm.  You should see a view like this:
@@ -55,80 +57,91 @@ goHome
 After running this command, the arm should move to the crane position
 off to one side, as shown in the following picture.
 
-![Robot in Home Position](../assets/baxter_athome.jpg)
+![Robot in Home Position](../assets/baxter_crane.jpg)
 
 Try the following commands for moving to other canonical
-positions.
+positions.  (Be careful that the robot's workspace is clear.)
 
 ```
 assumeCrane1
 assumeBackScanningPose
 ```
 
-Move back to home position.
+Move back to home position: `goHome`. 
 
+You can also incrementally move the arm in the global x, y, and z
+frames.  For example, try:
 ```
 xUp
 xDown
 ```
 
-Now try moving in the y and z directions.
+Similarly, `yUp`, `yDown` moves in the Y frame, and `zUp` and `zDown` move
+the arm vertically.
 
-By default, the robot is keyed to move in 1 cm increments.
-You can change the increment size to 5 cm by issuing
-
+By default, the robot is keyed to move in 1 cm
+increments.  You can change the increment size to 5 cm by issuing:
 ```
 0.05 setGridSize
 ```
 
-Note that the grid size is specified in meters. To go back to 1 cm,
-call
+Note that the repl uses a post-fix FORTH-like language called Back.
+So the argument 0.05 comes before the function (called "word"
+following Forth conventions), named setGridSize.
 
+The grid size is specified in meters. To go back to 1 cm,
+call
 ```
 0.01 setGridSize
 ```
 
-Try moving a long distance, like 20 cm. How fast does the robot move? To move slowly,
-issue 
+Next try running `openGripper` and `closeGripper`.  You should now be
+able to teleoperate the arm to pick up an object that is axis-aligned
+with the gripper.   
 
-```
-0.05 setSpeed
-```
+#### Exercise: Teleoperate some picks.
 
-The speed is specified with a number between 0.0 and 1.0. There are some shortcut words for 
-certain speeds:
-
-```
-fullImpulse
-halfImpulse
-quarterImpulse
-tenthImpulse
-```
-
-Large movements should generally be carried out in `quarterImpulse` or `tenthImpulse`. 
-Speeds greater than or equal to `halfImpulse` or `0.5` should be used with caution; even the safest
-robot demands attention.
-
-
-setSpeed
-quarterImpulse
+Teleoperate the robot to pick up a few objects.  Try doing this first
+    by watching the arm.  Then try putting your back to the robot and
+    use only information from the wrist camera image.
 
 waitUntilAtCurrentPosition
 
-oZUp, setGridSize
 
-localXUp
-Local frame remains the same until a rotation is issued.
+#### Exercise:  Teleoperate some non-axis aligned picks.
 
-openGripper, closeGripper
-waitUntilGripperNotMoving
+You may have noticed in exercise 1, that we have not yet given you
+commands to rotate the gripper.  `oZUp` (and its related words `oXUp`
+and `oYUp`) rotate the gripper in the corresponding frame by one
+degree.  This amount of rotation is quite small, so you will need to
+issue many of these commands.  To simplify this process, we created a
+word that duplicates words on the stack.  You can run: `( oZUp ) 10
+replicateWord` to run `oZUp` 10 times (or whatever compound word is in
+parentheses.)  Note that tokenization is based on white space so you need a space before and after every parentheses.
 
-wrist view, reticles, keyboard bindings
+### Fun Words
 
-mission 1: teleop some picks.
-mission 2: stack some blocks.
-hint: can you make phrases that make your life easier?
-mission 3: knock over some blocks.
+Ein contains many many other words to control all parts of the robot.
+Some fun ones to try are `torsoFanOn`, `torsoFanOff`, `torsoFanAuto`
+(the default).  You can also try `lightsOn` and `lightsOff`,
+`happyFace`, `sadFace`, and `neutralFace`.
+
+#### Exercise: Blink the lights. 
+
+Write a program to blink the lights a few times.  You will need to wait in between each execusion by running `1 waitForSeconds`.
+
+>! ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds ) 10 replicateWord
+
+### Timing
+
+By default words run as quickly as possible, without waiting for
+actions to complete.  There are a variety of words that wait until
+certain conditions are met.  Most useful is
+`waitUntilAtCurrentPosition`.
+
+#### Exercise:  Wave the arm.
+
+Writing a program to move the arm back and forth a few times in a row
+using `waitUntilAtCurrentPosition` and `replicateWord`.
 
 
-Fun words:  torsoFanOn/Off/Auto  lightsOn/lightsOff  happyFace sadFace

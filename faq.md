@@ -20,4 +20,5 @@ session.
 
 Verify that you are not in zero gravity mode by checking the status
 window; it should be set to 0. Type `zeroGOff` to turn off zero
-gravity.
+gravity.  You can also press the grey circular button on the arm to
+toggle zero gravity (the "Ok" button).
