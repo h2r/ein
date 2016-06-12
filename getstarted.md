@@ -21,17 +21,21 @@ status will appear in text.  The frame rate for Ein varies betweeun
 10Hz and 25Hz on our machines; if it is much slower than 10Hz, Ein
 will be hard to use and you should get a faster computer.
 
-![Ein Main Window](../assets/mainwindow_screenshot.jpg)
+![Ein Main Window](../assets/einmainwindow_screenshot.jpg)
 
 Verify you can see the wrist view image in the console, and that it is
-updating as the arm moves.  The middle window shows a map of the
-robot's IK workspace, with the robot's body and end effector position
-marked.  Double clicking on the map moves the end effector to the
-appropriate location; verify that the robot moves when you click.
+updating as the arm moves.  The middle pane (Object Map View) shows a
+map of the robot's IK workspace for the arm in crane pose at a
+particular height.  Attainable poses are marked in green and yellow;
+unattainable poses are marked in red.  The robot's body and end
+effector position are marked with circles and a line indicating
+orientation.  Double clicking on the map moves the end effector to the
+appropriate location; verify that the robot's arm moves when you
+click.
 
 Next, go back to the screen session and change to the Ein console
 window by typing `` `1 `` for the right arm or `` `2 `` for the left
-arm.
+arm.  You should see a view like this:
 
 ![Ein Console Screenshot](../assets/console_screenshot.jpg)
 
@@ -127,3 +131,4 @@ hint: can you make phrases that make your life easier?
 mission 3: knock over some blocks.
 
 
+Fun words:  torsoFanOn/Off/Auto  lightsOn/lightsOff  happyFace sadFace
