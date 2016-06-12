@@ -15425,7 +15425,7 @@ int main(int argc, char **argv) {
 
   einMainWindow->show();
   einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + robot_mode + " " + left_or_right_arm));
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
 
 
 
