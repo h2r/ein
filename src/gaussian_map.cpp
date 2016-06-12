@@ -638,7 +638,6 @@ void GaussianMap::loadFromFile(string filename) {
   } else {
     ROS_ERROR_STREAM("Could not open file " << filename);
   }
-  cout << "done." << endl;
 }
 
 CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());

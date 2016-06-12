@@ -4450,14 +4450,14 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     // don't print for capslock, shift, alt (for alt-tab)
     if (!(c == 65509 || c == 196581 || c == 196577 || c == 65505 ||
           c == 65513 || c == 196578)) {
-      cout << "You pressed " << c << "." << endl;
+      //cout << "You pressed " << c << "." << endl;
 
       if (character_code_to_word.count(c) > 0) {
         shared_ptr<Word> keycode_word = character_code_to_word[c];
         ms->execute(keycode_word);
 
       } else {
-        cout  << "Could not find word for " << c << endl;
+        //cout  << "Could not find word for " << c << endl;
       }
     }
   }
