@@ -181,6 +181,7 @@ void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
 streamImage * setIsbIdx(MachineState * ms, int idx);
 streamImage * setIsbIdxNoLoad(MachineState * ms, int idx);
+streamImage * setIsbIdxYesLoadNoKick(MachineState * ms, int idx);
 streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx);
 void resetAccumulatedStreamImage(MachineState * ms);
 int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);

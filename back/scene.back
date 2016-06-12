@@ -1124,14 +1124,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.06 "tempBlockMaxGraspThickness" store
+0.0550 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.025 "tempBlockGripperThrow" store
-0.025 "tempBlockGraspResolution" store
-0.06 "tempBlockTargetContactWidth" store
+0.03 "tempBlockGripperThrow" store
+0.01 "tempBlockGraspResolution" store
+0.055 "tempBlockTargetContactWidth" store
 0.02 "tempBlockCollarWidth" store
 (
   tempBlockUsingBlocks not (
@@ -1349,6 +1349,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 -0.01 "lensArrayGap" store
 
 (
+/*
+  620 sceneSetAngularApertureCols "scene" import tempLenticularAutoFocus slfgRebase tempReconstructWithoutZ
+  slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
+*/
   /* choosing a wider gap captures more angular information and incurs spatial blur */
   -0.32 "lensArrayGap" store
 
@@ -1367,17 +1371,6 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     lensArrayGap 100.0 times 
   "lensArrayStrengthX" store 
 
-  /*
-  620 sceneSetAngularApertureCols "scene" import tempLenticularAutoFocus slfgRebase tempReconstructWithoutZ
-  slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
-
-  50 "lensArraySize" store
-  12.00 "lensArrayStrength" store
-  -0.16 "lensArrayGap" store
-
-  64.00 "lensArrayStrength" store
-  -0.64 "lensArrayGap" store
-  */
 
 ) "tempLenticularAutoFocus" store
 
@@ -1414,11 +1407,32 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 0.3425 "tempReconstructArrayZ" store 
 
 
+(
+  tempReconstructWithZTopZ 0.388 divide 0.0003 times  "slfgRebaseCellWidth" store slfgRebase
 
+  50 "lensArraySize" store
+/*
+  12.00 "lensArrayStrength" store
+  -0.16 "lensArrayGap" store
+*/
+
+  42.00 "lensArrayStrength" store
+  -0.32 "lensArrayGap" store
+
+) "tempArrayAutoFocus" store
+
+
+/*
+0.91883 "tempReconstructWithZTopZ" store 
+1.111883 "tempReconstructWithZTopZ" store 
+1.861883 "tempReconstructWithZTopZ" store 
+3.161883 "tempReconstructWithZTopZ" store 
+3.361883 "tempReconstructWithZTopZ" store 
+*/
 
 0.3883 "tempReconstructWithZTopZ" store 
-0.00 "tempReconstructWithZTotalZ" store
-0.01 "tempReconstructWithZDeltaZ" store
+0.08 "tempReconstructWithZTotalZ" store
+0.02 "tempReconstructWithZDeltaZ" store
 500 "tempReconstructStreamTakeSceneSamples" store
 
 (
@@ -1581,13 +1595,14 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     " " 
   + + + + + print
 
+/*
   tempReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
-
+*/
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
 
-/*
   ( 
+/*
     lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
     lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
@@ -1595,6 +1610,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
     phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
       tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+*/
+    lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
 
 
     ( 
@@ -1604,11 +1621,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     endStackCollapseNoop 
   ) tempRSTSSMax replicateWord
 
-*/
 
+/*
     tempSpiralStreamTakeSceneStride 
     tempReconstructWithZThisZ 
   sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
+*/
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
@@ -1618,6 +1636,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempReconstructWithoutZ" store
 
 (
+  tempReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
   sceneInitRegisterZero 
   sceneMarginalizeDepthStackIntoRegister
 
@@ -1628,6 +1647,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 )  "tempReconstructMarginalsFromStack" store
 
 (
+  tempReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
   sceneInitRegisterMax 
   sceneMinDepthStackIntoRegister 
 
@@ -1675,7 +1695,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   10 "tempReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
 
-  0.05 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
   12 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
@@ -1687,7 +1707,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   0.04 "tempSpiralMoveSpeed" store
 
-  12 "tempUpdateSpiralN" store
+  16 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -1803,13 +1823,24 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     +
   "tempReconstructWithZTopZ" store 
 
-  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tempReconstructWithZTopZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
 
   /* 
   3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
   */
 ) "tempReconstructFromStream" store
+
+(
+  tempReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tempReconstructWithZ 
+) "tempReconstructWithRebaseTable" store
+
+(
+  tempReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebase
+  tempReconstructWithZ 
+) "tempReconstructWithRebase" store
+
 
 (
     "/home/aibo/catkin_ws/src/ein/default/objects/scene_eval_set"
@@ -2488,6 +2519,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     moveEeToPoseWord
     tempDribblePlace
     moveEeToPoseWord
+    waitUntilAtCurrentPosition
   ) time 
 ) "tempDribbleCore" store
 
@@ -2500,6 +2532,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     moveEeToPoseWord
     tempDribblePlace
     moveEeToPoseWord
+    waitUntilAtCurrentPosition
   ) time 
 ) "tempDribbleBestCore" store
 
@@ -2578,6 +2611,20 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "shoreUp" store
 
 (
+  currentPose  0 currentTableZ - pickFlushFactor + 0.145 + setEEPosePZ assumePose pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo
+) "pressDown" store
+
+(
+  rewindImageStreamBufferNLNK 
+  ( 
+    streamPushImageStreamIndex print
+    imageStreamBufferLoadCurrent
+    incrementImageStreamBufferNoLoadNoKick 
+  ) streamPushImageStreamSize replicateWord 
+) "tempLoadStreamImages" store
+
+(
+  "cgWaitT" store
   "cgDeltaT" store
   "cgTimeParam" store
   "cgRadius" store
@@ -2619,6 +2666,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "circleGait" store
 
 (
+  "cgWaitT" store
   "cgDeltaT" store
   "cgTimeParam" store
   "cgRadiusOuter" store
@@ -2700,15 +2748,75 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 (
     currentPose
     0.10 0.06 0.10
-    0.0 0.03
+    0.0 0.030303 0.1
   hypotrochoidGaitSet
 ) "hypotrochoidGaitSetStar" store
 
 (
-  currentPose  0 currentTableZ - pickFlushFactor + 0.145 + setEEPosePZ assumePose pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo
-) "pressDown" store
+  currentPose
+  0.10
+  0.0 0.030303 0.1
+  circleGaitSet
+) "circleGaitSetRing" store
 
+(
+  hypotrochoidGaitSetStar
+  ( 1 )
+  (
+    hypotrochoidGait
+    cgWaitT waitForSeconds
+  ) while
+) "hypotrochoidGaitStarDrive" store
 
+(
+  circleGaitSetRing
+  ( 1 )
+  (
+    circleGait
+    cgWaitT waitForSeconds
+  ) while
+) "circleGaitRingDrive" store
+
+(
+  circleGaitSetRing
+  0.2 "cgWaitT" store
+  (
+    circleGait
+    cgWaitT waitForSeconds
+  ) 33 replicateWord
+  cgAnchor moveEeToPoseWord
+) "circleGaitRingOnce" store
+
+(
+  0.05 "cgThisWaitFactor" store
+  circleGaitSetRing
+  0.05 "cgRadius" store
+    
+    1.0
+    cgThisWaitFactor times
+  "cgWaitT" store
+  (
+    circleGait
+    cgWaitT waitForSeconds
+  ) 33 replicateWord
+  0.10 "cgRadius" store
+    2.0
+    cgThisWaitFactor times
+  "cgWaitT" store
+  (
+    circleGait
+    cgWaitT waitForSeconds
+  ) 33 replicateWord
+  0.15 "cgRadius" store
+    3.0
+    cgThisWaitFactor times
+  "cgWaitT" store
+  (
+    circleGait
+    cgWaitT waitForSeconds
+  ) 33 replicateWord
+  cgAnchor moveEeToPoseWord
+) "circleGaitRingThrice" store
 
 
 
