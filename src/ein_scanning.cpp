@@ -2581,9 +2581,9 @@ REGISTER_WORD(SetGripperMaskCB)
 WORD(LoadGripperMask)
 virtual void execute(MachineState * ms) {
   string filename = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "GripperMask.bmp";
-  cout << "Loading gripper mask from " << filename << endl;
+  cout << "Loading gripper mask from " << filename << "...";
   Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-  cout << "  tmpMask.type() tmpMask.size(): " << tmpMask.type() << " " << tmpMask.size() << endl;
+  cout << "Read type: " <<  tmpMask.type() << " Size:" << tmpMask.size() << endl;
 
   ms->config.gripperMask.create(tmpMask.size(), CV_8U);
   Size sz = ms->config.gripperMask.size();
