@@ -5872,7 +5872,6 @@ void loadCalibration(MachineState * ms, string inFileName) {
 
   }
   ms->pushWord("moveCropToProperValue"); 
-  cout << "done." << endl;
 }
 
 void saveCalibration(MachineState * ms, string outFileName) {
@@ -5986,8 +5985,6 @@ void saveCalibration(MachineState * ms, string outFileName) {
 void pilotInit(MachineState * ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
-    cout << "Possessing left arm..." << endl;
-
     ms->config.joint_min[0] = -1.70168;
     ms->config.joint_min[1] = -2.147;
     ms->config.joint_min[2] = -3.05418;
@@ -6145,9 +6142,6 @@ void pilotInit(MachineState * ms) {
     ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
-    cout << "Possessing right arm..." << endl;
-
-
     ms->config.joint_min[0] = -1.70168;
     ms->config.joint_min[1] = -2.147;
     ms->config.joint_min[2] = -3.05418;
@@ -6413,8 +6407,8 @@ void pilotInit(MachineState * ms) {
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
     ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 
-    cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
-      ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
+    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
+    //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
   }
 
   for (int h = 0; h < ms->config.hrmWidth; h++) {
@@ -6450,8 +6444,6 @@ void pilotInit(MachineState * ms) {
 }
 
 void spinlessPilotMain(MachineState * ms) {
-  cout << endl << endl << "Pilot main begin..." << endl;
-  
   pilotInit(ms);
 }
 
@@ -13217,7 +13209,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
   ros::NodeHandle nh("~");
 
 
-  cout << "nh namespace: " << nh.getNamespace() << endl;
+  //cout << "nh namespace: " << nh.getNamespace() << endl;
 
 
   nh.getParam("/robot_description", ms->config.robot_description);
@@ -13312,7 +13304,6 @@ void saveROSParams(MachineState * ms) {
 }
 
 void spinlessNodeMain(MachineState * ms) {
-  cout << endl << endl << "Node main begin..." << endl;
   nodeInit(ms);
   detectorsInit(ms);
 }
@@ -13331,7 +13322,7 @@ void detectorsInit(MachineState * ms) {
 
   // SIFT 
   //ms->config.detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
-  cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
+  //cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
   if (ms->config.detector == NULL)
     ms->config.detector = new FastFeatureDetector(4);
 
@@ -13774,7 +13765,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.class3dGrasps[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " 3d poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -14888,16 +14879,16 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
-  cout << "n namespace: " << n.getNamespace() << endl;
+  //cout << "n namespace: " << n.getNamespace() << endl;
 
   loadROSParamsFromArgs(ms);
-  cout << "mask_gripper: " << ms->config.mask_gripper << endl;
-  cout << "all_range_mode: " << ms->config.all_range_mode << endl;
-  cout << "data_directory: " << ms->config.data_directory << endl 
-       << "run_prefix: " << ms->config.run_prefix << endl << endl 
-       << "vocab_file: " << ms->config.vocab_file << endl 
-       << "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
-       << endl;
+  //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
+  //cout << "all_range_mode: " << ms->config.all_range_mode << endl;
+  cout << "data_directory: " << ms->config.data_directory << endl;
+  //<< "run_prefix: " << ms->config.run_prefix << endl << endl 
+  //<< "vocab_file: " << ms->config.vocab_file << endl 
+  //<< "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
+  //<< endl;
 
   ms->config.class_crops_path = ms->config.data_directory + "/objects/";
 
@@ -15071,9 +15062,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
 
   ms->config.tfListener = new tf::TransformListener();
-  cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
   ms->config.tfListener->setUsingDedicatedThread(true);
-  cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
 
   ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");

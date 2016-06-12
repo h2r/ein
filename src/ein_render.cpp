@@ -220,9 +220,6 @@ REGISTER_WORD(GuiHideAll)
 WORD(GuiCustom1)
 virtual void execute(MachineState * ms)
 {
-  ROS_WARN_STREAM("___________________");
-  ROS_ERROR_STREAM("Called word guiCustom1.");
-  ROS_WARN_STREAM("___________________");
   ms->config.rangeogramWindow->setVisible(false);
 
   ms->config.dogSnoutViewWindow->setVisible(false);
