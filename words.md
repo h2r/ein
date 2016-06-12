@@ -10,7 +10,6 @@ This page contains all the words in Ein.
 
 table {
   table-layout: fixed;
-  border-collapse: collapse;
   width: 100%;
 }
 td {
@@ -20,7 +19,7 @@ td {
 tr td:first-child {
   overflow: auto;
   white-space: normal;
-  width: 800px;
+  width: 10%;
 }
 </style>
 

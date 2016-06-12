@@ -126,11 +126,14 @@ Some fun ones to try are `torsoFanOn`, `torsoFanOff`, `torsoFanAuto`
 (the default).  You can also try `lightsOn` and `lightsOff`,
 `happyFace`, `sadFace`, and `neutralFace`.
 
-#### Exercise: Blink the lights. 
+#### Exercise: Pulse the torso fan.
 
 Write a program to blink the lights a few times.  You will need to wait in between each execusion by running `1 waitForSeconds`.
 
->! ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds ) 10 replicateWord
+Answer (select to see):
+
+ ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds ) 10 replicateWord
+{: style="color:white;" }
 
 ### Timing
 
@@ -139,9 +142,15 @@ actions to complete.  There are a variety of words that wait until
 certain conditions are met.  Most useful is
 `waitUntilAtCurrentPosition`.
 
-#### Exercise:  Wave the arm.
+#### Exercise:  Wiggle the arm.
 
 Writing a program to move the arm back and forth a few times in a row
 using `waitUntilAtCurrentPosition` and `replicateWord`.
+
+Answer (select to see): 
+
+( xUp  xUp  waitUntilAtCurrentPosition xDown xDown waitUntilAtCurrentPosition ) 10 replicateWord
+{: style="color:white;" }
+
 
 

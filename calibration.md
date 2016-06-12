@@ -10,9 +10,11 @@ camera on one arm.
 
 First, print out about 10 pages of [magic paper](
 https://github.com/h2r/ein/raw/master/images/calibration/magicpaper.pdf).
-Send the gripper to the home position by running `tempGoHome` Then
-drive down to close to the table height using `zDown`.  Create the
-magic circle underneath the gripper as depicted here:
+Send the gripper to the home position by running `goHome.` (If you
+would like to change the home position, you can do so in
+ein/back/init.back.)  Then drive down to close to the table height
+using `zDown`.  Create the magic circle underneath the gripper as
+depicted here:
 
 ![Magic Circle](../assets/magic_circle.jpg)
 
