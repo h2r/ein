@@ -1169,6 +1169,7 @@ virtual void execute(MachineState * ms)
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
+
   for (int i = 0; i < words.size(); i++) {
     wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
   }
@@ -1184,23 +1185,14 @@ virtual void execute(MachineState * ms)
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
-  wordFile << "<html>" << endl;
-  wordFile << "<head>" << endl;
-  wordFile << "<title> Ein Documentation </title>" << endl;
-  wordFile << "</head>" << endl;
+  wordFile << "<table><tr><th width=\"20%\">Word</th><th>Description</th></tr>" << endl;
 
-  wordFile << "<body>" << endl;
-  wordFile << "<table><th><td>Word</td><td>Description</td></tr>" << endl;
-  for (int i = 0; i < words.size(); i++) {
-    wordFile << "<tr><td>";
-    wordFile << words[i]->name() << "</td><td>";
-    string description = words[i]->description();
-    cout << "name: " << words[i]->name() << " description: " << description << endl;
-    wordFile << description << "</td></tr>" << endl;
+  map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
+  std::map<std::string, shared_ptr<Word> >::iterator iter;
+  for (iter = words.begin(); iter != words.end(); ++iter) {
+    wordFile << "<tr><td>" << xmlEncode(iter->first) << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
   }
   wordFile << "</table>" << endl;
-  wordFile << "</body>" << endl;
-  wordFile << "</html>" << endl;
   wordFile.close();
 }
 END_WORD
@@ -1280,10 +1272,10 @@ WORD(CameraFitQuadratic)
 virtual void execute(MachineState * ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   cout << "cameraFitQuadratic: " << endl;
   {
@@ -1352,10 +1344,10 @@ WORD(CameraFitHyperbolic)
 virtual void execute(MachineState * ms)
 {
   double bBZ[4];
-  bBZ[0] = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  bBZ[1] = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  bBZ[2] = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  bBZ[3] = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  bBZ[2] = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   if (	bBZ[0] == 0 || 
 	bBZ[1] == 0 || 
@@ -1448,10 +1440,10 @@ virtual void execute(MachineState * ms)
   int y3 = ms->config.heightReticles[2].py;
   int y4 = ms->config.heightReticles[3].py;
 
-  double z1 = convertHeightIdxToGlobalZ(ms->p, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms->p, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms->p, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms->p, 3) + ms->config.currentTableZ;
+  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
+  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
+  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
+  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   {
     //double d = ms->config.d_x;

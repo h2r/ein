@@ -1683,7 +1683,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
  private:
  public:
   MachineState();
-  MachineState * p;
+  MachineState * ms;
 
   std::vector<std::shared_ptr<Word> > call_stack;
   std::vector<std::shared_ptr<Word> > data_stack;
@@ -1704,7 +1704,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
-
+  map<string, shared_ptr<Word> > wordsInNamespace();
+  
   bool pushWord(int code);
   bool pushWord(string name);
   bool pushWord(std::shared_ptr<Word> word);

@@ -49,6 +49,19 @@ std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::sh
 }
 
 
+map<string, shared_ptr<Word> > MachineState::wordsInNamespace()
+{
+  map<string, shared_ptr<Word> > r;
+  std::map<std::string, shared_ptr<Word> >::iterator iter;
+  for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
+    r[iter->first] = iter->second;
+  }
+  for (int i = 0; i < words.size(); i++) {
+    r[words[i]->repr()] = words[i];
+  }
+  return r;
+}
+
 bool MachineState::pushWord(int code) {
   if (character_code_to_word.count(code) > 0) {
     std::shared_ptr<Word> word = character_code_to_word[code];      
