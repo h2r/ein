@@ -2499,7 +2499,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     shoreUp
       currentPose
       dup
-    tempMapBestAndPick 
+    tempMapFocusedAndPick 
     moveEeToPoseWord
     tempDribblePlace
     moveEeToPoseWord
