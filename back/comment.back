@@ -1,0 +1,11 @@
+/* testing if nested comments are supported (right now they are not and give an error) */
+
+/* this is a comment */
+
+/* this is a nested comment
+
+/* nested */
+
+*/
+
+
