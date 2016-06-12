@@ -15141,13 +15141,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
-  {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-  }
-
   ms->config.frameGraySobel = Mat(1,1,CV_64F);
 
   initializeMap(ms);
@@ -15464,19 +15457,8 @@ int main(int argc, char **argv) {
   cv::redirectError(opencvError, NULL, NULL);
 
   //a.exec();
-
   
   ros::spin();
-  /*  try {
-    ros::spin();
-  } catch( ... ) {
-    ROS_ERROR("In the weird sketchy exception block in ein main.");    
-    cout << "In the weird sketchy exception block in ein main." << endl;    
-    
-    std::exception_ptr p = std::current_exception();
-    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
-    throw;
-    }*/
 
   return 0;
 }

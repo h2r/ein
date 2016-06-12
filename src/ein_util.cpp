@@ -174,6 +174,13 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("sceneInit"); 
   ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
 
+  stringstream s;
+  s << "*** Starting Ein " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
+  cout << "start message: " << s.str() << endl;
+  ms->pushWord("print");
+  ms->pushData(make_shared<StringWord>(s.str()));
+
+
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
@@ -203,10 +210,6 @@ void initializeMachine(MachineState * ms) {
   }
   ms->execute_stack = 1;
 
-  stringstream s;
-  s << "Starting Ein " << ms->config.left_or_right_arm << " at " << ros::Time::now();
-  ms->pushWord("print");
-  ms->pushWord(make_shared<StringWord>(s.str()));
   
 }
 
