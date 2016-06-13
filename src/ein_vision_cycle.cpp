@@ -1038,8 +1038,8 @@ virtual void execute(MachineState * ms) {
 
   //eePose facePose = {.px = 1.07226, .py = 0.564963, .pz = 0.287997,
   //                   .qx = -0.234838, .qy = 0.75433, .qz = 0.106368, .qw = 0.603757};      
-  eePose facePose = {.px = 0.85838, .py = 0.56957, .pz = 0.163187,
-                     .qx = -0.153116, .qy = 0.717486, .qz = 0.0830483, .qw = 0.674442};
+  eePose facePose = eePose(0.85838, 0.56957, 0.163187,
+                           -0.153116, 0.717486, 0.0830483, 0.674442);
 
   ms->config.currentEEPose = facePose;
   ms->pushWord("waitUntilAtCurrentPosition");
