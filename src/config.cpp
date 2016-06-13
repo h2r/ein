@@ -154,3 +154,20 @@ ostream & operator<<(ostream & os, const Grasp& toPrint)
 } 
 
 
+/*const double EinConfig::hrmDelta;
+const double EinConfig::rmDelta;
+const int EinConfig::pfmWidth;
+const double EinConfig::minHeight;
+const double EinConfig::maxHeight;
+const double EinConfig::cReticleIndexDelta;
+const double EinConfig::firstCReticleIndexDepth;
+const double EinConfig::commonFreq;
+const double EinConfig::vaDelta;
+const double EinConfig::grayBlur;
+const double EinConfig::mapXMin;
+const double EinConfig::mapXMax;
+const double EinConfig::mapYMin;
+const double EinConfig::mapYMax;
+const double EinConfig::mapStep;
+
+*/

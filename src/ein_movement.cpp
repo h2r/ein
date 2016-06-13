@@ -1661,8 +1661,8 @@ virtual void execute(MachineState * ms) {
   }
 
   // make them actually into an eepose
-  _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
-      .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
+  _eePose pose = eePose(vals[0], vals[1], vals[2],
+                        vals[3], vals[4], vals[5], vals[6]);
   ms->config.currentEEPose = pose; 
 }
 END_WORD
@@ -1677,8 +1677,8 @@ virtual void execute(MachineState * ms) {
   }
 
   // make them actually into an eepose
-  _eePose pose = {.px = vals[0], .py = vals[1], .pz = vals[2],
-      .qx = vals[3], .qy = vals[4], .qz = vals[5], .qw = vals[6]};
+  _eePose pose = eePose(vals[0], vals[1], vals[2],
+                        vals[3], vals[4], vals[5], vals[6]);
 
   ms->pushWord(std::make_shared<EePoseWord>(pose));
 }
