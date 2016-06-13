@@ -94,14 +94,7 @@ public:
   virtual bool is_static() {
     return false;
   }
-  static bool isDouble(string token) {
-    try {
-      parse(token);
-      return true;
-    } catch (...) {
-      return false;
-    }
-  }
+  static bool isDouble(string token);
   
   DoubleWord(double _n) {
     n = _n;
