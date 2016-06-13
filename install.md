@@ -119,8 +119,9 @@ And enter 'r' to start the program from within gdb. For safety
 purposes, the arm should not move at startup.
 
 
-We usually run ein from inside of screen.  Go to the root of your
-catkin workspace and run 
+We strongly recommend running ein from inside of GNU Screen.  We have
+provided a screen configuration file to make this easy.  Go to the
+root of your catkin workspace and run
 
 ``` 
 BAXTER=your_baxter screen -c src/ein/ein_baxter.screenrc
@@ -130,6 +131,6 @@ This command will start a screen session preloaded with useful
 windows.  The ein program for the left arm is primed in window 8; for
 the right arm is primed in window 0.  The repl is primed in window 1
 and 7.  You can switch windows by using backtick-number.  For example,
-typing "`1" switches to window 1.
+typing `` `1`` switches to window 1.
 
 

@@ -56,3 +56,14 @@ Large movements should generally be carried out in `quarterImpulse` or
 attention.
 
 
+### Changing the Home Position
+
+You can change the home position by editing init.back.  Remember to
+set separate values for each arm.  First drive the arm to the desired
+new position. We recommend using a point in the green part of the IK
+workspace so the arm can move freely around the home position for
+servoing and mapping and the like.  Then run truePose to obtain a
+value on the stack for the desired pose.  Copy this pose from the
+console into init.back.  Be sure to reload init.back to see the new
+pose by running `"init" import`.
+

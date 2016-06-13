@@ -5,16 +5,18 @@ permalink: calibration/
 order: 2
 ---
 
-In your second ten minutes with Ein, we will calibrate the wrist
-camera on one arm.
+Next we will calibrate the robot so that it can map between image
+coordinates and world coordinates.  This process takes several
+steps. 
 
+### Make a magic circle
 First, print out about 10 pages of [magic paper](
 https://github.com/h2r/ein/raw/master/images/calibration/magicpaper.pdf).
-Send the gripper to the home position by running `goHome.` (If you
-would like to change the home position, you can do so in
-ein/back/init.back.)  Then drive down to close to the table height
-using `zDown`.  Create the magic circle underneath the gripper as
-depicted here:
+Send the gripper to the home position by running `goHome`. (If you
+would like to change the home position, follow [these
+instructions](../movement/#changing-the-home-position).)  Then drive
+down to close to the table height using `zDown`.  Create a magic
+circle underneath the gripper as depicted here:
 
 ![Magic Circle](../assets/magic_circle.jpg)
 
@@ -22,19 +24,21 @@ The goal is for the magic circle to fill the wrist camera's field of
 view as the arm moves up.  The magic paper contains a superposition of
 three plane waves at different orientations and colors.  It is
 textured at every point, allowing the robot to set its calibration
-paramters by making known movements.
+parameters by making known movements.
 
 ### Set the table height
 
 Ein assumes there is a planar horizontal table and stores the height
 of this table for use in various calculations and motions.  It can set
 the table height using the robot's range sensor. To set the table
-height, use `zDown` to move the arm to be approximately 4cm above the
-table and run `setTable` to use the IR sensor to set the table height.
-You should see the console print information about the process; it
-takes multiple readings and waits for them to stablize.  At the end it
-will print the table height.  The numbers should be changing slightly,
-and the final delta should be small.
+height, first `goHome`, then use `zDown` to move the arm so that the
+IR sensor is approximately 10cm from the table.  (The short grippers
+should be a centimeter or two above the table.) Run `setTable` to use
+the IR sensor to set the table height.  You should see the console
+print information about the process; it takes multiple readings and
+waits for them to stablize.  At the end it will print the table
+height.  The numbers should be changing slightly, and the final delta
+should be small.
 
 ### Set the camera parameters
 
@@ -87,7 +91,8 @@ Verify that the blue region completely covers the grippers when they
 are open, and that there is no extra blue areas remaining.  If this
 does not work, recenter the gripper (`goHome`) and try again.  You may
 need to rearrange the magic circle or adjust the lighting or colors on
-your camera.
+your camera.  When the mask looks good, you can stop the process by
+running `clearStacks`.  It saves after every iteration.
 
 
 
@@ -95,14 +100,15 @@ your camera.
 
 Next we need to set the projection of the gripper in the image at
 different heights.  This allows Ein to map between pixel space and
-global space given the camera pose.  We set the magnification using
+global space given the camera pose.    We set the magnification using
 interpolation based on several sample points.  The target is obtained
 by rotating the gripper in a plan and finding the minimum variance
 point at each point.  
 
-To do this run
+To do this process first `goHome` and then run:
 ```
 calibrateRGBCameraIntrinsics
 ```
 
-This process takes a long time. 
+The gripper will move to four different heights and take a series of
+measurements at different orientations.
