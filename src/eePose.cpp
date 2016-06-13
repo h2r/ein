@@ -15,14 +15,14 @@ ostream & operator<<(ostream & os, const _eePose& toPrint)
 } 
 
 _eePose _eePose::zero() {
-  _eePose zeroOut = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		     .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+  _eePose zeroOut = eePose(0.0, 0.0, 0.0,
+                           0.0, 0.0, 0.0, 0.0);
   return zeroOut;
 }
 
 _eePose _eePose::identity() {
-  _eePose idOut = {.px = 0.0, .py = 0.0, .pz = 0.0,
-		     .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 1.0};
+  _eePose idOut = eePose(0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 1.0);
   return idOut;
 }
 

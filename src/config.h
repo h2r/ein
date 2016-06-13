@@ -689,14 +689,16 @@ class EinConfig {
   eePose shrugPose;
   eePose handingPose;
 
-  eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
-                         .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  //eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
+  //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose straightDown = eePose(0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0); 
 
-  eePose cropUpperLeftCorner = {.px = 320, .py = 200, .pz = 0.0,
-                                .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; // center of image
+  eePose cropUpperLeftCorner = eePose(320, 200, 0.0,
+                                      0.0, 1.0, 0.0, 0.0); // center of image
 
-  eePose centerReticle = {.px = 325, .py = 127, .pz = 0.0,
-                          .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+  eePose centerReticle = eePose(325, 127, 0.0,
+                                0.0, 0.0, 0.0, 0.0);
 
   eePose defaultReticle = centerReticle;
   eePose heightReticles[4];
@@ -805,7 +807,7 @@ class EinConfig {
   const static int rmiWidth = rmiCellWidth*rmWidth;
 
 
-  constexpr static double rmDelta = 0.01;
+  constexpr static double rmDelta = 0.01; 
   int rangeMapTargetSearchPadding = 3;
   double rangeMap[rmWidth*rmWidth];
   double rangeMapAccumulator[rmWidth*rmWidth];
