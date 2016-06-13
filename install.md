@@ -67,6 +67,8 @@ following the instructions in that file.  Then enter the Baxter ROS
 workspace by running the baxter.sh file:
 
 ```
+cd ~/catkin_ws
+cp ~/catkin_ws/src/ein/baxter.sh ./
 ./baxter.sh
 ```
 
