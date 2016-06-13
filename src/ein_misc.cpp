@@ -1191,7 +1191,7 @@ virtual void execute(MachineState * ms)
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
-  wordFile << "<table><tr><th width=\"20%\">Word</th><th>Description</th></tr>" << endl;
+  wordFile << "<table><tr><th>Word</th><th>Description</th></tr>" << endl;
 
   map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
   std::map<std::string, shared_ptr<Word> >::iterator iter;
