@@ -313,13 +313,13 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
   bool error = false;
   int result = getRingPoseAtTime(ms, *time, thisPose, 0, debug);
   if (result != 1) {
-    ROS_ERROR_STREAM("Pose ring buffer error: " << result);
+    CONSOLE_ERROR(ms, "Pose ring buffer error: " << result);
     error = true;
   }
   *pose = eePose::fromGeometryMsgPose(thisPose);
   result = getRingImageAtTime(ms, *time, *image, 0, debug);
   if (result != 1) {
-    ROS_ERROR_STREAM("Image ring buffer error: " << result);
+    CONSOLE_ERROR(ms, "Image ring buffer error: " << result);
     error = true;
   }
   if (error) {
@@ -1694,7 +1694,7 @@ void populateStreamWordBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedWords != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of words.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of words.");
 	    }
 	    cout << " Expected to load " << tnp << " words, loaded " << numLoadedWords << " ..." << endl; cout.flush();
 	  }
@@ -1921,7 +1921,7 @@ void populateStreamLabelBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedLabels != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of labels.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of labels.");
 	    }
 	    cout << " Expected to load " << tnp << " labels, loaded " << numLoadedLabels << " ..." << endl; cout.flush();
 	  }
@@ -2097,7 +2097,7 @@ void populateStreamRangeBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedRanges != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of ranges.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of ranges.");
 	    }
 	    cout << " Expected to load " << tnp << " ranges, loaded " << numLoadedRanges << " ..." << endl; cout.flush();
 	  }
@@ -2186,7 +2186,7 @@ void populateStreamPoseBuffer(MachineState * ms) {
 	      }
 	    }
 	    if (numLoadedPoses != tnp) {
-	      ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	      CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	    }
 	    cout << " Expected to load " << tnp << " poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	  }
@@ -2948,7 +2948,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
   }
 
   if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
-    //ROS_ERROR_STREAM("Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+    //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
     ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
@@ -4229,7 +4229,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 	ikResultFailed = 0;
 	if (ikRetry > 0) {
 	  ROS_WARN_STREAM("___________________");
-	  ROS_ERROR_STREAM("Accepting perturbed IK result.");
+	  CONSOLE_ERROR(ms, "Accepting perturbed IK result.");
 	  cout << "ikRetry: " << ikRetry << endl;
 	  eePose::print(originalCurrentEEPose);
 	  eePose::print(ms->config.currentEEPose);
@@ -4280,7 +4280,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
 
   if (ikResultFailed) 
   {
-    ROS_ERROR_STREAM("ikClient says pose request is invalid.");
+    CONSOLE_ERROR(ms, "ikClient says pose request is invalid.");
     ms->config.ik_reset_counter++;
     ms->config.lastIkWasSuccessful = false;
 
@@ -4487,14 +4487,14 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     // don't print for capslock, shift, alt (for alt-tab)
     if (!(c == 65509 || c == 196581 || c == 196577 || c == 65505 ||
           c == 65513 || c == 196578)) {
-      cout << "You pressed " << c << "." << endl;
+      //cout << "You pressed " << c << "." << endl;
 
       if (character_code_to_word.count(c) > 0) {
         shared_ptr<Word> keycode_word = character_code_to_word[c];
         ms->execute(keycode_word);
 
       } else {
-        cout  << "Could not find word for " << c << endl;
+        //cout  << "Could not find word for " << c << endl;
       }
     }
   }
@@ -5136,7 +5136,7 @@ void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& d
   } else if (dios.state == 0) {
     ms->config.lastArmOkButtonState = 0;
   } else {
-    ROS_ERROR_STREAM("Unexpected state: " << dios);
+    CONSOLE_ERROR(ms, "Unexpected state: " << dios);
     assert(0);
   }
 
@@ -5909,7 +5909,6 @@ void loadCalibration(MachineState * ms, string inFileName) {
 
   }
   ms->pushWord("moveCropToProperValue"); 
-  cout << "done." << endl;
 }
 
 void saveCalibration(MachineState * ms, string outFileName) {
@@ -6023,8 +6022,6 @@ void saveCalibration(MachineState * ms, string outFileName) {
 void pilotInit(MachineState * ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
-    cout << "Possessing left arm..." << endl;
-
     ms->config.joint_min[0] = -1.70168;
     ms->config.joint_min[1] = -2.147;
     ms->config.joint_min[2] = -3.05418;
@@ -6182,9 +6179,6 @@ void pilotInit(MachineState * ms) {
     ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
                  .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
-    cout << "Possessing right arm..." << endl;
-
-
     ms->config.joint_min[0] = -1.70168;
     ms->config.joint_min[1] = -2.147;
     ms->config.joint_min[2] = -3.05418;
@@ -6450,8 +6444,8 @@ void pilotInit(MachineState * ms) {
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
     ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 
-    cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
-      ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
+    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
+    //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
   }
 
   for (int h = 0; h < ms->config.hrmWidth; h++) {
@@ -6487,8 +6481,6 @@ void pilotInit(MachineState * ms) {
 }
 
 void spinlessPilotMain(MachineState * ms) {
-  cout << endl << endl << "Pilot main begin..." << endl;
-  
   pilotInit(ms);
 }
 
@@ -6600,7 +6592,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
 void changeTargetClass(MachineState * ms, int newTargetClass) {
 
   if ( (newTargetClass < 0) || (newTargetClass >= ms->config.classLabels.size()) ) {
-    ROS_ERROR_STREAM("changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
+    CONSOLE_ERROR(ms, "changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
     newTargetClass = 0;
     ms->config.targetClass = 0;
     ms->config.focusedClass = 0;
@@ -6821,7 +6813,7 @@ void guardGraspMemory(MachineState * ms) {
 
 void guardHeightMemory(MachineState * ms) {
   if (ms->config.focusedClass == -1) {
-    ROS_ERROR_STREAM("Focused class not initialized! " << ms->config.focusedClass);
+    CONSOLE_ERROR(ms, "Focused class not initialized! " << ms->config.focusedClass);
   }
   if (ms->config.classHeightMemoryTries.size() <= ms->config.focusedClass) {
     ms->config.classHeightMemoryTries.resize(ms->config.focusedClass + 1);
@@ -6849,7 +6841,7 @@ int calibrateGripper(MachineState * ms) {
 	return return_value;
       }
     }
-    cout << "Gripper could not calibrate!" << endl;
+    CONSOLE_ERROR(ms, "Gripper could not calibrate!");
     ms->pushWord("pauseStackExecution"); // pause stack execution
     ms->pushCopies("beep", 15); // beep
     return -1;
@@ -9881,7 +9873,7 @@ void synchronicServo(MachineState * ms) {
         ms->pushCopies("waitUntilAtCurrentPosition", 1); 
         
       } else {
-        ROS_ERROR_STREAM("No gradient map for class " << ms->config.targetClass << endl);
+        CONSOLE_ERROR(ms, "No gradient map for class " << ms->config.targetClass << endl);
         ms->clearStack();
       }
 
@@ -10926,7 +10918,7 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	} else if (strvalue == "false") {
 	  value = false;
 	} else {
-	  ROS_ERROR_STREAM("Bad message: " << msg);
+	  CONSOLE_ERROR(ms, "Bad message: " << msg);
 	}
 	//cout << "boolean key: " << key << " value: " << value << endl;
 	if (key == "mirror") {
@@ -12858,7 +12850,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
   double label = -1;
 
   if (ms->config.kNN == NULL) {
-    ROS_ERROR_STREAM("Oops, kNN is NULL, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    CONSOLE_ERROR(ms, "Oops, kNN is NULL, so we better stop here... but we'll continue, setting all labels to 0." << endl);
     for (int i = 0; i < ms->config.bLabels.size(); i++) {
       ms->config.bLabels[i] = 0;
     }
@@ -12868,7 +12860,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
   }
 
   if (ms->config.kNN->get_sample_count() < 1) {
-    ROS_ERROR_STREAM("Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
+    CONSOLE_ERROR(ms, "Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
     for (int i = 0; i < ms->config.bLabels.size(); i++) {
       ms->config.bLabels[i] = 0;
     }
@@ -13254,7 +13246,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
   ros::NodeHandle nh("~");
 
 
-  cout << "nh namespace: " << nh.getNamespace() << endl;
+  //cout << "nh namespace: " << nh.getNamespace() << endl;
 
 
   nh.getParam("/robot_description", ms->config.robot_description);
@@ -13349,7 +13341,6 @@ void saveROSParams(MachineState * ms) {
 }
 
 void spinlessNodeMain(MachineState * ms) {
-  cout << endl << endl << "Node main begin..." << endl;
   nodeInit(ms);
   detectorsInit(ms);
 }
@@ -13368,7 +13359,7 @@ void detectorsInit(MachineState * ms) {
 
   // SIFT 
   //ms->config.detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
-  cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
+  //cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
   if (ms->config.detector == NULL)
     ms->config.detector = new FastFeatureDetector(4);
 
@@ -13586,7 +13577,7 @@ void detectorsInit(MachineState * ms) {
     cout<<"Reading features and labels... " << featuresPath << " ..." << endl;
     fsfI.open(featuresPath, FileStorage::READ);
     if (!fsfI.isOpened()) {
-      ROS_ERROR_STREAM("Could not find file " << featuresPath << endl);
+      CONSOLE_ERROR(ms, "Could not find file " << featuresPath << endl);
     }
 
     fsfI["features"] >> kNNfeatures;
@@ -13811,7 +13802,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.class3dGrasps[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " 3d poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -13834,7 +13825,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.classPlaceUnderPoints[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " pup poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -13857,7 +13848,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	    ms->config.classPlaceOverPoints[i].push_back(buf);
 	  }
 	  if (numLoadedPoses != tng) {
-	    ROS_ERROR_STREAM("Did not load the expected number of poses.");
+	    CONSOLE_ERROR(ms, "Did not load the expected number of poses.");
 	  }
 	  cout << "Expected to load " << tng << " pop poses, loaded " << numLoadedPoses << " ..." << endl; cout.flush();
 	}
@@ -14925,16 +14916,16 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
-  cout << "n namespace: " << n.getNamespace() << endl;
+  //cout << "n namespace: " << n.getNamespace() << endl;
 
   loadROSParamsFromArgs(ms);
-  cout << "mask_gripper: " << ms->config.mask_gripper << endl;
-  cout << "all_range_mode: " << ms->config.all_range_mode << endl;
-  cout << "data_directory: " << ms->config.data_directory << endl 
-       << "run_prefix: " << ms->config.run_prefix << endl << endl 
-       << "vocab_file: " << ms->config.vocab_file << endl 
-       << "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
-       << endl;
+  //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
+  //cout << "all_range_mode: " << ms->config.all_range_mode << endl;
+  cout << "data_directory: " << ms->config.data_directory << endl;
+  //<< "run_prefix: " << ms->config.run_prefix << endl << endl 
+  //<< "vocab_file: " << ms->config.vocab_file << endl 
+  //<< "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
+  //<< endl;
 
   ms->config.class_crops_path = ms->config.data_directory + "/objects/";
 
@@ -15108,9 +15099,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
 
   ms->config.tfListener = new tf::TransformListener();
-  cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
   ms->config.tfListener->setUsingDedicatedThread(true);
-  cout << "Using dedicated thread: " << ms->config.tfListener->isUsingDedicatedThread() << endl;
 
   ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
@@ -15151,13 +15140,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   ms->config.einConsolePub = n.advertise<EinConsole>(console_topic, 10);
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
-
-  {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-  }
 
   ms->config.frameGraySobel = Mat(1,1,CV_64F);
 
@@ -15462,7 +15444,7 @@ int main(int argc, char **argv) {
 
   einMainWindow->show();
   einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + robot_mode + " " + left_or_right_arm));
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
 
 
 
@@ -15477,16 +15459,6 @@ int main(int argc, char **argv) {
   //a.exec();
   
   ros::spin();
-  /*  try {
-    ros::spin();
-  } catch( ... ) {
-    ROS_ERROR("In the weird sketchy exception block in ein main.");    
-    cout << "In the weird sketchy exception block in ein main." << endl;    
-    
-    std::exception_ptr p = std::current_exception();
-    std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
-    throw;
-    }*/
 
   return 0;
 }

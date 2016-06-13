@@ -268,9 +268,7 @@ vector<string> tokenize_string(const string program) {
     vector<string> tokens;
     for(boost::tokenizer<escaped_forth_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg){
       tokens.push_back(*beg);
-      cout << *beg << " ";
     }
-    cout << endl;
     return tokens;
   } catch(escaped_forth_error &e) {
     ROS_ERROR_STREAM("Error tokenizing: " << e.what() << endl);

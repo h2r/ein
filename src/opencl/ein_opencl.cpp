@@ -438,15 +438,15 @@ void EinGpuConfig::kernelReturn(shared_ptr<GaussianMapGpu> gmgpu) {
 namespace ein_words {
 
 WORD(OpenClEchoTest)
-virtual void execute(std::shared_ptr<MachineState> ms) {
-  shared_ptr<GaussianMap> a_map = make_shared<GaussianMap>(100,100,0.1,eePose::identity());
+virtual void execute(MachineState * ms) {
+  shared_ptr<GaussianMap> a_map = make_shared<GaussianMap>(ms, 100,100,0.1,eePose::identity());
   gaussianMapGpuEchoTest( a_map );
 }
 END_WORD
 REGISTER_WORD(OpenClEchoTest)
 
 WORD(OpenClNbodyDemo)
-virtual void execute(std::shared_ptr<MachineState> ms) {
+virtual void execute(MachineState * ms) {
   string programName = "einOpenClNbodyDemo";
   const char *cstr = programName.c_str();
   char ** arg = (char **) & cstr;
