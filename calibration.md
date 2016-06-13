@@ -110,5 +110,7 @@ To do this process first `goHome` and then run:
 calibrateRGBCameraIntrinsics
 ```
 
+Ein ships with a calibration that 
+
 The gripper will move to four different heights and take a series of
 measurements at different orientations.
