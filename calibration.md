@@ -154,6 +154,12 @@ sometimes a calibration will work well in one dimension and not
 others.  Some example images are shown below, using a penny as a
 marker.
 
-<img src="../assets/renderedwristview_calibrated1.jpg" alt="Rendered Wrist View Calibrated 1" width="240"/>
-<img src="../assets/renderedwristview_calibrated2.jpg" alt="Rendered Wrist View Calibrated 2" width="240"/>
-<img src="../assets/renderedwristview_calibrated4.jpg" alt="Rendered Wrist View Calibrated 3" width="240"/>
+This calibration is somewhat imperfect; the reticle stays inside the
+penny but ideally it would be centered inside the penny, perfectly
+picking out the global location in the image.   
+
+<img src="../assets/renderedwristview_calibrated1.jpg" alt="Rendered Wrist View Calibrated 1" width="300"/>
+<img src="../assets/renderedwristview_calibrated2.jpg" alt="Rendered Wrist View Calibrated 2" width="300"/>
+<br/>
+<img src="../assets/renderedwristview_calibrated3.jpg" alt="Rendered Wrist View Calibrated 3" width="300"/>
+<img src="../assets/renderedwristview_calibrated4.jpg" alt="Rendered Wrist View Calibrated 4" width="300"/>
