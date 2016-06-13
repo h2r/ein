@@ -165,6 +165,6 @@ Answer (select to see):
 #### Exercise:  Clear stacks.
 
 If a program is running and you want to halt it, you can can run
-`clearStacks` to halt it.  Try rnning on of your previous programs to
+`clearStacks` to halt it.  Try running one of your previous programs to
 move the robot, and then run clear stacks to halt it.
 

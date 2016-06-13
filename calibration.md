@@ -110,7 +110,50 @@ To do this process first `goHome` and then run:
 calibrateRGBCameraIntrinsics
 ```
 
-Ein ships with a calibration that 
-
 The gripper will move to four different heights and take a series of
-measurements at different orientations.
+measurements at different orientations.  This process takes about 20
+minutes to complete.  If it fails you may have to run it again; in
+that case restart Ein or run `loadCalibration` to reload your old
+calibration (which, while not perfect, is a reasonable
+initialization).  When you obtain a good calibration (described
+below), save it by running `saveCalibration`.
+
+### Check the calibration
+
+To check the calibration, you need to learn more about the wrist view.
+We have included a legend showing the various reticles and markers
+below.
+
+![Rendered Wrist View](../assets/wristviewLegend.png)
+
+
+#### Exercise:  Explore the movement state. 
+
+Move the arm with large and small movements.  Observe the movement
+state indicator; watch as it changes from movin gto hovering to
+stopped.  You can try large movements by double clicking in the Object
+Map Viewer; this action sends the arm to the corresponding position.  t
+
+
+To check the calibration, verify that the gripper projection line
+appears as shown in the above legend.  It should be a relatively
+straight line, no zig-zags or curves.  It should also not be absent.
+If there is a problem, rearrange the magic circle and try the
+calibration again.  Do not hesitate to ask on the forum or post an
+issue if you have problems.
+
+Second, find the calibration reticle, drawn in red and green near the
+gripper projection line.  Drive the arm so that the calibration
+reticle is above a well-distinguished point in the image.  In the
+sequence below, we did this so the crosshairs were above the penny.
+Then run `saveReticle1` to save this location.  It will create a new
+reticle drawn at this point in global space.  Then drive the arm
+around in the neighborhood and verify this reticle appears in the same
+space.  Be sure to check movements in all axes (x, y, and z), as
+sometimes a calibration will work well in one dimension and not
+others.  Some example images are shown below, using a penny as a
+marker.
+
+<img src="../assets/renderedwristview_calibrated1.jpg" alt="Rendered Wrist View Calibrated 1" width="240"/>
+<img src="../assets/renderedwristview_calibrated2.jpg" alt="Rendered Wrist View Calibrated 2" width="240"/>
+<img src="../assets/renderedwristview_calibrated4.jpg" alt="Rendered Wrist View Calibrated 3" width="240"/>
