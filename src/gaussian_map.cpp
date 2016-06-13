@@ -5398,17 +5398,16 @@ virtual void execute(MachineState * ms) {
     }
   }
   
-    #pragma omp for
+  #pragma omp for
   for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
     for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
       for (int thread = 0; thread < numThreads; thread++) {
         if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
           ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
         }
-        break;
       }
     }
-    }
+  }
 
 }
 END_WORD
@@ -7696,8 +7695,11 @@ virtual void execute(MachineState * ms) {
   }
 
   if (minEnergyX == -1 || minEnergyY == -1) {
-    cout << "Did not update minEnergy, were there enough samples?  minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl;
+    CONSOLE_ERROR(ms, "scenePushPixelOfMinVariance: Did not update minEnergy, were there enough samples?  minEnergyX: " 
+      << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
     return;
+  } else {
+    CONSOLE(ms, cout << "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
   }
   
   double meters_scene_x, meters_scene_y;
@@ -7707,8 +7709,8 @@ virtual void execute(MachineState * ms) {
   int pixel_scene_x, pixel_scene_y;
   globalToPixel(ms, &pixel_scene_x, &pixel_scene_y, zToUse, meters_scene_x, meters_scene_y, ms->config.straightDown);
 
-  cout << "scenePushPixelOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
-  cout << "scenePushPixelOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl;
+  CONSOLE(ms, "scenePushPixelOfMinVariance x, y: " << pixel_scene_x << " " << pixel_scene_y << endl);
+  CONSOLE(ms, "scenePushPixelOfMinVariance r,g mus: " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->red.mu << " " << ms->config.scene->observed_map->refAtCell(minEnergyX,minEnergyY)->green.mu << endl);
 
   ms->pushWord(make_shared<DoubleWord>(pixel_scene_x));
   ms->pushWord(make_shared<DoubleWord>(pixel_scene_y));
