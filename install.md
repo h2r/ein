@@ -135,4 +135,5 @@ the right arm is primed in window 0.  The repl is primed in window 1
 and 7.  You can switch windows by using backtick-number.  For example,
 typing `` `1`` switches to window 1.
 
-
+If at any time you need to quit, you can type `` ` :quit `` in the
+screen session.

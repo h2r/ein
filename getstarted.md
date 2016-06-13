@@ -11,7 +11,9 @@ programs.  Before following these instructions, you should
 can connect to your Baxter.  Many common problems arise because of
 networking misconfigurations, where your $ROS_MASTER_URI,
 $ROS_HOSTNAME, and/or $ROS_IP are set incorrectly; verify that
-`rostopic echo` works correctly before proceeding.  
+`rostopic echo` works correctly before proceeding.  You should also
+make sure Baxter is turned on and enabled.  (`rosrun baxter_tools
+enable_robot.py -e`).
 
 Start the screen session using the commands given in
 [Install](../install).  Choose an arm (left or right) to use.  Type ``
@@ -22,6 +24,9 @@ to the main window and verify you can see the wrist view.  The robot's
 status will appear in text.  The frame rate for Ein varies betweeun
 10Hz and 25Hz on our machines; if it is much slower than 10Hz, Ein
 will be hard to use.  Consider obtaining a faster computer.
+
+If at any time you need to quit, you can type `` ` :quit` `` in the
+screen session.
 
 ![Ein Main Window](../assets/einmainwindow_screenshot.jpg)
 
