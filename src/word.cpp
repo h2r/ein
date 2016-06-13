@@ -76,6 +76,8 @@ bool MachineState::pushWord(string token) {
   std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushWord(word);
+  } else{
+    return false;
   }
 }
 
@@ -100,6 +102,8 @@ bool MachineState::pushData(string token) {
   std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushData(word);
+  } else {
+    return false;
   }
 }
 
@@ -144,9 +148,11 @@ bool MachineState::pushControl(int code) {
 }
 
 bool MachineState::pushControl(string token) {
-  std:shared_ptr<Word> word = parseToken(this, token);
+ std:shared_ptr<Word> word = parseToken(this, token);
   if (word != NULL) {
     return pushControl(word);
+  } else {
+    return false;
   }
 }
 

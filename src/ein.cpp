@@ -6039,26 +6039,26 @@ void pilotInit(MachineState * ms) {
     ms->config.joint_max[5] = 2.094;
     ms->config.joint_max[6] = 3.059;
 
-    ms->config.backScanningPose = {.px = -0.304942, .py = 0.703968, .pz = 0.186738,
-                              .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
+    ms->config.backScanningPose = eePose(-0.304942, 0.703968, 0.186738,
+                                         0.0, 1, 0.0, 0.0);
 
-    ms->config.beeHome = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
-                          .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+    ms->config.beeHome = eePose(0.334217, 0.75386, 0.0362593,
+                                -0.00125253, 0.999999, -0.000146851, 0.000236656);
     
     ms->config.eepReg4 = ms->config.beeHome;
-    ms->config.defaultReticle = {.px = 334, .py = 100, .pz = 0.0,
-                      .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+    ms->config.defaultReticle = eePose(334, 100, 0.0,
+                                       0.0, 0.0, 0.0, 0.0);
     ms->config.reticle = ms->config.defaultReticle;
 
-    ms->config.crane1 = {.px = -0.0155901, .py = 0.981296, .pz = 0.71078,
-		     .qx = 0.709046, .qy = -0.631526, .qz = -0.226613, .qw = -0.216967};
+    ms->config.crane1 = eePose(-0.0155901, 0.981296, 0.71078,
+                               0.709046, -0.631526, -0.226613, -0.216967);
 
     double ystart = 0.1;
     double yend = 0.7;
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
-    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
-                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
+                          0, 1, 0, 0);
     for (int i = 0; i < numposes; i++) {
       ms->config.deliveryPoses.push_back(pose1);
     }
@@ -6066,8 +6066,8 @@ void pilotInit(MachineState * ms) {
       ms->config.deliveryPoses[i].py = ystart + i * ystep;
     }
 
-    ms->config.ik_reset_eePose = {.px = 0.334217, .py = 0.75386, .pz = 0.0362593,
-                                  .qx = -0.00125253, .qy = 0.999999, .qz = -0.000146851, .qw = 0.000236656};
+    ms->config.ik_reset_eePose = eePose(0.334217, 0.75386, 0.0362593,
+                                        -0.00125253, 0.999999, -0.000146851, 0.000236656);
 
     ms->config.currentTableZ = ms->config.leftTableZ;
     ms->config.bagTableZ = ms->config.leftTableZ;
@@ -6166,18 +6166,18 @@ void pilotInit(MachineState * ms) {
 
     //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
     //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-    ms->config.handingPose = {.px =  1.0858369, .py =  0.0495844, .pz =  0.2052459,
-                              .qx =  0.5398360, .qy = -0.5294786, .qz =  0.4481372, .qw = -0.4768674};
+    ms->config.handingPose = eePose(1.0858369, 0.0495844, 0.2052459,
+                                    0.5398360, -0.5294786, 0.4481372, -0.4768674);
 
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
     ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    ms->config.calibrationPose = {.px = 0.434176, .py = 0.633423, .pz = 0.48341,
-                      .qx = 0.000177018, .qy = 1, .qz = -0.000352912, .qw = -0.000489087};
-    ms->config.shrugPose = {.px = 0.0354772, .py = 1.20633, .pz = 0.150562,
-                 .qx = -0.370521, .qy = 0.381345, .qz = 0.578528, .qw = 0.618544};
+    ms->config.calibrationPose = eePose(0.434176, 0.633423, 0.48341,
+                                        0.000177018, 1, -0.000352912, -0.000489087);
+    ms->config.shrugPose = eePose(0.0354772, 1.20633, 0.150562,
+                                  -0.370521, 0.381345, 0.578528, 0.618544);
   } else if (0 == ms->config.left_or_right_arm.compare("right")) {
     ms->config.joint_min[0] = -1.70168;
     ms->config.joint_min[1] = -2.147;
@@ -6198,26 +6198,26 @@ void pilotInit(MachineState * ms) {
 
 
 
-    ms->config.backScanningPose = {.px = -0.304942, .py = -0.703968, .pz = 0.186738,
-			      .qx = 0.0, .qy = 1, .qz = 0.0, .qw = 0.0};
+    ms->config.backScanningPose = eePose(-0.304942, -0.703968, 0.186738,
+                                         0.0, 1, 0.0, 0.0);
 
-    ms->config.beeHome = {.px = 0.525866, .py = -0.710611, .pz = 0.0695764,
-                          .qx = -0.00122177, .qy = 0.999998, .qz = 0.00116169, .qw = -0.001101};
+    ms->config.beeHome = eePose(0.525866, -0.710611, 0.0695764,
+                                -0.00122177, 0.999998, 0.00116169, -0.001101);
 
     ms->config.eepReg4 = ms->config.beeHome;
-    ms->config.defaultReticle = {.px = 325, .py = 127, .pz = 0.0,
-                      .qx = 0.0, .qy = 0.0, .qz = 0.0, .qw = 0.0};
+    ms->config.defaultReticle = eePose(325, 127, 0.0,
+                                       0.0, 0.0, 0.0, 0.0);
     ms->config.reticle = ms->config.defaultReticle;
 
-    ms->config.crane1 = {.px = 0.0448714, .py = -1.04476, .pz = 0.698522,
-              .qx = 0.631511, .qy = 0.68929, .qz = -0.25435, .qw = 0.247748};
+    ms->config.crane1 = eePose(0.0448714, -1.04476, 0.698522,
+                               0.631511, 0.68929, -0.25435, 0.247748);
 
     double ystart = -0.7;
     double yend = -0.1;
     int numposes = 4;
     double ystep = (yend - ystart) / numposes;
-    eePose pose1 = {.px = 0.65, .py = 0.0544691, .pz = -0.0582791,
-                       .qx = 0, .qy = 1, .qz = 0, .qw = 0};
+    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
+                          0, 1, 0, 0);
     for (int i = 0; i < numposes; i++) {
       ms->config.deliveryPoses.push_back(pose1);
     }
@@ -6323,17 +6323,17 @@ void pilotInit(MachineState * ms) {
     ms->config.m_y_h[2] = 1.16;
     ms->config.m_y_h[3] = 1.2;
 
-    ms->config.handingPose = {.px = 0.879307, .py = -0.0239328, .pz = 0.223839,
-                      .qx = 0.459157, .qy = 0.527586, .qz = 0.48922, .qw = 0.521049};
+    ms->config.handingPose = eePose(0.879307, -0.0239328, 0.223839,
+                                    0.459157, 0.527586, 0.48922, 0.521049);
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
     ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
-    ms->config.calibrationPose = {.px = 0.562169, .py = -0.348055, .pz = 0.493231,
-                                  .qx = 0.00391311, .qy = 0.999992, .qz = -0.00128095, .qw = 8.18951e-05};
-    ms->config.shrugPose = {.px = 0.0558937, .py = -1.12849, .pz = 0.132171,
-                            .qx = 0.392321, .qy = 0.324823, .qz = -0.555039, .qw = 0.657652};
+    ms->config.calibrationPose = eePose(0.562169, -0.348055, 0.493231,
+                                        0.00391311, 0.999992, -0.00128095, 8.18951e-05);
+    ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
+                                  0.392321, 0.324823, -0.555039, 0.657652);
 
 
   } else {
@@ -6845,6 +6845,9 @@ int calibrateGripper(MachineState * ms) {
     ms->pushWord("pauseStackExecution"); // pause stack execution
     ms->pushCopies("beep", 15); // beep
     return -1;
+  } else {
+    cout << "Bad mode: " << ms->config.currentRobotMode << endl;
+    assert(0);
   }
 }
 int doCalibrateGripper(MachineState * ms) {
@@ -7111,7 +7114,7 @@ double convertHeightIdxToLocalZ(MachineState * ms, int heightIdx) {
   return scaledTranslatedHeight;
 }
 
-int convertHeightGlobalZToIdx(MachineState * ms, double globalZ) {
+void convertHeightGlobalZToIdx(MachineState * ms, double globalZ) {
   double tabledMaxHeight = ms->config.maxHeight - ms->config.currentTableZ;
   double tabledMinHeight = ms->config.minHeight - ms->config.currentTableZ;
 
@@ -7122,8 +7125,8 @@ int convertHeightGlobalZToIdx(MachineState * ms, double globalZ) {
 void testHeightConversion(MachineState * ms) {
   for (int i = 0; i < ms->config.hmWidth; i++) {
     double height = convertHeightIdxToGlobalZ(ms, i);
-    int newIdx = convertHeightGlobalZToIdx(ms, height);
-    cout << "i: " << i << " height: " << height << " newIdx: " << newIdx << endl;
+    convertHeightGlobalZToIdx(ms, height);
+    cout << "i: " << i << " height: " << height << endl;
     //assert(newIdx == i);
   }
 }
@@ -14104,10 +14107,6 @@ bool boxMemoryIntersectsMapCell(MachineState * ms, BoxMemory b, int map_i, int m
   gsl_matrix_free(map_cell);
 
   return result;
-}
-
-bool boxMemoryTooOld(BoxMemory b) {
-  
 }
 
 bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2) {

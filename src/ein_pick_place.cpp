@@ -186,38 +186,38 @@ virtual void execute(MachineState * ms) {
   //ms->pushWord("redPlate");
 
 
-  eePose mugPose = {.px = 0.428236, .py = 0.688348, .pz = -0.026571,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose mugPose = eePose(0.428236, 0.688348, -0.026571,
+                          0.0, 1.0, 0.0, 0.0); 
   ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(mugPose));
   ms->pushWord("redMugLow");
 
 
-  eePose bowlPose = {.px = 0.429551, .py = 0.355954, .pz = -0.02713,
-                     .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose bowlPose = eePose(0.429551, 0.355954, -0.02713,
+                           0.0, 1.0, 0.0, 0.0); 
   ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(bowlPose));
   ms->pushWord("redBowlLow");
 
 
-  eePose knifePose = {.px = 0.645808, .py = 0.75673, .pz = -0.0605177,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose knifePose = eePose(0.645808, 0.75673, -0.0605177,
+                            0.0, 1.0, 0.0, 0.0); 
   ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(knifePose));
   ms->pushWord("redKnifeLow");
 
 
 
-  eePose forkPose =  {.px = 0.632388, .py = 0.417448, .pz = -0.0487945,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose forkPose =  eePose(0.632388, 0.417448, -0.0487945,
+                            0.0, 1.0,  0.0, 0.0); 
   ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(forkPose));
   ms->pushWord("redForkLow");
 
 
 
-  eePose spoonPose = {.px = 0.624147, .py = 0.811554, .pz = -0.0696885,
-                      .qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  eePose spoonPose = eePose(0.624147, 0.811554, -0.0696885,
+                            0.0, 1.0, 0.0, 0.0); 
   ms->pushWord("moveObjectToPose");
   ms->pushWord(std::make_shared<EePoseWord>(spoonPose));
   ms->pushWord("redSpoonLow");

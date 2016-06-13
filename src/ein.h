@@ -305,7 +305,7 @@ void loadMarginalHeightMemory(MachineState * ms);
 void loadPriorHeightMemory(MachineState * ms, priorType);
 double convertHeightIdxToGlobalZ(MachineState * ms, int);
 double convertHeightIdxToLocalZ(MachineState * ms, int);
-int convertHeightGlobalZToIdx(MachineState * ms, double);
+void convertHeightGlobalZToIdx(MachineState * ms, double);
 void testHeightConversion(MachineState * ms);
 void drawHeightMemorySample(MachineState * ms);
 void copyHeightMemoryTriesToClassHeightMemoryTries(MachineState * ms);
