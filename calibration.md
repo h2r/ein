@@ -134,7 +134,7 @@ state indicator; watch as it changes from movin gto hovering to
 stopped.  You can try large movements by double clicking in the Object
 Map Viewer; this action sends the arm to the corresponding position.  t
 
-
+#### Exercise:  Check the calibration. 
 To check the calibration, verify that the gripper projection line
 appears as shown in the above legend.  It should be a relatively
 straight line, no zig-zags or curves.  It should also not be absent.
