@@ -64,7 +64,7 @@ wstool update
 
 Edit baxter.sh to set your ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI
 following the instructions in that file.  Then enter the Baxter ROS
-workspace.
+workspace by running the baxter.sh file:
 
 ```
 ./baxter.sh
