@@ -3976,7 +3976,7 @@ virtual void execute(MachineState * ms) {
   }
   double maxVal, minVal;
   minMaxLoc(toShow, &minVal, &maxVal);
-  minVal = max(minVal, ms->config.currentTableZ);
+  //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
   double denom = max(1e-6, maxVal-minVal);
   cout << "sceneRenderZ min max denom: " << minVal << " " << maxVal << " " << denom << endl;
   for (int x = 0; x < ms->config.scene->width; x++) {
@@ -6921,6 +6921,7 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared;
 	*/
 
+	/*
 	// XXX can't do it over a patch here because you need the old neighborhoods.
 	double this_observed_sigma_squared = 0;
 	double this_register_sigma_squared = 0;
@@ -6952,6 +6953,7 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 	
 	double thisObservedPixelArea = 1.0;
 	double thisRegisterPixelArea = 1.0;
+	*/
 	/*
 	{
 	  double meters_scene_x_0, meters_scene_y_0;
@@ -6988,14 +6990,55 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 	thisObservedPixelArea = std::max(thisObservedPixelArea, 1.0);
 	*/
 
-	if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
-	  *(ms->config.gaussian_map_register->refAtCell(x,y)) = *(toMin->refAtCell(x,y));
+	double meters_scene_x, meters_scene_y;
+	toMin->cellToMeters(x, y, &meters_scene_x, &meters_scene_y);
 
-	  ms->config.gaussian_map_register->refAtCell(x,y)->red.sigmasquared = ss_r;
-	  ms->config.gaussian_map_register->refAtCell(x,y)->green.sigmasquared = ss_g;
-	  ms->config.gaussian_map_register->refAtCell(x,y)->blue.sigmasquared = ss_b;
-	} else {
+
+	int reg_x, reg_y;
+	ms->config.gaussian_map_register->metersToCell(meters_scene_x, meters_scene_y, &reg_x, &reg_y);
+
+	double this_observed_sigma_squared = 0;
+	double this_register_sigma_squared = 0;
+	int pxmin = std::max(x - sceneDepthPatchHalfWidth, 0);
+	int pxmax = std::min(x + sceneDepthPatchHalfWidth, t_width-1);
+	int pymin = std::max(y - sceneDepthPatchHalfWidth, 0);
+	int pymax = std::min(y + sceneDepthPatchHalfWidth, t_height-1);
+
+	double ss_r = 0;
+	double ss_g = 0;
+	double ss_b = 0;
+
+	for (int py = pymin; py <= pymax; py++) {
+	  for (int px = pxmin; px <= pxmax; px++) {
+	    ss_r = ss_r + toMin->refAtCell(px,py)->red.sigmasquared;
+	    ss_g = ss_g + toMin->refAtCell(px,py)->green.sigmasquared;
+	    ss_b = ss_b + toMin->refAtCell(px,py)->blue.sigmasquared;
+	  }
 	}
+	this_observed_sigma_squared = this_observed_sigma_squared +
+	ss_r +
+	ss_g +
+	ss_b;
+
+	this_register_sigma_squared = 
+	  ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->red.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->green.sigmasquared +
+	  ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->blue.sigmasquared;
+	
+	double thisObservedPixelArea = 1.0;
+	double thisRegisterPixelArea = 1.0;
+
+	if( ms->config.gaussian_map_register->safeAt(reg_x,reg_y) ) {
+	  if ( this_observed_sigma_squared/thisObservedPixelArea < this_register_sigma_squared/thisRegisterPixelArea ) {
+	    *(ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)) = *(toMin->refAtCell(x,y));
+
+	    ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->red.sigmasquared = ss_r;
+	    ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->green.sigmasquared = ss_g;
+	    ms->config.gaussian_map_register->refAtCell(reg_x,reg_y)->blue.sigmasquared = ss_b;
+	  } else {
+	  }
+	}
+
       } else {
       }
     }
@@ -7117,7 +7160,9 @@ virtual void execute(MachineState * ms) {
   double thresh = 0.0;
   GET_NUMERIC_ARG(ms, thresh);
 
-  double zToUse = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+  double zToUse = 0;
+  GET_NUMERIC_ARG(ms, zToUse);
+
   cout << "sceneTrimDepthWithDiscrepancy: trimming with z " << zToUse << endl;
   int t_height = ms->config.scene->observed_map->height;
   int t_width = ms->config.scene->observed_map->width;

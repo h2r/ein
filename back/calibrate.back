@@ -1,10 +1,13 @@
 (
+  0.0 "tempReconstructWithZTotalZ" store
   1 sceneSetFixationMode
 
   200 "tempReconstructStreamTakeSceneSamples" store
   0 sceneSetDepthPatchHalfWidth
 
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
+
+
 
   quarterImpulse
   waitUntilAtCurrentPosition
@@ -64,6 +67,7 @@
   calibrateHeightReticlesSetAll
 
   0 sceneSetFixationMode
+  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 ) "calibrateHeightReticles" store
 
 (
@@ -83,6 +87,7 @@
 ) "calibrateHeightReticlesSetAll" store
 
 (
+  0.0 "tempReconstructWithZTotalZ" store
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
 
   1 sceneSetFixationMode
@@ -119,9 +124,11 @@
 
   
   0 sceneSetFixationMode
+  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 ) "calibrateVanishingPointReticle" store
 
 (
+  0.0 "tempReconstructWithZTotalZ" store
   0.03 "thisGridSize" store
 
   sceneClearDepthStack
@@ -191,6 +198,7 @@
   */ 
 
 
+  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 ) "calibrateVanishingPointReticleMultiSample" store
 
 0.2 "magCalDelta" store
@@ -407,6 +415,8 @@
 ) "calibrateOnBundleOneDimensionJointHeights" store
 
 (
+  0.0 "tempReconstructWithZTotalZ" store
+
   /*
   depth dependent magnification 
   don't bias different heights by the others,
@@ -466,6 +476,7 @@
   1 changeToHeight cameraGetIdxMagX dup 2 changeToHeight cameraSetIdxMagX 3 changeToHeight cameraSetIdxMagX
   cameraFitHyperbolic 2 cameraSetCalibrationMode
 
+  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 ) "calibrateMagnification" store
 
 (
@@ -502,13 +513,13 @@
 ) "calibrateBundleHeight" store
 
 (
-/*  setTable
+/*  
+  setTable
     currentPose
   setGripperMaskWithMotion
   moveEeToPoseWord
 */
-/*
-*/
+
   initializeAndFocusOnNewClass
 
   calibrateHeightReticles

@@ -1431,8 +1431,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 0.3883 "tempReconstructWithZTopZ" store 
-0.08 "tempReconstructWithZTotalZ" store
-0.02 "tempReconstructWithZDeltaZ" store
+0.20 "tempReconstructWithZTotalZDefault" store
+tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+0.005 "tempReconstructWithZDeltaZ" store
 500 "tempReconstructStreamTakeSceneSamples" store
 
 (
@@ -1459,6 +1460,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   "tempRSTSSMax" store
 
 
+  0.001 "tempReconstructWithZGridMultiplier" store
+
+  tempReconstructWithZTopZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
   /* sceneInitRegisterZero */
   sceneInitRegisterMax 
 
@@ -1492,6 +1496,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	tempReconstructWithZTopZ 
 	" " 
       + + + + + print
+
+    tempReconstructWithZThisZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
