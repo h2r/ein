@@ -174,6 +174,13 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("sceneInit"); 
   ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
 
+  stringstream s;
+  s << "*** Starting Ein " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
+  cout << "start message: " << s.str() << endl;
+  ms->pushWord("print");
+  ms->pushData(make_shared<StringWord>(s.str()));
+
+
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
   }
@@ -182,7 +189,6 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 
   ms->pushWord("guiCustom1"); 
-  ms->pushWord("printState");
   ms->pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {
@@ -202,8 +208,9 @@ void initializeMachine(MachineState * ms) {
     ms->pushWord("loadGripperMask"); 
     ms->pushWord("initializeConfig");
   }
-
   ms->execute_stack = 1;
+
+  
 }
 
 

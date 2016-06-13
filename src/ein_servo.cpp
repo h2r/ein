@@ -1359,7 +1359,7 @@ WORD(SynchronicServoDoNotTakeClosest)
 CODE(131139)  // capslock + c
 virtual void execute(MachineState * ms) {
   ms->config.synchronicTakeClosest = 0;
-  cout << "synchronicTakeClosest = 0" << endl;
+  //cout << "synchronicTakeClosest = 0" << endl;
   ms->config.synServoLockFrames = 0;
 }
 END_WORD
@@ -1370,7 +1370,7 @@ CODE(196707)     // capslock + C
 virtual void execute(MachineState * ms) {
   // XXX deprecate
   ms->config.synchronicTakeClosest = 1;
-  cout << "synchronicTakeClosest = 1" << endl;
+  //cout << "synchronicTakeClosest = 1" << endl;
   ms->config.synServoLockFrames = 0;
 }
 END_WORD

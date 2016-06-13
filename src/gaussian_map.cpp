@@ -399,7 +399,8 @@ void GaussianMap::reallocate() {
   }
 }
 
-GaussianMap::GaussianMap(int w, int h, double cw, eePose pose) {
+GaussianMap::GaussianMap(MachineState * ims, int w, int h, double cw, eePose pose) {
+  ms = ims;
   width = w;
   height = h;
   x_center_cell = (width-1)/2;
@@ -428,11 +429,11 @@ int GaussianMap::safeBilinAt(int x, int y) {
 
 GaussianMapCell *GaussianMap::refAtCell(int x, int y) {
   if (x < 0 || x >= width) {
-    // XXX ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
+    // XXX CONSOLE_ERROR(ms, "GaussianMapCell::refAtCell: Bad x. " << x << " width: " << width);
     return NULL;
   }
   if (y < 0 || y >= height) {
-    // XXX ROS_ERROR_STREAM("GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
+    // XXX CONSOLE_ERROR(ms, "GaussianMapCell::refAtCell: Bad y. " << y << " height: " << height);
     return NULL;
   }
   
@@ -498,11 +499,11 @@ void GaussianMap::metersToCell(double xm, double ym, int * xc, int * yc) {
   (*xc) = round(xm / cell_width) + x_center_cell;
   (*yc) = round(ym / cell_width) + y_center_cell;
   //if (*xc < 0 || *xc >= width) {
-  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad x. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //CONSOLE_ERROR(ms, "GaussianMapCell::metersToCell: Bad x. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
   //assert(0);
   //}
   //if (*yc < 0 || *yc >= height) {
-  //ROS_ERROR_STREAM("GaussianMapCell::metersToCell: Bad y. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
+  //CONSOLE_ERROR(ms, "GaussianMapCell::metersToCell: Bad y. xc: " << *xc << " yc: " << *yc << " input xm: " << xm << " ym: " << ym);
   //assert(0);
   //}
 } 
@@ -600,8 +601,8 @@ void GaussianMap::readFromFileNode(FileNode& it) {
     GaussianMapCell * data = (GaussianMapCell * ) stringdata.data();
     int numLoadedCells = stringdata.size() / sizeof(GaussianMapCell);
     if (stringdata.size() != width * height * sizeof(GaussianMapCell)) {
-      ROS_ERROR_STREAM("Inconsistency in saved data.");
-      ROS_ERROR_STREAM("Read width: " << width << " height: " << height << " but got " << stringdata.size() << " from the file.");
+      CONSOLE_ERROR(ms, "Inconsistency in saved data.");
+      CONSOLE_ERROR(ms, "Read width: " << width << " height: " << height << " but got " << stringdata.size() << " from the file.");
     } else  {
       memcpy(cells, data, sizeof(GaussianMapCell) * width * height);
     }
@@ -620,7 +621,7 @@ void GaussianMap::readFromFileNode(FileNode& it) {
       }*/
 
     if (numLoadedCells != width*height) {
-      ROS_ERROR_STREAM("Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
+      CONSOLE_ERROR(ms, "Error, GaussianMap loaded " << numLoadedCells << " but expected " << width*height << endl);
     } else {
       cout << "successfully loaded " << numLoadedCells << " GaussianMapCells. ";
       cout << "width: " << width << " height: " << height << endl;
@@ -636,9 +637,8 @@ void GaussianMap::loadFromFile(string filename) {
     FileNode anode = fsvI["GaussianMap"];
     readFromFileNode(anode);
   } else {
-    ROS_ERROR_STREAM("Could not open file " << filename);
+    CONSOLE_ERROR(ms, "Could not open file " << filename);
   }
-  cout << "done." << endl;
 }
 
 CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());
@@ -805,7 +805,7 @@ shared_ptr<GaussianMap> GaussianMap::copyBox(int _x1, int _y1, int _x2, int _y2)
   y1 = min( max(0,y1), height-1);
   y2 = min( max(0,y2), height-1);
 
-  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(x2-x1+1, y2-y1+1, cell_width, anchor_pose);
+  shared_ptr<GaussianMap> toReturn = std::make_shared<GaussianMap>(ms, x2-x1+1, y2-y1+1, cell_width, anchor_pose);
   for (int y = y1; y <= y2; y++) {
     for (int x = x1; x <= x2; x++) {
       *(toReturn->refAtCell(x-x1,y-y1)) = *(refAtCell(x,y));
@@ -977,11 +977,11 @@ void Scene::reallocate() {
       height = height+1;
     } 
   }
-  background_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
-  predicted_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
+  background_map = make_shared<GaussianMap>(ms, width, height, cell_width, anchor_pose);
+  predicted_map = make_shared<GaussianMap>(ms, width, height, cell_width, anchor_pose);
   predicted_segmentation = Mat(width, height, CV_64F);
-  observed_map = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
-  discrepancy = make_shared<GaussianMap>(width, height, cell_width, anchor_pose);
+  observed_map = make_shared<GaussianMap>(ms, width, height, cell_width, anchor_pose);
+  discrepancy = make_shared<GaussianMap>(ms, width, height, cell_width, anchor_pose);
 
   discrepancy_magnitude = Mat(width, height, CV_64F);
   discrepancy_density = Mat(width, height, CV_64F);
@@ -1687,7 +1687,7 @@ shared_ptr<Scene> Scene::copyPaddedDiscrepancySupport(double threshold, double p
   if ((xmin <= xmax) && (ymin <= ymax)) {
     scene_to_return = copyBox(xmin,ymin,xmax,ymax);
   } else {
-    ROS_ERROR_STREAM("region contained no discrepant cells, grabbing one cell." << endl);
+    CONSOLE_ERROR(ms, "region contained no discrepant cells, grabbing one cell." << endl);
     cout << xmin << " " << xmax << " " << ymin << " " << ymax << endl;
     xmax = min(width-1, 2);
     ymax = min(height-1, 2);
@@ -1940,7 +1940,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
     }
   }
   if (*l_max_i >= ms->config.sceneDiscrepancySearchDepth - 25) {
-    ROS_ERROR_STREAM("Take note that the best one was near our search limit; maybe you need to increase the search depth.  l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth);
+    CONSOLE_ERROR(ms, "Take note that the best one was near our search limit; maybe you need to increase the search depth.  l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth);
   }
   {
     cout << "  local_scores size:  " << local_scores.size() << endl;
@@ -2510,19 +2510,19 @@ void Scene::readFromFileNode(FileNode& it) {
 
   bool error = false;
   if (discrepancy_density.rows != width || discrepancy_density.cols != height) {
-    ROS_ERROR_STREAM("Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
+    CONSOLE_ERROR(ms, "Discrepancy density has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_density.rows << "x" << discrepancy_density.cols);
     discrepancy_density = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (discrepancy_magnitude.rows != width || discrepancy_magnitude.cols != height) {
-    ROS_ERROR_STREAM("Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
+    CONSOLE_ERROR(ms, "Discrepancy magnitude has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << discrepancy_magnitude.rows << "x" << discrepancy_magnitude.cols);
     discrepancy_magnitude = Mat(width, height, CV_64F);
     error = true;
   }
 
   if (predicted_segmentation.rows != width || predicted_segmentation.cols != height) {
-    ROS_ERROR_STREAM("Predicted segmentation has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
+    CONSOLE_ERROR(ms, "Predicted segmentation has inconsistent dimensions.  Scene: " << width << "x" << height << ".  Mat: " << predicted_segmentation.rows << "x" << predicted_segmentation.cols);
     predicted_segmentation = Mat(width, height, CV_64F);
   }
   
@@ -2551,7 +2551,7 @@ void Scene::loadFromFile(string filename) {
     FileNode anode = fsvI["Scene"];
     readFromFileNode(anode);
   } else {
-    ROS_ERROR_STREAM("Could not open file " << filename);
+    CONSOLE_ERROR(ms, "Could not open file " << filename);
   }
   cout << "done." << endl;
 }
@@ -3595,7 +3595,7 @@ virtual void execute(MachineState * ms) {
   int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time);
 
   if (result != 1) {
-    ROS_ERROR("Not doing update because of ring buffer errors.");
+    CONSOLE_ERROR(ms, "Not doing update because of ring buffer errors.");
     return;
   }
 
@@ -3726,17 +3726,17 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   //if (fabs(thisPose.qz) > 0.005) {
-  //ROS_ERROR("  Not doing update because arm not vertical.");
+  //CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
   //return;
   //}
 
@@ -3746,7 +3746,7 @@ virtual void execute(MachineState * ms) {
   cout << "    reference qz: " << ms->config.scene->anchor_pose.qz << endl;
 
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR(" Maybe shouldn't do update because arm not perpendicular to plane of scene.");
+    CONSOLE_ERROR(ms, " Maybe shouldn't do update because arm not perpendicular to plane of scene.");
     //return;
   }
 
@@ -4304,7 +4304,7 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
     scenes.push_back(this_scene);
   }
   } catch( ... ) {
-        ROS_ERROR("In the weird sketchy exception block in ein main.");    
+        CONSOLE_ERROR(ms, "In the weird sketchy exception block in ein main.");    
     cout << "In the weird sketchy exception block in ein main." << endl;    
     
     std::exception_ptr p = std::current_exception();
@@ -4318,7 +4318,7 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
     cout << "Scene " << i << endl;
     shared_ptr<Scene> this_scene = scenes[i];
     if (this_scene->predicted_objects.size() != 1) {
-      ROS_ERROR("Must be exactly one predicted object in these scenes.");
+      CONSOLE_ERROR(ms, "Must be exactly one predicted object in these scenes.");
     } else {
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
@@ -4355,7 +4355,7 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
   for (int i = 0; i < scenes.size(); i++) {
     shared_ptr<Scene> this_scene = scenes[i];
     if (this_scene->predicted_objects.size() != 1) {
-      ROS_ERROR("Must be exactly one predicted object in these scenes.");
+      CONSOLE_ERROR(ms, "Must be exactly one predicted object in these scenes.");
     } else {
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
@@ -4445,7 +4445,7 @@ virtual void execute(MachineState * ms) {
 
   dpdf = opendir(baseClassTrialFolderName.c_str());
   if (dpdf == NULL){
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    CONSOLE_ERROR(ms, "catScan5VarianceTrialCalculatePoseVariances: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
     return;
   }
 
@@ -4578,7 +4578,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialAutolabelClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    CONSOLE_ERROR(ms, "catScan5VarianceTrialAutolabelClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 }
 END_WORD
@@ -4630,7 +4630,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialAuditClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    CONSOLE_ERROR(ms, "catScan5VarianceTrialAuditClassNames: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
 }
@@ -4708,7 +4708,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateConfigurationAccuracy: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
+    CONSOLE_ERROR(ms, "catScan5VarianceTrialCalculateConfigurationAccuracy: could not open base class dir " << baseClassTrialFolderName << " ." << endl);
   } 
 
   cout << "catScan5VarianceTrialCalculateConfigurationAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
@@ -4868,7 +4868,7 @@ virtual void execute(MachineState * ms) {
 	      }
 	    }
 	  } else {
-	    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateAllClassesAccuracy level 2: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+	    CONSOLE_ERROR(ms, "catScan5VarianceTrialCalculateAllClassesAccuracy level 2: could not open base class dir " << objectFolderAbsolute << " ." << endl);
 	  } 
 	}
 
@@ -4877,7 +4877,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("catScan5VarianceTrialCalculateAllClassesAccuracy level 1: could not open base class dir " << objectFolderAbsolute << " ." << endl);
+    CONSOLE_ERROR(ms, "catScan5VarianceTrialCalculateAllClassesAccuracy level 1: could not open base class dir " << objectFolderAbsolute << " ." << endl);
   } 
 
   cout << "catScan5VarianceTrialCalculateAllClassesAccuracy report: row (i) is true label, column (j) is assigned label" << endl;
@@ -5140,18 +5140,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -5189,7 +5189,7 @@ virtual void execute(MachineState * ms) {
   int numNulls = 0;
   Mat gripperMask = ms->config.gripperMask;
   if (isSketchyMat(gripperMask)) {
-    ROS_ERROR("Gripper mask is messed up.");
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
 
   //#pragma omp parallel for
@@ -5289,7 +5289,7 @@ virtual void execute(MachineState * ms) {
   //computePixelToGlobalCache(ms, z, thisPose, &data);
   Mat gripperMask = ms->config.gripperMask;
   if (isSketchyMat(gripperMask)) {
-    ROS_ERROR("Gripper mask is messed up.");
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
 
   int numThreads = 8;
@@ -5300,7 +5300,8 @@ virtual void execute(MachineState * ms) {
   #pragma omp parallel for
   for (int thread = 0; thread < numThreads; thread++) {
     
-    maps[thread] = make_shared<GaussianMap>(ms->config.scene->observed_map->width, 
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
                                             ms->config.scene->observed_map->height, 
                                             ms->config.scene->observed_map->cell_width,
                                             ms->config.scene->observed_map->anchor_pose); 
@@ -5318,7 +5319,7 @@ virtual void execute(MachineState * ms) {
       
       
       if (tsi == NULL) {
-        ROS_ERROR("Stream image null.");
+        CONSOLE_ERROR(ms, "Stream image null.");
       }
       eePose tArmP, tBaseP;
       
@@ -5336,13 +5337,13 @@ virtual void execute(MachineState * ms) {
       
       
       if (success != 1) {
-        ROS_ERROR_STREAM("Couldn't get stream pose: " << success << " time: " << tsi->time);
+        CONSOLE_ERROR(ms, "Couldn't get stream pose: " << success << " time: " << tsi->time);
         continue;
       }
       
       eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
       if (fabs(transformed.qz) > 0.01) {
-        ROS_ERROR("  Not doing update because arm not vertical.");
+        CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
         continue;
       }
       pixelToGlobalCache data;      
@@ -5465,18 +5466,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -5685,18 +5686,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -5881,18 +5882,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -6344,18 +6345,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -6537,18 +6538,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -6690,18 +6691,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 
@@ -7459,7 +7460,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("sceneDepthStackLoadAndPushRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+    CONSOLE_ERROR(ms, "sceneDepthStackLoadAndPushRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
   } 
 }
 END_WORD
@@ -7522,7 +7523,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("sceneDepthStackLoadAndCropRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+    CONSOLE_ERROR(ms, "sceneDepthStackLoadAndCropRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
   } 
 }
 END_WORD
@@ -7571,7 +7572,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("sceneDepthStackLoadAndMarginalizeRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+    CONSOLE_ERROR(ms, "sceneDepthStackLoadAndMarginalizeRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
   } 
 }
 END_WORD
@@ -7620,7 +7621,7 @@ virtual void execute(MachineState * ms) {
       }
     }
   } else {
-    ROS_ERROR_STREAM("sceneDepthStackLoadAndMinRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
+    CONSOLE_ERROR(ms, "sceneDepthStackLoadAndMinRaw: could not open base class dir " << depthStackFolderPath << " ." << endl);
   } 
 }
 END_WORD
@@ -8151,18 +8152,18 @@ virtual void execute(MachineState * ms) {
       assert(0);
     }
   } else {
-    ROS_ERROR_STREAM("No images in the buffer, returning." << endl);
+    CONSOLE_ERROR(ms, "No images in the buffer, returning." << endl);
     return;
   }
 
   if (success != 1) {
-    ROS_ERROR("  Not doing update because of stream buffer errors.");
+    CONSOLE_ERROR(ms, "  Not doing update because of stream buffer errors.");
     return;
   }
 
   eePose transformed = thisPose.getPoseRelativeTo(ms->config.scene->anchor_pose);
   if (fabs(transformed.qz) > 0.01) {
-    ROS_ERROR("  Not doing update because arm not vertical.");
+    CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
     return;
   }
 

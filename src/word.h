@@ -22,7 +22,7 @@ public:
   virtual string name() = 0;
 
   virtual string description() {
-    return "No help for this word.";
+    return "";
   }
 
   virtual vector<string> names() {

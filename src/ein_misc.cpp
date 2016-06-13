@@ -269,7 +269,6 @@ REGISTER_WORD(PrintState)
 WORD(DecrementTargetClass)
 CODE(196438)     // capslock + pagedown
 virtual void execute(MachineState * ms) {
-  cout << "targetClass-- " << endl;
   if (ms->config.numClasses > 0) {
     int newTargetClass = (ms->config.targetClass - 1 + ms->config.numClasses) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
@@ -753,10 +752,18 @@ END_WORD
 REGISTER_WORD(Next)
 
 WORD(Print)
+virtual string description() {
+  return "Pop a word from the stack and print it to the Ein console.";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
-  if (word != NULL) {
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);
+  if (s != NULL) {
+    CONSOLE(ms, s->value());
+  } else if (word != NULL) {
     CONSOLE(ms, word->repr());
+  } else {
+    CONSOLE(ms, "");
   }
 }
 END_WORD
@@ -1083,7 +1090,7 @@ virtual void execute(MachineState * ms) {
   GET_ARG(ms, StringWord, filename);
   std::stringstream fname;
   fname << "src/ein/back/" << filename << ".back";
-  CONSOLE(ms, "Importing from file: " << fname.str());
+  CONSOLE(ms, "Importing: " << fname.str());
   std::ifstream t(fname.str());
   if (!t.is_open()) {
     CONSOLE_ERROR(ms, "Import tried to read " << fname.str() << ", but it couldn't open...");
@@ -1123,7 +1130,6 @@ WORD(IncrementTargetClass)
 CODE(196437)// capslock + pageup
 virtual void execute(MachineState * ms)
 {
-  cout << "targetClass++ " << endl;
   if (ms->config.numClasses > 0) {
     int newTargetClass = (ms->config.targetClass + 1) % ms->config.numClasses;
     changeTargetClass(ms, newTargetClass);
@@ -1185,7 +1191,7 @@ virtual void execute(MachineState * ms)
   cout << "Writing words to " << wordFileName << endl;
   ofstream wordFile;
   wordFile.open(wordFileName);
-  wordFile << "<table><tr><th width=\"20%\">Word</th><th>Description</th></tr>" << endl;
+  wordFile << "<table><tr><th>Word</th><th>Description</th></tr>" << endl;
 
   map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
   std::map<std::string, shared_ptr<Word> >::iterator iter;
@@ -1353,7 +1359,7 @@ virtual void execute(MachineState * ms)
 	bBZ[1] == 0 || 
 	bBZ[2] == 0 || 
 	bBZ[3] == 0 ) {
-    cout << "cameraFitHyperbolic: error, bailing" << endl;
+    //cout << "cameraFitHyperbolic: error, bailing" << endl;
   }
 
   bBZ[0] = 1.0/bBZ[0];     
@@ -1362,13 +1368,13 @@ virtual void execute(MachineState * ms)
   bBZ[3] = 1.0/bBZ[3];  
 
 
-  cout << "cameraFitHyperbolic: " << endl;
+  //cout << "cameraFitHyperbolic: " << endl;
   {
-    cout << "  running y reticles... 0 1 2 3: " <<
-       ms->config.m_y_h[0] << " " <<
-       ms->config.m_y_h[1] << " " <<
-       ms->config.m_y_h[2] << " " <<
-       ms->config.m_y_h[3] << endl;
+    //cout << "  running y reticles... 0 1 2 3: " <<
+    // ms->config.m_y_h[0] << " " <<
+    // ms->config.m_y_h[1] << " " <<
+    // ms->config.m_y_h[2] << " " <<
+    // ms->config.m_y_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1386,18 +1392,18 @@ virtual void execute(MachineState * ms)
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
-    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+    //cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
     ms->config.m_YQ[0] = beta(0);
     ms->config.m_YQ[1] = beta(1);
     ms->config.m_YQ[2] = beta(2);
   }
   {
-    cout << "  running x reticles... 0 1 2 3: " <<
-       ms->config.m_x_h[0] << " " <<
-       ms->config.m_x_h[1] << " " <<
-       ms->config.m_x_h[2] << " " <<
-       ms->config.m_x_h[3] << endl;
+    //cout << "  running x reticles... 0 1 2 3: " <<
+    //ms->config.m_x_h[0] << " " <<
+    //ms->config.m_x_h[1] << " " <<
+    //ms->config.m_x_h[2] << " " <<
+    //ms->config.m_x_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1415,7 +1421,7 @@ virtual void execute(MachineState * ms)
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
-    cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
+    //cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
     ms->config.m_XQ[0] = beta(0);
     ms->config.m_XQ[1] = beta(1);
@@ -1839,7 +1845,6 @@ virtual void execute(MachineState * ms)
 
   shared_ptr<CompoundWord> cp = CompoundWord::copy(cWord);
   cp->setDescription(description);
-  cout << "getting description: " << description<< endl;
   ms->pushData(cp);
 }
 

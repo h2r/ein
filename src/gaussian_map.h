@@ -75,8 +75,8 @@ class GaussianMap {
 
   double cell_width = 0.01;
   GaussianMapCell *cells = NULL;
-
-  GaussianMap(int w, int h, double cw, eePose pose);
+  MachineState * ms;
+  GaussianMap(MachineState * ims, int w, int h, double cw, eePose pose);
   ~GaussianMap();
   void reallocate();
 
