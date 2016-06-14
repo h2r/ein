@@ -105,10 +105,9 @@ interpolation based on several sample points.  The target is obtained
 by rotating the gripper in a plan and finding the minimum variance
 point at each point.  
 
-To do this process first `goHome` and then run:
-```
-calibrateRGBCameraIntrinsics
-```
+To do this process first `goHome` and then run
+`calibrateRGBCameraIntrinsics`.
+
 
 The gripper will move to four different heights and take a series of
 measurements at different orientations.  This process takes about 20
@@ -130,23 +129,22 @@ below.
 #### Exercise:  Explore the movement state. 
 
 Move the arm with large and small movements.  Observe the movement
-state indicator; watch as it changes from movin gto hovering to
+state indicator; watch as it changes from moving to hovering to
 stopped.  You can try large movements by double clicking in the Object
-Map Viewer; this action sends the arm to the corresponding position.  t
+Map Viewer; this action sends the arm to the corresponding position.  
 
-#### Exercise:  Check the calibration. 
-To check the calibration, verify that the gripper projection line
-appears as shown in the above legend.  It should be a relatively
-straight line, no zig-zags or curves.  It should also not be absent.
-If there is a problem, rearrange the magic circle and try the
-calibration again.  Do not hesitate to ask on the forum or post an
-issue if you have problems.
+#### Exercise: Check the calibration.  To check the calibration,
+verify that the gripper projection line appears as shown in the above
+legend.  It should be a relatively straight line, no zig-zags or
+curves.  It should also not be absent.  If there is a problem,
+rearrange the magic circle and try the calibration again.  Do not
+hesitate to post an issue if you have problems.
 
 Second, find the calibration reticle, drawn in red and green near the
 gripper projection line.  Drive the arm so that the calibration
 reticle is above a well-distinguished point in the image.  In the
 sequence below, we did this so the crosshairs were above the penny.
-Then run `saveReticle1` to save this location.  It will create a new
+Then run `saveRegister1` to save this location.  It will create a new
 reticle drawn at this point in global space.  Then drive the arm
 around in the neighborhood and verify this reticle appears in the same
 space.  Be sure to check movements in all axes (x, y, and z), as
@@ -163,3 +161,12 @@ picking out the global location in the image.
 <br/>
 <img src="../assets/renderedwristview_calibrated3.jpg" alt="Rendered Wrist View Calibrated 3" width="300"/>
 <img src="../assets/renderedwristview_calibrated4.jpg" alt="Rendered Wrist View Calibrated 4" width="300"/>
+
+
+Here is a bad calibration, where the gripper
+calibration line is absent:
+<img src="../assets/renderedwristview_nullcalibrated.jpg" alt="Rendered Wrist View with Null Calibration" width="600"/>
+
+
+Here is bad calibration where it goes in the opposite direction:
+<img src="../assets/renderedwristview_backwardscalibrated.jpg" alt="Rendered Wrist View with Backwards Calibration" width="600"/>
