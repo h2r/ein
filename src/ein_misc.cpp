@@ -1048,7 +1048,7 @@ REGISTER_WORD(EePoseQW)
 
 WORD(Store)
 virtual string description() {
-  return "Create a new variable.  Usage  <value> "<name>" store.  After that you can say <name> and it will push its contents on the call stack.";
+  return "Create a new variable.  Usage  <value> \"<name>\" store.  After that you can say <name> and it will push its contents on the call stack.";
 }
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> nameword = ms->popData();
