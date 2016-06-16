@@ -2920,6 +2920,10 @@ CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
 
 CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 
+CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
+CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
+
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
 
