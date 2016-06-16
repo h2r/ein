@@ -5,6 +5,10 @@ permalink: /pickingobjects/
 order: 3
 ---
 
+
+INCOMPLETE
+
+
 Now we will talk about tabletop picking. Restricting our picking to a table
 about Baxter allows us to make some assumptions about the world. In particular,
 that there is a flat ground surface parallel to the xy-plane whose constant z
@@ -72,6 +76,7 @@ The last line stores your position in a variable named "zzAPlace". Prepending
 variables with "zz" can be useful because it will show up at the end of the tab
 complete list, so you can more easily remember which variables have been defined this session.
 You can return to this, which will be the center of your workspace, by issuing
+
 ```
 zzAPlace moveEeToPoseWord
 ```
@@ -167,11 +172,74 @@ add3dGrasp
 You can and should add multiple grasps so that, if the first grasp or pre-grasp position is infeasible, Ein can select
 an alternative grasp.
 
+Issue 
+
+``` 
+writeFocusedClass
+``` 
+and note the output folder. You can rename that folder but don't move it. Once renamed to, say, "itemA", you can reload the object
+with
+
+``` 
+endArgs "itemA" setClassLabels
+``` 
+
 Now it's time to test the object. Return to your workspace center and run 
 
 ```
 tableInfiniteDribbleBest
 ```
+
+
+
+
+
+That's great. But you probably want the capability to pause the arm when it holds the object
+and command its movement for your own purposes. 
+
+
+```
+
+```
+maps the area and adds a detection to the list of Blue Boxes. 
+
+
+```
+
+```
+changes the place mode to handing, which is the default, but some
+other Ein program may have changed it so make sure it's value is set properly.
+
+Now, when you issue
+
+```
+
+```
+
+the arm will move to pick the object and stop with an empty call stack after the attempt.
+You are free to command the arm from this point.
+
+
+
+Finally there is the matter of handling multiple objects over larger workspaces. Defining scanning patterns is beyond
+the scope of this page, but defining multiple objects and detecting them across multiple workspaces is not.
+
+Train a second object model and issue
+
+``` 
+endArgs "itemA" "itemB" setClassLabels
+``` 
+
+
+Train workspaces a and b, save their poses. It's ok if the workspaces overlap. Put one object in each workspace, make sure it is
+closer to the center of its workspace than the other object. For each workspace, move the arm, load the background model, detect best, add
+to blue boxes, can command which blue box to pick.
+
+
+
+
+
+
 
 
 
