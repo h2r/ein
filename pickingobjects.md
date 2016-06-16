@@ -221,7 +221,7 @@ You are free to command the arm from this point.
 
 
 
-Finally there is the matter of handling multiple objects over larger workspaces. Defining scanning patterns is beyond
+Finally there is the matter of handling multiple objects over a larger area. Defining scanning patterns is beyond
 the scope of this page, but defining multiple objects and detecting them across multiple workspaces is not.
 
 Train a second object model and issue
