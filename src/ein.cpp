@@ -4478,6 +4478,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
   if (ms->config.armWidget) {
     ms->config.armWidget->update();
+    ms->config.renderedWristViewWindow->updateImage(ms->config.wristViewImage);
   }
   einMainWindow->update();
 
@@ -4771,7 +4772,9 @@ void renderWristViewImage(MachineState * ms) {
 	irPose.py = irSensorEnd.y();
 	irPose.pz = irSensorEnd.z();
       }
-      paintEEPoseOnWrist(ms, irPose, cv::Scalar(255,0,0));
+      if (fabs(ms->config.eeRange - ms->config.eeRangeMaxValue) > 0.0001) {
+        paintEEPoseOnWrist(ms, irPose, cv::Scalar(255,0,0));
+      }
     }
   }
 
@@ -4974,6 +4977,7 @@ void renderWristViewImage(MachineState * ms) {
     }
   }
 
+  
 }
 
 void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -15210,6 +15214,12 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.wristViewWindow);
   ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, ms);
+
+  ms->config.renderedWristViewWindow = new EinWindow(NULL, ms);
+  ms->config.renderedWristViewWindow->setWindowTitle("Rendered Wrist View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.renderedWristViewWindow);
+  ms->config.renderedWristViewWindow->setMouseCallBack(pilotCallbackFunc, ms);
+
 
 
   ms->config.coreViewWindow = new EinWindow(NULL, ms);
