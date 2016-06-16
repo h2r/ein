@@ -491,6 +491,9 @@
     changes and the variance due to focus.
 
   separate case not fully chased because calibration from spinning was adequate.
+
+  later observation: this likely failed because images should be taken at all heights
+    and jointly optimized, but the code at the time did not support it
   */
 
   200 "tempReconstructStreamTakeSceneSamples" store
@@ -513,22 +516,26 @@
 ) "calibrateBundleHeight" store
 
 (
-/*  
-  setTable
-    currentPose
-  setGripperMaskWithMotion
-  moveEeToPoseWord
-*/
-
   initializeAndFocusOnNewClass
 
   calibrateHeightReticles
   calibrateMagnification
+) 
+"Calibrate the RGB camera; start from a position near the table as we set the table height first.  Make sure you've set up the magic circle with magic paper" 
+"calibrateRGBCameraIntrinsics" define
+
+(
+  setTable
+    currentPose
+  setGripperMaskWithMotion
+  moveEeToPoseWord
+
+  calibrateRGBCameraIntrinsics
 
   /*
   calibrateVanishingPointReticleMultiSample
   */
 ) 
-"Calibrate the RGB camera; start from a position near the table as we set the table height first.  Make sure you've set up the magic circle with magic paper" 
-"calibrateRGBCameraIntrinsics" define
+"When you are confident with calibrateRGBCameraIntrinsics, this is a good all-in-one." 
+"calibrateDeluxe" define
 

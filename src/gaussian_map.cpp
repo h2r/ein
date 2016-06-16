@@ -3449,16 +3449,36 @@ virtual void execute(MachineState * ms) {
   double p_cell_width = gridSize;//0.0025;//0.00175; //0.0025; //0.01;
   int p_width = 1001; //1501; // 1001 // 601;
   int p_height = 1001; //1501; // 1001 / 601;
-  //eePose flipZ = {.px = 0.0, .py = 0.0, .pz = 0.0,
-  //.qx = 0.0, .qy = 1.0, .qz = 1.0, .qw = 0.0}; 
 
   destPose = destPose.multQ(ms->config.straightDown.invQ());
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
-  cout << "sceneInitFromEePose: destPose is " << destPose << endl;
+  cout << "sceneInitFromEePoseScale: destPose is " << destPose << endl;
   ms->pushWord("sceneRenderScene");
 }
 END_WORD
 REGISTER_WORD(SceneInitFromEePoseScale)
+
+WORD(SceneInitFromEePoseScaleDimensions)
+virtual void execute(MachineState * ms) {
+  eePose destPose;
+  GET_ARG(ms,EePoseWord,destPose);
+  double gridSize = 0.0;
+  int p_width = 1001; 
+  int p_height = 1001; 
+  
+  GET_INT_ARG(ms, p_height);
+  GET_INT_ARG(ms, p_width);
+  GET_NUMERIC_ARG(ms, gridSize);
+
+  double p_cell_width = gridSize;
+
+  destPose = destPose.multQ(ms->config.straightDown.invQ());
+  ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, destPose);
+  cout << "sceneInitFromEePoseScaleDimensions: destPose is " << destPose << endl;
+  ms->pushWord("sceneRenderScene");
+}
+END_WORD
+REGISTER_WORD(SceneInitFromEePoseScaleDimensions)
 
 WORD(SceneInitDimensions)
 virtual void execute(MachineState * ms) {
@@ -3966,24 +3986,31 @@ virtual void execute(MachineState * ms) {
 
   Mat toShow;
   ms->config.scene->observed_map->zMuToMat(toShow);
+
+  double positiveMin = DBL_MAX;
+  double positiveMax = 0.0;
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
-      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
+	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
       } else {
 	//toShow.at<double>(x,y) = 0;
       }
     }
   }
+
   double maxVal, minVal;
   minMaxLoc(toShow, &minVal, &maxVal);
   //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
-  double denom = max(1e-6, maxVal-minVal);
-  cout << "sceneRenderZ min max denom: " << minVal << " " << maxVal << " " << denom << endl;
+  //double denom = max(1e-6, maxVal-minVal);
+  double denom = max(1e-6, positiveMax-positiveMin);
+  cout << "sceneRenderZ min max denom positiveMin positiveMax: " << minVal << " " << maxVal << " " << denom << " " << positiveMin << " " << positiveMax << endl;
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
-      if ((ms->config.scene->predicted_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) && (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold)) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
 	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
-	toShow.at<double>(x,y) = (maxVal - toShow.at<double>(x,y)) / denom;
+	toShow.at<double>(x,y) = (positiveMax - toShow.at<double>(x,y)) / denom;
       } else {
 	//toShow.at<double>(x,y) = 0;
       }
@@ -7641,6 +7668,24 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneDepthStackSaveRaw)
 
+WORD(SceneDepthStackSavePngRaw)
+virtual void execute(MachineState * ms) {
+  string depthStackFolderPath;
+  GET_STRING_ARG(ms, depthStackFolderPath);
+
+  for (int i = 0; i < ms->config.depth_maps.size(); i++) {
+    stringstream ss;
+    ss << depthStackFolderPath << "/stack" << std::setprecision(5) << i << ".png";
+
+    Mat toConvert;
+    Mat toWrite;
+    ms->config.depth_maps[i]->rgbMuToMat(toConvert);
+    cvtColor(toConvert, toWrite, CV_YCrCb2BGR);
+    imwrite(ss.str(), toWrite);
+  }
+}
+END_WORD
+REGISTER_WORD(SceneDepthStackSavePngRaw)
 
 
 WORD(SceneRegularizeSceneL2)
