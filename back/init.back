@@ -11,8 +11,8 @@ happyFace
 tempInit
 
 (  
-  0.562 0.478 0.069 -0.001 0.999 -0.000 0 createEEPose moveEeToPoseWord
-  /* assumeBeeHome  */
+/*  0.562 0.478 0.069 -0.001 0.999 -0.000 0 createEEPose moveEeToPoseWord */
+   assumeBeeHome  
   1 changeToHeight waitUntilAtCurrentPosition 
 
   shoreUp

@@ -597,6 +597,15 @@ bool StringWord::equals(shared_ptr<Word> word) {
     return w1->value() == (this->value());
   }
 }
+
+bool DoubleWord::isDouble(string token) {
+    try {
+      parse(token);
+      return true;
+    } catch (const std::exception &exc) {
+      return false;
+    }
+  }
   
 std::shared_ptr<DoubleWord> DoubleWord::parse(string token) {
     size_t idx;
