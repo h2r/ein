@@ -5,5 +5,5 @@ permalink: /about/
 order: 100
 ---
 
-Ein is created by the [Humans to Robots
+Ein was created and is maintained in the [Humans to Robots
 Laboratory](http://h2r.cs.brown.edu)
