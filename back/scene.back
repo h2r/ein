@@ -925,7 +925,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   tempReconstructTakeScene
   bg sceneSaveObservedMap 
   tempInit
-) "tempUpdateBg" store
+) "tableUpdateBg" store
 
 
 (
@@ -1428,12 +1428,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 1.861883 "tempReconstructWithZTopZ" store 
 3.161883 "tempReconstructWithZTopZ" store 
 3.361883 "tempReconstructWithZTopZ" store 
+3.80 "tempReconstructWithZTopZ" store 
 */
 
 0.3883 "tempReconstructWithZTopZ" store 
-0.20 "tempReconstructWithZTotalZDefault" store
+0.0 "tempReconstructWithZTotalZDefault" store
 tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
-0.005 "tempReconstructWithZDeltaZ" store
+0.0166 "tempReconstructWithZDeltaZ" store
 500 "tempReconstructStreamTakeSceneSamples" store
 
 (
@@ -1544,7 +1545,11 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
       "slfg_giraffe_back_right_" tempReconstructWithZThisZ + 
     sceneSaveScene
+
+      "/home/oberlin/dev/catkin_ws_ursula/src/ein/default/objects/aaaRSSRoomSceneHiRes/depthvideo/frame_" tempReconstructWithZThisZ ".png" + +
+    sceneSaveObservedMapImage
 */
+
 
 
 /*
@@ -1711,9 +1716,9 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   */
 
 
-  0.04 "tempSpiralMoveSpeed" store
+  0.03 "tempSpiralMoveSpeed" store
 
-  16 "tempUpdateSpiralN" store
+  24 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */
@@ -2131,6 +2136,13 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   sceneInitFromEePoseScale
   tempInit
 ) "slfgRebaseTable" store
+
+(
+  951 "slfgRebaseDefaultDimension" store
+  388 "slfgRebaseIterations" store
+  0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth slfgRebaseDefaultDimension slfgRebaseDefaultDimension currentPose sceneInitFromEePoseScaleDimensions ( localZDown ) slfgRebaseIterations replicateWord 
+  tempInit
+) "slfgRebaseDimensions" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2829,6 +2841,9 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 
 
+(
+  "mencoder mf://depthStackB*/*.png -mf w=600:h=600:fps=25 -ovc x264 -x264encopts pass=1:crf=0 -oac copy -o outputAll.avi" print
+) "printMencoderCommand" store
 
 
 
