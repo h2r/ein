@@ -151,6 +151,7 @@ resistence, at which point the grippers will close. Keep this in mind when choos
 start over from `tableLock3dGrasp`.
 
 Issue
+
 ```
 clearClass3dGrasps
 ``` 
@@ -159,6 +160,7 @@ assigned grasps. If you add a bad grasp or knock the object and have to start
 over, make sure to clear your grasps.
 
 When you are ready to add the current pose as a grasp, issue
+
 ```
 add3dGrasp
 ``` 
