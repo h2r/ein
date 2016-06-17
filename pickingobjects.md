@@ -7,10 +7,11 @@ order: 3
 
 
 
-Now we will talk about tabletop picking. Restricting our picking to a table
-about Baxter allows us to make some assumptions about the world. In particular,
-that there is a flat ground surface parallel to the xy-plane whose constant z
-coordinate is known and that gravity pulls toward that plane. 
+Now we will use Baxter to pick things up. Restricting our picking to a
+table allows us to make some assumptions about the world. In
+particular, Ein assumes there is a flat ground surface parallel to the
+xy-plane whose constant z coordinate is known and that gravity pulls
+toward that plane.
 
 A consequence of these assumptions is that we can forgo labeling grasp depth
 and close the fingers when they encounter an obstruction. When moving toward an
@@ -20,55 +21,42 @@ grasp or go around the object (spoon handle, small block) and hit the table on
 either side of the target, triggering a grasp. Grasping in free space without a
 backing or resistor is less reliable because tipping is more likely to occur.
 
-Another consequence is that most objects will come to rest on the ground plane.
-This is important because in order to see an object correctly, Ein needs to know
-(or finds out in the process) how far away from the camera it is.  Most computer
-vision systems use individual RGB frames, or calculations performed on sequences of
-frames and summarized with statistics, to perform their operations. Ein captures
-tens to thousands of RGB frames and refocuses the rays from those images into
-computed 2D photographs and performs operations on those instead. Refocusing the light
-is very similar to adjusting the focus on traditional camera, and the aperture of 
-our virtual camera is quite large, which means that we can achieve a very narrow
-depth of field. Knowing the position of the ground plane is a strong hint for the 
-search problems involved and so speeds up the process dramatically.
-
-
-#### Exercise:  Inspect your background map.  
-
-Zoom in and see what detail you can make out.  On a well-calibrated
-Baxter, you should be able to see detail up to several millimeters.
-Some examples from our lab appear below. 
+Another consequence is that most objects will come to rest on the
+ground plane.  This is important because in order to see an object
+correctly, Ein needs to know (or finds out in the process) how far
+away from the camera it is.  Most computer vision systems use
+individual RGB frames, or calculations performed on sequences of
+frames and summarized with statistics, to perform their
+operations. Ein captures tens to thousands of RGB frames and refocuses
+the rays from those images into computed 2D photographs and performs
+operations on those instead. Refocusing the light is very similar to
+adjusting the focus on traditional camera, and the aperture of our
+virtual camera is quite large, which means that we can achieve a very
+narrow depth of field. Knowing the position of the ground plane is a
+strong hint for the search problems involved and so speeds up the
+process dramatically.
 
 
 
 The basic workflow for object picking is:
 
-( calibrate once )
-
-Train workspace background  model
-Train object model
-  Automatic grasp annotation
-    Manual grasp annotat
-
-( change workspace or recompute background if table shifts or lighting changes )
-
-Map workspace and compute discrepancy (background subtraction)
-Detect object(s) cascaded on discrepancy
-
-( perform other robotic actions )
-
-Pick objects based on detections.
-
-
+1. ([Calibrate once](../calibration).)
+1. Create a map of the empty workspace (background map). 
+1. Train object model.
+   - Automatic grasp annotation or manual grasp annotation.
+1. Map workspace and compute discrepancy (background subtraction). 
+1. Detect and localize object(s) cascaded on discrepancy.
+1. Pick!
 
 
 ### Create a background map.
 
-Now you need to train a workspace background model.  Move the arm to a
-tentative workspace. The workspace should contain a square of two
-feet. It should be as flat as possible. The system can accomodate
-altitude changes but shadows and occlusion induce variance in the maps
-and require careful sampling for accurate results.
+Now you need to train a workspace background model, which we call a
+background map.  Move the arm to a tentative workspace. The workspace
+should contain a square of two feet. It should be as flat as
+possible. The system can accomodate altitude changes but shadows and
+occlusion induce variance in the maps and require careful sampling for
+accurate results.
 
 Move the arm to the center of the workspace. Issue
 ```
@@ -112,6 +100,15 @@ is 1mm to a pixel at this height with a good calibration. Object
 taller than a few centimeters will start to blur due to defocus.
 
 
+#### Exercise:  Inspect your background map.  
+
+Zoom in and see what detail you can make out.  On a well-calibrated
+Baxter, you should be able to see detail up to several millimeters.
+Some examples from our lab appear below. 
+
+![Background map](../assets/bg.jpg)
+
+
 When picking objects, you can change the gripper gap and retake the
 gripper mask by pointing the arm at magic paper as during calibration
 and running:
@@ -119,19 +116,51 @@ and running:
 setGripperMaskWithMotion
 ```
 
+Here is an example of a background map with an incorrect grapper mask;
+note the dark gripper pixels smeared on the lower part of the image.
+
+
+![Background map with bad gripper mask](../assets/bg_badgrippermask.jpg)
+
+
 ### Update the observed map.
 
-#### Exercise: Put several objects in the scene and update the
-     observed map.  
+Next update the observed map.  Run `tableTakeScene` to create a map by
+moving the arm in a spiral pattern.  This map will be rendered in the
+Gaussian Map Observed View" window shortly after the arm stops moving.
+Once you have created an observed map and background map, the
+discrepancy views will also populate, showing differences between the
+observed and background maps.  Here is an example showing the Allen
+wrench from the Baxter gripper toolkit.  Note that the discrepancy
+density view is nearly all black except for the well-segmented
+wrench. It may help to overlay the observed map and discrepancy
+density windows and alt-tab between them to find differences.  If you
+do not see a well-segmented object, check your calibration and verify
+that the lighting hasn't changed since you made your background map.
+
+<img src="../assets/allenwrench_observed.jpg" width="350" alt="Observed map with allen wrench."/>
+<img src="../assets/allenwrench_density.jpg" width="350" alt="Observed map with ."/>
+
+
+#### Exercise: Put several objects in the scene and update the observed map.  
 
 Inspect the observed map, background map, and discrepancy view.  If
      the objects do not appear well-segmented in the discrepancy
      window, than there may be a problem with your calibration.
 
+#### Exercise: Remove all objects from the scene and update the observed map.  Verify the discrepancy is empty.  
+
+Below is an example of an observed map and discrepancy view taken
+immediately after making a background map.
+
+
+<img src="../assets/bg_observed.jpg" width="350" alt="Observed map with no objects."/>
+<img src="../assets/bg_discrepancy.jpg" width="350" alt="Discrepancy with no objects."/>
+
 ###  Pick a known object. 
 
 We will first demonstrate picking with a pre-trained model from the
-Rethink Baxter kit, the allen wrench.  Make sure the gripper gap is at
+Rethink Baxter kit, the Allen wrench.  Make sure the gripper gap is at
 its narrowest setting. Equip the rectangular rubber tips; we will be
 trying for a flush grasp.  Find the allen wrench from a Baxter
 parallel gripper kit and place it in the workspace.  Issue
@@ -145,34 +174,36 @@ and check terminal and console output to verify the model loads.
 #### Exercise: Dribble
 
 Write a program to pick the object, perturb position, and place it.
-Run it 100 times.
+The word `perturbPosition` moves the arm a random position and
+orientation from its current location.  The word `touchDown` moves the
+arm to touch the table.  Run it 100 times.
 
+
+Ein includes a word to do this task in a loop:
 
 ```
 tableInfiniteDribbleBest
 ```
 
-That should pick a bunch.
+Compare your implementation to ours. 
 
 ### Make a model for your object. 
 
 But you probably want to do more than that one object!  Next, find an
 object you want to pick, and make sure it fits in the grippers.  Place
 the object at the center of the workspace and return the arm as well
-with
+with `goHome`.
 
-```
-zzAPlace moveEeToPoseWord
-```
-
-Clear the space of any other object and run
+Place the object under the end effector, clear the space of any other
+object, and run
 
 ```
 tableQuickScan
 ```
 
-This generates an object model capable of localizing the object once moved and rotated within
-the plane of the table. Now you need to annotate a grasp. Issue
+This generates an object model capable of localizing the object once
+moved and rotated within the plane of the table. Now you need to
+annotate a grasp. Issue
 
 ```
 tableLock3dGrasp
