@@ -1418,7 +1418,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
     // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
     cout << "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
     return 0;
-  } else {
   }
 
   if ( (thisIdx > -1) && (thisIdx < tspb.size()) ) {
@@ -1449,7 +1448,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	(*outArm) = iArm;
 	(*outBase) = iBase;
 	return 1;
-      } else {
       }
     }
   } else { // tin < tspb[thisIdx].time
@@ -1461,7 +1459,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
           cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
 	  return 0;
-	} else {
 	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
@@ -1471,8 +1468,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	(*outArm) = iArm;
 	(*outBase) = iBase;
 	return 1;
-      } else {
-      }
     }
   }
   cout << "bottomed out of the if." << endl;
@@ -4916,6 +4911,7 @@ void renderWristViewImage(MachineState * ms) {
   }
 
   // draw color reticle
+  /*
   {
     for (int cr = 0; cr < ms->config.numCReticleIndeces; cr++) {
       cv::Point outTop = cv::Point(ms->config.xCR[cr]-3, ms->config.yCR[cr]-3);
@@ -4935,7 +4931,7 @@ void renderWristViewImage(MachineState * ms) {
       rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(227,104,193)); 
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(133,104,109)); 
     }
-  }
+    }*/
 
   // ATTN 16
   if (1) {
