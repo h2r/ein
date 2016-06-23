@@ -29,7 +29,7 @@
 #define stringer(token) #token
 #define stringer_value(token) stringer(token)
 
-
+#include <boost/filesystem.hpp>
 
 MainWindow * einMainWindow;
 vector< MachineState * > machineStates;
@@ -13864,7 +13864,13 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 
   {
     guardSceneModels(ms);
-    ms->config.class_scene_models[i] = Scene::createFromFile(ms, sceneModelFile(ms, thisLabelName));
+    string fname = sceneModelFile(ms, thisLabelName);
+    if (!boost::filesystem::exists(fname)) {
+      ms->config.class_scene_models[i] = Scene::createEmptyScene(ms);
+    } else {
+      ms->config.class_scene_models[i] = Scene::createFromFile(ms, fname);
+    }
+
   }
 }
 

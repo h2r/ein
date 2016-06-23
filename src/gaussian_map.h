@@ -257,6 +257,7 @@ class Scene {
   void writePredictedObjects(FileStorage & fsvO);
 
   static shared_ptr<Scene> createFromFile(MachineState * ms, string filename);
+  static shared_ptr<Scene> createEmptyScene(MachineState * ms);
 };
 
 
