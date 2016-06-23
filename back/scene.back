@@ -922,7 +922,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   shoreUp
-  tempReconstructTakeScene
+  tableTakeScene
   bg sceneSaveObservedMap 
   tempInit
 ) "tableUpdateBg" store
@@ -946,12 +946,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* no additional scan */
 
   writeFocusedClass
-) "tableQuickScan" store
+) "quickScan" store
 
 (
   "tempFullScan: starting" print
 
-  tableQuickScan
+  quickScan
 
   1 waitSetCurrentWaitMode
   scanObjectScene
@@ -1225,7 +1225,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   "Ok, check the predicted map and make sure the object was added correctly." print
   "If it was, you can add 3d grasps." print
-) "tableLock3dGrasp" store
+) "Localize the focused object and prepare to annotate a 3D grasp."  "tableLock3dGrasp" define
 
 
 (
@@ -1754,7 +1754,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   tempReconstructFromStream
   tempUpdateMaps
 
-) "tempReconstructTakeScene" store
+) "tableTakeScene" store
 
 (
   quarterImpulse
@@ -1810,17 +1810,17 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   quarterImpulse
   tempUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
-) "tempReconstructTakeSceneWide" store
+) "tableTakeSceneWide" store
 
 (
   0.001 setW1GoThresh
   0.03 "tempSpiralMoveSpeed" store
   0.01 "tempSpiralGridSize" store
   6 tempUpdateSpiralCore
-) "tempReconstructTakeSceneMid" store
+) "tableTakeSceneMid" store
 
 (
-  playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tempReconstructTakeScene 
+  playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tableTakeScene 
 
   /* 
   catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
@@ -1881,14 +1881,14 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 
 (
-  tempReconstructTakeScene
+  tableTakeScene
   quarterImpulse
   tempServoToFocusedSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
 ) "tempReconstructServoToBestSceneObject" store
 
 (
-  tempReconstructTakeScene
+  tableTakeScene
   quarterImpulse
   tempServoToBestSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 

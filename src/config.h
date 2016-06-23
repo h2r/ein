@@ -639,7 +639,7 @@ class EinConfig {
   int globalPngCompression = 0;
 
 
-
+  const double eeRangeMaxValue = 65.535;
   double eeRange = 0.0;
 
 
@@ -649,6 +649,7 @@ class EinConfig {
 
   EinWindow * rangeogramWindow;
   EinWindow * wristViewWindow;
+  EinWindow * renderedWristViewWindow;
   EinWindow * coreViewWindow;
   EinWindow * rangemapWindow;
   EinWindow * hiRangemapWindow;

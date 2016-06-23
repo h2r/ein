@@ -374,16 +374,15 @@ virtual void execute(MachineState * ms)  {
     std::shared_ptr<StringWord> bStringWord = std::dynamic_pointer_cast<StringWord>(bWord);
 
     if (bStringWord == NULL) {
-      cout << "rejecting a word, not resetting labels, and pausing the stack. probably forgot endArgs." << endl;
+      CONSOLE_ERROR(ms, "rejecting a word, not resetting labels, and pausing the stack. probably forgot endArgs.");
       ms->pushWord("pauseStackExecution");
       return;
     } else {
       string thisLabel = bStringWord->to_string();
       if (thisLabel.length() > 0) {
-	cout << "accepting " << thisLabel << endl;
 	newLabels.push_back(thisLabel);
       } else {
-	cout << "found a string word of length 0, not resetting labels, and pausing the stack." << endl;
+	CONSOLE_ERROR(ms, "found a string word of length 0, not resetting labels, and pausing the stack.");
 	ms->pushWord("pauseStackExecution");
 	return;
       }
@@ -1396,7 +1395,7 @@ virtual void execute(MachineState * ms) {
   int idx = ms->config.focusedClass;
 
   if ((idx <= -1) || (idx >= ms->config.classLabels.size())) {
-    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    CONSOLE_ERROR(ms, "writeFocusedClass: invalid idx, not writing.");
     ms->pushWord("pauseStackExecution");
     return;
   }

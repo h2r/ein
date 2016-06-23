@@ -1418,7 +1418,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
     // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
     cout << "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
     return 0;
-  } else {
   }
 
   if ( (thisIdx > -1) && (thisIdx < tspb.size()) ) {
@@ -1449,7 +1448,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	(*outArm) = iArm;
 	(*outBase) = iBase;
 	return 1;
-      } else {
       }
     }
   } else { // tin < tspb[thisIdx].time
@@ -1461,7 +1459,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
           cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
 	  return 0;
-	} else {
 	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
@@ -1471,8 +1468,6 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	(*outArm) = iArm;
 	(*outBase) = iBase;
 	return 1;
-      } else {
-      }
     }
   }
   cout << "bottomed out of the if." << endl;
@@ -4478,6 +4473,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
   if (ms->config.armWidget) {
     ms->config.armWidget->update();
+    ms->config.renderedWristViewWindow->updateImage(ms->config.wristViewImage);
   }
   einMainWindow->update();
 
@@ -4771,7 +4767,9 @@ void renderWristViewImage(MachineState * ms) {
 	irPose.py = irSensorEnd.y();
 	irPose.pz = irSensorEnd.z();
       }
-      paintEEPoseOnWrist(ms, irPose, cv::Scalar(255,0,0));
+      if (fabs(ms->config.eeRange - ms->config.eeRangeMaxValue) > 0.0001) {
+        paintEEPoseOnWrist(ms, irPose, cv::Scalar(255,0,0));
+      }
     }
   }
 
@@ -4913,6 +4911,7 @@ void renderWristViewImage(MachineState * ms) {
   }
 
   // draw color reticle
+  /*
   {
     for (int cr = 0; cr < ms->config.numCReticleIndeces; cr++) {
       cv::Point outTop = cv::Point(ms->config.xCR[cr]-3, ms->config.yCR[cr]-3);
@@ -4932,7 +4931,7 @@ void renderWristViewImage(MachineState * ms) {
       rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(227,104,193)); 
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(133,104,109)); 
     }
-  }
+    }*/
 
   // ATTN 16
   if (1) {
@@ -4974,6 +4973,7 @@ void renderWristViewImage(MachineState * ms) {
     }
   }
 
+  
 }
 
 void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -15210,6 +15210,12 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.wristViewWindow->setWindowTitle("Wrist View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.wristViewWindow);
   ms->config.wristViewWindow->setMouseCallBack(pilotCallbackFunc, ms);
+
+  ms->config.renderedWristViewWindow = new EinWindow(NULL, ms);
+  ms->config.renderedWristViewWindow->setWindowTitle("Rendered Wrist View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.renderedWristViewWindow);
+  ms->config.renderedWristViewWindow->setMouseCallBack(pilotCallbackFunc, ms);
+
 
 
   ms->config.coreViewWindow = new EinWindow(NULL, ms);

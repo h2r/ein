@@ -4645,7 +4645,7 @@ virtual void execute(MachineState * ms) {
       if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
 	cout << " is a directory." << endl;
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-	cout << " is NOT a directory." << endl;
+	CONSOLE_ERROR(ms, dot << " is NOT a directory and " << dotdot << " is NOT a directory.");
 	ms->pushWord("pauseStackExecution");
 	ms->pushWord("tempUpdateMaps");
 	// preserves the prediction that was last saved
