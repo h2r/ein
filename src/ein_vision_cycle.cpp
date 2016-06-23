@@ -420,7 +420,7 @@ virtual void execute(MachineState * ms) {
   int heightIdx;
   GET_INT_ARG(ms, heightIdx);
   if (heightIdx >= ms->config.numIkMapHeights) {
-    cout << "Ooops, height out of bounds. " << heightIdx << endl;
+    CONSOLE_ERROR(ms, "Ooops, height out of bounds. " << heightIdx);
     ms->pushWord("pauseStackExecution");   
     return;
   }

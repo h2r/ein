@@ -18,7 +18,7 @@ virtual void execute(MachineState * ms) {
     if (result != 0) {
       stringstream buf;
       buf << "Could not create directory: " << dirname;
-      perror(buf.str().c_str());
+      CONSOLE_ERROR(ms, buf.str());
       ms->pushWord("pauseStackExecution"); 
     } else {
       cout << "Created '" << dirname << "'" << endl;
@@ -37,7 +37,7 @@ virtual void execute(MachineState * ms) {
     try {
       boost::filesystem::create_directories(dirname);
     } catch(std::exception const&  ex) {
-      cout << "Can't make directory: " << ex.what() << endl;
+      CONSOLE_ERROR(ms, "Can't make directory: " << ex.what());
       ms->pushWord("pauseStackExecution"); 
     }
   }
@@ -227,7 +227,7 @@ virtual vector<string> names() {
 }
 CODE('Y') 
 virtual void execute(MachineState * ms)  {
-  publishConsoleMessage(ms, "STACK EXECUTION PAUSED.  Press enter to continue.");
+  CONSOLE(ms, "STACK EXECUTION PAUSED.  Press enter to continue.");
   ms->execute_stack = 0;
   ms->config.endThisStackCollapse = 1;
 }
@@ -2273,7 +2273,7 @@ virtual void execute(MachineState * ms)
   GET_ARG(ms, IntegerWord, scopeLevel);
 
   if (scopeLevel < 0) {
-    cout << "sP scope error." << endl;
+    CONSOLE_ERROR(ms, "sP scope error.");
     ms->pushWord("pauseStackExecution");
     return;
   } else if (scopeLevel == 0) {
@@ -2397,7 +2397,7 @@ virtual void execute(MachineState * ms) {
   bool value;
   GET_BOOLEAN_ARG(ms, value);
   if (!value) {
-    ROS_ERROR_STREAM("Failed assert. Pausing." << endl);
+    CONSOLE_ERROR(ms, "Failed assert. Pausing.");
     ms->pushWord("pauseStackExecution");
   }
 }
@@ -2410,7 +2410,7 @@ virtual void execute(MachineState * ms) {
   bool value;
   GET_BOOLEAN_ARG(ms, value);
   if (value) {
-    ROS_ERROR_STREAM("Failed assertNo. Pausing." << endl);
+    CONSOLE_ERROR(ms, "Failed assertNo. Pausing.");
     ms->pushWord("pauseStackExecution");
   }
 }
@@ -2531,7 +2531,7 @@ virtual void execute(MachineState * ms) {
     std::shared_ptr<Word> word = ms->popWord();
 
     if (word == NULL) {
-      cout << "oB found no word... pausing stack execution." << endl;
+      CONSOLE_ERROR(ms, "oB found no word... pausing stack execution.");
       ms->pushWord("pauseStackExecution");
       return;
     } else {
@@ -2578,13 +2578,13 @@ virtual void execute(MachineState * ms) {
     // take the one you just pushed, make sure it is cB
     std::shared_ptr<Word> word = ms->popData();
     if (word == NULL) {
-      cout << "oB found no word during sB reinsert a... pausing stack execution." << endl;
+      CONSOLE_ERROR(ms, "oB found no word during sB reinsert a... pausing stack execution.");
       ms->pushWord("pauseStackExecution");
       return;
     } else if ( 0 == word->name().compare("cB") ) {
       // good, should always happen
     } else {
-      cout << "oB found no cB during sB reinsert a... pausing stack execution." << endl;
+      CONSOLE_ERROR(ms, "oB found no cB during sB reinsert a... pausing stack execution.");
       ms->pushWord("pauseStackExecution");
       return;
     }
@@ -2597,7 +2597,7 @@ virtual void execute(MachineState * ms) {
       std::shared_ptr<Word> word = ms->popData();
 
       if (word == NULL) {
-	cout << "oB found no word during sB reinsert b... pausing stack execution." << endl;
+	CONSOLE_ERROR(ms, "oB found no word during sB reinsert b... pausing stack execution.");
 	ms->pushWord("pauseStackExecution");
 	return;
       } else if ( 0 == word->name().compare("cB") ) {
@@ -2623,7 +2623,7 @@ virtual void execute(MachineState * ms) {
       std::shared_ptr<Word> word = ms->popWord();
 
       if (word == NULL) {
-	cout << "oB found no word during sB reinsert c... pausing stack execution." << endl;
+	CONSOLE_ERROR(ms, "oB found no word during sB reinsert c... pausing stack execution.");
 	ms->pushWord("pauseStackExecution");
 	return;
       } else {
@@ -2648,7 +2648,7 @@ virtual void execute(MachineState * ms) {
   ms->pushWord("sP");
   std::shared_ptr<Word> word = ms->popWord();
   if (word == NULL) {
-    cout << "oB found no word on rewind... pausing stack execution." << endl;
+    CONSOLE_ERROR(ms, "oB found no word on rewind... pausing stack execution.");
     ms->pushWord("pauseStackExecution");
     return;
   } else {
@@ -2666,7 +2666,7 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  ROS_ERROR_STREAM("sB should never execute." << endl);
+  CONSOLE_ERROR(ms, "sB should never execute.");
   ms->pushWord("pauseStackExecution");
 }
 END_WORD
@@ -2680,7 +2680,7 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  ROS_ERROR_STREAM("Close bracket should never execute." << endl);
+  CONSOLE_ERROR(ms, "Close bracket should never execute.");
   ms->pushWord("pauseStackExecution");
 }
 END_WORD
@@ -2771,7 +2771,7 @@ virtual void execute(MachineState * ms) {
     if (outword != NULL) {
       ms->pushData(outword);
     } else {
-      cout << "No reference for symbol " << sWord->name() << endl;
+      CONSOLE_ERROR(ms, "No reference for symbol " << sWord->name());
       ms->pushWord("pauseStackExecution");
     }
   } else {
@@ -2798,7 +2798,7 @@ virtual void execute(MachineState * ms) {
       ms->pushData(outword);
       ms->pushWord("derefToTruth");
     } else {
-      cout << "No reference for symbol " << sWord->name() << endl;
+      CONSOLE_ERROR(ms, "No reference for symbol " << sWord->name());
       ms->pushWord("pauseStackExecution");
     }
   } else {
@@ -2919,6 +2919,10 @@ CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
 CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
 
 CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
+
+CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
+CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
+
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
