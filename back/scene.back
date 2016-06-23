@@ -946,12 +946,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* no additional scan */
 
   writeFocusedClass
-) "tempQuickScan" store
+) "tableQuickScan" store
 
 (
   "tempFullScan: starting" print
 
-  tempQuickScan
+  tableQuickScan
 
   1 waitSetCurrentWaitMode
   scanObjectScene
@@ -1225,7 +1225,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   "Ok, check the predicted map and make sure the object was added correctly." print
   "If it was, you can add 3d grasps." print
-) "tempSceneLock3dGrasp" store
+) "tableLock3dGrasp" store
 
 
 (
@@ -1432,10 +1432,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 0.3883 "tempReconstructWithZTopZ" store 
-0.0 "tempReconstructWithZTotalZDefault" store
+0.2 "tempReconstructWithZTotalZDefault" store
 tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
-0.0166 "tempReconstructWithZDeltaZ" store
-500 "tempReconstructStreamTakeSceneSamples" store
+0.005 "tempReconstructWithZDeltaZ" store
+1000 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1565,6 +1565,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   ) while
 
 
+  tempReconstructWithZTopZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
 /*
   sceneMarginalizeDepthStackIntoRegister
@@ -1716,9 +1717,9 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   */
 
 
-  0.03 "tempSpiralMoveSpeed" store
+  0.04 "tempSpiralMoveSpeed" store
 
-  24 "tempUpdateSpiralN" store
+  12 "tempUpdateSpiralN" store
   currentPose "tempUpdateSpiralPos" store
 
   /* clear it all */

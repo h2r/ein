@@ -1088,8 +1088,6 @@ void Scene::initializePredictedMapWithBackground() {
     by2 = cell_background_y;
   }
 
-
-
   double diffx_x = bx1 - bx0;
   double diffx_y = by1 - by0;
   
@@ -1135,7 +1133,7 @@ void Scene::composePredictedMap(double threshold) {
   //REQUIRE_FOCUSED_CLASS(ms, tfc);
   // XXX
   // choose the argMAP distribution
-  //   assign that color to the predicted map
+  //   asign that color to the predicted map
   //   assign the source to the segmentation
   //
   // Currently uses a "fallen leaves" model of composition, assuming objects
