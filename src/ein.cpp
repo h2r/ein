@@ -1468,10 +1468,11 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	(*outArm) = iArm;
 	(*outBase) = iBase;
 	return 1;
+      }
     }
+    cout << "bottomed out of the if." << endl;
+    return 0;
   }
-  cout << "bottomed out of the if." << endl;
-  return 0;
 }
 
 // casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut 
