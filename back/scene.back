@@ -1432,10 +1432,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 */
 
 0.3883 "tempReconstructWithZTopZ" store 
-0.2 "tempReconstructWithZTotalZDefault" store
+0.06 "tempReconstructWithZTotalZDefault" store
 tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
-0.005 "tempReconstructWithZDeltaZ" store
-1000 "tempReconstructStreamTakeSceneSamples" store
+0.02 "tempReconstructWithZDeltaZ" store
+500 "tempReconstructStreamTakeSceneSamples" store
 
 (
 
