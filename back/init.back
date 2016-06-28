@@ -8,7 +8,7 @@
 "wiki" import
 
 happyFace
-tempInit
+tableInit
 
 (  
 /*  0.562 0.478 0.069 -0.001 0.999 -0.000 0 createEEPose moveEeToPoseWord */

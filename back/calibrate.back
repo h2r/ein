@@ -1,8 +1,8 @@
 (
-  0.0 "tempReconstructWithZTotalZ" store
+  0.0 "tableReconstructWithZTotalZ" store
   1 sceneSetFixationMode
 
-  200 "tempReconstructStreamTakeSceneSamples" store
+  200 "tableReconstructStreamTakeSceneSamples" store
   0 sceneSetDepthPatchHalfWidth
 
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
@@ -14,16 +14,16 @@
 
   /* do binning from this height for good sample size */
   1 changeToHeight 
-  currentPose "tempUpdateSpiralPos" store
+  currentPose "tableUpdateSpiralPos" store
 
-  0 "tempChrThisHeight" store
-  3 "tempChrEndHeight" store
+  0 "tableChrThisHeight" store
+  3 "tableChrEndHeight" store
 
   (
-    tempChrThisHeight tempChrEndHeight < 
-    tempChrThisHeight tempChrEndHeight = or 
+    tableChrThisHeight tableChrEndHeight < 
+    tableChrThisHeight tableChrEndHeight = or 
   ) (
-    tempChrThisHeight changeToHeight 
+    tableChrThisHeight changeToHeight 
 
     /*
     sceneInit 
@@ -33,31 +33,31 @@
     sceneClearObservedMap
     clearStreamBuffers
 
-    tempUpdateSpinCoreNoClean
+    tableUpdateSpinCoreNoClean
 
     quarterImpulse
-    tempUpdateSpiralPos moveEeToPoseWord
-    tempChrThisHeight changeToHeight 
+    tableUpdateSpiralPos moveEeToPoseWord
+    tableChrThisHeight changeToHeight 
     waitUntilAtCurrentPosition
 
     /* finds the current height difference */
     /*
-    tempReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
+    tableReconstructWithZTopZ 0.388 divide 0.002 times  "slfgRebaseCellWidth" store slfgRebase
     */ 
 
     0.001 "slfgRebaseCellWidth" store slfgRebaseTable
 
     /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
-    tempReconstructWithZ
-    tempUpdateMaps
+    tableReconstructWithZ
+    tableUpdateMaps
 
     /*
-    tempChrThisHeight sceneSetHeightReticleFromVariance
+    tableChrThisHeight sceneSetHeightReticleFromVariance
     */
     slide ( scenePushPixelOfMinVariance  1 sP )
 
-      tempChrThisHeight 1 +
-    "tempChrThisHeight" store
+      tableChrThisHeight 1 +
+    "tableChrThisHeight" store
     
     /*
     pauseStackExecution
@@ -67,27 +67,27 @@
   calibrateHeightReticlesSetAll
 
   0 sceneSetFixationMode
-  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "calibrateHeightReticles" store
 
 (
-  tempChrEndHeight "tempChrThisHeight" store
+  tableChrEndHeight "tableChrThisHeight" store
   (
-    tempChrThisHeight 0 > 
-    tempChrThisHeight 0 = or 
+    tableChrThisHeight 0 > 
+    tableChrThisHeight 0 = or 
   ) (
-      tempChrThisHeight 
+      tableChrThisHeight 
 	swap 
       slip
     sceneSetHeightReticleFromPixel
 
-      tempChrThisHeight 1 -
-    "tempChrThisHeight" store
+      tableChrThisHeight 1 -
+    "tableChrThisHeight" store
   ) while 
 ) "calibrateHeightReticlesSetAll" store
 
 (
-  0.0 "tempReconstructWithZTotalZ" store
+  0.0 "tableReconstructWithZTotalZ" store
   201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
 
   1 sceneSetFixationMode
@@ -96,7 +96,7 @@
 
   /* do binning from this height for good sample size */
   1 changeToHeight 
-  currentPose "tempUpdateSpiralPos" store
+  currentPose "tableUpdateSpiralPos" store
 
   0 changeToHeight 
   0.01 setGridSize ( zDown ) 12 replicateWord
@@ -108,15 +108,15 @@
 
   0.001 "slfgRebaseCellWidth" store slfgRebaseTable
 
-  tempUpdateZoomCoreNoClean
+  tableUpdateZoomCoreNoClean
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
-  tempReconstructFromStream
-  tempUpdateMaps
+  tableReconstructFromStream
+  tableUpdateMaps
 
   /*
   sceneSetVanishingPointFromVariance
@@ -124,11 +124,11 @@
 
   
   0 sceneSetFixationMode
-  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "calibrateVanishingPointReticle" store
 
 (
-  0.0 "tempReconstructWithZTotalZ" store
+  0.0 "tableReconstructWithZTotalZ" store
   0.03 "thisGridSize" store
 
   sceneClearDepthStack
@@ -198,7 +198,7 @@
   */ 
 
 
-  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "calibrateVanishingPointReticleMultiSample" store
 
 0.2 "magCalDelta" store
@@ -248,11 +248,11 @@
 	eePosePZ
 	currentTableZ
       +
-    "tempReconstructWithZTopZ" store 
-    tempReconstructWithZ
+    "tableReconstructWithZTopZ" store 
+    tableReconstructWithZ
 
     /*
-    tempUpdateMaps
+    tableUpdateMaps
     */
 
 	scenePushAverageCrCbSigmaSquared 
@@ -291,11 +291,11 @@
   ) ifte
 
 
-) "tempMagCalibrationGridSearcher" store
+) "tableMagCalibrationGridSearcher" store
 
-0 "tempChrStartHeight" store
-3 "tempChrEndHeight" store
-0.0 "tempChrExtraZ" store
+0 "tableChrStartHeight" store
+3 "tableChrEndHeight" store
+0.0 "tableChrExtraZ" store
 (
   0 cameraSetCalibrationMode
   351 sceneSetAngularApertureRows 551 sceneSetAngularApertureCols
@@ -305,19 +305,19 @@
   waitUntilAtCurrentPosition
 
   1 changeToHeight 
-  currentPose "tempUpdateSpiralPos" store
+  currentPose "tableUpdateSpiralPos" store
 
-  tempChrStartHeight "tempChrThisHeight" store
+  tableChrStartHeight "tableChrThisHeight" store
 
   (
-    tempChrThisHeight tempChrEndHeight < 
-    tempChrThisHeight tempChrEndHeight = or 
+    tableChrThisHeight tableChrEndHeight < 
+    tableChrThisHeight tableChrEndHeight = or 
   ) (
-    tempChrThisHeight changeToHeight 
+    tableChrThisHeight changeToHeight 
 
         currentPose 
 	  currentPose 
-	  eePosePZ tempChrExtraZ
+	  eePosePZ tableChrExtraZ
 	+ 
       setEEPosePZ 
     moveEeToPoseWord waitUntilAtCurrentPosition comeToStop
@@ -327,19 +327,19 @@
     clearStreamBuffers
     waitUntilAtCurrentPosition
 
-    tempUpdateMagCoreNoClean
+    tableUpdateMagCoreNoClean
 
     quarterImpulse
-    tempUpdateSpiralPos moveEeToPoseWord
+    tableUpdateSpiralPos moveEeToPoseWord
 
     /* necessary for mag changes to take effect properly */
-    tempChrThisHeight changeToHeight 
+    tableChrThisHeight changeToHeight 
     waitUntilAtCurrentPosition
 
-    tempMagCalibrationGridSearcher
+    tableMagCalibrationGridSearcher
 
-      tempChrThisHeight 1 +
-    "tempChrThisHeight" store
+      tableChrThisHeight 1 +
+    "tableChrThisHeight" store
     
     /*
     pauseStackExecution
@@ -359,19 +359,19 @@
   waitUntilAtCurrentPosition
 
   1 changeToHeight 
-  currentPose "tempUpdateSpiralPos" store
+  currentPose "tableUpdateSpiralPos" store
 
-  tempChrStartHeight "tempChrThisHeight" store
+  tableChrStartHeight "tableChrThisHeight" store
 
   (
-    tempChrThisHeight tempChrEndHeight < 
-    tempChrThisHeight tempChrEndHeight = or 
+    tableChrThisHeight tableChrEndHeight < 
+    tableChrThisHeight tableChrEndHeight = or 
   ) (
-    tempChrThisHeight changeToHeight 
+    tableChrThisHeight changeToHeight 
 
         currentPose 
 	  currentPose 
-	  eePosePZ tempChrExtraZ
+	  eePosePZ tableChrExtraZ
 	+ 
       setEEPosePZ 
     moveEeToPoseWord waitUntilAtCurrentPosition comeToStop
@@ -381,29 +381,29 @@
     clearStreamBuffers
     waitUntilAtCurrentPosition
 
-    tempUpdateMagCoreNoClean
+    tableUpdateMagCoreNoClean
     endStackCollapseNoop
 
 
-      tempChrThisHeight 1 +
-    "tempChrThisHeight" store
+      tableChrThisHeight 1 +
+    "tableChrThisHeight" store
     
   ) while 
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 
-  tempChrStartHeight "tempChrThisHeight" store
+  tableChrStartHeight "tableChrThisHeight" store
   (
-    tempChrThisHeight tempChrEndHeight < 
-    tempChrThisHeight tempChrEndHeight = or 
+    tableChrThisHeight tableChrEndHeight < 
+    tableChrThisHeight tableChrEndHeight = or 
   ) (
-    tempChrThisHeight changeToHeight 
-      tempChrThisHeight 1 +
-    "tempChrThisHeight" store
+    tableChrThisHeight changeToHeight 
+      tableChrThisHeight 1 +
+    "tableChrThisHeight" store
 
-    tempMagCalibrationGridSearcher
+    tableMagCalibrationGridSearcher
     
   ) while 
 
@@ -415,7 +415,7 @@
 ) "calibrateOnBundleOneDimensionJointHeights" store
 
 (
-  0.0 "tempReconstructWithZTotalZ" store
+  0.0 "tableReconstructWithZTotalZ" store
 
   /*
   depth dependent magnification 
@@ -450,10 +450,10 @@
 
   0 cameraSetCalibrationMode
 
-  100 "tempReconstructStreamTakeSceneSamples" store
-  0 "tempChrStartHeight" store
-  1 "tempChrEndHeight" store
-  0.0 "tempChrExtraZ" store
+  100 "tableReconstructStreamTakeSceneSamples" store
+  0 "tableChrStartHeight" store
+  1 "tableChrEndHeight" store
+  0.0 "tableChrExtraZ" store
 
   ( cameraGetIdxMagX ) "magCalGetter" store
   ( cameraSetIdxMagX ) "magCalSetter" store
@@ -476,7 +476,7 @@
   1 changeToHeight cameraGetIdxMagX dup 2 changeToHeight cameraSetIdxMagX 3 changeToHeight cameraSetIdxMagX
   cameraFitHyperbolic 2 cameraSetCalibrationMode
 
-  tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "calibrateMagnification" store
 
 (
@@ -496,10 +496,10 @@
     and jointly optimized, but the code at the time did not support it
   */
 
-  200 "tempReconstructStreamTakeSceneSamples" store
+  200 "tableReconstructStreamTakeSceneSamples" store
 
-  0 "tempChrStartHeight" store
-  3 "tempChrEndHeight" store
+  0 "tableChrStartHeight" store
+  3 "tableChrEndHeight" store
 
   1 "magCalDelta" store
   16 "magCalSteps" store

@@ -27,8 +27,8 @@
 ( 
   /* warning, still hardcoded for playworkspace */
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
-  tempRestoreFromBlocks
-  tempSwapToBlocks
+  tableRestoreFromBlocks
+  tableSwapToBlocks
 
   setMovementStateToMoving comeToStop 
   sceneClearObservedMap sceneClearPredictedObjects
@@ -36,13 +36,13 @@
   clearClassLabels
   initializeAndFocusOnTempClass
 
-  /* based on tempRecaptureServoSpiral */
+  /* based on tableRecaptureServoSpiral */
   sceneClearPredictedObjects
-  sceneClearObservedMap catScan5PlayTakeScene tempUpdateMaps
-  tempCaptureCore
-  tempUpdateMaps
+  sceneClearObservedMap catScan5PlayTakeScene tableUpdateMaps
+  tableCaptureCore
+  tableUpdateMaps
 
-  tempServoToFocusedSceneObject
+  tableServoToFocusedSceneObject
   /* end based on */
 
   scenePushNumSceneObjects 0 = 
@@ -52,7 +52,7 @@
     0 
   ) ifte
 
-  tempRestoreFromBlocks
+  tableRestoreFromBlocks
 ) "cw_viewIsClear" store
 
 ( 
@@ -61,7 +61,7 @@
 ) "cw_viewIsClear_old" store
 
 (
-  tempSpiralServoToAnonymousObject
+  tableSpiralServoToAnonymousObject
   shiftIntoGraspGear1
 ) "cw_servo_for_flick" store
 
@@ -129,7 +129,7 @@
 
 3 "cw_clearWorkspace_max" store
 (
-  tempSwapToBlocks
+  tableSwapToBlocks
   catScan5LoadPlayBg
 
   1 setCurrentIKBoundaryMode
@@ -146,7 +146,7 @@
 
     sceneClearPredictedObjects 
   
-    "Attempt " cw_clearWorkspace_counter " out of " cw_clearWorkspace_max + + + print
+    "Attablet " cw_clearWorkspace_counter " out of " cw_clearWorkspace_max + + + print
 
       dup /* copy the workspace pose */
     cw_workspaceIsClear "cw_clearWorkspace_space_clear" store
@@ -156,11 +156,11 @@
       cw_clearWorkspace_max "cw_clearWorkspace_counter" store
       0 "cw_clearWorkspace_rescan" store
     ) (
-      "Workspace not clear, attempting to flick object." print
+      "Workspace not clear, attableting to flick object." print
       
       /* should already be at the right place thanks to cw_workspaceIsClear */
       /* 
-      tempSpiralServoToAnonymousObject 
+      tableSpiralServoToAnonymousObject 
       */
       waitUntilAtCurrentPosition
       cw_tri_flick
@@ -175,7 +175,7 @@
     catScan5UpdatePlayBg
   ) ift
   
-  tempRestoreFromBlocks
+  tableRestoreFromBlocks
 
   print
 ) "cw_clearWorkspace" store
