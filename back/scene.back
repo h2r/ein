@@ -1124,12 +1124,12 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tempAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tempBlockUsingBlocks" store
-0.0550 "tempBlockMaxGraspThickness" store
+0.070 "tempBlockMaxGraspThickness" store
 /*
 0.04 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 */
-0.03 "tempBlockGripperThrow" store
+0.02 "tempBlockGripperThrow" store
 0.01 "tempBlockGraspResolution" store
 0.055 "tempBlockTargetContactWidth" store
 0.02 "tempBlockCollarWidth" store
@@ -1835,7 +1835,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
     +
   "tempReconstructWithZTopZ" store 
 
-  tempReconstructWithZTopZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tempReconstructWithZTopZ 0.388 divide 0.005 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
 
   /* 
