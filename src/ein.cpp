@@ -1411,7 +1411,8 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 
   // if we are more than p_rejectThresh away from a measurement, reject it
   double p_rejectThresh = 1.0;
-  int &thisIdx = ms->config.spbCurIdx;
+  // XXX int &thisIdx = ms->config.spbCurIdx;
+  int thisIdx = ms->config.spbCurIdx;
   vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
 
   if (tspb.size() < 2) {
@@ -10387,6 +10388,40 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
   //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
   //*gY = cache->givenEEPose.py - cache->dy + (pY-cache->cy)*cache->gYFactor;
   *gY = cache->finalYOffset + pY * cache->gYFactor;
+
+}
+
+void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+
+  double rotatedPX = (cache->rotx[0] * pX +
+                      cache->rotx[1] * pY +
+                      cache->rotx[2]);
+  double rotatedPY = (cache->roty[0] * pX +
+                      cache->roty[1] * pY +
+                      cache->roty[2]);
+  //assert(0);
+
+  pX = cache->reticlePixelXOffset + rotatedPY;
+  pY = cache->reticlePixelYOffset + rotatedPX;
+
+/*
+  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
+  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
+
+  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
+  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
+*/
+  // taking out other singularity
+
+  //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
+  //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
+  //*gX = cache->givenEEPose.px - cache->dx + (pX-cache->cx)*cache->gXFactor;
+  *gX = cache->finalXOffset - pX * cache->gXFactor;
+
+  //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ);
+  //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
+  //*gY = cache->givenEEPose.py - cache->dy + (pY-cache->cy)*cache->gYFactor;
+  *gY = cache->finalYOffset - pY * cache->gYFactor;
 
 }
 
