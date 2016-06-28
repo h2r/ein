@@ -284,10 +284,10 @@ CONFIG_SETTER_INT(SetNumClasses, ms->config.numClasses)
 
 WORD(PrintClassLabels)
 virtual void execute(MachineState * ms)       {
-  cout << "printClassLabels: " << ms->config.classLabels.size() << endl;
+  CONSOLE(ms, "printClassLabels: " << ms->config.classLabels.size());
 
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << i << ": " << ms->config.classLabels[i] << endl;
+    CONSOLE(ms, i << ": " << ms->config.classLabels[i]);
   }
 }
 END_WORD

@@ -946,12 +946,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   /* no additional scan */
 
   writeFocusedClass
-) "quickScan" store
+) "tableQuickScan" store
 
 (
   "tableFullScan: starting" print
 
-  quickScan
+  tableQuickScan
 
   1 waitSetCurrentWaitMode
   scanObjectScene
@@ -1441,11 +1441,11 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 3.80 "tableReconstructWithZTopZ" store 
 */
 
-0.3883 "tableReconstructWithZTopZ" store 
-0.00 "tableReconstructWithZTotalZDefault" store
-tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
-0.02 "tableReconstructWithZDeltaZ" store
-100000 "tableReconstructStreamTakeSceneSamples" store
+0.3883 "tempReconstructWithZTopZ" store 
+0.0 "tempReconstructWithZTotalZDefault" store
+tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
+0.02 "tempReconstructWithZDeltaZ" store
+500 "tempReconstructStreamTakeSceneSamples" store
 
 (
 

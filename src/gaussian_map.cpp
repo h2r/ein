@@ -20,9 +20,12 @@ void _GaussianMapChannel::zero() {
   sigmasquared = 0.0;
   samples = 0.0;
 }
+shared_ptr<Scene> Scene::createEmptyScene(MachineState * ms) {
+  return make_shared<Scene>(ms, 1, 1, 0.02, eePose::identity());
+}
 
 shared_ptr<Scene> Scene::createFromFile(MachineState * ms, string filename) {
-  shared_ptr<Scene> scene = make_shared<Scene>(ms, 1, 1, 0.02, eePose::identity());
+  shared_ptr<Scene> scene = createEmptyScene(ms);
   scene->loadFromFile(filename);
   return scene;
 }

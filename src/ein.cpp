@@ -29,7 +29,7 @@
 #define stringer(token) #token
 #define stringer_value(token) stringer(token)
 
-
+#include <boost/filesystem.hpp>
 
 MainWindow * einMainWindow;
 vector< MachineState * > machineStates;
@@ -4974,8 +4974,16 @@ void renderWristViewImage(MachineState * ms) {
       rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(142,31,255)); // RGB: 255 31 142
     }
   }
-
-  
+  if (ms->config.mask_gripper) {
+    for (int y = 0; y < ms->config.gripperMask.rows; y++) {
+      uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(y); // point to first pixel in row
+      for (int x = 0; x < ms->config.gripperMask.cols; x++) {
+        if (gripperMaskPixel[x] == 0) {
+          ms->config.wristViewImage.at<Vec3b>(y,x)[0] = 255;
+	}
+      }
+    }
+  }
 }
 
 void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -13899,7 +13907,13 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 
   {
     guardSceneModels(ms);
-    ms->config.class_scene_models[i] = Scene::createFromFile(ms, sceneModelFile(ms, thisLabelName));
+    string fname = sceneModelFile(ms, thisLabelName);
+    if (!boost::filesystem::exists(fname)) {
+      ms->config.class_scene_models[i] = Scene::createEmptyScene(ms);
+    } else {
+      ms->config.class_scene_models[i] = Scene::createFromFile(ms, fname);
+    }
+
   }
 }
 
