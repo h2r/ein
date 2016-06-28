@@ -5441,6 +5441,255 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
 
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll)
+virtual void execute(MachineState * ms) {
+// XXX not really started yet
+
+  // distance of focal plane from anchor pose.
+  double z_focal_plane = 0.388;
+  GET_NUMERIC_ARG(ms, z_focal_plane);
+
+  // distance of aperture plane from anchor pose.
+  double z_aperture_plane = 0.01;
+  GET_NUMERIC_ARG(ms, z_aperture_plane);
+
+  // width in meters of circular global aperture
+  double global_aperture_width_meters = 0.01;
+  GET_NUMERIC_ARG(ms, global_aperture_width_meters);
+  double global_aperture_radius_meters = global_aperture_width_meters / 2.0;
+  double global_aperture_radius_meters_squared = global_aperture_radius_meters * global_aperture_radius_meters;
+  
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+
+  cout << "viewSynth fp ap awm str: " << z_focal_plane << " " << z_aperture_plane << " " << global_aperture_width_meters << " " << stride << endl;
+  
+
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = ms->config.gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+  }
+
+  int numThreads = 8;
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (ms->config.streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (ms->config.streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      // XXX
+      double z = z_focal_plane;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+
+
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose: " << success << " time: " << tsi->time);
+        continue;
+      }
+
+
+      /*
+      eePose focal_plane_anchor_pose = eePose::identity();
+      focal_plane_anchor_pose.pz = -z_focal_plane;
+      focal_plane_anchor_pose = focal_plane_anchor_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
+      */
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
+        continue;
+      }
+
+      // XXX
+      // get the pose of the image in the anchor pose frame,
+      //  subtract the depth from the achnor pose focal depth.
+      // if difference is positive, continue and use that z for casting
+      //  but anchor focal depth as z observation
+      // but the anchor pose canonically points backwards relative to the end effector that generated it
+      //  so be careful with the sign
+      double fp_anchor_z = -z_focal_plane;
+      double ap_anchor_z = -z_aperture_plane;
+      double f_cast_z = -(fp_anchor_z - transformed.pz);
+      double a_cast_z = -(ap_anchor_z - transformed.pz);
+      cout << transformed.pz << " " << f_cast_z << " " << a_cast_z << endl;
+      if ( (f_cast_z == 0.0) || (a_cast_z == 0.0) ) {
+        CONSOLE_ERROR(ms, "  Not doing update because height singular.");
+	continue;
+      }
+
+
+      pixelToGlobalCache data_f;      
+      computePixelToPlaneCache(ms, fabs(f_cast_z), tArmP, ms->config.scene->anchor_pose, &data_f);  
+
+      double f_bc_cast_length = fabs(2.8*f_cast_z);
+      pixelToGlobalCache data_2f;      
+      computePixelToPlaneCache(ms, f_bc_cast_length, tArmP, ms->config.scene->anchor_pose, &data_2f);  
+
+      pixelToGlobalCache data_a;      
+      computePixelToPlaneCache(ms, fabs(a_cast_z), tArmP, ms->config.scene->anchor_pose, &data_a);  
+
+      double a_bc_cast_length = fabs(2.8*a_cast_z);
+      pixelToGlobalCache data_2a;      
+      computePixelToPlaneCache(ms, a_bc_cast_length, tArmP, ms->config.scene->anchor_pose, &data_2a);  
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+
+      int num_aperture_backcasts = 0;
+      int num_focal_backcasts = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+
+	  // XXX
+	  // check to see if the ray is within the global aperture
+	  //  if the start point is in front of the aperture, 
+	  //  back cast it for the check
+          
+          double x_a, y_a;
+	  if (a_cast_z > 0) {
+	    pixelToGlobalFromCache(ms, px, py, &x_a, &y_a, &data_a);
+	  } else {
+	    //pixelToGlobalFromCacheBackCast(ms, px, py, &x_a, &y_a, &data_a);
+	    num_aperture_backcasts++;
+	    double x_2a, y_2a;
+	    pixelToGlobalFromCache(ms, px, py, &x_a, &y_a, &data_a);
+	    pixelToGlobalFromCache(ms, px, py, &x_2a, &y_2a, &data_2a);
+
+	    x_a = x_a + 2.0*(x_a - x_2a);
+	    y_a = y_a + 2.0*(y_a - y_2a);
+	  } // 0 case should have been handled above
+	  
+	  if (x_a * x_a + y_a * y_a > global_aperture_radius_meters_squared) {
+	    //cout << "  rejected: " << x_a << " " << ms->config.scene->anchor_pose.px << " " << y_a << " " << ms->config.scene->anchor_pose.py << endl;
+	    continue;
+	  } else {
+	    //cout << "  retained: " << x_a << " " << ms->config.scene->anchor_pose.px << " " << y_a << " " << ms->config.scene->anchor_pose.py << endl;
+	  } 
+
+          double x_f, y_f;
+	  if (f_cast_z > 0) {
+	    pixelToGlobalFromCache(ms, px, py, &x_f, &y_f, &data_f);
+	  } else {
+	    //pixelToGlobalFromCacheBackCast(ms, px, py, &x_f, &y_f, &data_f);
+	    num_focal_backcasts++;
+	    double x_2f, y_2f;
+	    pixelToGlobalFromCache(ms, px, py, &x_f, &y_f, &data_f);
+	    pixelToGlobalFromCache(ms, px, py, &x_2f, &y_2f, &data_2f);
+
+	    x_f = x_f + 2.0*(x_f - x_2f);
+	    y_f = y_f + 2.0*(y_f - y_2f);
+	  } // 0 case should have been handled above
+          
+          if (1) {
+            // single sample update
+            int i, j;
+            maps[thread]->metersToCell(x_f, y_f, &i, &j);
+            GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+            
+            
+            if (cell != NULL) {
+              int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+              cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z_focal_plane);
+              numPixels++;
+            }
+          } else {
+            numNulls++;
+          }
+        }
+      }
+  
+      //cout << "backcasts ap fc: " << num_aperture_backcasts << " " << num_focal_backcasts << endl;
+    }
+  }
+  
+  //#pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll)
+
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
 virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;

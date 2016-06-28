@@ -18,69 +18,69 @@
 ( 
   sceneClearObservedMap 
   ( sceneUpdateObservedFromWrist ) 10 replicateWord 
-  tempCaptureCore
-) "tempCaptureAsFocused" store
+  tableCaptureCore
+) "tableCaptureAsFocused" store
 
 ( 
   sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
-) "tempCaptureCore" store
+) "tableCaptureCore" store
 
 (
   4.0 sceneSetBackgroundStdDevY
   4.0 sceneSetBackgroundStdDevColor
-) "tempRegularizeBackground" store
+) "tableRegularizeBackground" store
 
 (
   4.0 sceneSetFocusedSceneStdDevY
   4.0 sceneSetFocusedSceneStdDevColor
-) "tempRegularizeFocusedClassModel" store
+) "tableRegularizeFocusedClassModel" store
 
-0.1 "tempDefaultScoreThresh" store
+0.1 "tableDefaultScoreThresh" store
 ( 
   sceneSetDiscrepancyModeNoisyOr
 
-  tempDefaultScoreThresh sceneSetScoreThresh
+  tableDefaultScoreThresh sceneSetScoreThresh
   bg sceneLoadBackgroundMap 
   5 sceneSetCellCountThreshold 
-  tempRegularizeBackground
+  tableRegularizeBackground
 
   sceneClearObservedMap sceneClearPredictedObjects 
-) "Initialize scene parameters." "tempInit" define
+) "Initialize scene parameters." "tableInit" define
 
 0.1 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
   sceneScoreThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
-) "tempUpdateMaps" store
+) "tableUpdateMaps" store
 
 (
-  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tempUpdateMaps
-) "tempShortTakeScene" store
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tableUpdateMaps
+) "tableShortTakeScene" store
 
 (
-  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 5 replicateWord tempUpdateMaps
-) "tempLongTakeScene" store
+  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 5 replicateWord tableUpdateMaps
+) "tableLongTakeScene" store
 
 (
-  sceneClearObservedMap tempUpdateFivePointThreeWidth tempUpdateMaps
-) "tempFivePointThreeWidthTakeScene" store
+  sceneClearObservedMap tableUpdateFivePointThreeWidth tableUpdateMaps
+) "tableFivePointThreeWidthTakeScene" store
 
 (
-  sceneClearObservedMap tempUpdateSpiral 
-) "tempSpiralTakeScene" store
+  sceneClearObservedMap tableUpdateSpiral 
+) "tableSpiralTakeScene" store
 
-0.1 "tempSpiralMoveSpeedDefault" store
-tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
-0.02 "tempSpiralGridSizeDefault" store
-tempSpiralGridSizeDefault "tempSpiralGridSize" store
-500 "tempSpiralStreamTakeSceneSamplesDefault" store
-tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
+0.1 "tableSpiralMoveSpeedDefault" store
+tableSpiralMoveSpeedDefault "tableSpiralMoveSpeed" store
+0.02 "tableSpiralGridSizeDefault" store
+tableSpiralGridSizeDefault "tableSpiralGridSize" store
+500 "tableSpiralStreamTakeSceneSamplesDefault" store
+tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" store
 (
 
-  tempSpiralStreamTakeSceneSamples "tempReconstructStreamTakeSceneSamples" store
-  tempReconstructFromStream
+  tableSpiralStreamTakeSceneSamples "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructFromStream
 
-) "tempUpdateSpiralCoreIntegrate" store
+) "tableUpdateSpiralCoreIntegrate" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -93,25 +93,25 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   activateSensorStreaming
 
   /* spiral scan pattern */
-  tempSpiralMoveSpeed setSpeed
-  tempSpiralGridSize setGridSize
+  tableSpiralMoveSpeed setSpeed
+  tableSpiralGridSize setGridSize
   /* shiftIntoGraspGear1 waitUntilAtCurrentPosition */
 
-  1 "tempUpdateSpiralIdx" store
+  1 "tableUpdateSpiralIdx" store
 
-  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( localXUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localYUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localXDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localYDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    "tempUpdateSpiralCoreNoClean" print
-    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ( tableUpdateSpiralIdx tableUpdateSpiralN <  ) 
+  ( ( localXUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localXDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "tableUpdateSpiralCoreNoClean" print
+    tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
   ) while
 
   /* turn streaming off */
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
-) "tempUpdateSpiralCoreNoClean" store
+) "tableUpdateSpiralCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -124,45 +124,45 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   activateSensorStreaming
 
   /* spiral scan pattern */
-  tempSpiralMoveSpeed setSpeed
-  tempSpiralGridSize setGridSize
+  tableSpiralMoveSpeed setSpeed
+  tableSpiralGridSize setGridSize
   /* shiftIntoGraspGear1 waitUntilAtCurrentPosition */
 
-  1 "tempUpdateSpiralIdx" store
+  1 "tableUpdateSpiralIdx" store
 
-  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( localXUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localYUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localXDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( localYDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    "tempUpdateSpiralCoreNoClean" print
-    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ( tableUpdateSpiralIdx tableUpdateSpiralN <  ) 
+  ( ( localXUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localXDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( localYDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "tableUpdateSpiralCoreNoClean" print
+    tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
   ) while
 
   /* turn streaming off */
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
-) "tempFusionSpiralCoreNoClean" store
+) "tableFusionSpiralCoreNoClean" store
 
 (
-  "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
   clearStreamBuffers
   0.03 setW1GoThresh
 
-  tempUpdateSpiralCoreNoClean
+  tableUpdateSpiralCoreNoClean
 
   /* integrate results */
 
-  tempUpdateSpiralCoreIntegrate 
+  tableUpdateSpiralCoreIntegrate 
 
-  tempUpdateMaps
+  tableUpdateMaps
 
-  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
-) "tempUpdateSpiralCore" store
+  quarterImpulse tableUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
+) "tableUpdateSpiralCore" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -175,31 +175,31 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   activateSensorStreaming
 
   /* spiral scan pattern */
-  tempSpiralMoveSpeed setSpeed
-  tempSpiralGridSize setGridSize
+  tableSpiralMoveSpeed setSpeed
+  tableSpiralGridSize setGridSize
   0.03 setW1GoThresh
 
-  1 "tempUpdateSpiralIdx" store
+  1 "tableUpdateSpiralIdx" store
 
-  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yUp waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( xDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralXNum times 1 tempUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    ( yDown waitUntilAtCurrentPosition ) tempUpdateSpiralIdx tempUpdateSpiralYNum times 1 tempUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
-    "tempUpdateSpiralEccentricCore" print
-    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ( tableUpdateSpiralIdx tableUpdateSpiralN <  ) 
+  ( ( xUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx tableUpdateSpiralXNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yUp waitUntilAtCurrentPosition ) tableUpdateSpiralIdx tableUpdateSpiralYNum times replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( xDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx tableUpdateSpiralXNum times 1 tableUpdateSpiralXNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    ( yDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx tableUpdateSpiralYNum times 1 tableUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
+    "tableUpdateSpiralEccentricCore" print
+    tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
   ) while
 
   /* turn streaming off */
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
-) "tempUpdateSpiralEccentricCoreNoClean" store
+) "tableUpdateSpiralEccentricCoreNoClean" store
 
 (
-  "tempUpdateSpiralN" store
-  "tempUpdateSpiralYNum" store
-  "tempUpdateSpiralXNum" store
-  currentPose "tempUpdateSpiralPos" store
+  "tableUpdateSpiralN" store
+  "tableUpdateSpiralYNum" store
+  "tableUpdateSpiralXNum" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
@@ -207,46 +207,46 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   clearStreamBuffers
   0.03 setW1GoThresh
 
-  tempUpdateSpiralEccentricCoreNoClean
+  tableUpdateSpiralEccentricCoreNoClean
 
   
   /* integrate results */
-  tempUpdateSpiralCoreIntegrate
+  tableUpdateSpiralCoreIntegrate
 
-  tempUpdateMaps
+  tableUpdateMaps
 
-  quarterImpulse tempUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
-) "tempUpdateSpiralEccentricCore" store
+  quarterImpulse tableUpdateSpiralPos moveEeToPoseWord waitUntilAtCurrentPosition
+) "tableUpdateSpiralEccentricCore" store
 
 
 (
   /* takes a string */
-  tempLoadAndPrepareFocusedModel tempShortTakeScene scenePredictFocusedObject tempUpdateMaps
-) "tempPredictAndRenderFile" store
+  tableLoadAndPrepareFocusedModel tableShortTakeScene scenePredictFocusedObject tableUpdateMaps
+) "tablePredictAndRenderFile" store
 
 (
-  tempShortTakeScene scenePredictBestObject tempUpdateMaps
-) "tempPredictAndRenderBest" store
+  tableShortTakeScene scenePredictBestObject tableUpdateMaps
+) "tablePredictAndRenderBest" store
 
 (
-  tempFivePointThreeWidthTakeScene scenePredictBestObject tempUpdateMaps
-) "tempFivePointThreeWidthPredictAndRenderBest" store
+  tableFivePointThreeWidthTakeScene scenePredictBestObject tableUpdateMaps
+) "tableFivePointThreeWidthPredictAndRenderBest" store
 
 (
-  tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs
-) "tempFivePointThreeWidthIsNewComponent" store
+  tableFivePointThreeWidthIsNewComponentNormalizedSumOfLogs
+) "tableFivePointThreeWidthIsNewComponent" store
 
 (
   numClasses 0 > (
-    0.5 "tempNewComponentThresh" store
+    0.5 "tableNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
-    tempFivePointThreeWidthTakeScene
+    tableFivePointThreeWidthTakeScene
     /*
-    tempShortTakeScene
+    tableShortTakeScene
     */
-    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
     /* pauseStackExecution */
 
     /*
@@ -254,54 +254,54 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
 	  scenePushTotalDiscrepancyMagnitude 
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
+	"tableFivePointThreeWidthIsNewComponent: total discrepancy before " 
       swap + print 
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancy 
     */
 	  scenePushTotalDiscrepancyMagnitude 
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
+	"tableFivePointThreeWidthIsNewComponent: total discrepancy after " 
       swap + print 
 
 	    swap
 	  divide
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: after / before ratio is " 
+	"tableFivePointThreeWidthIsNewComponent: after / before ratio is " 
       swap + print
 
-    tempNewComponentThresh > (
+    tableNewComponentThresh > (
 	    1
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: IS a new component, returning " 
       swap + print
     ) (
 	    0
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
       swap + print
     ) ifte
 
 	dup
-      "tempFivePointThreeWidthIsNewComponent: returning " 
+      "tableFivePointThreeWidthIsNewComponent: returning " 
     swap + print
   ) (
-    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    "tableFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
     1
   ) ifte
 
-) "tempFivePointThreeWidthIsNewComponentBeforeAfter" store
+) "tableFivePointThreeWidthIsNewComponentBeforeAfter" store
 
 (
   numClasses 0 > (
-    0.15 "tempNewComponentThresh" store
+    0.15 "tableNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
-    tempUpdateSpiral
+    tableUpdateSpiral
 
     endStackCollapseNoop 0.1 waitForSeconds
 
@@ -312,79 +312,79 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
 	  scenePushTotalDiscrepancy 
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total discrepancy before " 
+	"tableFivePointThreeWidthIsNewComponent: total discrepancy before " 
       swap + print 
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancyMagnitude 
     */
 	  scenePushTotalDiscrepancy 
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total discrepancy after " 
+	"tableFivePointThreeWidthIsNewComponent: total discrepancy after " 
       swap + print 
 
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_after" store
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_before" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_after" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_before" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_before
-      "tempFivePointThreeWidthIsNewComponent: total discrepancy before is " 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_before
+      "tableFivePointThreeWidthIsNewComponent: total discrepancy before is " 
     swap + print
 
 
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_before
       +
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
-      "tempFivePointThreeWidthIsNewComponent: before after sum is" 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      "tableFivePointThreeWidthIsNewComponent: before after sum is" 
     swap + print
     
 
 
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_sum
       divide
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
-      "tempFivePointThreeWidthIsNewComponent: after / sum ratio is " 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      "tableFivePointThreeWidthIsNewComponent: after / sum ratio is " 
     swap + print
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
-      tempNewComponentThresh 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      tableNewComponentThresh 
     > (
 	    1
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: IS a new component, returning " 
       swap + print
     ) (
 	    0
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
       swap + print
     ) ifte
 
 	dup
-      "tempFivePointThreeWidthIsNewComponent: returning " 
+      "tableFivePointThreeWidthIsNewComponent: returning " 
     swap + print
   ) (
-      "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+      "tableFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
     print
     1
   ) ifte
 
-) "tempSpiralIsNewComponentNormalizedSum" store
+) "tableSpiralIsNewComponentNormalizedSum" store
 
 
 (
   numClasses 0 > (
-    0.15 "tempNewComponentThresh" store
+    0.15 "tableNewComponentThresh" store
     sceneClearPredictedObjects
 
-    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /* pauseStackExecution */
 
@@ -393,105 +393,105 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     */
 	  scenePushTotalDiscrepancy 
 	dup 
-	"tempSpiralIsNewComponentInPlace: total discrepancy before " 
+	"tableSpiralIsNewComponentInPlace: total discrepancy before " 
       swap + print 
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancyMagnitude 
     */
 	  scenePushTotalDiscrepancy 
 	dup 
-	"tempSpiralIsNewComponentInPlace: total discrepancy after " 
+	"tableSpiralIsNewComponentInPlace: total discrepancy after " 
       swap + print 
 
-    "tempSpiralIsNewComponentInPlace_after" store
-    "tempSpiralIsNewComponentInPlace_before" store
+    "tableSpiralIsNewComponentInPlace_after" store
+    "tableSpiralIsNewComponentInPlace_before" store
 
-      tempSpiralIsNewComponentInPlace_before
-      "tempSpiralIsNewComponentInPlace: total discrepancy before is " 
+      tableSpiralIsNewComponentInPlace_before
+      "tableSpiralIsNewComponentInPlace: total discrepancy before is " 
     swap + print
 
 
-	tempSpiralIsNewComponentInPlace_after
-	tempSpiralIsNewComponentInPlace_before
+	tableSpiralIsNewComponentInPlace_after
+	tableSpiralIsNewComponentInPlace_before
       +
-    "tempSpiralIsNewComponentInPlace_sum" store
+    "tableSpiralIsNewComponentInPlace_sum" store
 
-      tempSpiralIsNewComponentInPlace_sum
-      "tempSpiralIsNewComponentInPlace: before after sum is" 
+      tableSpiralIsNewComponentInPlace_sum
+      "tableSpiralIsNewComponentInPlace: before after sum is" 
     swap + print
     
 
 
-	tempSpiralIsNewComponentInPlace_after
-	tempSpiralIsNewComponentInPlace_sum
+	tableSpiralIsNewComponentInPlace_after
+	tableSpiralIsNewComponentInPlace_sum
       divide
-    "tempSpiralIsNewComponentInPlace_ratio" store
+    "tableSpiralIsNewComponentInPlace_ratio" store
 
-      tempSpiralIsNewComponentInPlace_ratio
-      "tempSpiralIsNewComponentInPlace: after / sum ratio is " 
+      tableSpiralIsNewComponentInPlace_ratio
+      "tableSpiralIsNewComponentInPlace: after / sum ratio is " 
     swap + print
 
-      tempSpiralIsNewComponentInPlace_ratio
-      tempNewComponentThresh 
+      tableSpiralIsNewComponentInPlace_ratio
+      tableNewComponentThresh 
     > (
 	    1
 	  dup
-	"tempSpiralIsNewComponentInPlace: IS a new component, returning " 
+	"tableSpiralIsNewComponentInPlace: IS a new component, returning " 
       swap + print
     ) (
 	    0
 	  dup
-	"tempSpiralIsNewComponentInPlace: AIN'T a new component, returning " 
+	"tableSpiralIsNewComponentInPlace: AIN'T a new component, returning " 
       swap + print
     ) ifte
 
 	dup
-      "tempSpiralIsNewComponentInPlace: returning " 
+      "tableSpiralIsNewComponentInPlace: returning " 
     swap + print
   ) (
-      "tempSpiralIsNewComponentInPlace: numClasses is 0 so returning 1"
+      "tableSpiralIsNewComponentInPlace: numClasses is 0 so returning 1"
     print
     1
   ) ifte
 
-) "tempSpiralIsNewComponentInPlace" store
+) "tableSpiralIsNewComponentInPlace" store
 
 (
   numClasses 0 > (
 	1.0
 	1.20 
       divide
-    "tempNewComponentThresh" store
+    "tableNewComponentThresh" store
     sceneClearPredictedObjects
 
-    tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /* pauseStackExecution */
 
-	"tempSpiralIsNewComponentPseudoGeometricInPlace_tempScene"
+	"tableSpiralIsNewComponentPseudoGeometricInPlace_tableScene"
 	"_"
 	leftOrRightArm 
 	"_"
 	robotSerial
       + + + +
-      "tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName"
+      "tableSpiralIsNewComponentPseudoGeometricInPlace_tableSceneName"
     store
 
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName
+      tableSpiralIsNewComponentPseudoGeometricInPlace_tableSceneName
     sceneSaveFocusedSceneModel
 
     sceneClearPredictedObjects
-    tempUpdateMaps
-    tempCaptureCore
+    tableUpdateMaps
+    tableCaptureCore
 
     sceneClearPredictedObjects 
-    tempUpdateMaps
+    tableUpdateMaps
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancy 
@@ -511,16 +511,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	    scenePushTotalDiscrepancy 
 	  -
 	dup 
-	"tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with new component" 
+	"tableSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with new component" 
       swap + print 
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_tempSceneName
+      tableSpiralIsNewComponentPseudoGeometricInPlace_tableSceneName
     sceneLoadFocusedSceneModel
 
     sceneClearPredictedObjects 
-    tempUpdateMaps
+    tableUpdateMaps
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancy 
@@ -532,89 +532,89 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	    scenePushTotalDiscrepancy 
 	  -
 	dup 
-	"tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with best old component"
+	"tableSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy with best old component"
       swap + print 
 
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_after" store
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_before" store
+    "tableSpiralIsNewComponentPseudoGeometricInPlace_after" store
+    "tableSpiralIsNewComponentPseudoGeometricInPlace_before" store
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_before
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy before is " 
+      tableSpiralIsNewComponentPseudoGeometricInPlace_before
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: total discrepancy before is " 
     swap + print
 
 
-	tempSpiralIsNewComponentPseudoGeometricInPlace_after
-	tempSpiralIsNewComponentPseudoGeometricInPlace_before
+	tableSpiralIsNewComponentPseudoGeometricInPlace_after
+	tableSpiralIsNewComponentPseudoGeometricInPlace_before
       +
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_sum" store
+    "tableSpiralIsNewComponentPseudoGeometricInPlace_sum" store
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_sum
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: before after sum is" 
+      tableSpiralIsNewComponentPseudoGeometricInPlace_sum
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: before after sum is" 
     swap + print
     
 
 
-	tempSpiralIsNewComponentPseudoGeometricInPlace_after
-	tempSpiralIsNewComponentPseudoGeometricInPlace_sum
+	tableSpiralIsNewComponentPseudoGeometricInPlace_after
+	tableSpiralIsNewComponentPseudoGeometricInPlace_sum
       divide
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio" store
+    "tableSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio" store
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: old / sum ratio is " 
+      tableSpiralIsNewComponentPseudoGeometricInPlace_sum_ratio
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: old / sum ratio is " 
     swap + print
 
     
-      tempSpiralIsNewComponentPseudoGeometricInPlace_before
+      tableSpiralIsNewComponentPseudoGeometricInPlace_before
       0.0
     equals (
-      -1.0 "tempSpiralIsNewComponentPseudoGeometricInPlace_before" store
+      -1.0 "tableSpiralIsNewComponentPseudoGeometricInPlace_before" store
     ) ift
 
-	tempSpiralIsNewComponentPseudoGeometricInPlace_after
-	tempSpiralIsNewComponentPseudoGeometricInPlace_before
+	tableSpiralIsNewComponentPseudoGeometricInPlace_after
+	tableSpiralIsNewComponentPseudoGeometricInPlace_before
       divide
-    "tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio" store
+    "tableSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio" store
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: old / new ratio (USING) is " 
+      tableSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: old / new ratio (USING) is " 
     swap + print
 
-      tempSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
-      tempNewComponentThresh 
+      tableSpiralIsNewComponentPseudoGeometricInPlace_after_before_ratio
+      tableNewComponentThresh 
     < (
 	    1
 	  dup
-	"tempSpiralIsNewComponentPseudoGeometricInPlace: IS a new component, returning " 
+	"tableSpiralIsNewComponentPseudoGeometricInPlace: IS a new component, returning " 
       swap + print
     ) (
 	    0
 	  dup
-	"tempSpiralIsNewComponentPseudoGeometricInPlace: AIN'T a new component, returning " 
+	"tableSpiralIsNewComponentPseudoGeometricInPlace: AIN'T a new component, returning " 
       swap + print
     ) ifte
 
 	dup
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: returning " 
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: returning " 
     swap + print
   ) (
-      "tempSpiralIsNewComponentPseudoGeometricInPlace: numClasses is 0 so returning 1"
+      "tableSpiralIsNewComponentPseudoGeometricInPlace: numClasses is 0 so returning 1"
     print
     1
   ) ifte
 
-) "tempSpiralIsNewComponentPseudoGeometricInPlace" store
+) "tableSpiralIsNewComponentPseudoGeometricInPlace" store
 
 (
   numClasses 0 > (
-    0.15 "tempNewComponentThresh" store
+    0.15 "tableNewComponentThresh" store
     sceneClearPredictedObjects
     sceneClearObservedMap
 
     /*
-    tempFivePointThreeWidthTakeScene
-    tempShortTakeScene
+    tableFivePointThreeWidthTakeScene
+    tableShortTakeScene
     */
-    tempUpdateSpiralEccentric
+    tableUpdateSpiralEccentric
 
     endStackCollapseNoop 0.1 waitForSeconds
     /* pauseStackExecution */
@@ -626,10 +626,10 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	  scenePushTotalLogDiscrepancy
 	  sceneTakeBeforeDensity
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total log discrepancy before " 
+	"tableFivePointThreeWidthIsNewComponent: total log discrepancy before " 
       swap + print 
 
-    scenePredictBestObject tempUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
+    scenePredictBestObject tableUpdateMaps endStackCollapseNoop 0.1 waitForSeconds
 
     /*
 	  scenePushTotalDiscrepancy 
@@ -638,82 +638,82 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 	  scenePushTotalLogDiscrepancy
 	  sceneTakeAfterDensity
 	dup 
-	"tempFivePointThreeWidthIsNewComponent: total log discrepancy after " 
+	"tableFivePointThreeWidthIsNewComponent: total log discrepancy after " 
       swap + print 
 
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_after" store
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_before" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_after" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_before" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_before
-      "tempFivePointThreeWidthIsNewComponent: total discrepancy before is " 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_before
+      "tableFivePointThreeWidthIsNewComponent: total discrepancy before is " 
     swap + print
 
 
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_before
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_before
       +
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_sum" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
-      "tempFivePointThreeWidthIsNewComponent: before after sum is" 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_sum
+      "tableFivePointThreeWidthIsNewComponent: before after sum is" 
     swap + print
     
 
 
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_after
-	tempFivePointThreeWidthIsNewComponentNormalizedSum_sum
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_after
+	tableFivePointThreeWidthIsNewComponentNormalizedSum_sum
       divide
-    "tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
+    "tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio" store
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
-      "tempFivePointThreeWidthIsNewComponent: after / sum ratio is " 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      "tableFivePointThreeWidthIsNewComponent: after / sum ratio is " 
     swap + print
 
-      tempFivePointThreeWidthIsNewComponentNormalizedSum_ratio
-      tempNewComponentThresh 
+      tableFivePointThreeWidthIsNewComponentNormalizedSum_ratio
+      tableNewComponentThresh 
     > (
 	    1
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: IS a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: IS a new component, returning " 
       swap + print
     ) (
 	    0
 	  dup
-	"tempFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
+	"tableFivePointThreeWidthIsNewComponent: AIN'T a new component, returning " 
       swap + print
     ) ifte
 
 	dup
-      "tempFivePointThreeWidthIsNewComponent: returning " 
+      "tableFivePointThreeWidthIsNewComponent: returning " 
     swap + print
   ) (
-    "tempFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
+    "tableFivePointThreeWidthIsNewComponent: numClasses is 0 so returning 1"
     1
   ) ifte
 
 
    
       sceneHighPrecisionBeforeAfterDiffOfLogs
-    "tempFivePointThreeWidthIsNewComponent: high precision diff " 
+    "tableFivePointThreeWidthIsNewComponent: high precision diff " 
   swap + print
 
-) "tempFivePointThreeWidthIsNewComponentNormalizedSumOfLogs" store
+) "tableFivePointThreeWidthIsNewComponentNormalizedSumOfLogs" store
 
 (
   /* takes a string */
   sceneLoadFocusedSceneModel 
-) "tempLoadAndPrepareFocusedModel" store
+) "tableLoadAndPrepareFocusedModel" store
 
 (
   /* takes a scene object idx */
 
-  tempMoveToSceneObject
+  tableMoveToSceneObject
 
   ( zDown ) 15 replicateWord
   ( oZUp ) 150 replicateWord
   ( localXUp ) 4 replicateWord
 
-) "tempPointToSceneObject" store
+) "tablePointToSceneObject" store
 
 (
   /* takes a scene object idx */
@@ -722,7 +722,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   
 
   scenePushNumSceneObjects 0 = 
-  ( pop "tempMoveToSceneObject: no scene objects." print ) 
+  ( pop "tableMoveToSceneObject: no scene objects." print ) 
   ( 
     scenePushSceneObjectPose 
     currentPose 
@@ -734,65 +734,65 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     moveEeToPoseWord
   )
   ifte
-) "tempMoveToSceneObject" store
+) "tableMoveToSceneObject" store
 
 (
-  0 "tempCounter" store
-  ( tempCounter scenePushNumSceneObjects < ) (
-    tempCounter sceneMapSceneObject
+  0 "tableCounter" store
+  ( tableCounter scenePushNumSceneObjects < ) (
+    tableCounter sceneMapSceneObject
     publishRecognizedObjectArrayFromBlueBoxMemory
-    tempCounter 1 +  "tempCounter" store
+    tableCounter 1 +  "tableCounter" store
   ) while
-) "tempAddBlueBoxesForSceneObjects" store
+) "tableAddBlueBoxesForSceneObjects" store
 
 (
-  tempShortTakeScene tempServoToBestSceneObject
-) "tempShortServoToBestSceneObject" store
+  tableShortTakeScene tableServoToBestSceneObject
+) "tableShortServoToBestSceneObject" store
 
 (
-  tempShortTakeScene tempServoToFocusedSceneObject
-) "tempShortServoToFocusedSceneObject" store
+  tableShortTakeScene tableServoToFocusedSceneObject
+) "tableShortServoToFocusedSceneObject" store
 
 (
-  tempSpiralTakeScene tempServoToBestSceneObject
-) "tempSpiralServoToBestSceneObject" store
+  tableSpiralTakeScene tableServoToBestSceneObject
+) "tableSpiralServoToBestSceneObject" store
 
 (
-  tempSpiralTakeScene tempServoToFocusedSceneObject
-) "tempSpiralServoToFocusedSceneObject" store
+  tableSpiralTakeScene tableServoToFocusedSceneObject
+) "tableSpiralServoToFocusedSceneObject" store
 
 /* internal */
 (
-  scenePredictFocusedObject  tempUpdateMaps
-  0 tempMoveToSceneObject
-) "tempServoToFocusedSceneObject" store
+  scenePredictFocusedObject  tableUpdateMaps
+  0 tableMoveToSceneObject
+) "tableServoToFocusedSceneObject" store
 (
-  scenePredictBestObject tempUpdateMaps
-  0 tempMoveToSceneObject
-) "tempServoToBestSceneObject" store
+  scenePredictBestObject tableUpdateMaps
+  0 tableMoveToSceneObject
+) "tableServoToBestSceneObject" store
 /* end internal */
 
 (
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
-  tempRestoreFromBlocks
-  tempSwapToBlocks
+  tableRestoreFromBlocks
+  tableSwapToBlocks
 
   clearClassLabels
   initializeAndFocusOnTempClass
-  tempRecaptureServoSpiral
+  tableRecaptureServoSpiral
 
-  tempRestoreFromBlocks
-) "tempSpiralServoToAnonymousObject" store
+  tableRestoreFromBlocks
+) "tableSpiralServoToAnonymousObject" store
 
 (
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
-  tempRestoreFromBlocks
-  tempSwapToBlocks
+  tableRestoreFromBlocks
+  tableSwapToBlocks
 
-  tempSpiralServoToBestSceneObject
+  tableSpiralServoToBestSceneObject
 
-  tempRestoreFromBlocks
-) "tempSpiralServoToBestBlock" store
+  tableRestoreFromBlocks
+) "tableSpiralServoToBestBlock" store
 
 (
 /* demos relative transforms */
@@ -809,34 +809,34 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
   sceneClearPredictedObjects
-  tempUpdateMaps
-  tempCaptureCore
+  tableUpdateMaps
+  tableCaptureCore
 
   sceneClearPredictedObjects 
-  tempUpdateMaps
-  tempServoToFocusedSceneObject
+  tableUpdateMaps
+  tableServoToFocusedSceneObject
   waitUntilAtCurrentPosition
-) "tempRecaptureServoInPlace" store
+) "tableRecaptureServoInPlace" store
   
 (
-  tempRecaptureServoSpiral
-) "tempRecaptureServo" store
+  tableRecaptureServoSpiral
+) "tableRecaptureServo" store
 
 (
   sceneClearPredictedObjects
-  tempShortTakeScene
-  tempCaptureCore
+  tableShortTakeScene
+  tableCaptureCore
 
-  tempShortServoToFocusedSceneObject
-) "tempRecaptureServoShort" store
+  tableShortServoToFocusedSceneObject
+) "tableRecaptureServoShort" store
 
 (
   sceneClearPredictedObjects
-  sceneClearObservedMap tempUpdateSpiral 
-  tempCaptureCore
+  sceneClearObservedMap tableUpdateSpiral 
+  tableCaptureCore
 
-  tempServoToFocusedSceneObject
-) "tempRecaptureServoSpiral" store
+  tableServoToFocusedSceneObject
+) "tableRecaptureServoSpiral" store
 
 (
   setMovementStateToMoving
@@ -863,7 +863,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   waitWord
 
   ( sceneUpdateObservedFromWrist ) 2 replicateWord
-) "tempUpdateObservedFromWristFivePoint" store
+) "tableUpdateObservedFromWristFivePoint" store
 
 ( waitUntilRingBufferImageAtCurrentPosition setMovementStateToMoving comeToStop setMovementStateToMoving comeToStop ) "waitWord" store
 
@@ -872,59 +872,59 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   0.1 setGridSize xUp yUp waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   0.03 setSpeed
   ( yDown waitUntilAtCurrentPosition xDown xDown ( sceneUpdateObservedFromWrist 0.2 waitForSeconds ) doUntilAtCurrentPosition ) 2 replicateWord 
-) "tempUpdateLawnmower" store
+) "tableUpdateLawnmower" store
 
 (
-  "tempUpdateSpiral, pointing to another" print
-  10 tempUpdateSpiralCore
-) "tempUpdateSpiral" store
-
-(
-  0.05 setSpeed
-  0.03 setW1GoThresh
-
-  "tempUpdateSpiralN" store
-  1 "tempUpdateSpiralIdx" store
-
-  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
-    ( yUp ) tempUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
-    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
-    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
-    "tempUpdateSpiralRing" print
-    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
-  ) while
-) "tempUpdateSpiralRing" store
+  "tableUpdateSpiral, pointing to another" print
+  10 tableUpdateSpiralCore
+) "tableUpdateSpiral" store
 
 (
   0.05 setSpeed
   0.03 setW1GoThresh
 
-  "tempUpdateSpiralN" store
-  1 "tempUpdateSpiralIdx" store
+  "tableUpdateSpiralN" store
+  1 "tableUpdateSpiralIdx" store
 
-  ( tempUpdateSpiralIdx tempUpdateSpiralN <  ) 
-  ( ( xUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
-    ( yUp ) tempUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
-    ( xDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
-    ( yDown ) tempUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
-    "tempUpdateSpiralStop" print
-    tempUpdateSpiralIdx 2 + "tempUpdateSpiralIdx" store
+  ( tableUpdateSpiralIdx tableUpdateSpiralN <  ) 
+  ( ( xUp ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yUp ) tableUpdateSpiralIdx replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( xDown ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    ( yDown ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
+    "tableUpdateSpiralRing" print
+    tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
   ) while
-) "tempUpdateSpiralStop" store
+) "tableUpdateSpiralRing" store
+
+(
+  0.05 setSpeed
+  0.03 setW1GoThresh
+
+  "tableUpdateSpiralN" store
+  1 "tableUpdateSpiralIdx" store
+
+  ( tableUpdateSpiralIdx tableUpdateSpiralN <  ) 
+  ( ( xUp ) tableUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
+    ( yUp ) tableUpdateSpiralIdx replicateWord waitWord sceneUpdateObservedFromWrist
+    ( xDown ) tableUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
+    ( yDown ) tableUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
+    "tableUpdateSpiralStop" print
+    tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
+  ) while
+) "tableUpdateSpiralStop" store
 
 
 
 (
-  currentPose 0.03 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.02 setGridSize tempUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tempUpdateObservedFromWristFivePoint moveEeToPoseWord
-) "tempUpdateFivePointThreeWidth" store
+  currentPose 0.03 setGridSize tableUpdateObservedFromWristFivePoint eighthTurn 0.02 setGridSize tableUpdateObservedFromWristFivePoint eighthTurn 0.01 setGridSize tableUpdateObservedFromWristFivePoint moveEeToPoseWord
+) "tableUpdateFivePointThreeWidth" store
 
 
 (
   shoreUp
   tableTakeScene
   bg sceneSaveObservedMap 
-  tempInit
+  tableInit
 ) "tableUpdateBg" store
 
 
@@ -935,13 +935,13 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   initializeAndFocusOnNewClass
 
-/*  ( tempRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
+/*  ( tableRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
 
   sceneClearObservedMap sceneClearPredictedObjects 
   bg sceneSaveBackgroundMap
 
-  tempUpdateSpiral
-  tempCaptureCore
+  tableUpdateSpiral
+  tableCaptureCore
 
   /* no additional scan */
 
@@ -949,7 +949,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 ) "tableQuickScan" store
 
 (
-  "tempFullScan: starting" print
+  "tableFullScan: starting" print
 
   tableQuickScan
 
@@ -958,79 +958,79 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   0 waitSetCurrentWaitMode
 
   writeFocusedClass
-) "tempFullScan" store
+) "tableFullScan" store
 
 (
   /* needs an update */
   clearMapForPatrol
 
-  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
-  tempShortServoToFocusedSceneObject
+  lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
+  tableShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempShortServoToFocusedSceneObject
+  tableShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  tempShortServoToFocusedSceneObject
+  tableShortServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+  currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
 
   scan_swapToBars
   gradientServo
   prepareForGraspFromMemory
-  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
+  currentPose tableScanBasePZ pickFlushFactor + setEEPosePZ "tableScanNewGrasp" store
   scan_restoreFromBars
 
-  tempScanBase setC3dPoseBase
-  tempScanNewGrasp add3dGraspPoseWord
+  tableScanBase setC3dPoseBase
+  tableScanNewGrasp add3dGraspPoseWord
   writeFocusedClass
-) "tempAddBarGrasp" store
+) "tableAddBarGrasp" store
 
 (
   /* XXX if the number of classes is zero, how does this work out? */
   clearMapForPatrol
 
-  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
   (
-    tempSpiralServoToBestSceneObject
+    tableSpiralServoToBestSceneObject
     quarterImpulse waitUntilAtCurrentPosition 
   ) 2 replicateWord
-  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+  currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
 
-  tempSwapToBlocks 
+  tableSwapToBlocks 
   (
-    tempSpiralServoToBestSceneObject
+    tableSpiralServoToBestSceneObject
     quarterImpulse waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   ) 2 replicateWord
   quarterTurn /* this gets into orientation to pick so it will be saved next, since this is a block grasp */
-  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
-  tempRestoreFromBlocks 
+  currentPose tableScanBasePZ pickFlushFactor + setEEPosePZ "tableScanNewGrasp" store
+  tableRestoreFromBlocks 
 
-  tempScanBase setC3dPoseBase
-  tempScanNewGrasp add3dGraspPoseWord
+  tableScanBase setC3dPoseBase
+  tableScanNewGrasp add3dGraspPoseWord
   writeFocusedClass
-) "tempAddBlockGrasp" store
+) "tableAddBlockGrasp" store
 
 (
   /* XXX if the number of classes is zero, how does this work out? */
   clearMapForPatrol
 
-  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
-  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+  lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
+  currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
 
-  tempSwapToBlocks 
+  tableSwapToBlocks 
   sceneClearPredictedObjects 
-  tempUpdateMaps
-  tempServoToFocusedSceneObject
+  tableUpdateMaps
+  tableServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
 
   quarterTurn /* this gets into orientation to pick so it will be saved next, since this is a block grasp */
-  currentPose tempScanBasePZ pickFlushFactor + setEEPosePZ "tempScanNewGrasp" store
-  tempRestoreFromBlocks 
+  currentPose tableScanBasePZ pickFlushFactor + setEEPosePZ "tableScanNewGrasp" store
+  tableRestoreFromBlocks 
 
-  tempScanBase setC3dPoseBase
-  tempScanNewGrasp add3dGraspPoseWord
+  tableScanBase setC3dPoseBase
+  tableScanNewGrasp add3dGraspPoseWord
   writeFocusedClass
 
-) "tempAddBlockGraspInPlace" store
+) "tableAddBlockGraspInPlace" store
 
 (
 /* XXX */ 
@@ -1038,11 +1038,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
   currentPose "catScan5Pos" store
 
-  tempSpiralIsNewComponentPseudoGeometricInPlace (
+  tableSpiralIsNewComponentPseudoGeometricInPlace (
 
     catScan5Pos moveEeToPoseWord waitUntilAtCurrentPosition
 
-    /* tempFullScan */
+    /* tableFullScan */
     zeroGOff
     setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
     tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
@@ -1050,7 +1050,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     initializeAndFocusOnNewClass
 
     /* like recapture without taking a scene */
-    tempRecaptureServoInPlace
+    tableRecaptureServoInPlace
 
     /* */
       currentPose 
@@ -1071,9 +1071,9 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     writeFocusedClass
 
     /*
-    tempAddBlockGrasp
+    tableAddBlockGrasp
     */
-    tempAddBlockGraspInPlace
+    tableAddBlockGraspInPlace
     /*
     */
 
@@ -1081,7 +1081,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     clearMapForPatrol
 
     setPickModeToLearningAlgorithmC
-    tempMapBestAndPickInPlace
+    tableMapBestAndPickInPlace
     writeFocusedClass
 
       playWorkspace 
@@ -1099,16 +1099,16 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     clearMapForPatrol
 
     /*
-    tempAddBlockGrasp
+    tableAddBlockGrasp
     */
-    tempAddBlockGraspInPlace
+    tableAddBlockGraspInPlace
     /*
     */
 
 
-    /* tempPickWithAddedGrasp */
+    /* tablePickWithAddedGrasp */
     setPickModeToLearningAlgorithmC
-    tempMapBestAndPickInPlace
+    tableMapBestAndPickInPlace
     writeFocusedClass
 
     setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
@@ -1121,70 +1121,70 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     ) ift
     openGripper
   ) ifte
-) "tempAddBlockGraspSaveModelAndPickAfterFind" store
+) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
-0 "tempBlockUsingBlocks" store
-0.070 "tempBlockMaxGraspThickness" store
+0 "tableBlockUsingBlocks" store
+0.0550 "tableBlockMaxGraspThickness" store
 /*
-0.04 "tempBlockGripperThrow" store
-0.01 "tempBlockGraspResolution" store
+0.04 "tableBlockGripperThrow" store
+0.01 "tableBlockGraspResolution" store
 */
-0.02 "tempBlockGripperThrow" store
-0.01 "tempBlockGraspResolution" store
-0.055 "tempBlockTargetContactWidth" store
-0.02 "tempBlockCollarWidth" store
+0.03 "tableBlockGripperThrow" store
+0.01 "tableBlockGraspResolution" store
+0.055 "tableBlockTargetContactWidth" store
+0.02 "tableBlockCollarWidth" store
 (
-  tempBlockUsingBlocks not (
+  tableBlockUsingBlocks not (
     0.00 "scenePredictedMapThresh" store
-    slide ( pushClassLabels 1 sP ) "tempSwapClassLabels" store
-    focusedClassLabel "tempSwapTargetClass" store
+    slide ( pushClassLabels 1 sP ) "tableSwapClassLabels" store
+    focusedClassLabel "tableSwapTargetClass" store
 
     clearClassLabels 
 
-    tempBlockMaxGraspThickness "thisBlockGraspThickness" store
+    tableBlockMaxGraspThickness "thisBlockGraspThickness" store
     ( 
-      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
-      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
+      tableBlockMaxGraspThickness thisBlockGraspThickness - tableBlockGripperThrow < 
+      tableBlockMaxGraspThickness thisBlockGraspThickness - tableBlockGripperThrow = or
     ) ( 
-      tempBlockCollarWidth tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
-      thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
+      tableBlockCollarWidth tableBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      thisBlockGraspThickness tableBlockGraspResolution minus "thisBlockGraspThickness" store
     ) while
 
     setGraspModeTo3D
     0 sceneSetClassificationMode
-    1 "tempBlockUsingBlocks" store
-    "tempSwapToBlocks: swapped to blocks." print
+    1 "tableBlockUsingBlocks" store
+    "tableSwapToBlocks: swapped to blocks." print
   ) (
     clearClassLabels 
 
-    tempBlockMaxGraspThickness "thisBlockGraspThickness" store
+    tableBlockMaxGraspThickness "thisBlockGraspThickness" store
     ( 
-      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow < 
-      tempBlockMaxGraspThickness thisBlockGraspThickness - tempBlockGripperThrow = or
+      tableBlockMaxGraspThickness thisBlockGraspThickness - tableBlockGripperThrow < 
+      tableBlockMaxGraspThickness thisBlockGraspThickness - tableBlockGripperThrow = or
     ) ( 
-      tempBlockCollarWidth tempBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
-      thisBlockGraspThickness tempBlockGraspResolution minus "thisBlockGraspThickness" store
+      tableBlockCollarWidth tableBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
+      thisBlockGraspThickness tableBlockGraspResolution minus "thisBlockGraspThickness" store
     ) while
 
     setGraspModeTo3D
     0 sceneSetClassificationMode
-    1 "tempBlockUsingBlocks" store
+    1 "tableBlockUsingBlocks" store
 
-    "tempSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
+    "tableSwapToBlocks: swapped to blocks but already holding blocks, not storing state." print    
   ) ifte
 
   0.0 sceneSetScoreThresh
-  0.0 "tempDefaultScoreThresh" store
-) "tempSwapToBlocks" store
+  0.0 "tableDefaultScoreThresh" store
+) "tableSwapToBlocks" store
 
 (
-  tempBlockUsingBlocks (
-    "tempRestoreFromBlocks: restoring from blocks." print    
+  tableBlockUsingBlocks (
+    "tableRestoreFromBlocks: restoring from blocks." print    
 
     scenePredictedMapThreshDefault "scenePredictedMapThresh" store
-    endArgs tempSwapClassLabels setClassLabels 
+    endArgs tableSwapClassLabels setClassLabels 
     numClasses 0 > (
-      tempSwapTargetClass setTargetClass
+      tableSwapTargetClass setTargetClass
     ) (
       "Oops, restoring to ZERO classes!" print    
     ) ifte
@@ -1192,11 +1192,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
     createCachedClassifierFromClassLabels
     setGraspModeTo3D
     1 sceneSetClassificationMode
-    0 "tempBlockUsingBlocks" store
+    0 "tableBlockUsingBlocks" store
   ) (
-    "tempRestoreFromBlocks: restoring from blocks but not holding blocks." print    
+    "tableRestoreFromBlocks: restoring from blocks but not holding blocks." print    
   ) ifte
-) "tempRestoreFromBlocks" store
+) "tableRestoreFromBlocks" store
 
 (
   0 sceneMapSceneObject
@@ -1208,20 +1208,20 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   setGraspModeTo3D
 
   deliverTargetObject
-) "tempPickWithAddedGrasp" store
+) "tablePickWithAddedGrasp" store
 
 
 /* consider deprecating or using */
 (
-  lock3dGraspBase c3dPoseBase eePosePZ "tempScanBasePZ" store
+  lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
   /*
-  tempReconstructServoToBestSceneObject
+  tableReconstructServoToBestSceneObject
   */
-  tempSpiralServoToFocusedSceneObject
+  tableSpiralServoToFocusedSceneObject
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
-  currentPose tempScanBasePZ setEEPosePZ "tempScanBase" store
+  currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
 
-  tempScanBase setC3dPoseBase
+  tableScanBase setC3dPoseBase
 
   "Ok, check the predicted map and make sure the object was added correctly." print
   "If it was, you can add 3d grasps." print
@@ -1229,39 +1229,39 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 
 (
-  ( tempSpiralServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord
+  ( tableSpiralServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord
 
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
   recordPostTargetLock
   publishRecognizedObjectArrayFromBlueBoxMemory
-) "tempMapFocusedClass" store
+) "tableMapFocusedClass" store
 
 (
-  /* entering tempMapBestClass */
+  /* entering tableMapBestClass */
 
-  /* ( tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord */
+  /* ( tableShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord */
 
-   ( tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord 
+   ( tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord 
 
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
   recordPostTargetLock
   publishRecognizedObjectArrayFromBlueBoxMemory
-) "tempMapBestClass" store
+) "tableMapBestClass" store
 
 (
-  sceneClearPredictedObjects tempUpdateMaps
-  tempServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  sceneClearPredictedObjects tableUpdateMaps
+  tableServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
 
   0 sceneMapSceneObject
   recordPreTargetLock
   /* prepareForGraspFromMemory */
   recordPostTargetLock
   publishRecognizedObjectArrayFromBlueBoxMemory
-) "tempMapBestClassInPlace" store
+) "tableMapBestClassInPlace" store
 
 (
   openGripper waitUntilGripperNotMoving
@@ -1271,8 +1271,8 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   setPlaceModeToShake 
   */
 
-  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass deliverTargetObject
-) "tempMapFocusedAndPick" store
+  clearMapForPatrol clearBlueBoxMemories tableMapFocusedClass deliverTargetObject
+) "tableMapFocusedAndPick" store
 
 (
   openGripper waitUntilGripperNotMoving
@@ -1282,33 +1282,33 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   setPlaceModeToShake
   */
 
-  clearMapForPatrol clearBlueBoxMemories tempMapBestClass 
+  clearMapForPatrol clearBlueBoxMemories tableMapBestClass 
 
   scenePushNumSceneObjects 0 > (
-    "tempMapBestAndPick: delivering object..." print
+    "tableMapBestAndPick: delivering object..." print
       0 scenePushSceneObjectLabel 
     setTargetClass 
     deliverTargetObject
   ) (
-    "tempMapBestAndPick: oops, no sceneObjects..." print
+    "tableMapBestAndPick: oops, no sceneObjects..." print
   ) ifte
-) "tempMapBestAndPick" store
+) "tableMapBestAndPick" store
 
 (
   openGripper waitUntilGripperNotMoving
 
-  clearMapForPatrol clearBlueBoxMemories tempMapBestClassInPlace
+  clearMapForPatrol clearBlueBoxMemories tableMapBestClassInPlace
 
   scenePushNumSceneObjects 0 > (
-    "tempMapBestAndPick: delivering object..." print
+    "tableMapBestAndPick: delivering object..." print
       0 scenePushSceneObjectLabel 
     setTargetClass 
     deliverTargetObject
   ) (
-    "tempMapBestAndPick: oops, no sceneObjects..." print
+    "tableMapBestAndPick: oops, no sceneObjects..." print
   ) ifte
 
-) "tempMapBestAndPickInPlace" store
+) "tableMapBestAndPickInPlace" store
 
 (
   /* endArgs "banana" "mediumClamp" "redScrewdriver" setClassLabels */
@@ -1316,7 +1316,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* endArgs "scene_set_1/duplo" "scene_set_1/icraStandardDucky" "scene_set_1/lock" "scene_set_1/strawberry" setClassLabels */
   endArgs "scene_set_1/lock" setClassLabels
 
-) "tempSetClassesSS1" store
+) "tableSetClassesSS1" store
 
 (
   /* endArgs "banana" "mediumClamp" "redScrewdriver" setClassLabels */
@@ -1327,11 +1327,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   /* endArgs "scissors_blue" setClassLabels */
   endArgs "narrow_duck_osp" setClassLabels
 
-) "tempSetClassesSS2" store
+) "tableSetClassesSS2" store
 
 (
-  sceneClearPredictedObjects tempPredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
-) "tempClassifyOne" store
+  sceneClearPredictedObjects tablePredictAndRenderBest clearBlueBoxMemories 0 sceneMapSceneObject
+) "tableClassifyOne" store
 
 
 0.012 "lensArrayPhaseX" store
@@ -1350,7 +1350,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 (
 /*
-  620 sceneSetAngularApertureCols "scene" import tempLenticularAutoFocus slfgRebase tempReconstructWithoutZ
+  620 sceneSetAngularApertureCols "scene" import tableLenticularAutoFocus slfgRebase tableReconstructWithoutZ
   slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
 */
   /* choosing a wider gap captures more angular information and incurs spatial blur */
@@ -1372,16 +1372,7 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   "lensArrayStrengthX" store 
 
 
-) "tempLenticularAutoFocus" store
-
-
-/* 
-0.3883 "tempReconstructWithZTopZ" store 
-0.343 "tempReconstructWithZTopZ" store 
-0.67 "tempReconstructWithZTopZ" store 
-0.57 "tempReconstructWithZTopZ" store 
-*/
-
+) "tableLenticularAutoFocus" store
 
 
 /*
@@ -1404,11 +1395,11 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
 
 1.0 "phasedArrayPlaneScale" store 
 800 "phasedArrayZoneWidthCells" store
-0.3425 "tempReconstructArrayZ" store 
+0.3425 "tableReconstructArrayZ" store 
 
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.0003 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide 0.0003 times  "slfgRebaseCellWidth" store slfgRebase
 
   50 "lensArraySize" store
 /*
@@ -1419,16 +1410,35 @@ tempSpiralStreamTakeSceneSamplesDefault "tempSpiralStreamTakeSceneSamples" store
   42.00 "lensArrayStrength" store
   -0.32 "lensArrayGap" store
 
-) "tempArrayAutoFocus" store
+) "tableArrayAutoFocus" store
+
+(
+  0.0083 "tableReconstructWithZTopZ" store 
+  tableReconstructWithZTopZ 0.388 divide 0.0003 times  "slfgRebaseCellWidth" store slfgRebase
+
+  10 "lensArraySize" store
+
+  256.00 "lensArrayStrength" store
+  0.3800 "lensArrayGap" store
+
+) "tableArrayViewSynthesisAutoFocus" store
 
 
-/*
-0.91883 "tempReconstructWithZTopZ" store 
-1.111883 "tempReconstructWithZTopZ" store 
-1.861883 "tempReconstructWithZTopZ" store 
-3.161883 "tempReconstructWithZTopZ" store 
-3.361883 "tempReconstructWithZTopZ" store 
-3.80 "tempReconstructWithZTopZ" store 
+
+0.03 "viewSynthApertureWidth" store
+0.001 "viewSynthAperturePlane" store
+
+/* 
+0.3883 "tableReconstructWithZTopZ" store 
+0.343 "tableReconstructWithZTopZ" store 
+0.67 "tableReconstructWithZTopZ" store 
+0.57 "tableReconstructWithZTopZ" store 
+0.91883 "tableReconstructWithZTopZ" store 
+1.111883 "tableReconstructWithZTopZ" store 
+1.861883 "tableReconstructWithZTopZ" store 
+3.161883 "tableReconstructWithZTopZ" store 
+3.361883 "tableReconstructWithZTopZ" store 
+3.80 "tableReconstructWithZTopZ" store 
 */
 
 0.3883 "tempReconstructWithZTopZ" store 
@@ -1456,49 +1466,49 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 
       streamPushImageStreamSize 
-      tempReconstructStreamTakeSceneSamples  
+      tableReconstructStreamTakeSceneSamples  
     min
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
 
 
-  0.001 "tempReconstructWithZGridMultiplier" store
+  0.001 "tableReconstructWithZGridMultiplier" store
 
-  tempReconstructWithZTopZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
   /* sceneInitRegisterZero */
   sceneInitRegisterMax 
 
   /* find the right stride */
-      streamPushImageStreamSize tempRSTSSMax divide 
+      streamPushImageStreamSize tableRSTSSMax divide 
     ceil
-  "tempSpiralStreamTakeSceneStride" store
+  "tableSpiralStreamTakeSceneStride" store
 
   /* don't try to use more images than you have */
-      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+      streamPushImageStreamSize tableSpiralStreamTakeSceneStride divide 
     floor
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
   
   streamPushImageStreamSize print
-  tempRSTSSMax print
-  tempSpiralStreamTakeSceneStride print
+  tableRSTSSMax print
+  tableSpiralStreamTakeSceneStride print
 
-  tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
-  tempReconstructWithZTopZ tempReconstructWithZTotalZ - "tempReconstructWithZBottomZ" store
+  tableReconstructWithZTopZ "tableReconstructWithZThisZ" store
+  tableReconstructWithZTopZ tableReconstructWithZTotalZ - "tableReconstructWithZBottomZ" store
 
   sceneClearDepthStack
 
-  ( tempReconstructWithZThisZ tempReconstructWithZBottomZ = 
-    tempReconstructWithZThisZ tempReconstructWithZBottomZ > or ) 
+  ( tableReconstructWithZThisZ tableReconstructWithZBottomZ = 
+    tableReconstructWithZThisZ tableReconstructWithZBottomZ > or ) 
   (
   
-	  tempReconstructWithZBottomZ 
+	  tableReconstructWithZBottomZ 
 	" " 
-	tempReconstructWithZThisZ	
+	tableReconstructWithZThisZ	
 	" " 
-	tempReconstructWithZTopZ 
+	tableReconstructWithZTopZ 
 	" " 
       + + + + + print
 
-    tempReconstructWithZThisZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    tableReconstructWithZThisZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
@@ -1511,21 +1521,21 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 /*
     ( 
-      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+      tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
 
 
       ( 
 	incrementImageStreamBufferNoLoadNoKick 
-      ) tempSpiralStreamTakeSceneStride replicateWord 
+      ) tableSpiralStreamTakeSceneStride replicateWord 
 
 
       endStackCollapseNoop 
-    ) tempRSTSSMax replicateWord
+    ) tableRSTSSMax replicateWord
 */
 
     
-      tempSpiralStreamTakeSceneStride 
-      tempReconstructWithZThisZ 
+      tableSpiralStreamTakeSceneStride 
+      tableReconstructWithZThisZ 
     sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
 
     sceneRecalculateObservedMusAndSigmas
@@ -1537,16 +1547,16 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 */
 
 /*
-      "zFigure_" tempReconstructWithZThisZ +
+      "zFigure_" tableReconstructWithZThisZ +
     sceneSaveScene
 
-      "high_zoom_figure_" tempReconstructWithZThisZ + 
+      "high_zoom_figure_" tableReconstructWithZThisZ + 
     sceneSaveScene
 
-      "slfg_giraffe_back_right_" tempReconstructWithZThisZ + 
+      "slfg_giraffe_back_right_" tableReconstructWithZThisZ + 
     sceneSaveScene
 
-      "/home/oberlin/dev/catkin_ws_ursula/src/ein/default/objects/aaaRSSRoomSceneHiRes/depthvideo/frame_" tempReconstructWithZThisZ ".png" + +
+      "/home/oberlin/dev/catkin_ws_ursula/src/ein/default/objects/aaaRSSRoomSceneHiRes/depthvideo/frame_" tableReconstructWithZThisZ ".png" + +
     sceneSaveObservedMapImage
 */
 
@@ -1561,94 +1571,99 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
     sceneMinIntoRegister
 */
 
-    tempReconstructWithZThisZ tempReconstructWithZDeltaZ - "tempReconstructWithZThisZ" store
+    tableReconstructWithZThisZ tableReconstructWithZDeltaZ - "tableReconstructWithZThisZ" store
   ) while
 
 
-  tempReconstructWithZTopZ 0.388 divide tempReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
 /*
   sceneMarginalizeDepthStackIntoRegister
 */
   sceneMinDepthStackIntoRegister  sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
-) "tempReconstructWithZ" store
+) "tableReconstructWithZ" store
 
 
 (
       streamPushImageStreamSize 
-      tempReconstructStreamTakeSceneSamples  
+      tableReconstructStreamTakeSceneSamples  
     min
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
 
   /* sceneInitRegisterZero */
   sceneInitRegisterMax 
 
   /* find the right stride */
-      streamPushImageStreamSize tempRSTSSMax divide 
+      streamPushImageStreamSize tableRSTSSMax divide 
     ceil
-  "tempSpiralStreamTakeSceneStride" store
+  "tableSpiralStreamTakeSceneStride" store
 
   /* don't try to use more images than you have */
-      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+      streamPushImageStreamSize tableSpiralStreamTakeSceneStride divide 
     floor
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
   
   streamPushImageStreamSize print
-  tempRSTSSMax print
-  tempSpiralStreamTakeSceneStride print
+  tableRSTSSMax print
+  tableSpiralStreamTakeSceneStride print
 
-  tempReconstructWithZTopZ "tempReconstructWithZThisZ" store
+  tableReconstructWithZTopZ "tableReconstructWithZThisZ" store
 
-      tempReconstructWithZBottomZ 
+      tableReconstructWithZBottomZ 
     " " 
-    tempReconstructWithZThisZ	
+    tableReconstructWithZThisZ	
     " " 
-    tempReconstructWithZTopZ 
+    tableReconstructWithZTopZ 
     " " 
   + + + + + print
 
 /*
-  tempReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
 */
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
 
   ( 
 /*
-    lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
-    lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
-    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+    lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+    lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
 
-    phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tempReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
-      tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
-*/
-    lensArrayGap lensArrayStrength lensArraySize tempReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+    phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tableReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
+      tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+    lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
 
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
-    ) tempSpiralStreamTakeSceneStride replicateWord 
+    ) tableSpiralStreamTakeSceneStride replicateWord 
 
     endStackCollapseNoop 
-  ) tempRSTSSMax replicateWord
+*/
+  ) tableRSTSSMax replicateWord
 
 
 /*
-    tempSpiralStreamTakeSceneStride 
-    tempReconstructWithZThisZ 
+    tableSpiralStreamTakeSceneStride 
+    tableReconstructWithZThisZ 
   sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
 */
+    tableSpiralStreamTakeSceneStride 
+    viewSynthApertureWidth
+    viewSynthAperturePlane
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
   sceneRenderZ 
 
   sceneStoreObservedInRegister
-) "tempReconstructWithoutZ" store
+) "tableReconstructWithoutZ" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
   sceneInitRegisterZero 
   sceneMarginalizeDepthStackIntoRegister
 
@@ -1656,10 +1671,10 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   sceneRenderZ 
   sceneRenderObservedMap
-)  "tempReconstructMarginalsFromStack" store
+)  "tableReconstructMarginalsFromStack" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
   sceneInitRegisterMax 
   sceneMinDepthStackIntoRegister 
 
@@ -1667,25 +1682,25 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   sceneRenderZ 
   sceneRenderObservedMap
-)  "tempReconstructMaxLikelihoodFromStack" store
+)  "tableReconstructMaxLikelihoodFromStack" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
 
-  0 0 phasedArrayApertureWidthCells phasedArrayPhase phasedArrayWavelength tempReconstructArrayZ tempReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray
+  0 0 phasedArrayApertureWidthCells phasedArrayPhase phasedArrayWavelength tableReconstructArrayZ tableReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
-)  "tempReconstructFromPhasedArrayRegister" store
+)  "tableReconstructFromPhasedArrayRegister" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
 
-  phasedArrayPlaneScale phasedArrayZoneWidthCells 0 0 phasedArrayGain phasedArrayPhase phasedArrayWavelength tempReconstructArrayZ tempReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel
+  phasedArrayPlaneScale phasedArrayZoneWidthCells 0 0 phasedArrayGain phasedArrayPhase phasedArrayWavelength tableReconstructArrayZ tableReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
-)  "tempReconstructFromPhasedArrayRegisterKernel" store
+)  "tableReconstructFromPhasedArrayRegisterKernel" store
 
 (
   quarterImpulse
@@ -1693,34 +1708,34 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   /*
   0.001 setW1GoThresh
-  0.020 "tempSpiralGridSize" store
+  0.020 "tableSpiralGridSize" store
   */
   0.01 setW1GoThresh
   /*
-  0.0325 "tempSpiralGridSize" store
+  0.0325 "tableSpiralGridSize" store
   */
-  0.01625 "tempSpiralGridSize" store
+  0.01625 "tableSpiralGridSize" store
 
 
 
   /* 
-  10 "tempReconstructStreamTakeSceneSamples" store
+  10 "tableReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
 
-  0.04 "tempSpiralMoveSpeed" store
-  12 "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  0.04 "tableSpiralMoveSpeed" store
+  12 "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
 
-  24 "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
-  0.015 "tempSpiralMoveSpeed" store
+  24 "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
+  0.015 "tableSpiralMoveSpeed" store
   */
 
 
-  0.04 "tempSpiralMoveSpeed" store
+  0.04 "tableSpiralMoveSpeed" store
 
-  12 "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  12 "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
@@ -1728,31 +1743,31 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 
   /*
-  tempUpdateSpiralCoreNoClean tempUpdateMaps
-  1 0 tempUpdateSpiralN tempUpdateSpiralEccentricCore tempUpdateMaps
-  tempUpdateZoomCoreNoClean
-  tempUpdateSpinCoreNoClean
-  tempUpdateMagCoreNoClean
+  tableUpdateSpiralCoreNoClean tableUpdateMaps
+  1 0 tableUpdateSpiralN tableUpdateSpiralEccentricCore tableUpdateMaps
+  tableUpdateZoomCoreNoClean
+  tableUpdateSpinCoreNoClean
+  tableUpdateMagCoreNoClean
 
-  tempUpdateMagicEyeCoreNoClean
-  tempUpdatePanCoreNoClean
+  tableUpdateMagicEyeCoreNoClean
+  tableUpdatePanCoreNoClean
   */
-  tempUpdateSpiralCoreNoClean 
+  tableUpdateSpiralCoreNoClean 
 
-  tempUpdateMaps
+  tableUpdateMaps
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 
 
   /* integrate results */
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
   /*
-  tempUpdateSpiralCoreIntegrate
+  tableUpdateSpiralCoreIntegrate
   */
-  tempReconstructFromStream
-  tempUpdateMaps
+  tableReconstructFromStream
+  tableUpdateMaps
 
 ) "tableTakeScene" store
 
@@ -1764,14 +1779,14 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   /*
   0.001 setW1GoThresh
-  0.020 "tempSpiralGridSize" store
+  0.020 "tableSpiralGridSize" store
   */
   0.005 setW1GoThresh
   /*
-  0.0325 "tempSpiralGridSize" store
-  0.01625 "tempSpiralGridSize" store
+  0.0325 "tableSpiralGridSize" store
+  0.01625 "tableSpiralGridSize" store
   */
-  0.0325 "tempSpiralGridSize" store
+  0.0325 "tableSpiralGridSize" store
 
 /*
   90 setMapGrayBoxPixelSkirtRows 140 setMapGrayBoxPixelSkirtCols
@@ -1780,78 +1795,78 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   20 setMapGrayBoxPixelSkirtRows 40 setMapGrayBoxPixelSkirtCols
   15 setMapGrayBoxPixelWaistRows 15 setMapGrayBoxPixelWaistCols
 
-  0.04 "tempSpiralMoveSpeed" store
+  0.04 "tableSpiralMoveSpeed" store
   /* 
-  0.008 "tempSpiralGridSize" store 
+  0.008 "tableSpiralGridSize" store 
   */
 
   /* 
-  10 "tempReconstructStreamTakeSceneSamples" store
+  10 "tableReconstructStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 
   */
 
-  8 "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  8 "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
   clearStreamBuffers
 
 
-  tempUpdateSpiralCoreNoClean tempUpdateMaps
+  tableUpdateSpiralCoreNoClean tableUpdateMaps
 
   /* integrate results */
   /*
-  tempUpdateSpiralCoreIntegrate
+  tableUpdateSpiralCoreIntegrate
   */
-  tempReconstructFromStream
-  tempUpdateMaps
+  tableReconstructFromStream
+  tableUpdateMaps
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 ) "tableTakeSceneWide" store
 
 (
   0.001 setW1GoThresh
-  0.03 "tempSpiralMoveSpeed" store
-  0.01 "tempSpiralGridSize" store
-  6 tempUpdateSpiralCore
+  0.03 "tableSpiralMoveSpeed" store
+  0.01 "tableSpiralGridSize" store
+  6 tableUpdateSpiralCore
 ) "tableTakeSceneMid" store
 
 (
   playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition tableTakeScene 
 
   /* 
-  catScan5LoadPlayBg tempUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
-  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  catScan5LoadPlayBg tableUpdateMaps 0.1 sceneTrimDepthWithDiscrepancy sceneRenderZ
+  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tableUpdateMaps
   */
-) "tempReconstructPhrases" store
+) "tableReconstructPhrases" store
 
 (
 	currentPose
       eePosePZ
       currentTableZ
     +
-  "tempReconstructWithZTopZ" store 
+  "tableReconstructWithZTopZ" store 
 
   tempReconstructWithZTopZ 0.388 divide 0.005 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tempReconstructWithZ 
 
   /* 
-  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tempUpdateMaps
+  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tableUpdateMaps
   */
-) "tempReconstructFromStream" store
+) "tableReconstructFromStream" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebaseTable
-  tempReconstructWithZ 
-) "tempReconstructWithRebaseTable" store
+  tableReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithZ 
+) "tableReconstructWithRebaseTable" store
 
 (
-  tempReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebase
-  tempReconstructWithZ 
-) "tempReconstructWithRebase" store
+  tableReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZ 
+) "tableReconstructWithRebase" store
 
 
 (
@@ -1864,7 +1879,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   (
       playWorkspace
     scan_findObjectAfterDrop
-    tempMapBestAndPickInPlace
+    tableMapBestAndPickInPlace
 
       playWorkspace
     moveEeToPoseWord waitUntilAtCurrentPosition
@@ -1877,75 +1892,75 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
     pressUntilEffortInit 0.04 setSpeed pressUntilEffortCombo openGripper liftArm
   ) 10 replicateWord
-) "tempEvaluateObject" store
+) "tableEvaluateObject" store
 
 
 (
   tableTakeScene
   quarterImpulse
-  tempServoToFocusedSceneObject
+  tableServoToFocusedSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
-) "tempReconstructServoToBestSceneObject" store
+) "tableReconstructServoToBestSceneObject" store
 
 (
   tableTakeScene
   quarterImpulse
-  tempServoToBestSceneObject
+  tableServoToBestSceneObject
   pixelServoPutGripperUnderVanishingPoint waitUntilAtCurrentPosition 
-) "tempReconstructServoToFocusedSceneObject" store
+) "tableReconstructServoToFocusedSceneObject" store
 
 
 
 (
   sceneClearPredictedObjects 
   scenePredictFocusedObject 
-  tempUpdateMaps
+  tableUpdateMaps
   /*  sceneAddPredictedToObserved */
   .10 sceneAddDiscrepantPredictedToObserved 
   sceneRenderScene  endStackCollapseNoop
-) "tempMergeFocusedClass" store
+) "tableMergeFocusedClass" store
 
 (
   sceneClearPredictedObjects
   scenePredictFocusedObject
-  tempUpdateMaps sceneRenderScene
-) "tempPredictFocusedObject" store
+  tableUpdateMaps sceneRenderScene
+) "tablePredictFocusedObject" store
 
 
 (
   sceneLoadFocusedObjectModel 
-  tempUpdateClassScene
-) "tempCreateClassScene" store
+  tableUpdateClassScene
+) "tableCreateClassScene" store
 
 (
-    ( incrementTargetClass 0.8516529176757491 sceneRegularizeSceneL2 tempMergeFocusedClass ) 
+    ( incrementTargetClass 0.8516529176757491 sceneRegularizeSceneL2 tableMergeFocusedClass ) 
     numClasses 1 - 
   replicateWord
   sceneClearPredictedObjects
-  tempUpdateMaps
+  tableUpdateMaps
   /* initializeAndFocusOnNewClass
   0.1 sceneGrabDiscrepantCropAsClass
   writeFocusedClass */
 
-) "tempUpdateClassScene" store
+) "tableUpdateClassScene" store
 
 (
   ( 
     incrementTargetClass 
     sceneClearPredictedObjects
     0 0 0 sceneAddPredictedFocusedObject 
-    tempUpdateMaps
+    tableUpdateMaps
     1.0 sceneAddDiscrepantPredictedToObserved
   ) numClasses replicateWord
-) "tempLoadAverageModel" store
+) "tableLoadAverageModel" store
 
 (
   0 setTargetClassIdx
   sceneClearPredictedObjects
   0 0 0 sceneAddPredictedFocusedObject 
-  tempUpdateMaps
+  tableUpdateMaps
   1.0 sceneAddDiscrepantPredictedToObserved
-) "tempLoadFirstModel" store
+) "tableLoadFirstModel" store
 
 
 (
@@ -1954,20 +1969,20 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   0.5 sceneSetScoreThresh
   sceneInit
   128 128 128 sceneLoadMonochromeBackground 
-  "bgtemp" sceneSaveBackgroundMap
-  "bgtemp" sceneLoadObservedMap 
+  "bgtable" sceneSaveBackgroundMap
+  "bgtable" sceneLoadObservedMap 
   sceneClearObservedMap
-  /* tempRegularizeBackground */ 
+  /* tableRegularizeBackground */ 
 
-  /* tempLoadAverageModel */
-  tempLoadFirstModel  
+  /* tableLoadAverageModel */
+  tableLoadFirstModel  
 
-  sceneClearPredictedObjects  tempUpdateMaps  sceneRenderObservedMap
+  sceneClearPredictedObjects  tableUpdateMaps  sceneRenderObservedMap
 
   /* sceneScoreThresh sceneCropToDiscrepantRegion */
 
 
-) "tempInitializeCategoryModel" store
+) "tableInitializeCategoryModel" store
 
 
 
@@ -2061,10 +2076,10 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
 
-  tempUpdateMaps
+  tableUpdateMaps
 
-  700 "tempSpiralStreamTakeSceneSamples" store
-  tempUpdateSpiralCoreIntegrate
+  700 "tableSpiralStreamTakeSceneSamples" store
+  tableUpdateSpiralCoreIntegrate
 ) "socialFeedbackTakeScene" store
 
 (
@@ -2077,16 +2092,16 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   scenePredictBestObject 
   scenePredictBestObject 
 
-  tempAddBlueBoxesForSceneObjects
+  tableAddBlueBoxesForSceneObjects
 ) "socialFeedbackMapWorkspace" store
 
 
 
 (
-  "scene" import tempInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tempShortTakeScene 
-  sceneClearPredictedObjects "brush" tempPredictAndRenderFile
-  clearMapForPatrol clearBlueBoxMemories tempMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tempMapFocusedClass deliverTargetObject
-) "tempUsefulPhrases" store
+  "scene" import tableInit assumeBeeHome 1 changeToHeight waitUntilAtCurrentPosition tableShortTakeScene 
+  sceneClearPredictedObjects "brush" tablePredictAndRenderFile
+  clearMapForPatrol clearBlueBoxMemories tableMapFocusedClass waitUntilAtCurrentPosition setMovementStateToMoving comeToStop tableMapFocusedClass deliverTargetObject
+) "tableUsefulPhrases" store
 
 
 
@@ -2122,27 +2137,26 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 0.001 "slfgRebaseCellWidth" store
 (
-  388 "slfgRebaseIterations" store
-  0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth currentPose sceneInitFromEePoseScale ( localZDown ) slfgRebaseIterations replicateWord 
-  tempInit
+  slfgRebaseCellWidth currentPose sceneInitFromEePoseScale 
+  tableInit
 ) "slfgRebase" store
 
 ( 
     slfgRebaseCellWidth 
-      currentPose 
-	0.0 
-	currentTableZ
-      -
-    setEEPosePZ 
+    currentPose 
   sceneInitFromEePoseScale
-  tempInit
+  tableInit
 ) "slfgRebaseTable" store
 
 (
   951 "slfgRebaseDefaultDimension" store
-  388 "slfgRebaseIterations" store
-  0.001 setGridSize ( localZUp ) slfgRebaseIterations replicateWord slfgRebaseCellWidth slfgRebaseDefaultDimension slfgRebaseDefaultDimension currentPose sceneInitFromEePoseScaleDimensions ( localZDown ) slfgRebaseIterations replicateWord 
-  tempInit
+
+    slfgRebaseCellWidth 
+    slfgRebaseDefaultDimension 
+    slfgRebaseDefaultDimension 
+    currentPose 
+    sceneInitFromEePoseScaleDimensions 
+  tableInit
 ) "slfgRebaseDimensions" store
 
 (
@@ -2204,7 +2218,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   /* turn streaming off */
   bringUpAllNonessentialSystems
-) "tempUpdateSpinCoreNoClean" store
+) "tableUpdateSpinCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2247,7 +2261,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   /* turn streaming off */
   bringUpAllNonessentialSystems
-) "tempUpdateZoomCoreNoClean" store
+) "tableUpdateZoomCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2278,7 +2292,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
   /* turn streaming off */
   bringUpAllNonessentialSystems
-) "tempUpdatePanCoreNoClean" store
+) "tableUpdatePanCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2314,7 +2328,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   bringUpAllNonessentialSystems
 
   0.02 setW1GoThresh
-) "tempUpdateMagicEyeCoreNoClean" store
+) "tableUpdateMagicEyeCoreNoClean" store
 
 (
   /* turn streaming on, no disk streaming */ 
@@ -2352,65 +2366,65 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   /* turn streaming off */
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
-) "tempUpdateMagCoreNoClean" store
+) "tableUpdateMagCoreNoClean" store
 
 
 (
   quarterImpulse
   waitUntilAtCurrentPosition
 
-  0.05 "tempSpiralMoveSpeed" store
+  0.05 "tableSpiralMoveSpeed" store
   0.01 setW1GoThresh
 
   /*
-  16 "tempUpdateSpiralN" store
-  0.01625 "tempSpiralGridSize" store
+  16 "tableUpdateSpiralN" store
+  0.01625 "tableSpiralGridSize" store
 
-  32 "tempUpdateSpiralN" store
-  0.008125 "tempSpiralGridSize" store
+  32 "tableUpdateSpiralN" store
+  0.008125 "tableSpiralGridSize" store
 
-  32 2.0 * "tempUpdateSpiralN" store
-  0.008125 2.0 divide "tempSpiralGridSize" store
+  32 2.0 * "tableUpdateSpiralN" store
+  0.008125 2.0 divide "tableSpiralGridSize" store
   */
 
-  32 "tempUpdateSpiralN" store
-  0.008125 "tempSpiralGridSize" store
+  32 "tableUpdateSpiralN" store
+  0.008125 "tableSpiralGridSize" store
 
-  currentPose "tempUpdateSpiralPos" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
   clearStreamBuffers
 
-  tempFusionSpiralCoreNoClean tempUpdateMaps
+  tableFusionSpiralCoreNoClean tableUpdateMaps
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 
 
   /* integrate results */
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
   /*
-  tempUpdateSpiralCoreIntegrate
+  tableUpdateSpiralCoreIntegrate
   */
-  tempReconstructFromStream
-  tempUpdateMaps
+  tableReconstructFromStream
+  tableUpdateMaps
 
-) "tempFusionTakeScene" store
+) "tableFusionTakeScene" store
 
 (
   quarterImpulse
   waitUntilAtCurrentPosition
 
   0.01 setW1GoThresh
-  0.01625 "tempSpiralGridSize" store
+  0.01625 "tableSpiralGridSize" store
 
 
-  0.05 "tempSpiralMoveSpeed" store
+  0.05 "tableSpiralMoveSpeed" store
 
-  6 "tempUpdateSpiralN" store
-  currentPose "tempUpdateSpiralPos" store
+  6 "tableUpdateSpiralN" store
+  currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
   sceneClearObservedMap
@@ -2427,28 +2441,28 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
 
 
-) "tempFissionStartScene" store
+) "tableFissionStartScene" store
 
 (
       streamPushImageStreamSize 
-      tempReconstructStreamTakeSceneSamples  
+      tableReconstructStreamTakeSceneSamples  
     min
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
 
 
   /* find the right stride */
-      streamPushImageStreamSize tempRSTSSMax divide 
+      streamPushImageStreamSize tableRSTSSMax divide 
     ceil
-  "tempSpiralStreamTakeSceneStride" store
+  "tableSpiralStreamTakeSceneStride" store
 
   /* don't try to use more images than you have */
-      streamPushImageStreamSize tempSpiralStreamTakeSceneStride divide 
+      streamPushImageStreamSize tableSpiralStreamTakeSceneStride divide 
     floor
-  "tempRSTSSMax" store
+  "tableRSTSSMax" store
   
   streamPushImageStreamSize print
-  tempRSTSSMax print
-  tempSpiralStreamTakeSceneStride print
+  tableRSTSSMax print
+  tableSpiralStreamTakeSceneStride print
 
 
   rewindImageStreamBufferNLNK 
@@ -2457,7 +2471,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
-    ) tempSpiralStreamTakeSceneStride replicateWord 
+    ) tableSpiralStreamTakeSceneStride replicateWord 
 
 /*
     sceneRecalculateObservedMusAndSigmas
@@ -2465,9 +2479,9 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
 */
 
     endStackCollapseNoop 
-  ) tempRSTSSMax replicateWord
+  ) tableRSTSSMax replicateWord
 
-) "tempFusionGetRaysFromStream" store
+) "tableFusionGetRaysFromStream" store
 
 (
 
@@ -2477,39 +2491,39 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
 
-  tempUpdateMaps
+  tableUpdateMaps
 
   quarterImpulse
-  tempUpdateSpiralPos moveEeToPoseWord
+  tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 
 
   /* integrate results */
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
   /*
-  tempUpdateSpiralCoreIntegrate
+  tableUpdateSpiralCoreIntegrate
   */
 
-  tempReconstructFromStream
-  tempUpdateMaps
-) "tempFissionEndScene" store
+  tableReconstructFromStream
+  tableUpdateMaps
+) "tableFissionEndScene" store
 
 (
-  "scene" import rayBufferInit tempFusionTakeScene 0.388 rayBufferPopulateFromImageBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
+  "scene" import rayBufferInit tableFusionTakeScene 0.388 rayBufferPopulateFromImageBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
 
 
-  "scene" import rayBufferInit tempFissionStartScene 
-  tempFissionEndScene
+  "scene" import rayBufferInit tableFissionStartScene 
+  tableFissionEndScene
 
   0.388 rayBufferPopulateFromImageBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
   rayBufferPopulateFromRangeBuffer "/home/oberlin/Desktop/slfgRays/test1.ray" rayBufferSaveRaw
-) "tempRayUsefulPhrases" store
+) "tableRayUsefulPhrases" store
 
 (
   deactivateSensorStreaming bringUpAllNonessentialSystems 
   assumeBeeHome 1 changeToHeight 
   quarterImpulse 0.01 setGridSize
-) "tempReset" store
+) "tableReset" store
 
 
 
@@ -2521,62 +2535,62 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   /*
   51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
   */
-) "tempDribblePrep" store
+) "tableDribblePrep" store
 
 (
   isGripperGripping (
     perturbPosition waitUntilAtCurrentPosition 0.15 setSpeed pressDown openGripper 0.01 setGridSize ( zUp ) 5 replicateWord waitUntilAtCurrentPosition 
   ) ift
-) "tempDribblePlace" store
+) "tableDribblePlace" store
 
 (
   ( 
     shoreUp
       currentPose
       dup
-    tempMapFocusedAndPick 
+    tableMapFocusedAndPick 
     moveEeToPoseWord
-    tempDribblePlace
+    tableDribblePlace
     moveEeToPoseWord
     waitUntilAtCurrentPosition
   ) time 
-) "tempDribbleCore" store
+) "tableDribbleCore" store
 
 (
   ( 
     shoreUp
       currentPose
       dup
-    tempMapFocusedAndPick 
+    tableMapFocusedAndPick 
     moveEeToPoseWord
-    tempDribblePlace
+    tableDribblePlace
     moveEeToPoseWord
     waitUntilAtCurrentPosition
   ) time 
-) "tempDribbleBestCore" store
+) "tableDribbleBestCore" store
 
 (
-  tempDribblePrep
-  tempDribbleCore
-) "tempDribble" store
+  tableDribblePrep
+  tableDribbleCore
+) "tableDribble" store
 
 (
-  tempDribblePrep
+  tableDribblePrep
 
   ( 1 ) (
-    tempDribbleCore
+    tableDribbleCore
     endStackCollapseNoop
   ) while
-) "tempInfiniteDribble" store
+) "tableInfiniteDribble" store
 
 (
-  tempDribblePrep
+  tableDribblePrep
 
   ( 1 ) (
-    tempDribbleBestCore
+    tableDribbleBestCore
     endStackCollapseNoop
   ) while
-) "tempInfiniteDribbleBest" store
+) "tableInfiniteDribbleBest" store
 
 (
   ( 1 ) (
@@ -2605,7 +2619,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
       waitForSeconds
     ) 80 replicateWord
   ) while
-) "tempIdolDance" store
+) "tableIdolDance" store
 
 
 
@@ -2618,7 +2632,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
   /* 
   moveCropToCenterVanishingPointSlideHeightReticles
   */
-) "tempSpoofVanishingPoint" store
+) "tableSpoofVanishingPoint" store
 
 
 
@@ -2640,7 +2654,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
     imageStreamBufferLoadCurrent
     incrementImageStreamBufferNoLoadNoKick 
   ) streamPushImageStreamSize replicateWord 
-) "tempLoadStreamImages" store
+) "tableLoadStreamImages" store
 
 (
   "cgWaitT" store
