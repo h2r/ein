@@ -5513,7 +5513,7 @@ virtual void execute(MachineState * ms) {
     buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
     cout << buf.str();
     for (int i = thisStart; i < thisEnd; i+=stride) {
-      streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
+      streamImage * tsi = getIsbIdxNoLoadNoKick(ms, i);
       
       
       
@@ -5526,7 +5526,7 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
