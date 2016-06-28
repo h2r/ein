@@ -5325,7 +5325,7 @@ virtual void execute(MachineState * ms) {
   vector<shared_ptr<GaussianMap> > maps;
   maps.resize(numThreads);
 
-  #pragma omp parallel for
+  //#pragma omp parallel for
   for (int thread = 0; thread < numThreads; thread++) {
     
     maps[thread] = make_shared<GaussianMap>(ms, 

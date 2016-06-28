@@ -218,7 +218,7 @@ workspace4 "outputPileWorkspace" store
 
 (
   playWorkspace moveEeToPoseWord 
-  tempUpdateBg
+  tableUpdateBg
   playWorkspace cw_clearWorkspace
   openGripper waitUntilGripperNotMoving
   ">>>> entering pickFromInputPile <<<<" print
@@ -329,7 +329,7 @@ workspace4 "outputPileWorkspace" store
     1 "scan_breakInd" store
     /* probably unnecessary */
     /* 
-    tempSpiralServoToAnonymousObject waitUntilAtCurrentPosition
+    tableSpiralServoToAnonymousObject waitUntilAtCurrentPosition
     */
   ) ifte
 
@@ -391,7 +391,7 @@ workspace4 "outputPileWorkspace" store
     setPlaceModeToShake
     1 changeToHeight
     clearMapForPatrol clearBlueBoxMemories
-    tempMapBestAndPick
+    tableMapBestAndPick
 
     playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
     scan_findObjectAfterDrop "scan_catScanSees" store
@@ -440,7 +440,7 @@ workspace4 "outputPileWorkspace" store
   clearMapForPatrol
   100 setGripperMovingForce
   openGripper
-  800 "tempReconstructStreamTakeSceneSamples" store
+  800 "tableReconstructStreamTakeSceneSamples" store
   sceneSetDiscrepancyModePoint
 
   ( 1 )
@@ -465,9 +465,9 @@ dateString "catScan5VarianceTrialThisTime" store
 
   0.1 perturbPositionScale waitUntilAtCurrentPosition
 
-  sceneClearPredictedObjects tempUpdateMaps 
+  sceneClearPredictedObjects tableUpdateMaps 
 
-    ( tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
+    ( tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
 
     scenePushNumSceneObjects
     1
@@ -500,7 +500,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
   halfImpulse 
   ( 
-    tempShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+    tableShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 3 replicateWord
 
     currentPose 
@@ -521,13 +521,13 @@ dateString "catScan5VarianceTrialThisTime" store
   */
   0.05 perturbPositionScale waitUntilAtCurrentPosition
 
-  sceneClearPredictedObjects tempUpdateMaps 
+  sceneClearPredictedObjects tableUpdateMaps 
 
 /* XXX Reconstruct Servo */
 
-  10 "tempReconstructStreamTakeSceneSamples" store
+  10 "tableReconstructStreamTakeSceneSamples" store
   ( 
-    tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+    tableReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 2 replicateWord 
 
 
@@ -557,26 +557,26 @@ dateString "catScan5VarianceTrialThisTime" store
   sceneSetPredictedClassNameToFocusedClass
 
 
-  100 "tempReconstructStreamTakeSceneSamples" store
+  100 "tableReconstructStreamTakeSceneSamples" store
   /* XXX form Reconstructed */
-  0.16 "tempReconstructWithZTotalZ" store
-  tempReconstructFromStream
+  0.16 "tableReconstructWithZTotalZ" store
+  tableReconstructFromStream
 
   /* XXX save Reconstructed */
     catScan5VarianceTrialThisFileName "_marginals_height" ".yml" + +
   sceneSaveSceneAbsolute
 
   sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
-  tempUpdateMaps
+  tableUpdateMaps
 
     catScan5VarianceTrialThisFileName "_maximum_likelihood_height" ".yml" + +
   sceneSaveSceneAbsolute
 
   /* XXX form table height rendered  */
-  0.00 "tempReconstructWithZTotalZ" store
-  tempReconstructFromStream
+  0.00 "tableReconstructWithZTotalZ" store
+  tableReconstructFromStream
 
-  0.16 "tempReconstructWithZTotalZ" store
+  0.16 "tableReconstructWithZTotalZ" store
 
   /* XXX save table height rendered  */
     catScan5VarianceTrialThisFileName "_table_height" ".yml" + +
@@ -600,9 +600,9 @@ dateString "catScan5VarianceTrialThisTime" store
   catScan5LoadPlayBg
 
   halfImpulse 
-  10 "tempReconstructStreamTakeSceneSamples" store
+  10 "tableReconstructStreamTakeSceneSamples" store
   ( 
-    tempReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+    tableReconstructServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 2 replicateWord
 
     currentPose 
@@ -634,7 +634,7 @@ dateString "catScan5VarianceTrialThisTime" store
     scan_findObjectAfterDrop 
   "scan_catScanSees" store
   /* 
-  tempSpiralTakeScene
+  tableSpiralTakeScene
   */ 
 
   setBoundingBoxModeToMapping
@@ -651,14 +651,14 @@ dateString "catScan5VarianceTrialThisTime" store
     setPickModeToLearningAlgorithmC
     setPlaceModeToShake
 
-    tempAddBlockGraspSaveModelAndPickAfterFind
+    tableAddBlockGraspSaveModelAndPickAfterFind
 
 	currentPose
       scan_findObjectAfterDrop 
     "scan_catScanSees" store
     currentPose "catScan5Pos" store
     /* 
-    tempSpiralTakeScene
+    tableSpiralTakeScene
     */ 
 
       scan_catScanCounter 1 + 
@@ -681,7 +681,7 @@ dateString "catScan5VarianceTrialThisTime" store
       catScan5VarianceTrial 
     ) catScan5NumVarianceTrials replicateWord
 
-    tempMapBestAndPickInPlace
+    tableMapBestAndPickInPlace
 
       playWorkspace 
     moveEeToPoseWord 
@@ -710,7 +710,7 @@ dateString "catScan5VarianceTrialThisTime" store
   ">>>> entering pickFromInputPile2 <<<<" print
 
   ( isGripperGripping ! ) (
-    tempSwapToBlocks
+    tableSwapToBlocks
 
     0 "pileSwitchCounter" store
 
@@ -725,21 +725,21 @@ dateString "catScan5VarianceTrialThisTime" store
 
       /*
       quarterImpulse
-      tempServoToBestSceneObject waitUntilAtCurrentPosition
+      tableServoToBestSceneObject waitUntilAtCurrentPosition
       */
 
       /* if it starts missing, you can uncomment this to recenter */
       /* 
-      tempSpiralTakeScene
-      tempServoToBestSceneObject waitUntilAtCurrentPosition
+      tableSpiralTakeScene
+      tableServoToBestSceneObject waitUntilAtCurrentPosition
       */ 
 
-      tempMapBestAndPickInPlace
+      tableMapBestAndPickInPlace
 
       /* 
       quarterImpulse
-      tempSpiralServoToBestSceneObject waitUntilAtCurrentPosition
-      setPickModeToStaticMarginals tempMapBestAndPick
+      tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition
+      setPickModeToStaticMarginals tableMapBestAndPick
       */
       
       /* 
@@ -768,7 +768,7 @@ dateString "catScan5VarianceTrialThisTime" store
     isGripperGripping ! ( openGripper playWorkspace cw_clearWorkspace ) ift 
   ) while
 
-  tempRestoreFromBlocks
+  tableRestoreFromBlocks
 ) "pickFromInputPile2" store
 
 4 "moveToOutputPile2MaxPicks" store
@@ -798,7 +798,7 @@ dateString "catScan5VarianceTrialThisTime" store
 
     "somethingsThere: " print somethingsThere print
     somethingsThere (
-      setPickModeToStaticMarginals tempMapBestAndPickInPlace
+      setPickModeToStaticMarginals tableMapBestAndPickInPlace
     ) (
     ) ifte
 
@@ -844,7 +844,7 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   "catScan5InputBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
   bg sceneSaveBackgroundMap
-  tempRegularizeBackground
+  tableRegularizeBackground
 ) "catScan5LoadInputBg" store
 
 (
@@ -857,37 +857,37 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   "catScan5PlayBg" "_" leftOrRightArm + + sceneLoadBackgroundMap
   bg sceneSaveBackgroundMap
-  tempRegularizeBackground
+  tableRegularizeBackground
 ) "catScan5LoadPlayBg" store
 
 (
-  tempSpiralMoveSpeedDefault "tempSpiralMoveSpeed" store
-  tempSpiralGridSizeDefault "tempSpiralGridSize" store
-  800 "tempSpiralStreamTakeSceneSamples" store
-  0.03 "tempSpiralMoveSpeed" store
+  tableSpiralMoveSpeedDefault "tableSpiralMoveSpeed" store
+  tableSpiralGridSizeDefault "tableSpiralGridSize" store
+  800 "tableSpiralStreamTakeSceneSamples" store
+  0.03 "tableSpiralMoveSpeed" store
   /*
-  100 "tempSpiralStreamTakeSceneSamples" store
-  1 5 4 tempUpdateSpiralEccentricCore tempUpdateMaps
-  0.04 "tempSpiralMoveSpeed" store
+  100 "tableSpiralStreamTakeSceneSamples" store
+  1 5 4 tableUpdateSpiralEccentricCore tableUpdateMaps
+  0.04 "tableSpiralMoveSpeed" store
   */
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
   shiftIntoGraspGear3 waitUntilAtCurrentPosition
-  3 7 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  3 7 4 tableUpdateSpiralEccentricCore tableUpdateMaps
 ) "catScan5InputPileTakeScene" store
 
 (
   shiftIntoGraspGear1 waitUntilAtCurrentPosition
-  100 "tempSpiralStreamTakeSceneSamples" store
+  100 "tableSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
-  0.04 "tempSpiralMoveSpeed" store
+  0.04 "tableSpiralMoveSpeed" store
 
   /* 
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
-  0.03 "tempSpiralMoveSpeed" store
+  0.03 "tableSpiralMoveSpeed" store
   */
 
-  tempSpiralGridSizeDefault "tempSpiralGridSize" store
-  5 2 4 tempUpdateSpiralEccentricCore tempUpdateMaps
+  tableSpiralGridSizeDefault "tableSpiralGridSize" store
+  5 2 4 tableUpdateSpiralEccentricCore tableUpdateMaps
 ) "catScan5PlayTakeScene" store
 

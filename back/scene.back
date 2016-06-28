@@ -1441,11 +1441,11 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 3.80 "tableReconstructWithZTopZ" store 
 */
 
-0.3883 "tempReconstructWithZTopZ" store 
-0.0 "tempReconstructWithZTotalZDefault" store
-tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
-0.02 "tempReconstructWithZDeltaZ" store
-500 "tempReconstructStreamTakeSceneSamples" store
+0.3883 "tableReconstructWithZTopZ" store 
+0.0 "tableReconstructWithZTotalZDefault" store
+tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+0.02 "tableReconstructWithZDeltaZ" store
+500 "tableReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1850,7 +1850,7 @@ tempReconstructWithZTotalZDefault "tempReconstructWithZTotalZ" store
     +
   "tableReconstructWithZTopZ" store 
 
-  tableReconstructWithZTopZ 0.388 divide 0.0025 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithZTopZ 0.388 divide 0.005 times  "slfgRebaseCellWidth" store slfgRebaseTable
   tableReconstructWithZ 
 
   /* 
