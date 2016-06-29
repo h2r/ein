@@ -11,6 +11,7 @@ loop you can do whatever experiments you like.
 
 
 There are three poses defined in scan.back designated with functionality for the scan:
+
 ```
 inputPileWorkspace
 playWorkspace
@@ -22,6 +23,7 @@ Move the arm to these locations by issuing, for instance:
 playWorkspace moveEeToPoseWord
 ```
 You can change the values of these variables in the file, save, and reload with
+
 ```
 "scan" import
 ```
@@ -30,6 +32,7 @@ Check the `inputPile` and `playWorkspace` and make sure there is about 20cm by 2
 pile doesn't really need space as long as objects deposited there can clear the other workspaces.
 
 Once everthing is clear, issue
+
 ```
 catScan5UpdateInputBg catScan5UpdatePlayBg 
 ```
