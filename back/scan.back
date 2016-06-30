@@ -450,7 +450,7 @@ workspace4 "outputPileWorkspace" store
     moveToOutputPile2
   ) while
 
-) "infiniteScan" store
+) "tableInfiniteScan" store
 
 
 5 "catScan5NumVarianceTrials" store

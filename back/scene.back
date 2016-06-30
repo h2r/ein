@@ -1426,7 +1426,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
 
 0.03 "viewSynthApertureWidth" store
-0.001 "viewSynthAperturePlane" store
+0.201 "viewSynthAperturePlane" store
 
 /* 
 0.3883 "tableReconstructWithZTopZ" store 
@@ -1608,6 +1608,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableSpiralStreamTakeSceneStride print
 
   tableReconstructWithZTopZ "tableReconstructWithZThisZ" store
+  tableReconstructWithZTopZ "tableReconstructWithZBottomZ" store
 
       tableReconstructWithZBottomZ 
     " " 
@@ -1653,7 +1654,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     viewSynthApertureWidth
     viewSynthAperturePlane
     tableReconstructWithZThisZ 
-  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll
+  /* 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthBeamAll
+  */
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll 
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
@@ -1714,7 +1718,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   /*
   0.0325 "tableSpiralGridSize" store
   */
-  0.01625 "tableSpiralGridSize" store
+
+
+
 
 
 
@@ -1732,9 +1738,13 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   */
 
 
+    0.01625 
+    2.0 divide
+  "tableSpiralGridSize" store
+
   0.04 "tableSpiralMoveSpeed" store
 
-  12 "tableUpdateSpiralN" store
+  24 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -1867,6 +1877,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebase
   tableReconstructWithZ 
 ) "tableReconstructWithRebase" store
+
+(
+  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithoutZ 
+) "tableReconstructWithoutRebaseTable" store
+
 
 
 (
