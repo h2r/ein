@@ -442,6 +442,7 @@ workspace4 "outputPileWorkspace" store
   openGripper
   800 "tableReconstructStreamTakeSceneSamples" store
   sceneSetDiscrepancyModePoint
+  initializeAndFocusOnTempClass
 
   ( 1 )
   (
@@ -870,24 +871,40 @@ dateString "catScan5VarianceTrialThisTime" store
   1 5 4 tableUpdateSpiralEccentricCore tableUpdateMaps
   0.04 "tableSpiralMoveSpeed" store
   */
+  
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
+  
+    currentEePose
+
   shiftIntoGraspGear3 waitUntilAtCurrentPosition
   3 7 4 tableUpdateSpiralEccentricCore tableUpdateMaps
+  
+  moveEeToPoseWord
+
 ) "catScan5InputPileTakeScene" store
 
 (
   shiftIntoGraspGear1 waitUntilAtCurrentPosition
   100 "tableSpiralStreamTakeSceneSamples" store
   playWorkspace moveEeToPoseWord 1 changeToHeight waitUntilAtCurrentPosition
-  0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
-  0.04 "tableSpiralMoveSpeed" store
+  ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
 
   /* 
   0.01 setGridSize ( xDown ) 6 replicateWord 1 changeToHeight waitUntilAtCurrentPosition
   0.03 "tableSpiralMoveSpeed" store
   */
 
+  0.04 "tableSpiralMoveSpeed" store
+  
+  
+    gridSize
+
+  0.005 setGridSize 
+
   tableSpiralGridSizeDefault "tableSpiralGridSize" store
-  5 2 4 tableUpdateSpiralEccentricCore tableUpdateMaps
+  1 1 10 tableUpdateSpiralEccentricCore tableUpdateMaps
+
+   setGridSize 
+
 ) "catScan5PlayTakeScene" store
 

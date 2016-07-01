@@ -24,6 +24,8 @@
   cw_viewIsClear
 ) "cw_workspaceIsClear" store
 
+0.3 "cw_viewIsClear_discrepancyThresh" store
+500 "cw_viewIsClear_numCellThresh" store
 ( 
   /* warning, still hardcoded for playworkspace */
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
@@ -45,11 +47,27 @@
   tableServoToFocusedSceneObject
   /* end based on */
 
+
+/*
   scenePushNumSceneObjects 0 = 
+*/
+
+  "cw_viewIsClear dT nCT: " cw_viewIsClear_discrepancyThresh " " cw_viewIsClear_numCellThresh + + + print
+
+	cw_viewIsClear_discrepancyThresh 
+      sceneCountDiscrepantCells
+    dup
+    " cells are discrepant" +
+  print 
+    cw_viewIsClear_numCellThresh
+  >
   ( 
-    1 
-  ) (
+    "NO, view is NOT CLEAR" print
     0 
+  ) (
+    "YES, view is CLEAR" print
+    1 
+    sceneClearPredictedObjects
   ) ifte
 
   tableRestoreFromBlocks

@@ -9,9 +9,9 @@
 (
   sceneClearPredictedObjects 0.26 0.795 1.5 sceneAddPredictedFocusedObject sceneClearObservedMap sceneUpdateObservedFromWrist 30 sceneSetBackgroundStdDev sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy
 
-60 20 fixCameraLightingExposureGain
+  60 20 fixCameraLightingExposureGain
 
-0.5 sceneGrabDiscrepantCropAsClass
+  sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass
 ) "sceneRenderTest" store
 
 
@@ -21,8 +21,9 @@
   tableCaptureCore
 ) "tableCaptureAsFocused" store
 
+0.5 "sceneGrabDiscrepantCropAsClassDefaultThresh" store
 ( 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy 0.5 sceneGrabDiscrepantCropAsClass 
+  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass 
 ) "tableCaptureCore" store
 
 (
@@ -47,7 +48,7 @@
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "Initialize scene parameters." "tableInit" define
 
-0.1 "scenePredictedMapThreshDefault" store
+0.5 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
   sceneScoreThresh sceneComposePredictedMapThreshed sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
