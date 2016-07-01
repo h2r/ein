@@ -4,7 +4,7 @@
 100 "pileSwitchThreshold" store
 
 1 "scan_catScanLimit" store
-10 "scan_catPickLimit" store
+1 "scan_catPickLimit" store
 
 leftOrRightArm "right" =
 ( 
@@ -836,6 +836,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "moveToOutputPile2" store
 
 (
+  initializeAndFocusOnTempClass
   catScan5InputPileTakeScene
 
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap
@@ -849,6 +850,7 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5LoadInputBg" store
 
 (
+  initializeAndFocusOnTempClass
   catScan5PlayTakeScene
 
   "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap

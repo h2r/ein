@@ -1125,12 +1125,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.0550 "tableBlockMaxGraspThickness" store
+0.040 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 */
-0.03 "tableBlockGripperThrow" store
+0.025 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 0.055 "tableBlockTargetContactWidth" store
 0.02 "tableBlockCollarWidth" store

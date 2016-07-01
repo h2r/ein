@@ -41,6 +41,19 @@
   /* based on tableRecaptureServoSpiral */
   sceneClearPredictedObjects
   sceneClearObservedMap catScan5PlayTakeScene tableUpdateMaps
+
+  "cw_viewIsClear dT nCT: " cw_viewIsClear_discrepancyThresh " " cw_viewIsClear_numCellThresh + + + print
+
+      cw_viewIsClear_discrepancyThresh 
+    sceneCountDiscrepantCells
+    "cw_viewIsClear_numDiscrepantCells"
+  store
+  
+
+    cw_viewIsClear_numDiscrepantCells
+    " cells are discrepant" 
+  + print 
+
   tableCaptureCore
   tableUpdateMaps
 
@@ -52,13 +65,7 @@
   scenePushNumSceneObjects 0 = 
 */
 
-  "cw_viewIsClear dT nCT: " cw_viewIsClear_discrepancyThresh " " cw_viewIsClear_numCellThresh + + + print
-
-	cw_viewIsClear_discrepancyThresh 
-      sceneCountDiscrepantCells
-    dup
-    " cells are discrepant" +
-  print 
+    cw_viewIsClear_numDiscrepantCells
     cw_viewIsClear_numCellThresh
   >
   ( 
