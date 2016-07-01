@@ -454,7 +454,7 @@ workspace4 "outputPileWorkspace" store
 ) "tableInfiniteScan" store
 
 
-5 "catScan5NumVarianceTrials" store
+0 "catScan5NumVarianceTrials" store
 dateString "catScan5VarianceTrialBatchTime" store
 dateString "catScan5VarianceTrialThisTime" store
 "trial" "catScan5VarianceTrialName" store
