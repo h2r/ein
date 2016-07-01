@@ -874,7 +874,7 @@ dateString "catScan5VarianceTrialThisTime" store
   
   inputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition 1 changeToHeight
   
-    currentEePose
+    currentPose
 
   shiftIntoGraspGear3 waitUntilAtCurrentPosition
   3 7 4 tableUpdateSpiralEccentricCore tableUpdateMaps
