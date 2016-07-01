@@ -60,6 +60,8 @@ play with it, move it to the output pile, and begin again by scanning the play w
 
 This code is stabilizing in the wake of recent API changes. Feel free to try it but behavior is undefined until release 0.5b scheduled for 7/3/2016.
 
+UPDATE (7/1/2016): Steadily working my way through two piles.
+
 
 
 
