@@ -308,6 +308,27 @@ to blue boxes, can command which blue box to pick.
 
 
 
+#### Summary:  Training and Dribbling an Object.
+
+Here is the REPL history for a session that 
+
+```
+tableUpdateBg
+tableQuickScan
+tableLock3dGrasp
+clearClass3dGrasps
+zDown 
+zDown 
+...
+xUp
+yUp
+zDown
+add3dGrasp
+writeFocusedClass
+tableReset
+endArgs "catScan5_011509P0027right2016-07-02_13:03:38/autoClass_011509P0027_right_2016-07-02_13:19:18" setClassLabels
+tableInfiniteDribbleBest
+```
 
 
 
