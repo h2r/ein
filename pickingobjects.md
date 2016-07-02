@@ -101,7 +101,7 @@ and running:
 setGripperMaskWithMotion
 ```
 
-Here is an example of a background map with an incorrect grapper mask;
+Here is an example of a background map with an incorrect gripper mask;
 note the dark gripper pixels smeared on the lower part of the image.
 
 
@@ -241,13 +241,14 @@ when it holds the object and command its movement for your own
 purposes.
 
 ```
-
-```
-maps the area and adds a detection to the list of Blue Boxes. 
-
-
+tableMapBestClass
 ```
 
+maps the area and adds a detection to the list of Blue Boxes visible in the Ein main window. 
+
+
+```
+setPlaceModeToHand
 ``` 
 
 changes the place mode to handing, which is the default, but some
@@ -257,12 +258,23 @@ properly.
 Now, when you issue
 
 ```
-
+"itemA" deliverObject
 ```
 
 the arm will move to pick the object and stop with an empty call stack after the attempt.
 You are free to command the arm from this point.
 
+To clear all mapped Blue Box detections, issue
+
+```
+clearBlueBoxMemories
+```
+
+Note that this does not clear the predicted scene objects which show up in the Predicted View. To do that, issue
+
+```
+sceneClearPredictedObjects tableUpdateMaps
+```
 
 
 Finally there is the matter of handling multiple objects over a larger area. Defining scanning patterns is beyond
