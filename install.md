@@ -36,7 +36,7 @@ sudo apt-get install libopencv-nonfree-\*
 Next install other Ein dependencies: 
 
 ```
-sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev exuberant-ctags  ros-indigo-serial
+sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial
 ```
 
 Create your catkin workspace:
