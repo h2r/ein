@@ -41,6 +41,7 @@
   sceneSetDiscrepancyModeNoisyOr
 
   tableDefaultScoreThresh sceneSetScoreThresh
+  "tableInit RUNNING" print
   bg sceneLoadBackgroundMap 
   5 sceneSetCellCountThreshold 
   tableRegularizeBackground
@@ -1740,12 +1741,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 
     0.01625 
-    2.0 divide
+    1.0 divide
   "tableSpiralGridSize" store
 
   0.04 "tableSpiralMoveSpeed" store
 
-  24 "tableUpdateSpiralN" store
+  12 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -1854,6 +1855,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   */
 ) "tableReconstructPhrases" store
 
+0.01 "tableDefaultMapGridFactor" store
 (
 	currentPose
       eePosePZ
@@ -1861,7 +1863,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     +
   "tableReconstructWithZTopZ" store 
 
-  tableReconstructWithZTopZ 0.388 divide 0.005 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructWithZTopZ 0.388 divide tableDefaultMapGridFactor times  "slfgRebaseCellWidth" store slfgRebaseTable
   tableReconstructWithZ 
 
   /* 

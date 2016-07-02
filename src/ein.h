@@ -183,8 +183,10 @@ streamImage * setIsbIdx(MachineState * ms, int idx);
 streamImage * setIsbIdxNoLoad(MachineState * ms, int idx);
 streamImage * setIsbIdxYesLoadNoKick(MachineState * ms, int idx);
 streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx);
+streamImage * getIsbIdxNoLoadNoKick(MachineState * ms, int idx);
 void resetAccumulatedStreamImage(MachineState * ms);
 int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
+int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
 void update2dRangeMaps(MachineState * ms, Vector3d castPoint);
 

@@ -1291,6 +1291,15 @@ streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
   return &(ms->config.streamImageBuffer[idx]);
 }
 
+streamImage * getIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
+  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
+    return &(ms->config.streamImageBuffer[idx]);
+  } else {
+    cout << "Tried to set ISB index out of bounds: " << idx << endl;
+    return NULL;
+  }
+}
+
 streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
   if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
     streamImage &tsi = ms->config.streamImageBuffer[idx];
@@ -1413,6 +1422,75 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
   double p_rejectThresh = 1.0;
   // XXX int &thisIdx = ms->config.spbCurIdx;
   int thisIdx = ms->config.spbCurIdx;
+  vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
+
+  if (tspb.size() < 2) {
+    // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
+    cout << "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
+    return 0;
+  }
+
+  if ( (thisIdx > -1) && (thisIdx < tspb.size()) ) {
+  } else {
+    thisIdx = 0;
+  }
+
+  if (tin == tspb[thisIdx].time) {
+    (*outArm) = tspb[thisIdx].arm_pose;
+    (*outBase) = tspb[thisIdx].base_pose;
+    return 1;
+  } else if (tin > tspb[thisIdx].time) {
+    // checking between
+    for (int j = thisIdx; j < tspb.size()-1; j++) {
+      if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
+	double w1 = tin - tspb[j].time;
+	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
+	  return 0;
+	} else {
+	}
+	double totalWeight = w1 + w2;
+	w1 = w1 / totalWeight;
+	w2 = w2 / totalWeight;
+	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
+	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
+	(*outArm) = iArm;
+	(*outBase) = iBase;
+	return 1;
+      }
+    }
+  } else { // tin < tspb[thisIdx].time
+    // checking between
+    for (int j = thisIdx-1; j > -1; j--) {
+      if ( (tspb[j].time < tin) && (tin < tspb[j+1].time) ) {
+	double w1 = tin - tspb[j].time;
+	double w2 = tspb[j+1].time - tin;
+	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
+          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
+	  return 0;
+	}
+	double totalWeight = w1 + w2;
+	w1 = w1 / totalWeight;
+	w2 = w2 / totalWeight;
+	eePose iBase = tspb[j].base_pose.getInterpolation(tspb[j+1].base_pose, w2);
+	eePose iArm = tspb[j].arm_pose.getInterpolation(tspb[j+1].arm_pose, w2);
+	(*outArm) = iArm;
+	(*outBase) = iBase;
+	return 1;
+      }
+    }
+    cout << "bottomed out of the if." << endl;
+    return 0;
+  }
+}
+
+int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase) {
+
+  // if we are more than p_rejectThresh away from a measurement, reject it
+  double p_rejectThresh = 1.0;
+  // XXX int &thisIdx = ms->config.spbCurIdx;
+  int thisIdx = 0;
   vector<streamEePose> &tspb = ms->config.streamPoseBuffer;
 
   if (tspb.size() < 2) {
