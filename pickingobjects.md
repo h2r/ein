@@ -51,31 +51,16 @@ The basic workflow for object picking is:
 
 ### Create a background map.
 
-Now you need to train a workspace background model, which we call a
-background map.  Move the arm to a tentative workspace. The workspace
-should contain a square of two feet. It should be as flat as
-possible. The system can accomodate altitude changes but shadows and
-occlusion induce variance in the maps and require careful sampling for
-accurate results.
 
-Move the arm to the center of the workspace. Issue
-```
-1 changeToHeight
-shiftIntoGraspGear1
-currentPose "zzAPlace" store
-```
 
-The last line stores your position in a variable named
-"zzAPlace". Prepending variables with "zz" can be useful because it
-will show up at the end of the tab complete list, so you can more
-easily remember which variables have been defined this session.  You
-can return to this, which will be the center of your workspace, by
-issuing
-
-```
-zzAPlace moveEeToPoseWord
-```
-
+Now you need to create a workspace background model, which we call a
+background map. Send the gripper to the home position by running
+`goHome`.  The workspace should contain a square of two feet. It
+should be as flat as possible. The system can accomodate altitude
+changes but shadows and occlusion induce variance in the maps and
+require careful sampling for accurate results.  (If you would like to
+change the home position, follow [these
+instructions](../movement/#changing-the-home-position).)
 
 The wrist should now be pointing straight down with the camera should
 be about 38 cm from the table.  If it is substantially higher or lower
