@@ -1,5 +1,5 @@
 # configure the client window to show the stack, the standard out, and the standard repl. 
-
+autodetach off 
 escape ``
 
 
