@@ -47,9 +47,14 @@ class EinStack:
                 self.printDataStack()
             else:
                 raise ValueError("Bad stack: %s" % self.stack_to_use)
+def hangup(signal, stackframe):
+    import signal
+    import os
+    os.kill(os.getpid(), signal.SIGTERM)
 
 def main():
     import sys
+    import signal
     if (len(sys.argv) != 3):
         print "usage:  ein_stack.py left|right  call|data"
         return
@@ -66,7 +71,7 @@ def main():
 
     rospy.init_node("ein_stack_%s" % arm, anonymous=True)
 
-
+    signal.signal(signal.SIGHUP, hangup)
     client = EinStack("/ein/%s/state" % arm, stack)
     client.spin()
 

@@ -115,8 +115,15 @@ def save_history_hook():
     import atexit
     atexit.register(readline.write_history_file, histfile)
 
+def hangup(signal, stackframe):
+    import signal
+    import os
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+
 def main():
-    import sys
+    import signal
 
     import argparse
 
@@ -132,6 +139,8 @@ def main():
     args = parser.parse_args()
     arm = args.arm[0]
 
+
+
     rospy.init_node("ein_client_%s" % arm, anonymous=True)
     words = []
     for wordline in open("ein_words.txt"):
@@ -145,7 +154,7 @@ def main():
     rows = int(rows)
     print "".rjust(rows, "\n")
 
-
+    signal.signal(signal.SIGHUP, hangup)
     client.ask()
 
 

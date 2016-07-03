@@ -36,15 +36,20 @@ class EinPrint:
     def spin(self):
         while not rospy.is_shutdown():
             rospy.sleep(0.3)
-
+def hangup(signal, stackframe):
+    import signal
+    import os
+    os.kill(os.getpid(), signal.SIGTERM)
 
 def main():
     import sys
+    import signal
     if (len(sys.argv) != 2):
         print "usage:  ein_print_state.py left|right"
         return
 
     arm = sys.argv[1]
+    signal.signal(signal.SIGHUP, hangup)
 
     rospy.init_node("ein_print_state_%s" % arm, anonymous=True)
 
