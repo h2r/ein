@@ -1402,7 +1402,11 @@ virtual void execute(MachineState * ms) {
 
   string oldfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
   string newfolder = ms->config.data_directory + "/objects/" + newname + "/";
+  try {
   rename(oldfolder, newfolder);
+  } catch (boost::filesystem::filesystem_error e) {
+    CONSOLE_ERROR(ms, "Could not rename focused class to " << newname << " with old folder: " << oldfolder << " and new folder: " << newfolder << " because of exception: " << e.what());
+  }
   ms->config.classLabels[idx] = newname;
   ms->pushWord("reloadClassLabels");
 }
