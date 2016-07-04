@@ -15480,9 +15480,18 @@ int opencvError (int status, const char *func_name, const char *err_msg, const c
 }
 
 
+void signalHandler( int signo )
+{
+  cout << "SIGNAL!  Shutting down: " << signo << endl;
+  ros::shutdown();
+}
+
+
 int main(int argc, char **argv) {
 
   QApplication a(argc, argv);
+
+
 
   initializeWords();
 
@@ -15528,9 +15537,9 @@ int main(int argc, char **argv) {
   }
 
   if (robot_mode == "snoop" || robot_mode == "simulated") {
-    ros::init(argc, argv, programName, ros::init_options::AnonymousName);
+    ros::init(argc, argv, programName, ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
   } else {
-    ros::init(argc, argv, programName);
+    ros::init(argc, argv, programName, ros::init_options::NoSigintHandler);
   }
   ros::NodeHandle n("~");
 
@@ -15590,6 +15599,10 @@ int main(int argc, char **argv) {
   cv::redirectError(opencvError, NULL, NULL);
 
   //a.exec();
+  signal(SIGINT, signalHandler);
+  signal(SIGHUP, signalHandler);
+  signal(SIGTERM, signalHandler);
+
   
   ros::spin();
 
