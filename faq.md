@@ -42,3 +42,36 @@ the client often receives one wrist camera image, and then not any
 others.  (One would think it would receive zero images or all of them;
 but consistently it receives one and then stops.  We are unsure why,
 but it happens all the time when the network is not set up correctly.)
+
+
+### What if Ein is not receiving wrist camera images? 
+
+The Baxter robot only allows two of the three cameras to be open at
+one time: left hand, right hand, and head.  This is due to limitations
+in the badwidth of USB 2.0.  More information about this is available
+[here](http://sdk.rethinkrobotics.com/wiki/Camera_Control_Tool).
+
+Ein tries to make this happen, but sometimes the robot doesn't listen
+to camera control commands. We think this is a Rethink problem, but we
+haven't set up a good bug report.
+
+So before starting Ein, you should use camera_control.py to make sure
+that the camera you want to use with Ein is open (left or right). You
+should close the head camera and open the other two. Sometimes it
+takes several tries to get the robot to do this.
+
+This command lists the cameras:
+```
+rosrun baxter_tools camera_control.py  -l
+```
+
+Run `camera_control.py` with no arguments to see usage.  Open and
+close the cameras until only the left and right hand cameras are open.
+When it is set up correctly you should see this:  
+
+```
+$ rosrun baxter_tools camera_control.py  -l
+head_camera
+left_hand_camera  -  (open)
+right_hand_camera  -  (open)
+```

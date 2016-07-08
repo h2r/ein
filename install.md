@@ -78,8 +78,10 @@ Next build for the first time:
 cd .. 
 source /opt/ros/indigo/setup.bash
 catkin_make
-catkin_make
 ```
+
+Sometimes we have to run catkin_make multiple times in a row to build
+dependencies.   
 
 At this point you should be able to run Rethink's tools; for example
 to print the status of the robot:
