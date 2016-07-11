@@ -81,7 +81,8 @@ catkin_make
 ```
 
 Sometimes we have to run catkin_make multiple times in a row to build
-dependencies.   
+dependencies.  After building, you should rerun `./baxter.sh` so that
+the workspace is in your `$ROS_PACKAGE_PATH`.
 
 At this point you should be able to run Rethink's tools; for example
 to print the status of the robot:
