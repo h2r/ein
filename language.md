@@ -61,7 +61,7 @@ there before it is used.
 
 ### Data and Variables
 
-<!--  
+<--  
 
 `store`
 
@@ -71,7 +71,7 @@ there before it is used.
 
 Reactive variables. 
 
---!> 
+--> 
 
 ### Elementary Operations
 
