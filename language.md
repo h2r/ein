@@ -22,7 +22,7 @@ data stack. Some words are more like data than functions in that they only push
 individual words onto the data stack (`1` and `"something"`) or groups of words
 onto the call stack (`( "hello" print )`), while others (like `+`) are more
 obviously functions in that they consume words from the data stack, perform a
-computation, and leav a result on the data stack.
+computation, and leave a result on the data stack.
 
 ### Argument Order
 
@@ -54,7 +54,9 @@ that argments are listed first, or to the left, of the functions to which they b
 b c + "a" store
 ```
 
-
+The reason for this is that words take their arguments from the data stack. In order for 
+something to end up on the data stack, something must put it there, and it needs to be put
+there before it is used.
 
 
 ### Data and Variables
@@ -65,15 +67,14 @@ b c + "a" store
 
 `1 1 +`
 
+Reactive variables. 
+
 ### Elementary Operations
 
 ### Control Words 
 
 ### Domain Words
 
-Call stack and data stack. 
-
-Reactive variables. 
 
 
 
