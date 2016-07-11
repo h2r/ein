@@ -15,7 +15,9 @@ then assume the pose with `moveEeToPoseWord`.  For example, the
 following program pushes the current pose, moves the arm to crane
 pose, then moves back to the current pose:
 
-```currentPose assumeCrane1 waitUntilAtCurrentPosition moveEeToPoseWord```
+```
+currentPose assumeCrane1 waitUntilAtCurrentPosition moveEeToPoseWord
+```
 
 When Ein is in zero gravity mode, the current position is constantly
 set to the true position, so the arm stays where you move it.
@@ -58,12 +60,33 @@ attention.
 
 ### Changing the Home Position
 
-You can change the home position by editing init.back.  Remember to
+You can change the home position with build in getter and setter commands.  Remember to
 set separate values for each arm.  First drive the arm to the desired
 new position. We recommend using a point in the green part of the IK
 workspace so the arm can move freely around the home position for
-servoing and mapping and the like.  Then run truePose to obtain a
-value on the stack for the desired pose.  Copy this pose from the
-console into init.back.  Be sure to reload init.back to see the new
-pose by running `"init" import`.
+servoing and mapping and the like. Issue
+
+``` 
+beeHome print
+currentPose setBeeHome
+beeHome print
+currentPose print
+``` 
+
+and then move the arm somewhere else. Run
+
+```
+currentPose print
+assumeBeeHome
+currentPose print
+```
+and verify the output is what you would expect.
+
+
+
+
+
+
+
+
 
