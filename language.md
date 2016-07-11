@@ -61,7 +61,7 @@ there before it is used.
 
 ### Data and Variables
 
-<--  
+<!--  
 
 `store`
 
