@@ -59,9 +59,8 @@ The arm should scan the play workspace to make a new map, scan the input workspa
 play with it, move it to the output pile, and begin again by scanning the play workspace.
 
 
-UPDATE (7/1/2016): Steadily working my way through two piles.
-This code is stabilizing in the wake of recent API changes. Feel free to try it but behavior is undefined until release 0.5b scheduled for 7/3/2016.
-UPDATE (7/4/2016): Eliminating unnecessary actions in infiniteScan; choosing good default resolutions, etc., 0.5b pushed to 7/7/2016.
+
+
 
 
 
