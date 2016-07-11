@@ -21,17 +21,62 @@ executed, affecting some change on to the Ein state, the call stack, or the
 data stack. Some words are more like data than functions in that they only push
 individual words onto the data stack (`1` and `"something"`) or groups of words
 onto the call stack (`( "hello" print )`), while others (like `+`) are more
-obviously functions, consuming words from the data stack, performing a
-computation, and leaving a result on the data stack.
+obviously functions in that they consume words from the data stack, perform a
+computation, and leav a result on the data stack.
+
+### Argument Order
+
+Many popular programming languages invoke functions by first naming the function and then listing its
+arguments from left to right:
+
+```
+/* C code */
+printf("Hello world.\n");
+```
+
+This is called **prefix order**.
+
+In the same languages one can find functions which take their arguments on either side:
+
+```
+/* C code */
+int a = b + c;
+```
+
+Here both `=` and `+` are written in **infix order**.
+
+Ein uses **postfix order**, which means
+that argments are listed first, or to the left, of the functions to which they belong: 
+
+```
+/* back code */
+"Hello world." print
+b c + "a" store
+```
+
+
+
+
+### Data and Variables
 
 `store`
 
 `define`
 
-
 `1 1 +`
+
+### Elementary Operations
+
+### Control Words 
+
+### Domain Words
 
 Call stack and data stack. 
 
 Reactive variables. 
+
+
+
+
+
 
