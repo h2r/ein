@@ -26,7 +26,7 @@ computation, and leave a result on the data stack.
 
 ### Argument Order
 
-Many popular programming languages invoke functions by first naming the function and then listing its
+Many programming languages invoke functions by first naming the function and then listing its
 arguments from left to right:
 
 ```
@@ -63,24 +63,57 @@ there before it is used.
 
 <!--  
 
+String Integer Double CompoundWord
+
 `store`
 
 `define`
 
 `1 1 +`
 
-Reactive variables. 
+compound words
+good for storing lists and tuples
+
+Reactive variables: truePose
 
 --> 
 
 ### Elementary Operations
 
+Basic data operations are available.
+
+<!--  
+
+```
++
+-
+*
+/
+
+```
+
+--> 
+
 ### Control Words 
+
+Back includes looping and condition constructs.
+
+
+<!--  
+ift
+ifte
+while
+not
+
+--> 
 
 ### Domain Words
 
+Some words invoke complicated domain specific behaviors or routines.
 
-
+<!--  
+tableReconstructTakeScene
+--> 
 
 
 
