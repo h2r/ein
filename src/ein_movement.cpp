@@ -1523,6 +1523,9 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(AssumeCrane1)
 
+CONFIG_GETTER_POSE(BeeHome, ms->config.beeHome)
+CONFIG_SETTER_POSE(SetBeeHome, ms->config.beeHome)
+
 WORD(AssumeBeeHome)
 virtual void execute(MachineState * ms) {
   ms->config.currentEEPose = ms->config.beeHome;

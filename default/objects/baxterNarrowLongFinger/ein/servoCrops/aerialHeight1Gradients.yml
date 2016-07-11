@@ -1,0 +1,6 @@
+%YAML:1.0
+aerialHeight1Gradients: !!opencv-matrix
+   rows: 1
+   cols: 1
+   dt: d
+   data: [ 0. ]

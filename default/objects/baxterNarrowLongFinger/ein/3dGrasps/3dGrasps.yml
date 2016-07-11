@@ -1,0 +1,15 @@
+%YAML:1.0
+grasps:
+   size: 1
+   graspPoses:
+      - { px:-8.5000000000000075e-02, py:-4.0000000000000036e-02,
+          pz:-1.1833333333333330e-01, qw:1., qx:0., qy:0., qz:0.,
+          tries:1., successes:1., failures:0., jams:0. }
+placeUnderPoints:
+   size: 0
+   pupPoses:
+      []
+placeOverPoints:
+   size: 0
+   popPoses:
+      []

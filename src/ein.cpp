@@ -13727,7 +13727,8 @@ void detectorsInit(MachineState * ms) {
   cout << "Main kNN...";
 
   if ( (kNNfeatures.data == NULL) || (kNNfeatures.rows < 1) || (kNNfeatures.cols < 1) ) {
-    cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
+    // seeing this can be distressing
+    //cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
   } else {
     ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
     cout << "done." << endl;
