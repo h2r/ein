@@ -61,6 +61,8 @@ there before it is used.
 
 ### Data and Variables
 
+<!--  
+
 `store`
 
 `define`
@@ -68,6 +70,8 @@ there before it is used.
 `1 1 +`
 
 Reactive variables. 
+
+--!> 
 
 ### Elementary Operations
 
