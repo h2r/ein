@@ -145,16 +145,40 @@ immediately after making a background map.
 ###  Pick a known object. 
 
 We will first demonstrate picking with a pre-trained model from the
-Rethink Baxter kit, the Allen wrench.  Make sure the gripper gap is at
-its narrowest setting. Equip the rectangular rubber tips; we will be
-trying for a flush grasp.  Find the allen wrench from a Baxter
-parallel gripper kit and place it in the workspace.  Issue
+Rethink Baxter kit, the narrow long finger.  Make sure the gripper gap
+is at its narrowest setting. Equip the rectangular rubber tips; we
+will be trying for a flush grasp.  Find the narrow long finger from a
+Baxter parallel gripper kit and place it in the workspace.  Here is a
+picture of the setup:
+
+![Narrow Long Finger](../assets/narrow_finger_scene.jpg)
+
+Issue:
 
 ```
-endArgs "allenWrench" setClassLabels
+endArgs "baxterNarrowLongFinger" setClassLabels
 ```
 
-and check terminal and console output to verify the model loads. 
+and check terminal and console output to verify the model loads.
+Next, make a map of the object by running:
+
+```
+tableMapBestClass
+```
+
+The arm should move in a spiral pattern and create a map of the table,
+then run the detector for the narrow long finger.  You should compare
+the predicted and observed maps to assess the accuracy of the pose
+estimation.
+
+Finally to pick the object run: 
+```
+"baxterNarrowLongFinger" deliverObject
+```
+
+This word grasps the object and stops.  You must run additional
+commands to move the object after the grasp, such as
+`assumeHandingPose`.
 
 #### Exercise: Dribble
 
