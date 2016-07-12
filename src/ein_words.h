@@ -141,9 +141,9 @@ public: \
 {\
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
-    cout << "Oops, GET_STRING_ARG " << " " << #x << " " << #ms << " found no argument..." << endl;\
-    cout << "  Must pass a string argument to " << this->name() << endl;\
-    cout << "  Pausing." << endl;\
+    CONSOLE_ERROR(ms, "Oops, GET_STRING_ARG " << " " << #x << " " << #ms << " found no argument..."); \
+    CONSOLE_ERROR(ms, "  Must pass a string argument to " << this->name()); \
+    CONSOLE_ERROR(ms, "  Pausing.");                                    \
     ms->pushWord("pauseStackExecution");\
     return;\
   }  \
