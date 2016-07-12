@@ -142,14 +142,14 @@ def main():
 
 
     rospy.init_node("ein_client_%s" % arm, anonymous=True)
-    words = []
-    for wordline in open("ein_words.txt"):
-        words.append(wordline.split(" ")[0])
+    #words = []
+    #for wordline in open("ein_words.txt"):
+    #    words.append(wordline.split(" ")[0])
         
     #print words
 
 
-    client = EinClient(words, "/ein/%s" % arm, not args.silence_console_messages, not args.silence_stacks)
+    client = EinClient([], "/ein/%s" % arm, not args.silence_console_messages, not args.silence_stacks)
     rows, cols = os.popen('stty size', 'r').read().split()
     rows = int(rows)
     print "".rjust(rows, "\n")
