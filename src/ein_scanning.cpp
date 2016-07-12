@@ -358,7 +358,7 @@ virtual void execute(MachineState * ms)  {
     shared_ptr<Word> bWord = ms->popData();
 
     if (bWord == NULL) {
-      cout << "oops, setClassLabels requires a number of StringWords followed by endArgs..." << endl;
+      CONSOLE_ERROR(ms, "oops, setClassLabels requires a number of StringWords followed by endArgs...");
       ms->clearStack();
       return;
     } else {
@@ -401,7 +401,7 @@ virtual void execute(MachineState * ms)  {
     ms->config.numClasses = ms->config.classLabels.size();
     changeTargetClass(ms, 0);
   } else {
-    cout << "didn't get any valid labels, are you sure this is what you want?" << endl;
+    CONSOLE_ERROR(ms, "didn't get any valid labels, are you sure this is what you want?");
     ms->config.classLabels.resize(0);
     ms->config.classPoseModels.resize(0);
     ms->pushWord("clearBlueBoxMemories");

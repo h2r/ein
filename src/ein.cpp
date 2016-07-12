@@ -13747,6 +13747,12 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 
   string thisLabelName(className);
 
+  string objectDir = ms->config.data_directory + "/objects/" + thisLabelName;
+  if (! boost::filesystem::exists(objectDir)) {
+    CONSOLE_ERROR(ms, "Could not find " << objectDir << "... loading default empty class.");
+  }
+
+
   {
     string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
     string this_range_path = dirToMakePath + "ir2d.yml";
