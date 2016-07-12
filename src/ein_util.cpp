@@ -41,16 +41,15 @@ void writeMatToYaml(Mat m, FileStorage & fs) {
 
 
 void writeBinaryToYaml(unsigned char * data, int length, FileStorage & fsvO) {
-  int max_string_length = 4095;
+
 
   string compressed_data = compress_string(data, length);
   string encoded_data = base64_encode((unsigned char *) compressed_data.data(), compressed_data.size());
 
-  
-  
   vector<string> strings;
   int current_idx = 0;
   int string_length = encoded_data.size();
+  int max_string_length = 4095;
   fsvO << "[:";
   while (current_idx < string_length) {
     int end_idx = min(current_idx + max_string_length, string_length); 
