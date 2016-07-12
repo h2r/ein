@@ -2,6 +2,9 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include <boost/filesystem.hpp>
+using namespace boost::filesystem;
+
 
 void checkProb(string label, double prob) {
   cout << "Checking " << label << " " << prob << endl;
@@ -2835,6 +2838,35 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneLoadBackgroundMap)
+
+WORD(SceneInitDefaultBackgroundMap)
+
+virtual string description() {
+  return "Check if the map exists; otherwise create a default one.";
+}
+virtual void execute(MachineState * ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  if (! exists(ss.str())) {
+    ms->config.scene->background_map->saveToFile(ss.str());
+  }
+
+  ms->config.scene->background_map->loadFromFile(ss.str());
+
+  ms->pushWord("sceneRenderBackgroundMap");
+}
+END_WORD
+REGISTER_WORD(SceneInitDefaultBackgroundMap)
+
 
 
 WORD(SceneRenderBackgroundMap)
