@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ein</title>
+    <description>Ein is a complete pick-and-place stack for Baxter.
+</description>
+    <link>http://h2r.github.io/ein/</link>
+    <atom:link href="http://h2r.github.io/ein/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Thu, 14 Jul 2016 16:05:35 -0400</pubDate>
+    <lastBuildDate>Thu, 14 Jul 2016 16:05:35 -0400</lastBuildDate>
+    <generator>Jekyll v2.5.0</generator>
+    
+      <item>
+        <title>Welcome to Ein!</title>
+        <description>&lt;p&gt;Announcing the beta release of Ein!  We can scan an object in 30
+seconds and pick is 100 times in a row using the Baxter wrist camera.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 09 Jun 2016 16:01:12 -0400</pubDate>
+        <link>http://h2r.github.io/ein/jekyll/update/2016/06/09/welcome-to-ein.html</link>
+        <guid isPermaLink="true">http://h2r.github.io/ein/jekyll/update/2016/06/09/welcome-to-ein.html</guid>
+        
+        
+        <category>jekyll</category>
+        
+        <category>update</category>
+        
+      </item>
+    
+  </channel>
+</rss>
