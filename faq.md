@@ -76,7 +76,7 @@ left_hand_camera  -  (open)
 right_hand_camera  -  (open)
 ```
 
-Sometimes we have needed to reboot the roboto to make this go away.
+Sometimes we have needed to reboot the robot to make this go away.
 We have not been able to figure out why this happens or a reliable
 reproduce.  It happens fairly rarely for us, but it is annoying when
 it does.
