@@ -2703,7 +2703,7 @@ void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path) {
   if ((idx > -1) && (idx < ms->config.classGraspMemoryTries1.size())) {
     // do nothing
   } else {
-    cout << "writeGraspMemory: invalid idx, not writing." << endl;
+    CONSOLE_ERROR(ms, "writeGraspMemory: invalid idx, not writing.");
     return;
   }
 
@@ -2781,7 +2781,7 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
   if ((idx > -1) && (idx < ms->config.classLabels.size())) {
     // do nothing
   } else {
-    cout << "writeClassToFolder: invalid idx, not writing." << endl;
+    CONSOLE_ERROR(ms, "writeClassToFolder: invalid idx, not writing.");
     return;
   }
 
@@ -2800,6 +2800,7 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
       string servoImages = ein + "servoImages/";
 
   initClassFolders(ms, folderName);
+  CONSOLE(ms, "Writing class " << idx << " to folder " << folderName);
 
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
