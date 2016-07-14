@@ -66,7 +66,7 @@ if [ -f VERSION ]; then
     echo -e "$ADJUSTMENTS_MSG"
     read
     echo -e "$PUSHING_MSG"
-    git add CHANGELOG.md VERSION doc/VERSION
+    git add CHANGELOG.md VERSION doc/_data/ein_version.yml
     git commit -m "Bump version to ${INPUT_STRING}."
     git tag -a -m "Tag version ${INPUT_STRING}." "v$INPUT_STRING"
     git push origin --tags
