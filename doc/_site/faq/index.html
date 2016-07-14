@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>FAQ</title>
+  <meta name="description" content="Ein is a complete pick-and-place stack for Baxter.
+">
+
+  <link rel="stylesheet" href="/ein/css/main.css">
+  <link rel="canonical" href="http://h2r.github.io/ein/faq/">
+  <link rel="alternate" type="application/atom+xml" title="Ein" href="http://h2r.github.io/ein/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/ein/">Ein</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+
+
+        
+          
+        
+          
+        
+          
+        
+          
+          <a class="page-link" href="/ein/install/">Install</a>
+          
+        
+          
+          <a class="page-link" href="/ein/getstarted/">Get Started</a>
+          
+        
+          
+          <a class="page-link" href="/ein/calibration/">Calibration</a>
+          
+        
+          
+          <a class="page-link" href="/ein/pickingobjects/">Picking Objects</a>
+          
+        
+          
+          <a class="page-link" href="/ein/scanningobjects/">Mapping Objects</a>
+          
+        
+          
+          <a class="page-link" href="/ein/language/">Back Language</a>
+          
+        
+          
+          <a class="page-link" href="/ein/movement/">Movement</a>
+          
+        
+          
+          <a class="page-link" href="/ein/words/">Word Index</a>
+          
+        
+          
+          <a class="page-link" href="/ein/faq/">FAQ</a>
+          
+        
+          
+          <a class="page-link" href="/ein/about/">About</a>
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">FAQ</h1>
+  </header>
+
+  <article class="post-content">
+    <h3 id="what-if-my-console-stops-updating">What if my console stops updating?</h3>
+
+<p>Sometimes the console stops updating.  This problem can occur if you
+reboot Baxter without restarting the console as well.  It can also
+happen if you restart Ein (for unknown reasons).  To fix it, try
+restarting the console.  Type <code>` ` :quit</code> (note the double screen
+escape character, due to the subscreen inside the main Ein screen).
+Then go up one command in the command history to restart the screen
+session.</p>
+
+<h3 id="what-if-the-robot-wont-move">What if the robot won’t move?</h3>
+
+<p>Verify that you are not in zero gravity mode by checking the status
+window; it should be set to 0. Type <code>zeroGOff</code> to turn off zero
+gravity.  You can also press the grey circular button on the arm to
+toggle zero gravity (the “Ok” button).</p>
+
+<p>This problem also occurs if your ROS environment is misconfigured.  A
+common problem is that the $ROS_IP xor $ROS_HOSTNAME environment
+variables are not correctly set.  You should verify that one of these
+is set in the client machine, and that your Baxter can ping your
+client machine using the exact IP address/hostname that is set via the
+environment variable.  One might think that a networking
+misconfiguration would result in no messages being sent, but in fact,
+often your client machine will receive messages from Baxter, but not
+be able to send messages.</p>
+
+<h3 id="what-if-the-wrist-camera-image-is-not-updating">What if the wrist camera image is not updating?</h3>
+
+<p>Verify that your ROS environment is set up correctly ($ROS_IP,
+$ROS_HOSTNAME).  For some reason, when these variables are not set,
+the client often receives one wrist camera image, and then not any
+others.  (One would think it would receive zero images or all of them;
+but consistently it receives one and then stops.  We are unsure why,
+but it happens all the time when the network is not set up correctly.)</p>
+
+<h3 id="what-if-ein-is-not-receiving-wrist-camera-images">What if Ein is not receiving wrist camera images?</h3>
+
+<p>The Baxter robot only allows two of the three cameras to be open at
+one time: left hand, right hand, and head.  This is due to limitations
+in the badwidth of USB 2.0.  More information about this is available
+<a href="http://sdk.rethinkrobotics.com/wiki/Camera_Control_Tool">here</a>.</p>
+
+<p>Ein tries to make this happen, but sometimes the robot doesn’t listen
+to camera control commands. We think this is a Rethink problem, but we
+haven’t set up a good bug report.</p>
+
+<p>So before starting Ein, you should use camera_control.py to make sure
+that the camera you want to use with Ein is open (left or right). You
+should close the head camera and open the other two. Sometimes it
+takes several tries to get the robot to do this.</p>
+
+<p>This command lists the cameras:
+<code>
+rosrun baxter_tools camera_control.py  -l
+</code></p>
+
+<p>Run <code>camera_control.py</code> with no arguments to see usage.  Open and
+close the cameras until only the left and right hand cameras are open.
+When it is set up correctly you should see this:</p>
+
+<pre><code>$ rosrun baxter_tools camera_control.py  -l
+head_camera
+left_hand_camera  -  (open)
+right_hand_camera  -  (open)
+</code></pre>
+
+<p>Sometimes we have needed to reboot the robot to make this go away.
+We have not been able to figure out why this happens or a reliable
+reproduce.  It happens fairly rarely for us, but it is annoying when
+it does.</p>
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ein</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+<!--        <ul class="contact-list">
+          <li>Ein</li>
+          <li><a href="mailto:"></a></li>
+        </ul>-->
+      </div>
+
+      <div class="footer-col  footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/h2r">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">h2r</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-3">
+        <p class="text">Ein is a complete pick-and-place stack for Baxter.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

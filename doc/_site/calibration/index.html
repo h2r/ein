@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width initial-scale=1">
+
+  <title>Calibration</title>
+  <meta name="description" content="Ein is a complete pick-and-place stack for Baxter.
+">
+
+  <link rel="stylesheet" href="/ein/css/main.css">
+  <link rel="canonical" href="http://h2r.github.io/ein/calibration/">
+  <link rel="alternate" type="application/atom+xml" title="Ein" href="http://h2r.github.io/ein/feed.xml" />
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/ein/">Ein</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+
+
+        
+          
+        
+          
+        
+          
+        
+          
+          <a class="page-link" href="/ein/install/">Install</a>
+          
+        
+          
+          <a class="page-link" href="/ein/getstarted/">Get Started</a>
+          
+        
+          
+          <a class="page-link" href="/ein/calibration/">Calibration</a>
+          
+        
+          
+          <a class="page-link" href="/ein/pickingobjects/">Picking Objects</a>
+          
+        
+          
+          <a class="page-link" href="/ein/scanningobjects/">Mapping Objects</a>
+          
+        
+          
+          <a class="page-link" href="/ein/language/">Back Language</a>
+          
+        
+          
+          <a class="page-link" href="/ein/movement/">Movement</a>
+          
+        
+          
+          <a class="page-link" href="/ein/words/">Word Index</a>
+          
+        
+          
+          <a class="page-link" href="/ein/faq/">FAQ</a>
+          
+        
+          
+          <a class="page-link" href="/ein/about/">About</a>
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Calibration</h1>
+  </header>
+
+  <article class="post-content">
+    <p>Next we will calibrate the robot so that it can map between image
+coordinates and world coordinates.  This process takes several
+steps.</p>
+
+<h3 id="make-a-magic-circle">Make a magic circle</h3>
+<p>First, print out about 10 pages of <a href="https://github.com/h2r/ein/raw/master/images/calibration/magicpaper.pdf">magic paper</a>.
+Send the gripper to the home position by running <code>goHome</code>. (If you
+would like to change the home position, follow <a href="../movement/#changing-the-home-position">these
+instructions</a>.)  Then drive
+down to close to the table height using <code>zDown</code>.  Create a magic
+circle underneath the gripper as depicted here:</p>
+
+<p><img src="../assets/magic_circle.jpg" alt="Magic Circle" /></p>
+
+<p>The goal is for the magic circle to fill the wrist camera’s field of
+view as the arm moves up.  The magic paper contains a superposition of
+three plane waves at different orientations and colors.  It is
+textured at every point, allowing the robot to set its calibration
+parameters by making known movements.</p>
+
+<h3 id="set-the-table-height">Set the table height</h3>
+
+<p>Ein assumes there is a planar horizontal table and stores the height
+of this table for use in various calculations and motions.  It can set
+the table height using the robot’s range sensor. To set the table
+height, first <code>goHome</code>, then use <code>zDown</code> to move the arm so that the
+IR sensor is approximately 10cm from the table.  (The short grippers
+should be a centimeter or two above the table.) Run <code>setTable</code> to use
+the IR sensor to set the table height.  You should see the console
+print information about the process; it takes multiple readings and
+waits for them to stablize.  At the end it will print the table
+height.  The numbers should be changing slightly, and the final delta
+should be small.</p>
+
+<h3 id="set-the-camera-parameters">Set the camera parameters</h3>
+
+<p>Baxter’s wrist camera uses automatic adjustment of gain, exposure, and
+color settings.  However these automatic adjustments prevent our
+system from reliably detecting objects it has previously seen.  Our
+solution is to set them once to good values and fix them.  To set these parameters, start with this command:</p>
+
+<p><code>80 25 1124 1024 2048 fixCameraLighting</code></p>
+
+<p>The parameters are:
+<code>&lt;gain&gt; &lt;exposure&gt; &lt;red&gt; &lt;green&gt; &lt;blue&gt; fixCameraLighting</code></p>
+
+<p>First tune the gain, then the exposure, and then adjust the color if
+necessary.  You can set it to the automatic parameters with
+<code>fixCameraLightingToAutomaticParameters</code>.  This word will set the
+camera to automatic control, then fix the parameters to the
+automatically adjusted values.  You can observe these values with the
+variables <code>cameraGain</code>, <code>cameraExposure</code>, <code>cameraWhiteBalanceRed</code>,
+<code>cameraWhiteBalanceGreen</code>, <code>cameraWhiteBalanceBlue</code>.</p>
+
+<p>To save these settings to disk (so they will be loaded automatically every time Ein starts), run:
+<code>
+saveCalibration
+</code></p>
+
+<p>An example of a
+reasonably well adjusted (slightly yellow) wrist view image of magic
+paper is here:</p>
+
+<p><img src="../assets/wristview.jpg" alt="Wrist View" /></p>
+
+<h3 id="set-the-gripper-mask">Set the gripper mask</h3>
+
+<p>Ein needs to know the location of the grippers in its wrist camera
+image in order to ignore those pixels when mapping its tabletop
+environment.  To set the gripper mask run <code>setGripperMaskWithMotion</code>.
+View the progress in the window “Object Viewer.”  At the beginning the
+window will be blue; as it moves, high-variance parts of the averaged
+image are considered not part of the gripper mask; low variance parts
+are considered as part of the mask.  You should see something like
+what appears below:</p>
+
+<p><img src="../assets/grippermask1.jpg" width="225" alt="Gripper Mask 1" />
+<img src="../assets/grippermask2.jpg" width="225" alt="Gripper Mask 2" />
+<img src="../assets/grippermask3.jpg" width="225" alt="Gripper Mask 3" /></p>
+
+<p>Verify that the blue region completely covers the grippers when they
+are open, and that there is no extra blue areas remaining.  If this
+does not work, recenter the gripper (<code>goHome</code>) and try again.  You may
+need to rearrange the magic circle or adjust the lighting or colors on
+your camera.  When the mask looks good, you can stop the process by
+running <code>clearStacks</code>.  It saves after every iteration.</p>
+
+<h3 id="calibrate-the-height-reticles">Calibrate the height reticles</h3>
+
+<p>Next we need to set the projection of the gripper in the image at
+different heights.  This allows Ein to map between pixel space and
+global space given the camera pose.    We set the magnification using
+interpolation based on several sample points.  The target is obtained
+by rotating the gripper in a plan and finding the minimum variance
+point at each point.</p>
+
+<p>To do this process first <code>goHome</code> and then run
+<code>calibrateRGBCameraIntrinsics</code>.</p>
+
+<p>The gripper will move to four different heights and take a series of
+measurements at different orientations.  This process takes about 20
+minutes to complete.  If it fails you may have to run it again; in
+that case restart Ein or run <code>loadCalibration</code> to reload your old
+calibration (which, while not perfect, is a reasonable
+initialization).  When you obtain a good calibration (described
+below), save it by running <code>saveCalibration</code>.</p>
+
+<h3 id="check-the-calibration">Check the calibration</h3>
+
+<p>To check the calibration, you need to learn more about the wrist view.
+We have included a legend showing the various reticles and markers
+below.</p>
+
+<p><img src="../assets/wristviewLegend.png" alt="Rendered Wrist View" /></p>
+
+<h4 id="exercise--explore-the-movement-state">Exercise:  Explore the movement state.</h4>
+
+<p>Move the arm with large and small movements.  Observe the movement
+state indicator; watch as it changes from moving to hovering to
+stopped.  You can try large movements by double clicking in the Object
+Map Viewer; this action sends the arm to the corresponding position.</p>
+
+<h4 id="exercise-check-the-calibration--to-check-the-calibration">Exercise: Check the calibration.  To check the calibration,</h4>
+<p>verify that the gripper projection line appears as shown in the above
+legend.  It should be a relatively straight line, no zig-zags or
+curves.  It should also not be absent.  If there is a problem,
+rearrange the magic circle and try the calibration again.  Do not
+hesitate to post an issue if you have problems.</p>
+
+<p>Second, find the calibration reticle, drawn in red and green near the
+gripper projection line.  Drive the arm so that the calibration
+reticle is above a well-distinguished point in the image.  In the
+sequence below, we did this so the crosshairs were above the penny.
+Then run <code>saveRegister1</code> to save this location.  It will create a new
+reticle drawn at this point in global space.  Then drive the arm
+around in the neighborhood and verify this reticle appears in the same
+space.  Be sure to check movements in all axes (x, y, and z), as
+sometimes a calibration will work well in one dimension and not
+others.  Some example images are shown below, using a penny as a
+marker.</p>
+
+<p>This calibration is somewhat imperfect; the reticle stays inside the
+penny but ideally it would be centered inside the penny, perfectly
+picking out the global location in the image.</p>
+
+<p><img src="../assets/renderedwristview_calibrated1.jpg" alt="Rendered Wrist View Calibrated 1" width="300" />
+<img src="../assets/renderedwristview_calibrated2.jpg" alt="Rendered Wrist View Calibrated 2" width="300" />
+<br />
+<img src="../assets/renderedwristview_calibrated3.jpg" alt="Rendered Wrist View Calibrated 3" width="300" />
+<img src="../assets/renderedwristview_calibrated4.jpg" alt="Rendered Wrist View Calibrated 4" width="300" /></p>
+
+<p>Here is a bad calibration, where the gripper
+calibration line is absent:
+<img src="../assets/renderedwristview_nullcalibrated.jpg" alt="Rendered Wrist View with Null Calibration" width="600" /></p>
+
+<p>Here is bad calibration where it goes in the opposite direction:
+<img src="../assets/renderedwristview_backwardscalibrated.jpg" alt="Rendered Wrist View with Backwards Calibration" width="600" /></p>
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Ein</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+<!--        <ul class="contact-list">
+          <li>Ein</li>
+          <li><a href="mailto:"></a></li>
+        </ul>-->
+      </div>
+
+      <div class="footer-col  footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/h2r">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">h2r</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-3">
+        <p class="text">Ein is a complete pick-and-place stack for Baxter.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
