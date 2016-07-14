@@ -110,7 +110,7 @@ note the dark gripper pixels smeared on the lower part of the image.
 
 ### Update the observed map.
 
-Next update the observed map.  Run `tableTakeScene` to create a map by
+Next update the observed map. First, place an object into the robot's field of view. Run `tableTakeScene` to create a map by
 moving the arm in a spiral pattern.  This map will be rendered in the
 Gaussian Map Observed View" window shortly after the arm stops moving.
 Once you have created an observed map and background map, the

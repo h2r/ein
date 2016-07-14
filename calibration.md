@@ -44,7 +44,7 @@ should be small.
 
 Baxter's wrist camera uses automatic adjustment of gain, exposure, and
 color settings.  However these automatic adjustments prevent our
-system from reliably detecting objects it has previously scene.  Our
+system from reliably detecting objects it has previously seen.  Our
 solution is to set them once to good values and fix them.  To set these parameters, start with this command:
 
 ```80 25 1124 1024 2048 fixCameraLighting```
