@@ -36,3 +36,4 @@ default/objects/*/ein/detectionCrops/
 back/practice.back
 default/objects
 .sass-cache
+_site
