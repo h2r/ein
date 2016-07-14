@@ -8,7 +8,7 @@ order: 0
 
 This page describes how to create a catkin workspace and install Ein.
 
-Install Ubuntu Trusty 14.04 LTS.
+Install [Ubuntu Trusty 14.04 LTS](http://releases.ubuntu.com/14.04/).
 
 Install ROS Indigo as per http://wiki.ros.org/indigo/Installation/Ubuntu
 

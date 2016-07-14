@@ -1,8 +1,9 @@
+{% assign VERSION = File.read("/home/stefie10/dev/baxter-dev1.2.0/src/ein/doc/VERSION") %}
 <header class="site-header">
 
   <div class="wrapper">
 
-    <a class="site-title" href="{{ site.baseurl }}/">{{ site.title }}</a>
+    <a class="site-title" href="{{ site.baseurl }}/">{{ site.title }}  {{ site.data.ein_version }} </a>
 
     <nav class="site-nav">
       <a href="#" class="menu-icon">
