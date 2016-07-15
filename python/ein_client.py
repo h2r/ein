@@ -53,6 +53,7 @@ class EinClient:
                                                  EinState, self.state_callback)
         self.console_subscriber = rospy.Subscriber("%s/console" % base_topic, 
                                                    EinConsole, self.einconsole_callback)
+        print "publishing to base ", base_topic
 
         self.state = None
         self.call_stack = []
@@ -133,7 +134,7 @@ def main():
     parser.add_argument('--silence-stacks', action='store_true',
                         help='Whether we should print the stacks.')
 
-    parser.add_argument('arm', nargs=1, choices=("left", "right"),
+    parser.add_argument('arm', nargs=1, choices=("left", "right", "ardrone"),
                         help='Which arm to use.')
 
     args = parser.parse_args()

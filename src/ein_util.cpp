@@ -178,13 +178,15 @@ void initializeMachine(MachineState * ms) {
   cout << "start message: " << s.str() << endl;
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
+  ms->pushWord("loadCalibration"); 
+  ms->pushWord("initializeConfig");
+  ms->execute_stack = 1;
 
-
-  if (ms->config.currentRobotMode != PHYSICAL) {
+  if (ms->config.currentRobotMode != PHYSICAL || ms->config.left_or_right_arm == "ardrone") {
     return;
   }
 
-  ms->pushWord("zeroGOff"); 
+
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 
   ms->pushWord("guiCustom1"); 
@@ -202,12 +204,10 @@ void initializeMachine(MachineState * ms) {
 
   {
     ms->pushWord("fillClearanceMap"); 
-    ms->pushWord("loadCalibration"); 
     ms->pushWord("loadIkMap"); 
     ms->pushWord("loadGripperMask"); 
-    ms->pushWord("initializeConfig");
   }
-  ms->execute_stack = 1;
+
 
   
 }

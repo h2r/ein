@@ -263,7 +263,7 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
 
 
 void renderRangeogramView(MachineState * ms);
-void renderObjectMapView(MachineState * leftArm, MachineState * rightArm);
+void renderObjectMapView(MachineState * leftArm, MachineState * rightArm, MachineState * ardroneArm);
 void renderObjectMapViewOneArm(MachineState * ms);
 void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms);

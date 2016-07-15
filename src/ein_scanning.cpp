@@ -2666,7 +2666,7 @@ virtual void execute(MachineState * ms) {
   if (! exists(config_dir)) {
     bool result = copyDir(default_config_dir, config_dir);
     if (! result) {
-      cout << "Couldn't initialize config " << config_dir << endl;
+      CONSOLE_ERROR(ms, "Couldn't initialize config " << config_dir);
       assert(0);
     }
   }

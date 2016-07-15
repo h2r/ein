@@ -14,6 +14,11 @@
 class EinArDrone {
  public: 
   ros::Subscriber truePoseSubscriber;
+
+  ros::Publisher resetPublisher;
+  ros::Publisher landPublisher;
+  ros::Publisher takeoffPublisher;
+
 };
 
 

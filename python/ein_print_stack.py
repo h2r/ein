@@ -62,7 +62,7 @@ def main():
     arm = sys.argv[1]
     stack = sys.argv[2]
 
-    if arm not in ("left", "right"):
+    if arm not in ("left", "right", "ardrone"):
         print "Arm must be left or right, not", arm
         return
     if stack not in ("call", "data"):

@@ -4675,7 +4675,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   }
 
   if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    renderObjectMapView(left_arm, right_arm);
+    renderObjectMapView(left_arm, right_arm, ardrone_arm);
   }
 }
 void publishConsoleMessage(MachineState * ms, string msg) {
@@ -5284,7 +5284,8 @@ void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double
 }
 
 
-void renderObjectMapView(MachineState * leftArm, MachineState * rightArm) {
+void renderObjectMapView(MachineState * leftArm, MachineState * rightArm, MachineState * ardroneArm) {
+
   if (leftArm != NULL && leftArm->config.objectMapViewerImage.rows <= 0 ) {
     //ms->config.objectMapViewerImage = Mat(600, 600, CV_8UC3);
     //ms->config.objectMapViewerImage = Mat(400, 400, CV_8UC3);
@@ -5304,16 +5305,24 @@ void renderObjectMapView(MachineState * leftArm, MachineState * rightArm) {
     // no need to recreate the image
   }
 
+
+  if (ardroneArm != NULL && ardroneArm->config.objectMapViewerImage.rows <= 0 ) {
+    ardroneArm->config.objectMapViewerImage = Mat(300, 480, CV_8UC3);
+  }
+
   if (leftArm != NULL) {
     leftArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
   } else if (rightArm != NULL) {
     rightArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
+  } else if (ardroneArm != NULL) {
+    ardroneArm->config.objectMapViewerImage = CV_RGB(0, 0, 0);
   } else {
     assert(0);
   }
 
   renderObjectMapViewOneArm(leftArm);
   renderObjectMapViewOneArm(rightArm);
+  renderObjectMapViewOneArm(ardroneArm);
 }
 
 void renderObjectMapViewOneArm(MachineState * ms) {
@@ -5896,7 +5905,7 @@ void loadCalibration(MachineState * ms, string inFileName) {
   fsvI.open(inFileName, FileStorage::READ);
 
   if (!fsvI.isOpened()) {
-    cout << "Couldn't open calibration." << endl;
+    CONSOLE_ERROR(ms, "Couldn't open calibration.");
     assert(0);
   }
 
@@ -6425,7 +6434,8 @@ void pilotInit(MachineState * ms) {
     ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
                                   0.392321, 0.324823, -0.555039, 0.657652);
 
-
+  } else if (ms->config.left_or_right_arm == "ardrone") { 
+    
   } else {
     cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -13420,6 +13430,10 @@ void loadROSParamsFromArgs(MachineState * ms) {
     ms->config.currentCameraCalibrationMode = CAMCAL_LINBOUNDED;
   } 
 
+  if (ms->config.left_or_right_arm == "ardrone") {
+    ms->config.robot_serial = "ardrone";
+  }
+
   ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
   //ms->config.config_directory = "/config/";
 
@@ -15037,10 +15051,10 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   time(&ms->config.firstTime);
   time(&ms->config.firstTimeRange);
 
-
+  ms->config.left_or_right_arm = left_or_right_arm;
   initializeMachine(ms);
 
-  ms->config.left_or_right_arm = left_or_right_arm;
+
 
   if (left_or_right_arm == "left") {
     ms->config.other_arm = "right";
@@ -15117,7 +15131,13 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
       ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms);
       ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms);
     } else if (ms->config.left_or_right_arm == "ardrone") {
-      ms->arDroneState.truePoseSubscriber = n.subscribe("ardrone/true_position", 1, &MachineState::ardroneTruePoseCallback, ms);
+      ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
+      ms->arDroneState.truePoseSubscriber = n.subscribe("/ardrone/true_position", 1, &MachineState::ardroneTruePoseCallback, ms);
+
+      ms->arDroneState.takeoffPublisher = n.advertise<std_msgs::Empty>("/ardrone/takeoff", 10);
+      ms->arDroneState.landPublisher = n.advertise<std_msgs::Empty>("/ardrone/land", 10);
+      ms->arDroneState.resetPublisher = n.advertise<std_msgs::Empty>("/ardrone/reset", 10);
+      
     } else {
       assert(0);
     }
@@ -15601,8 +15621,11 @@ int main(int argc, char **argv) {
   }
 
   
-
-  einMainWindow = new MainWindow(NULL, right_arm, left_arm);
+  if (left_or_right_arm == "ardrone") {
+    einMainWindow = new MainWindow(NULL, ardrone_arm, NULL);
+  } else {
+    einMainWindow = new MainWindow(NULL, right_arm, left_arm);
+  }
 
   for(int i = 0; i < machineStates.size(); i++) {
     initializeArmGui(machineStates[i], einMainWindow);
