@@ -4263,12 +4263,7 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
   givenEEPose->qw = eeBaseQuat.w();
 }
 
-void MachineState::update_ardrone(ros::NodeHandle &n) {
-  MachineState * ms = this;
-  geometry_msgs::Pose pose;
-  eePoseToRosPose(ms->config.currentEEPose, &pose);
-  ms->arDroneState.posePublisher.publish(pose);
-}
+
 
 void MachineState::update_baxter(ros::NodeHandle &n) {
 
@@ -6973,7 +6968,7 @@ int doCalibrateGripper(MachineState * ms) {
     return_value = system("bash -c \"echo -e \'C\003\' | rosrun baxter_examples gripper_keyboard.py\"");
   }
   if (return_value != 0) {
-    cout << "Error running calibrate: " << return_value << endl;
+    CONSOLE_ERROR(ms, "Error running calibrate: " << return_value);
   }
   return return_value;
 }

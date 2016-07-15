@@ -78,4 +78,6 @@ string sceneModelFile(MachineState * ms, string label);
 
 string xmlEncode(const string data);
 
+string exec(const char* cmd);
+
 #endif /* _EIN_UTIL_H_ */
