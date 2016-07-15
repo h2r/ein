@@ -10,7 +10,7 @@ objects.  This process is a giant for loop over objects; in the inner
 loop you can do whatever experiments you like.  
 
 
-There are three poses defined in scan.back designated with functionality for the scan:
+There are three poses defined in scan.back designated with functionality for the scan (note that the back files can be located in the src directory in your workspace):
 
 ```
 inputPileWorkspace
