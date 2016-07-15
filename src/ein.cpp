@@ -35,6 +35,7 @@ MainWindow * einMainWindow;
 vector< MachineState * > machineStates;
 MachineState * left_arm;
 MachineState * right_arm;
+MachineState * ardrone_arm;
 
 
 ////////////////////////////////////////////////
@@ -15069,6 +15070,11 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
     ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
+  } else if (ms->config.left_or_right_arm == "ardrone") {
+    ms->config.image_topic = "/ardrone/front/image_raw";
+  } else {
+    CONSOLE_ERROR(ms, "Unexpected arm: " << ms->config.left_or_right_arm);
+    assert(0);
   }
 
 
@@ -15081,34 +15087,40 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
 
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
-    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
-
-    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
-
-    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms);
-    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms);
-    ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms);
-
-    ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms);
-
+    if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
+      ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
+      ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
+      ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
+      
+      ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
+      
+      ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms);
+      ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms);
+      ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms);
+      
+      ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms);
+      
 #ifdef RETHINK_SDK_1_2_0
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms);
+      ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms);
+      ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms);
+      ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms);
 #else
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms);
+      ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms);
+      ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms);
+      ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms);
 #endif
-
-
-    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms);
-    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms);
-    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms);
-    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms);
-    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms);
+      
+      
+      ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms);
+      ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms);
+      ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms);
+      ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms);
+      ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms);
+    } else if (ms->config.left_or_right_arm == "ardrone") {
+      ms->arDroneState.truePoseSubscriber = n.subscribe("ardrone/true_position", 1, &MachineState::ardroneTruePoseCallback, ms);
+    } else {
+      assert(0);
+    }
 
   } else if (ms->config.currentRobotMode == SIMULATED) {
     cout << "SIMULATION mode enabled." << endl;
@@ -15507,7 +15519,7 @@ int main(int argc, char **argv) {
 
   if (argc < 3) {
     cout << "Must pass at least three arguments.  Received " << argc;
-    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both>");
+    ROS_ERROR("ein <physical|simulated|snoop> <left|right|ardrone|both>");
     return -1;
   }
 
@@ -15525,6 +15537,8 @@ int main(int argc, char **argv) {
   if (left_or_right_arm == "both") {
     arm_names.push_back("left");
     arm_names.push_back("right");
+  } else if (left_or_right_arm == "ardrone") {
+    arm_names.push_back("ardrone");
   } else if (left_or_right_arm == "left") {
     arm_names.push_back("left");
   } else if (left_or_right_arm == "right") {
@@ -15573,6 +15587,8 @@ int main(int argc, char **argv) {
       left_arm = ms;
     } else if (left_or_right == "right") {
       right_arm = ms;
+    } else if (left_or_right == "ardrone") {
+      ardrone_arm = ms;
     } else {
       assert(0);
     }

@@ -1,6 +1,7 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include "ein_ardrone.h"
 #include "ein_aibo.h"
 #include "gaussian_map.h"
 
@@ -1704,6 +1705,10 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   ros::Time aiboStoppedTime;
   EinAiboJoints stoppedJoints;
   ros::Time aiboComeToStopTime;
+
+
+  EinArDrone arDroneState;
+
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
@@ -1763,6 +1768,9 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void einStateCallback(const ein::EinState & msg);
 
   void rosoutCallback(const rosgraph_msgs::Log& js);
+
+  void ardroneTruePoseCallback(const geometry_msgs::PoseStamped p);
+
 };
 
 
