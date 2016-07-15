@@ -19,6 +19,9 @@ class EinArDrone {
   ros::Publisher landPublisher;
   ros::Publisher takeoffPublisher;
 
+  ros::Publisher posePublisher;
+
+
 };
 
 

@@ -1752,6 +1752,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void accelerometerCallback(const sensor_msgs::Imu& moment);
   void rangeCallback(const sensor_msgs::Range& range);
   void update_baxter(ros::NodeHandle &n);
+  void update_ardrone(ros::NodeHandle &n);
   void timercallback1(const ros::TimerEvent&);
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
   void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;

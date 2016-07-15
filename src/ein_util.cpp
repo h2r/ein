@@ -153,6 +153,18 @@ gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
   return polygon;
 }
 
+void eePoseToRosPose(eePose & inputPose, geometry_msgs::Pose * rosPose) {
+
+  rosPose->position.x = inputPose.px;
+  rosPose->position.y = inputPose.py;
+  rosPose->position.z = inputPose.pz;
+
+  rosPose->orientation.x = inputPose.qx;
+  rosPose->orientation.y = inputPose.qy;
+  rosPose->orientation.z = inputPose.qz;
+  rosPose->orientation.w = inputPose.qw;
+
+}
 
 eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
   eePose result;

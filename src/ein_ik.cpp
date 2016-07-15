@@ -16,15 +16,8 @@ void fillIkRequest(vector<eePose> poses, baxter_core_msgs::SolvePositionIK * giv
     givenIkRequest->request.pose_stamp[i].header.stamp = ros::Time::now();
     givenIkRequest->request.pose_stamp[i].header.frame_id = "/base";
 
-  
-    givenIkRequest->request.pose_stamp[i].pose.position.x = poses[i].px;
-    givenIkRequest->request.pose_stamp[i].pose.position.y = poses[i].py;
-    givenIkRequest->request.pose_stamp[i].pose.position.z = poses[i].pz;
-
-    givenIkRequest->request.pose_stamp[i].pose.orientation.x = poses[i].qx;
-    givenIkRequest->request.pose_stamp[i].pose.orientation.y = poses[i].qy;
-    givenIkRequest->request.pose_stamp[i].pose.orientation.z = poses[i].qz;
-    givenIkRequest->request.pose_stamp[i].pose.orientation.w = poses[i].qw;
+    eePoseToRosPose(poses[i], 
+                    &givenIkRequest->request.pose_stamp[i].pose);
   }
 }
 

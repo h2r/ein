@@ -4263,6 +4263,12 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
   givenEEPose->qw = eeBaseQuat.w();
 }
 
+void MachineState::update_ardrone(ros::NodeHandle &n) {
+  MachineState * ms = this;
+  geometry_msgs::Pose pose;
+  eePoseToRosPose(ms->config.currentEEPose, &pose);
+  ms->arDroneState.posePublisher.publish(pose);
+}
 
 void MachineState::update_baxter(ros::NodeHandle &n) {
 
@@ -4643,7 +4649,16 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if (!ms->config.zero_g_toggle) {
-    update_baxter(n);
+    if (ms->config.left_or_right_arm == "left" || ms->config.left_or_right_arm == "right") {
+      update_baxter(n);
+    } else if (ms->config.left_or_right_arm == "ardrone") {
+      update_ardrone(n);
+    } else {
+      CONSOLE_ERROR(ms, "Invalid arm: " << ms->config.left_or_right_arm);
+      assert(0);
+    }
+
+       
   }
   else {
     ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
@@ -15137,6 +15152,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
       ms->arDroneState.takeoffPublisher = n.advertise<std_msgs::Empty>("/ardrone/takeoff", 10);
       ms->arDroneState.landPublisher = n.advertise<std_msgs::Empty>("/ardrone/land", 10);
       ms->arDroneState.resetPublisher = n.advertise<std_msgs::Empty>("/ardrone/reset", 10);
+
+      ms->arDroneState.posePublisher = n.advertise<geometry_msgs::Pose>("/ardrone/current_position", 10);
       
     } else {
       assert(0);
@@ -15258,7 +15275,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.other_arm + "/forth_commands", 10);
   } else if (ms->config.currentRobotMode == SNOOP) {
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 10);
-    ms->config.einSub = n.subscribe("/ein_" + ms->config.left_or_right_arm + "/state", 1, &MachineState::einStateCallback, ms);
+    ms->config.einSub = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/state", 1, &MachineState::einStateCallback, ms);
   } else {
     assert(0);
   }

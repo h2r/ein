@@ -61,6 +61,7 @@ typedef enum {
 void pushGridSign(MachineState * ms, double speed);
 bool isSketchyMat(Mat sketchy);
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
+void eePoseToRosPose(eePose & pose, geometry_msgs::Pose * rosPose);
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(MachineState * ms);
