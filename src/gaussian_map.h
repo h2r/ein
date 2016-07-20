@@ -59,6 +59,7 @@ typedef struct _GaussianMapCell {
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double noisyOrDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
+  double noisyAndDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood);
   void recalculateMusAndSigmas(MachineState * ms);
 } GaussianMapCell;

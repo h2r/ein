@@ -236,6 +236,57 @@ double _GaussianMapCell::noisyOrDiscrepancy(_GaussianMapCell * other, double * r
   return 1.0 - sum;
 }
 
+double _GaussianMapCell::noisyAndDiscrepancy(_GaussianMapCell * other, double * rterm_out, double * gterm_out, double * bterm_out) {
+  double rlikelihood, glikelihood, blikelihood;
+  computePointDiscrepancy(red, other->red, &rlikelihood, rterm_out);
+  computePointDiscrepancy(green, other->green, &glikelihood, gterm_out);
+  computePointDiscrepancy(blue, other->blue, &blikelihood, bterm_out);
+  int debug;
+  if ((1 - *bterm_out) * 255 > 200  && (1 - *gterm_out) * 255 < 20 && (1 - *rterm_out) * 255 < 20) {
+    debug = 0;
+  } else {
+    debug = 0;
+  }
+
+  if (debug) {
+    cout << "******** computing noisy and for " << red.mu << ", " << green.mu << ", " << blue.mu << endl;
+    cout << "Channel discrepancy probability: " << *rterm_out << ", " << *gterm_out << ", " << *bterm_out << endl;
+  }
+
+  // use demorgan for noisy and
+  // 1 - 
+  double _prd = *rterm_out;
+  double _pgd = *gterm_out;
+  double _pbd = *bterm_out;
+
+
+  double sum = 0.0;
+  for (int rd = 0; rd <= 1; rd ++) {
+    for (int gd = 0; gd <= 1; gd ++) {
+      for (int bd = 0; bd <= 1; bd ++) {
+        double normalizer = ((rd ? _prd : (1 - _prd)) *
+                             (gd ? _pgd : (1 - _pgd)) *
+                             (bd ? _pbd : (1 - _pbd)));
+        double noisyAnd = 1 - ((rd ? (1 - _prd) : 1) *
+                              (gd ? (1 - _pgd) : 1) *
+                              (bd ? (1 - _pbd) : 1));
+        if (debug) {
+          cout << "rd: " << rd << ", gd: " << gd << ", bd: " << bd << " ";
+          cout << " normalizer: " << setw(20) << normalizer << " ";
+          cout << " noisyAnd: " << setw(20) << noisyAnd << endl;
+        }
+        sum += normalizer * noisyAnd;
+      }
+    }
+  }
+  if (debug) {
+    cout << "sum: " << sum << endl;
+    cout  << endl;
+  }
+  // 1 - 
+  return sum;
+}
+
 
 double _GaussianMapCell::normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood) {
 
@@ -1328,6 +1379,8 @@ void Scene::measureDiscrepancy() {
           discrepancy_value = predicted_map->refAtCell(x,y)->innerProduct(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	} else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
           discrepancy_value = predicted_map->refAtCell(x,y)->noisyOrDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
+	} else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+          discrepancy_value = predicted_map->refAtCell(x,y)->noisyAndDiscrepancy(observed_map->refAtCell(x,y), &rmu_diff, &gmu_diff, &bmu_diff);
 	} else {
 	  cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
 	  assert(0);
@@ -4299,6 +4352,22 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetDiscrepancyModeNoisyOr)
+
+WORD(SceneSetDiscrepancyModeNoisyAnd)
+virtual void execute(MachineState * ms) {
+  ms->config.discrepancyMode = DISCREPANCY_NOISY_AND;
+}
+END_WORD
+REGISTER_WORD(SceneSetDiscrepancyModeNoisyAnd)
+
+WORD(SceneSetDiscrepancyDensityFromZ)
+virtual void execute(MachineState * ms) {
+  ms->config.scene->observed_map->zMuToMat(ms->config.scene->discrepancy_density);
+  // XXX needs bias for render
+  //ms->config.scene->discrepancy_density = -ms->config.scene->discrepancy_density;
+}
+END_WORD
+REGISTER_WORD(SceneSetDiscrepancyDensityFromZ)
 
 
 WORD(SceneSetPredictedClassNameToFocusedClass)

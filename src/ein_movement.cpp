@@ -1307,6 +1307,13 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DecrementTargetMasterSprite)
 
+CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold)
+CONFIG_SETTER_DOUBLE(SetArmedThreshold, ms->config.armedThreshold)
+CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold)
+CONFIG_SETTER_DOUBLE(SetMovingThreshold, ms->config.movingThreshold)
+CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold)
+CONFIG_SETTER_DOUBLE(SetHoverThreshold, ms->config.hoverThreshold)
+
 WORD(ComeToStop)
 virtual void execute(MachineState * ms) {
   //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
