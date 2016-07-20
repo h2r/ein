@@ -1352,10 +1352,13 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 -0.01 "lensArrayGap" store
 
 (
-/*
-  620 sceneSetAngularApertureCols "scene" import tableLenticularAutoFocus slfgRebase tableReconstructWithoutZ
+  /*
+  "scene" import tableLenticularAutoFocus slfgRebase tableReconstructWithoutZ
+  */
+
+  620 sceneSetAngularApertureCols 
   slfgRebaseCellWidth 11.04 times "lensArraySpacingX" store
-*/
+
   /* choosing a wider gap captures more angular information and incurs spatial blur */
   -0.32 "lensArrayGap" store
 
@@ -1365,12 +1368,18 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     0.0010 
   "slfgRebaseCellWidth" store 
 
+    /*
     slfgRebaseCellWidth 11.04 times 
+    */
+    slfgRebaseCellWidth 11.05 times 
   "lensArraySpacingX" store 
 
     0.0 lensArraySpacingX times
   "lensArrayPhaseX" store
   
+    /*
+    lensArrayGap 100.0 times 
+    */
     lensArrayGap 100.0 times 
   "lensArrayStrengthX" store 
 
@@ -1410,7 +1419,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   -0.16 "lensArrayGap" store
 */
 
-  42.00 "lensArrayStrength" store
+  32.00 "lensArrayStrength" store
   -0.32 "lensArrayGap" store
 
 ) "tableArrayAutoFocus" store
@@ -1445,10 +1454,10 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 */
 
 0.3883 "tableReconstructWithZTopZ" store 
-0.0 "tableReconstructWithZTotalZDefault" store
+0.00 "tableReconstructWithZTotalZDefault" store
 tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
-0.02 "tableReconstructWithZDeltaZ" store
-500 "tableReconstructStreamTakeSceneSamples" store
+0.01 "tableReconstructWithZDeltaZ" store
+500000 "tableReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1630,21 +1639,25 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ( 
 /*
     lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
-    lensArrayStrengthX lensArraySpacingX lensArrayStrengthY lensArraySpacingY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
 
     phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tableReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
       tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
-    lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
 
+
+
+*/
+
+    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
     ) tableSpiralStreamTakeSceneStride replicateWord 
 
+    /*
     endStackCollapseNoop 
-*/
+    */
   ) tableRSTSSMax replicateWord
 
 
@@ -1653,14 +1666,18 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     tableReconstructWithZThisZ 
   sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
 */
+
+  /* 
     tableSpiralStreamTakeSceneStride 
     viewSynthApertureWidth
     viewSynthAperturePlane
     tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll 
+  */
+
   /* 
   sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthBeamAll
   */
-  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll 
 
   sceneRecalculateObservedMusAndSigmas
   sceneRenderObservedMap
@@ -1671,6 +1688,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 (
   tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructMarginalsFromStackCore
+)  "tableReconstructMarginalsFromStack" store
+
+(
   sceneInitRegisterZero 
   sceneMarginalizeDepthStackIntoRegister
 
@@ -1678,10 +1699,14 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   sceneRenderZ 
   sceneRenderObservedMap
-)  "tableReconstructMarginalsFromStack" store
+)  "tableReconstructMarginalsFromStackCore" store
 
 (
   tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+  tableReconstructMaxLikelihoodFromStackCore
+)  "tableReconstructMaxLikelihoodFromStack" store
+
+(
   sceneInitRegisterMax 
   sceneMinDepthStackIntoRegister 
 
@@ -1689,7 +1714,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   sceneRenderZ 
   sceneRenderObservedMap
-)  "tableReconstructMaxLikelihoodFromStack" store
+)  "tableReconstructMaxLikelihoodFromStackCore" store
 
 (
   tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
@@ -1743,11 +1768,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
     0.01625 
     1.0 divide
+  /* XXX no commit */
   "tableSpiralGridSize" store
 
-  0.04 "tableSpiralMoveSpeed" store
+  0.05 "tableSpiralMoveSpeed" store
 
-  12 "tableUpdateSpiralN" store
+  14 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -2880,6 +2906,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   "mencoder mf://depthStackB*/*.png -mf w=600:h=600:fps=25 -ovc x264 -x264encopts pass=1:crf=0 -oac copy -o outputAll.avi" print
 ) "printMencoderCommand" store
 
+
+(
+  sceneSetDiscrepancyModeDot tableReconstructMarginalsFromStack tableUpdateMaps 
+  tableReconstructMaxLikelihoodFromStackCore 
+  0.3898 0.9999999 sceneTrimDepthWithDiscrepancy sceneRenderZ
+) "tableReconstructMaxSegmentedByMarginalsFromStack" store
 
 
 
