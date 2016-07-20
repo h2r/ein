@@ -1256,14 +1256,20 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableMapBestClass" store
 
 (
-  sceneClearPredictedObjects tableUpdateMaps
+  tableUpdateMaps
   tableServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
 
-  0 sceneMapSceneObject
-  recordPreTargetLock
-  /* prepareForGraspFromMemory */
-  recordPostTargetLock
-  publishRecognizedObjectArrayFromBlueBoxMemory
+  scenePushNumSceneObjects 0 > (
+    "tableMapBestClassInPlace: mapping object..." print
+      scenePushNumSceneObjects 1 - 
+    sceneMapSceneObject
+    recordPreTargetLock
+    /* prepareForGraspFromMemory */
+    recordPostTargetLock
+    publishRecognizedObjectArrayFromBlueBoxMemory
+  ) (
+    "tableMapBestClassInPlace: oops, no sceneObjects..." print
+  ) ifte
 ) "tableMapBestClassInPlace" store
 
 (
@@ -1300,7 +1306,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 (
   openGripper waitUntilGripperNotMoving
 
-  clearMapForPatrol clearBlueBoxMemories tableMapBestClassInPlace
+  clearMapForPatrol clearBlueBoxMemories sceneClearPredictedObjects tableMapBestClassInPlace
 
   scenePushNumSceneObjects 0 > (
     "tableMapBestAndPick: delivering object..." print
