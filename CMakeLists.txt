@@ -4,7 +4,7 @@ project(ein)
 
 
 
-LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake") 
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake")
 MESSAGE(CMAKE_MODULE_PATH)
 MESSAGE(${CMAKE_MODULE_PATH})
 
@@ -57,7 +57,7 @@ generate_messages(
   object_recognition_msgs
 )
 
-catkin_package(CATKIN_DEPENDS 
+catkin_package(CATKIN_DEPENDS
   eigen
   message_runtime)
 
@@ -83,7 +83,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package (Qt5Widgets)
 
-set (EinQtLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp 
+set (EinQtLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp
 ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.cpp
 ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
 )
@@ -100,7 +100,7 @@ include_directories (${PROJECT_SOURCE_DIR}/src)
 include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 include_directories (${PROJECT_BINARY_DIR})
 
-add_library (EinQtLib SHARED 
+add_library (EinQtLib SHARED
     ${EinQtLib_src}
     ${EinQtLib_hdr_moc}
     ${EinQtLib_ui_moc}
@@ -239,7 +239,7 @@ endif()
 
 # qt5_wrap_cpp(helloworld_hdr_moc src/qtgui/mainwindow.h)
 # qt5_wrap_ui (helloworld_ui_moc  src/qtgui/mainwindow.ui)
-                                
+
 
 # include_directories (${PROJECT_SOURCE_DIR})
 # include_directories (${PROJECT_BINARY_DIR})

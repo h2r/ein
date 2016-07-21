@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 
 #include<sys/socket.h>
-#include<arpa/inet.h> 
+#include<arpa/inet.h>
 #include <sys/poll.h>
 
 #include "word.h"
@@ -12,7 +12,7 @@
 
 
 class EinArDrone {
- public: 
+ public:
   ros::Subscriber truePoseSubscriber;
 
   ros::Publisher resetPublisher;
@@ -20,6 +20,8 @@ class EinArDrone {
   ros::Publisher takeoffPublisher;
 
   ros::Publisher posePublisher;
+
+  ros::ServiceClient cameraSwitchService;
 
 
 };

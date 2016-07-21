@@ -1,18 +1,18 @@
 //
 //  // start Tips
 //  // it's dangerous to go alone. take this.
-//  //               \|/ 
+//  //               \|/
 //  // o++{==========>*
-//  //               /|\ 
+//  //               /|\
 //  // end Tips
-//   
+//
 //  // Ein: Ein Isn't Node.
 //  // Ein: A dog in Cowboy Bebop.
 //  // Ein: Short for Eindecker.
-//  // Ein: It's one program. 
+//  // Ein: It's one program.
 //
 //   ><>           <><
-//        ><>  
+//        ><>
 //              <><
 // end Header
 
@@ -43,7 +43,7 @@ MachineState * ardrone_arm;
 ////////////////////////////////////////////////
 
 //
-// start pilot definitions 
+// start pilot definitions
 ////////////////////////////////////////////////
 
 void happy(MachineState * ms) {
@@ -67,7 +67,7 @@ void neutral(MachineState * ms) {
 
 int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack, bool debug) {
   if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
-    
+
     if (debug) {
       cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
     }
@@ -79,7 +79,7 @@ int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack
     if (deltaTdur.toSec() <= 0.0) {
       if (debug) {
 	cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
+	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " <<
 	  ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
       }
       return -1;
@@ -328,7 +328,7 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
   } else {
     return 1;
   }
-  
+
 }
 
 
@@ -484,7 +484,7 @@ int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value
 	    cout << "33333d " << ms->config.epRingBuffer[s] << " " << w1 << " " << w2 << " " << totalWeight << endl;
 	    cout << "44444d " << ms->config.epRingBuffer[s+1] << endl;
 	  }
-          
+
 	  int newStart = s;
 	  if(drawSlack) {
 	    ms->config.epRingBufferStart = newStart;
@@ -516,7 +516,7 @@ void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet) {
   } else {
     ros::Duration deltaTdur = t - ms->config.imRBTimes[ms->config.imRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER 
+#ifdef DEBUG_RING_BUFFER
       //cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
@@ -554,7 +554,7 @@ void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet) {
   } else {
     ros::Duration deltaTdur = t - ms->config.rgRBTimes[ms->config.rgRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER 
+#ifdef DEBUG_RING_BUFFER
       //cout << "Dropped out of order range value in setRingRangeAtTime(). " << ms->config.rgRBTimes[ms->config.rgRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
@@ -596,7 +596,7 @@ void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToS
   } else {
     ros::Duration deltaTdur = t - ms->config.epRBTimes[ms->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER 
+#ifdef DEBUG_RING_BUFFER
       //cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
     } else {
@@ -675,12 +675,12 @@ void recordReadyRangeReadings(MachineState * ms) {
     while (IShouldContinue) {
       if (ms->config.rgRingBufferEnd == ms->config.rgRingBufferStart) {
 	IShouldContinue = 0; // not strictly necessary
-	break; 
+	break;
       }
-	
+
       double thisRange = ms->config.rgRingBuffer[ms->config.rgRingBufferStart];
       ros::Time thisTime = ms->config.rgRBTimes[ms->config.rgRingBufferStart];
-    
+
       geometry_msgs::Pose thisPose;
       Mat thisImage;
       int weHavePoseData = getRingPoseAtTime(ms, thisTime, thisPose);
@@ -695,14 +695,14 @@ void recordReadyRangeReadings(MachineState * ms) {
 	rgRingBufferAdvance(ms);
 	IShouldContinue = 1; // not strictly necessary
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to epRing. consider increasing buffer size." << endl;
-	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl;
       }
       if (weHaveImData == -1) {
 	rgRingBufferAdvance(ms);
 	IShouldContinue = 1; // not strictly necessary
 	cout << "  recordReadyRangeReadings(): dropping stale packet due to imRing. consider increasing buffer size." << endl;
-	cout << "  recordReadyRangeReadings() --> " << thisTime << endl; 
-      } 
+	cout << "  recordReadyRangeReadings() --> " << thisTime << endl;
+      }
       if ((weHavePoseData == 1) && (weHaveImData == 1)) {
 
 	if (thisRange >= RANGE_UPPER_INVALID) {
@@ -757,9 +757,9 @@ void recordReadyRangeReadings(MachineState * ms) {
 	  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
 
 #ifdef DEBUG
-	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
+	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " <<
 	    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-	  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
+	  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " <<
 	    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
 	  cout << "Corrected x y: " << (thisPose.position.x - ms->config.drX) << " " << (thisPose.position.y - ms->config.drY) << endl;
 	  cout.flush();
@@ -798,7 +798,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 	    //double upY = ((ms->config.trueEEPose.position.y - ms->config.drY) - ms->config.rmcY)/ms->config.hrmDelta;
 	    //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
 	    //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
-	    //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
+	    //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth))
 	      //ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
 	    // 2D map
@@ -813,7 +813,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 		  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
 		  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
 
-		  cv::Vec3b thisSample = getCRColor(ms, thisImage); 
+		  cv::Vec3b thisSample = getCRColor(ms, thisImage);
 		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
@@ -855,7 +855,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 		    int kpy = py - (hiiY - ms->config.parzen3DKernelHalfWidth);
 		    int kpz = pz - (hiiZ - ms->config.parzen3DKernelHalfWidth);
 
-		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
+		    cv::Vec3b thisSample = getCRColor(ms, thisImage);
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
@@ -889,7 +889,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 	      int piiX = (int)round(piX + ms->config.hrmHalfWidth);
 	      int piiY = (int)round(piY + ms->config.hrmHalfWidth);
 	      int piiZ = (int)round(piZ + ms->config.hrmHalfWidth);
-	      
+
 
 	      int pxMin = max(0, piiX-ms->config.parzen3DKernelHalfWidth);
 	      int pxMax = min(ms->config.vmWidth-1, piiX+ms->config.parzen3DKernelHalfWidth);
@@ -905,7 +905,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 		    int kpy = py - (piiY - ms->config.parzen3DKernelHalfWidth);
 		    int kpz = pz - (piiZ - ms->config.parzen3DKernelHalfWidth);
 
-		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
+		    cv::Vec3b thisSample = getCRColor(ms, thisImage);
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
 		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
@@ -930,7 +930,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 	  if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
 	    int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
 	    int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
-	    
+
 	    {
 	      ms->config.rangeMapMass[iiX + iiY*ms->config.rmWidth] += 1;
 	      //ms->config.rangeMapAccumulator[iiX + iiY*ms->config.ms->config.rmWidth] += eeRange;
@@ -938,7 +938,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 	      double denom = max(ms->config.rangeMapMass[iiX + iiY*ms->config.rmWidth], EPSILON);
 	      ms->config.rangeMap[iiX + iiY*ms->config.rmWidth] = ms->config.rangeMapAccumulator[iiX + iiY*ms->config.rmWidth] / denom;
 	    }
-	    
+
 	    double minDepth = VERYBIGNUMBER;
 	    double maxDepth = 0;
 	    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -962,12 +962,12 @@ void recordReadyRangeReadings(MachineState * ms) {
 	      cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth-1,(iiX+1)*ms->config.rmiCellWidth-1);
 	      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
 	      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	      rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	      rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
+	      rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0));
+	      rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0));
 	    }
 	  }
 	}
-    
+
 	rgRingBufferAdvance(ms);
 	// XXX
 	//allRingBuffersAdvance(ms, thisTime);
@@ -1002,7 +1002,7 @@ void MachineState::jointCallback(const sensor_msgs::JointState& js) {
 
 int classIdxForName(MachineState * ms, string name) {
   int class_idx = -1;
-  
+
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     if (ms->config.classLabels[i] == name) {
       class_idx = i;
@@ -1010,13 +1010,13 @@ int classIdxForName(MachineState * ms, string name) {
     }
   }
   if (class_idx == -1) {
-    cout << "Could not find class " << name << endl; 
+    cout << "Could not find class " << name << endl;
   }
   return class_idx;
 }
 
 void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path) {
-  if ( (idx > -1) && (idx < ms->config.classHeight0AerialGradients.size()) && 
+  if ( (idx > -1) && (idx < ms->config.classHeight0AerialGradients.size()) &&
        (idx > -1) && (idx < ms->config.classHeight1AerialGradients.size()) &&
        (idx > -1) && (idx < ms->config.classHeight2AerialGradients.size()) &&
        (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
@@ -1215,8 +1215,8 @@ void writeIr2D(MachineState * ms, int idx, string this_range_path) {
   cout << "writeIr2D: Writing: " << yaml_path << endl;
   fsvO.open(yaml_path, FileStorage::WRITE);
   {
-    fsvO << "graspZ" << "[" 
-      << ms->config.currentGraspZ 
+    fsvO << "graspZ" << "["
+      << ms->config.currentGraspZ
     << "]";
 
     if (ms->config.classGraspZs.size() > idx) {
@@ -1281,7 +1281,7 @@ streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
     if (tsi.loaded) {
     } else {
       tsi.loaded = 0;
-    } 
+    }
 
     ms->config.sibCurIdx = idx;
   } else {
@@ -1317,7 +1317,7 @@ streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
     if (tsi.loaded) {
     } else {
       tsi.loaded = 0;
-    } 
+    }
 
     ms->config.sibCurIdx = idx;
   } else {
@@ -1354,7 +1354,7 @@ streamImage * setIsbIdxYesLoadNoKick(MachineState *  ms, int idx) {
 	tsi.loaded = 1;
 	ms->config.sibCurIdx = idx;
       }
-    } 
+    }
 
     ms->config.sibCurIdx = idx;
   } else {
@@ -1391,7 +1391,7 @@ streamImage * setIsbIdx(MachineState * ms, int idx) {
 	tsi.loaded = 1;
 	ms->config.sibCurIdx = idx;
       }
-    } 
+    }
 
     ms->config.sibCurIdx = idx;
   } else {
@@ -1555,7 +1555,7 @@ int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm
   }
 }
 
-// casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut 
+// casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut) {
 
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
@@ -1578,9 +1578,9 @@ void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d
 			       (thisPose.pz - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
 			      );
 
-  (*castPointOut)[0] = (irSensorEnd.x() - ms->config.rmcX); 
-  (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY); 
-  (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ); 
+  (*castPointOut)[0] = (irSensorEnd.x() - ms->config.rmcX);
+  (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY);
+  (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ);
 
   (*rayDirectionOut) = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 }
@@ -1616,7 +1616,7 @@ void update2dRangeMaps(MachineState * ms, Vector3d castPoint) {
 	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
 	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
 
-	  //cv::Vec3b thisSample = getCRColor(ms, thisImage); 
+	  //cv::Vec3b thisSample = getCRColor(ms, thisImage);
 	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
@@ -1848,12 +1848,12 @@ void streamWordAsClass(MachineState * ms, string wordIn, string commandIn, int c
     cout << "streamWordAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
     return;
-  } 
+  }
 
 
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamWordBuffer.size() >= ms->config.streamWordBatchSize) {
-      writeWordBatchAsClass(ms, classToStreamIdx);	
+      writeWordBatchAsClass(ms, classToStreamIdx);
     } else {
     } // do nothing
   } else {
@@ -1883,7 +1883,7 @@ void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx) {
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
-  string root_path(buf); 
+  string root_path(buf);
   root_path = appendSideAndSerial(ms, root_path);
 
 
@@ -2024,12 +2024,12 @@ void streamLabelAsClass(MachineState * ms, string labelIn, int classToStreamIdx,
     cout << "streamLabelAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
     return;
-  } 
+  }
 
 
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamLabelBuffer.size() >= ms->config.streamLabelBatchSize) {
-      writeLabelBatchAsClass(ms, classToStreamIdx);	
+      writeLabelBatchAsClass(ms, classToStreamIdx);
     } else {
     } // do nothing
   } else {
@@ -2061,7 +2061,7 @@ void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx) {
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
-  string root_path(buf); 
+  string root_path(buf);
   root_path = appendSideAndSerial(ms, root_path);
 
 
@@ -2277,7 +2277,7 @@ void activateSensorStreaming(MachineState * ms) {
 
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-    string this_label_name = ms->config.classLabels[cfClass]; 
+    string this_label_name = ms->config.classLabels[cfClass];
     string this_raw_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/";
     string this_image_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/images/";
     string this_pose_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/pose/";
@@ -2305,7 +2305,7 @@ void activateSensorStreaming(MachineState * ms) {
     ms->config.sensorStreamLastActivated = thisTime.toSec();
   } else {
     cout << "Cannot activate sensor stream: invalid focused class." << endl;
-  } 
+  }
 }
 
 void deactivateSensorStreaming(MachineState * ms) {
@@ -2325,15 +2325,15 @@ void deactivateSensorStreaming(MachineState * ms) {
     cout << "deactivateSensorStreaming: About to write batches... ";
     int cfClass = ms->config.focusedClass;
     if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-      writeRangeBatchAsClass(ms, cfClass);	
-      writePoseBatchAsClass(ms, cfClass);	
-      writeJointsBatchAsClass(ms, cfClass);	
-      writeWordBatchAsClass(ms, cfClass);	
-      writeLabelBatchAsClass(ms, cfClass);	
+      writeRangeBatchAsClass(ms, cfClass);
+      writePoseBatchAsClass(ms, cfClass);
+      writeJointsBatchAsClass(ms, cfClass);
+      writeWordBatchAsClass(ms, cfClass);
+      writeLabelBatchAsClass(ms, cfClass);
       cout << "Wrote batches." << endl;
     } else {
       cout << "Did not write batches, invalid focused class." << endl;
-    } 
+    }
   } else {
     cout << "deactivateSensorStreaming: Disk streaming not enabled, keeping range and pose stream buffers populated." << endl;
   }
@@ -2438,7 +2438,7 @@ void streamImageAsClass(MachineState * ms, Mat im, int classToStreamIdx, double 
     string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
     char buf[1024];
     sprintf(buf, "%s%f", this_image_path.c_str(), now);
-    string root_path(buf); 
+    string root_path(buf);
 	root_path = appendSideAndSerial(ms, root_path);
 
     string png_path = root_path + ".png";
@@ -2487,12 +2487,12 @@ void streamRangeAsClass(MachineState * ms, double rangeIn, int classToStreamIdx,
     cout << "streamRangeAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
     return;
-  } 
+  }
 
 
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
-      writeRangeBatchAsClass(ms, classToStreamIdx);	
+      writeRangeBatchAsClass(ms, classToStreamIdx);
     } else {
     } // do nothing
   } else {
@@ -2520,11 +2520,11 @@ void streamPoseAsClass(MachineState * ms, eePose poseIn, int classToStreamIdx, d
   } else {
     cout << "streamPoseAsClass: invalid focused class, deactivating streaming." << endl;
     ms->config.sensorStreamOn = 0;
-  } 
+  }
 
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
-	writePoseBatchAsClass(ms, classToStreamIdx);	
+	writePoseBatchAsClass(ms, classToStreamIdx);
     } else {
     } // do nothing
   } else {
@@ -2554,7 +2554,7 @@ void writeRangeBatchAsClass(MachineState * ms, int classToStreamIdx) {
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
-  string root_path(buf); 
+  string root_path(buf);
   root_path = appendSideAndSerial(ms, root_path);
 
 
@@ -2606,7 +2606,7 @@ void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx) {
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
-  string root_path(buf); 
+  string root_path(buf);
   root_path = appendSideAndSerial(ms, root_path);
 
   string yaml_path = root_path + ".yml";
@@ -2759,7 +2759,7 @@ void initClassFolders(MachineState * ms, string folderName) {
   string servoImages = ein + "servoImages/";
   string knn = ein + "knn/";
   string calibration = ein + "calibration/";
-  
+
   mkdir(item.c_str(), 0777);
   mkdir(raw.c_str(), 0777);
   mkdir(images.c_str(), 0777);
@@ -2805,7 +2805,7 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
 
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
-  
+
   string ir2d_file_path = ir2d + "ir2d";
   writeIr2D(ms, idx, ir2d_file_path);
 
@@ -2822,7 +2822,7 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
   writeSceneModel(ms, idx, scene_model_file_path);
 
   // XXX save grasp memories separately from range
-  // XXX load grasp memories separately 
+  // XXX load grasp memories separately
 }
 
 
@@ -2917,7 +2917,7 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
       box.cameraTime = ros::Time::now();
       box.labeledClassIndex = ms->config.objectInHandLabel;
-      
+
       mapBox(ms, box);
       vector<BoxMemory> newMemories;
       for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
@@ -3000,7 +3000,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
 
-    if (ms->config.currentRobotMode != SIMULATED) {    
+    if (ms->config.currentRobotMode != SIMULATED) {
       try {
         ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
         ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", hand_pose);
@@ -3029,7 +3029,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
-  
+
   ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
   {
     geometry_msgs::PoseStamped pose;
@@ -3044,9 +3044,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     //pose.header.stamp = ros::Time(0);
     pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
+
     geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
+    if (ms->config.currentRobotMode != SIMULATED) {
       try {
         ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
         ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
@@ -3082,9 +3082,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     //pose.header.stamp = ros::Time(0);
     pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
+
     geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
+    if (ms->config.currentRobotMode != SIMULATED) {
       try {
         ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
         ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
@@ -3116,9 +3116,9 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     //pose.header.stamp = ros::Time(0);
     pose.header.stamp = eps.header.stamp;
     pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
+
     geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
+    if (ms->config.currentRobotMode != SIMULATED) {
       try {
         ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
         ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
@@ -3157,7 +3157,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
     double thisNow = eps.header.stamp.toSec();
-    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass, thisNow); 
+    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass, thisNow);
   } else {
   } // do nothing
 
@@ -3214,7 +3214,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
 void MachineState::collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
   MachineState * ms = this;
   CollisionDetection detection;
-  
+
   detection.inCollision = cds.collision_state;
   detection.time = cds.header.stamp;
 
@@ -3238,7 +3238,7 @@ void MachineState::gripStateCallback(const baxter_core_msgs::EndEffectorState& e
 
 bool isGripperGripping(MachineState * ms) {
   //return (ms->config.gripperPosition >= ms->config.gripperThresh);
-  return ms->config.gripperGripping; 
+  return ms->config.gripperGripping;
 }
 
 void initialize3DParzen(MachineState * ms) {
@@ -3380,7 +3380,7 @@ cv::Vec3b getCRColor(MachineState * ms) {
     int crY = getColorReticleY(ms);
 
     if ((crX < ms->config.wristCamImage.cols) && (crY < ms->config.wristCamImage.rows))
-      toReturn = ms->config.wristCamImage.at<cv::Vec3b>(crY,crX); 
+      toReturn = ms->config.wristCamImage.at<cv::Vec3b>(crY,crX);
   }
   return toReturn;
 }
@@ -3393,7 +3393,7 @@ cv::Vec3b getCRColor(MachineState * ms, Mat im) {
   int crY = getColorReticleY(ms);
 
   if ((crX < im.cols) && (crY < im.rows))
-    toReturn = im.at<cv::Vec3b>(crY,crX); 
+    toReturn = im.at<cv::Vec3b>(crY,crX);
 
   return toReturn;
 }
@@ -3417,7 +3417,7 @@ void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenL
 
   int scanPadding = int(floor(1 * onLineGain));
 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
   for (int g = 0; g < ((ms->config.rmWidth*onLineGain)-(ms->config.rmHalfWidth*onLineGain))+scanPadding; g++) {
     ms->pushWord('a');
     //ms->pushWord("endStackCollapseNoop");
@@ -3427,28 +3427,28 @@ void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenL
     //ms->pushWord("endStackCollapseNoop");
   }
 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
   //int gLimit = 1+((ms->config.rmWidth*betweenLineGain+2*scanPadding)/2);
   int gLimit = ((ms->config.rmWidth*betweenLineGain+2*scanPadding));
   for (int g = 0; g < gLimit; g++) {
-    ms->pushWord("fullRender"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("fullRender");
+    ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord('d');
     ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('q');
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("endStackCollapseNoop");
     }
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       ms->pushWord('e');
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord("endStackCollapseNoop");
     }
   }
 
-  ms->pushWord("waitUntilAtCurrentPosition"); 
+  ms->pushWord("waitUntilAtCurrentPosition");
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     ms->pushWord('q');
     //ms->pushWord("endStackCollapseNoop");
@@ -3472,12 +3472,12 @@ void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenL
   for (int g = 0; g < ((ms->config.rmWidth*onLineGain)-(ms->config.rmHalfWidth*onLineGain))+scanPadding; g++) {
     // ATTN 2
     //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord('q');
   }
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord('d');
   }
   pushGridSign(ms, speedOnLines);
@@ -3487,13 +3487,13 @@ void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenL
   for (int g = 0; g < gLimit; g++) {
     ms->pushWord("fullRender"); // full render
     //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     pushGridSign(ms, speedOnLines);
     ms->pushWord('e');
     pushGridSign(ms, speedBetweenLines);
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       //ms->pushWord(1048677);
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord('a');
     }
     //pushGridSign(ms, speedOnLines);
@@ -3501,19 +3501,19 @@ void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenL
     //pushGridSign(ms, speedBetweenLines);
     for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
       //ms->pushWord(1048677);
-      ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("waitUntilAtCurrentPosition");
       ms->pushWord('d');
     }
   }
 
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord('q');
   }
   for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
     //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("waitUntilAtCurrentPosition");
     ms->pushWord('a');
   }
   pushGridSign(ms, speedOnLines);
@@ -3665,7 +3665,7 @@ void setCCRotation(MachineState * ms, int thisGraspGear) {
 void publishVolumetricMap(MachineState * ms) {
   int aI = 0;
   int vmSubsampleStride = 10;
-  visualization_msgs::MarkerArray ma_to_send; 
+  visualization_msgs::MarkerArray ma_to_send;
   for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
     for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
       for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
@@ -3788,7 +3788,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisRange)) {
     double thisNow = range.header.stamp.toSec();
-    streamRangeAsClass(ms, range.range, cfClass, thisNow); 
+    streamRangeAsClass(ms, range.range, cfClass, thisNow);
   } else {
   } // do nothing
 
@@ -3920,8 +3920,8 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
 				   (ms->config.trueEEPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				  );
 
-      dX = (irSensorEnd.x() - ms->config.rmcX); 
-      dY = (irSensorEnd.y() - ms->config.rmcY); 
+      dX = (irSensorEnd.x() - ms->config.rmcX);
+      dY = (irSensorEnd.y() - ms->config.rmcY);
 
       double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
       double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
@@ -3953,7 +3953,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
     ms->config.thisiX = iX;
     ms->config.thisiY = iY;
 
-    
+
   //cout << rmcX << " " << ms->config.trueEEPose.position.x << " " << dX << " " << iX << " " << ms->config.rmHalfWidth << endl;
 
     // erase old cell
@@ -3992,7 +3992,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
       //double upY = ((ms->config.trueEEPose.position.y - ms->config.drY) - ms->config.rmcY)/ms->config.hrmDelta;
       //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
       //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
-      //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
+      //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth))
 	//ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
 
       int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
@@ -4004,7 +4004,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
 	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
 	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
 
-	  cv::Vec3b thisSample = getCRColor(ms); 
+	  cv::Vec3b thisSample = getCRColor(ms);
 //	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 //	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
 //	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
@@ -4028,14 +4028,14 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
     if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
       int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
       int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
-      
+
       {
 	//ms->config.rangeMapMass[iiX + iiY*rmWidth] += 1;
 	//ms->config.rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
 	//double denom = max(ms->config.rangeMapMass[iiX + iiY*rmWidth], EPSILON);
 	//ms->config.rangeMap[iiX + iiY*rmWidth] = ms->config.rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
       }
-      
+
       double minDepth = VERYBIGNUMBER;
       double maxDepth = 0;
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -4059,8 +4059,8 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
 	cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth-1,(iiX+1)*ms->config.rmiCellWidth-1);
 	cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
 	cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
+	rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0));
+	rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0));
       }
     }
   }
@@ -4090,7 +4090,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
 
     ms->config.mapBackgroundViewWindow->updateImage(ms->config.mapBackgroundImage);
 
-    
+
     if (ms->config.targetClass > -1) {
       if (ms->config.classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
 	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
@@ -4251,8 +4251,8 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
   eeRotatorX.normalize();
   eeRotatorY.normalize();
   eeRotatorZ.normalize();
-  //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ * 
-		//eeBaseQuat * 
+  //eeBaseQuat = eeRotatorX * eeRotatorY * eeRotatorZ *
+		//eeBaseQuat *
 	      //eeRotatorZ.conjugate() * eeRotatorY.conjugate() * eeRotatorX.conjugate();
   eeBaseQuat = eeBaseQuat * eeRotatorX * eeRotatorY * eeRotatorZ;
   eeBaseQuat.normalize();
@@ -4286,7 +4286,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   int ikResultFailed = 0;
   eePose originalCurrentEEPose = ms->config.currentEEPose;
 
-  // do not start in a state with ikShare 
+  // do not start in a state with ikShare
   if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
 
     int numIkRetries = 2;//100; //5000;//100;
@@ -4348,7 +4348,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
       fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
     }
   }
-  
+
   /*if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
     ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
   } else {
@@ -4356,7 +4356,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
     ikResultFailed = 1;
   }*/
 
-  if (ikResultFailed) 
+  if (ikResultFailed)
   {
     CONSOLE_ERROR(ms, "ikClient says pose request is invalid.");
     ms->config.ik_reset_counter++;
@@ -4396,7 +4396,7 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   ms->config.lastGoodEEPose = ms->config.currentEEPose;
   ms->config.ikRequest = thisIkRequest;
   ms->config.ikInitialized = 1;
-  
+
 
   // but in theory we can bypass the joint controllers by publishing to this topic
   // /robot/limb/left/joint_command
@@ -4632,7 +4632,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     if (ms->config.endThisStackCollapse || (ms->call_stack.size() == 0)) {
       break;
     }
-    
+
   }
 
   {
@@ -4653,7 +4653,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
       assert(0);
     }
 
-       
+
   }
   else {
     ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
@@ -4699,19 +4699,19 @@ void publishConsoleMessage(MachineState * ms, string msg) {
 
 int renderInit(MachineState * ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
   ms->config.renderInit = 1;
-  
+
   ms->config.shouldIRender = ms->config.shouldIRenderDefault;
-  
+
   try {
     if (!converted) {
       ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    } 
+    }
     ms->config.cam_img = ms->config.cv_ptr->image.clone();
   } catch(cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return -1;
   }
-  
+
   ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
@@ -4719,32 +4719,32 @@ int renderInit(MachineState * ms, bool converted, const sensor_msgs::ImageConstP
   cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
   ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
   ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
-  
+
   ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
   ms->config.densityViewerImage *= 0;
   ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
   ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
-  
-  
+
+
   int imW = ms->config.wristViewImage.cols;
   int imH = ms->config.wristViewImage.rows;
-  
+
   // determine table edges, i.e. the gray boxes
   ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
   ms->config.rGO = ms->config.gBoxW*(ms->config.rGO/ms->config.gBoxW);
   ms->config.tGO = ms->config.gBoxH*(ms->config.tGO/ms->config.gBoxH);
   ms->config.bGO = ms->config.gBoxH*(ms->config.bGO/ms->config.gBoxH);
-  
-  
+
+
   ms->config.grayTop = cv::Point(ms->config.lGO, ms->config.tGO);
   ms->config.grayBot = cv::Point(imW-ms->config.rGO-1, imH-ms->config.bGO-1);
-  
+
   if (ms->config.all_range_mode) {
     ms->config.grayTop = ms->config.armTop;
     ms->config.grayBot = ms->config.armBot;
   }
-  
+
   if (ms->config.integralDensity == NULL)
     ms->config.integralDensity = new double[imW*imH];
   if (ms->config.density == NULL)
@@ -4791,47 +4791,47 @@ void renderWristViewImage(MachineState * ms) {
     teePose.pz = ms->config.trueEEPose.position.z;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
-    
+
     double zStart = ms->config.minHeight;
-    double zEnd = ms->config.maxHeight; 
+    double zEnd = ms->config.maxHeight;
     double deltaZ = 0.005;
-    
+
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
-      int pX = 0, pY = 0;  
+      int pX = 0, pY = 0;
       double zToUse = zCounter;
-      
+
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-      
+
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-      
+
       line(ms->config.wristViewImage, pt1, pt2, theColor, 3);
     }
     for (double zCounter = zStart; zCounter < zEnd; zCounter += deltaZ) {
-      int pX = 0, pY = 0;  
+      int pX = 0, pY = 0;
       double zToUse = zCounter;
-      
+
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt1(pX, pY);
-      
+
       zToUse = zCounter+deltaZ;
       globalToPixel(ms, &pX, &pY, zToUse, teePose.px, teePose.py);
       Point pt2(pX, pY);
-      
+
       line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1);
     }
-    
+
   }
-  
+
   // paint transform reticles
   if (ms->config.paintEEandReg1OnWrist) {
     paintEEPoseOnWrist(ms, ms->config.trueEEPoseEEPose, cv::Scalar(0,0,255));
     paintEEPoseOnWrist(ms, ms->config.eepReg1, cv::Scalar(0,255,0));
-    
+
     paintEEPoseOnWrist(ms, ms->config.currentEEPose, cv::Scalar(255,255,0));
-    
+
     {
       eePose irPose;
       {
@@ -4846,7 +4846,7 @@ void renderWristViewImage(MachineState * ms) {
 					       (thisPose.position.y - irSensorStartLocal.y()),
 					       (thisPose.position.z - irSensorStartLocal.z())
                                                );
-        
+
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
@@ -4883,35 +4883,35 @@ void renderWristViewImage(MachineState * ms) {
 
   // draw ms->config.currentMovementState indicator
   {
-    // XXX TODO this should be guarded 
+    // XXX TODO this should be guarded
     int movementIndicatorInnerHalfWidth = 7;
     int movementIndicatorOuterHalfWidth = 10;
     int x0 = ms->config.vanishingPointReticle.px;
     int y0 = ms->config.vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
     Point pt1(x0, y0);
-    Mat innerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
+    Mat innerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth,
 					  2*movementIndicatorInnerHalfWidth, 2*movementIndicatorInnerHalfWidth) );
-    Mat outerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorOuterHalfWidth, pt1.y-movementIndicatorOuterHalfWidth, 
+    Mat outerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorOuterHalfWidth, pt1.y-movementIndicatorOuterHalfWidth,
 					  2*movementIndicatorOuterHalfWidth, 2*movementIndicatorOuterHalfWidth) );
     int icMag = 64;
     Scalar indicatorColor = CV_RGB(icMag,icMag,icMag);
     if (ms->config.currentMovementState == STOPPED) {
-      indicatorColor = CV_RGB(icMag,0,0); 
+      indicatorColor = CV_RGB(icMag,0,0);
     } else if (ms->config.currentMovementState == HOVERING) {
-      indicatorColor = CV_RGB(0,0,icMag); 
+      indicatorColor = CV_RGB(0,0,icMag);
     } else if (ms->config.currentMovementState == MOVING) {
-      indicatorColor = CV_RGB(0,icMag,0); 
+      indicatorColor = CV_RGB(0,icMag,0);
     } else if (ms->config.currentMovementState == BLOCKED) {
-      indicatorColor = CV_RGB(icMag,0,0); 
+      indicatorColor = CV_RGB(icMag,0,0);
     } else if (ms->config.currentMovementState == ARMED) {
-      indicatorColor = CV_RGB(icMag,0,0); 
+      indicatorColor = CV_RGB(icMag,0,0);
     }
     outerCrop += indicatorColor;
-    
+
     if (ms->config.currentMovementState == STOPPED) {
-      indicatorColor = CV_RGB(icMag,2*icMag,0); 
+      indicatorColor = CV_RGB(icMag,2*icMag,0);
     } else if (ms->config.currentMovementState == ARMED) {
-      indicatorColor = CV_RGB(0,0,2*icMag); 
+      indicatorColor = CV_RGB(0,0,2*icMag);
     }
     innerCrop += indicatorColor;
   }
@@ -4999,7 +4999,7 @@ void renderWristViewImage(MachineState * ms) {
 	line(ms->config.wristViewImage, pt1, pt2, THEcOLOR, 1.0);
       }
     }
-  
+
   }
 
   // draw color reticle
@@ -5010,8 +5010,8 @@ void renderWristViewImage(MachineState * ms) {
       cv::Point outBot = cv::Point(ms->config.xCR[cr]+3, ms->config.yCR[cr]+3);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(0,192,0)); 
-      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(0,64,0)); 
+      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(0,192,0));
+      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(0,64,0));
     }
     {
       int tcrx = getColorReticleX(ms);
@@ -5020,8 +5020,8 @@ void renderWristViewImage(MachineState * ms) {
       cv::Point outBot = cv::Point(tcrx+5, tcry+5);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(227,104,193)); 
-      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(133,104,109)); 
+      rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(227,104,193));
+      rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(133,104,109));
     }
     }*/
 
@@ -5039,7 +5039,7 @@ void renderWristViewImage(MachineState * ms) {
       cv::Point inBot = cv::Point(thisReticle.px-1+thisReticleHalfWidth,thisReticle.py-1+thisReticleHalfWidth);
 
       if (hri == ms->config.currentThompsonHeightIdx) {
-	rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(22,70,82)); 
+	rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(22,70,82));
 	rectangle(ms->config.wristViewImage, inTop, inBot, cv::Scalar(68,205,239));
       } else {
 	rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(82,70,22)); // RGB: 22 70 82
@@ -5053,7 +5053,7 @@ void renderWristViewImage(MachineState * ms) {
     Size sz = ms->config.wristViewImage.size();
     int imW = sz.width;
     int imH = sz.height;
-    
+
     int param_pilotTargetHalfWidth = 15;
     cv::Point outTop = cv::Point(ms->config.pilotTarget.px-param_pilotTargetHalfWidth, ms->config.pilotTarget.py-param_pilotTargetHalfWidth);
     cv::Point outBot = cv::Point(ms->config.pilotTarget.px+param_pilotTargetHalfWidth, ms->config.pilotTarget.py+param_pilotTargetHalfWidth);
@@ -5090,7 +5090,7 @@ void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
       int cfClass = ms->config.focusedClass;
       if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
 	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
+	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow);
       } else {
       } // do nothing
       converted = 1;
@@ -5192,7 +5192,7 @@ void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState&
     // only if this is the first of recent presses
     if (ms->config.lastArmOkButtonState == 0) {
       ms->evaluateProgram("infiniteScan");
-    }      
+    }
   }
 
   if (dios.state) {
@@ -5212,7 +5212,7 @@ void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState&
       ms->clearData();
 
       ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
-    }      
+    }
   }
 
   if (dios.state) {
@@ -5228,7 +5228,7 @@ void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& d
     // only if this is the first of recent presses
     if (ms->config.lastArmOkButtonState == 0) {
       ms->evaluateProgram("zeroGToggle");
-    }      
+    }
   }
 
   if (dios.state == 1) {
@@ -5373,7 +5373,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
                                   (int) (ms->config.objectMap[i + ms->config.mapWidth * j].g / ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount),
                                   (int) (ms->config.objectMap[i + ms->config.mapWidth * j].b / ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount) );
 	color = color*fadeFraction;
-        rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
+        rectangle(ms->config.objectMapViewerImage, outTop, outBot,
                   color,
                   CV_FILLED);
       }
@@ -5388,7 +5388,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
       for (int j = 0; j < ms->config.mapHeight; j+=ikMapRenderStride) {
-	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
+	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax,
                                 ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
           //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
           double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
@@ -5399,10 +5399,10 @@ void renderObjectMapViewOneArm(MachineState * ms) {
           }
           double x=-1, y=-1;
           mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j, &x, &y);
-          cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage, 
+          cv::Point cvp1 = worldToMapPixel(ms->config.objectMapViewerImage,
                                            ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y);
-          
-          if (ms->config.drawIKMap) { // draw ikMap 
+
+          if (ms->config.drawIKMap) { // draw ikMap
             if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD) ) {
               // do not draw when it's good
             } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED) ) {
@@ -5415,7 +5415,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
               //drawMapPolygon(mapcell, tColor);
               //gsl_matrix_free(mapcell);
               //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) =
                 ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
             } else if ( (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION) ) {
               Scalar tColor = CV_RGB(224, 64, 64);
@@ -5427,14 +5427,14 @@ void renderObjectMapViewOneArm(MachineState * ms) {
               //drawMapPolygon(mapcell, tColor);
               //gsl_matrix_free(mapcell);
               //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) =
                 ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
             } else {
               cout << "Bad IK value: " << ms->config.ikMap[i + ms->config.mapWidth * j] << endl;
               assert(0);
             }
           }
-          if (ms->config.drawClearanceMap) { // draw clearanceMap 
+          if (ms->config.drawClearanceMap) { // draw clearanceMap
             if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 0 ) ) {
               // do not draw
             } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ) {
@@ -5447,7 +5447,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
               //drawMapPolygon(mapcell, CV_RGB(128, 128, 0));
               //gsl_matrix_free(mapcell);
               //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) =
                   ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
             } else if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
               Scalar tColor = CV_RGB(0, 224, 0);
@@ -5459,7 +5459,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
               //drawMapPolygon(mapcell, CV_RGB(32, 128, 32));
               //gsl_matrix_free(mapcell);
               //line(ms->config.objectMapViewerImage, cvp1, cvp1, tColor);
-              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) = 
+              ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) =
                 ms->config.objectMapViewerImage.at<cv::Vec3b>(cvp1.y, cvp1.x) + cColor;
             } else  {
                 cout << "Bad clearance value: " << ms->config.clearanceMap[i + ms->config.mapWidth * j] << endl;
@@ -5470,27 +5470,27 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       }
     }
   }
-  
+
 
   { // drawMapSearchFence
-    
-    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceYMin);
-    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMax);
 
-    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot,
               CV_RGB(255, 255, 0));
   }
 
   { // drawMapRejectFence
-    
-    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     ms->config.mapRejectFenceXMin, ms->config.mapRejectFenceYMin);
-    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     ms->config.mapRejectFenceXMax, ms->config.mapRejectFenceYMax);
 
-    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot,
               CV_RGB(255, 0, 0));
   }
 
@@ -5498,19 +5498,19 @@ void renderObjectMapViewOneArm(MachineState * ms) {
   if (ms->config.currentRobotMode == SIMULATED) {
     for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
       Sprite sprite = ms->config.instanceSprites[s];
-      
+
       double cx, cy;
-      
+
       cx = sprite.pose.px;
       cy = sprite.pose.py;
-      
-      cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+
+      cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
 					   cx, cy);
       objectPoint.x += 15;
 
-      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
 				      sprite.top.px, sprite.top.py);
-      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
 				      sprite.bot.px, sprite.bot.py);
 
       int halfHeight = (outBot.y - outTop.y)/2;
@@ -5524,7 +5524,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
 	halfWidth = (outBot.x - outTop.x)/2;
       }
 
-      rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
+      rectangle(ms->config.objectMapViewerImage, outTop, outBot,
 		CV_RGB(0, 255, 0));
 
       putText(ms->config.objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
@@ -5535,19 +5535,19 @@ void renderObjectMapViewOneArm(MachineState * ms) {
   for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
     BoxMemory memory = ms->config.blueBoxMemories[i];
     string class_name = ms->config.classLabels[memory.labeledClassIndex];
-    
+
     double cx, cy;
-    
+
     cx = memory.centroid.px;
     cy = memory.centroid.py;
-    
-    cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+
+    cv::Point objectPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                          cx, cy);
     objectPoint.x += 15;
 
-    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     memory.top.px, memory.top.py);
-    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                     memory.bot.px, memory.bot.py);
 
     int halfHeight = (outBot.y - outTop.y)/2;
@@ -5561,7 +5561,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       halfWidth = (outBot.x - outTop.x)/2;
     }
 
-    rectangle(ms->config.objectMapViewerImage, outTop, outBot, 
+    rectangle(ms->config.objectMapViewerImage, outTop, outBot,
               CV_RGB(0, 0, 255));
 
     if (memory.lockStatus == POSE_LOCK ||
@@ -5574,7 +5574,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
       cv::Point outTopLock;
       cv::Point outBotLock;
-      
+
       int widthShim = floor((halfWidth)  * 0.5 * (1.0 + sin(lockArg1)));
       int heightShim = floor((halfHeight)  * 0.5 * (1.0 + sin(lockArg1)));
       widthShim = min(max(1,widthShim),halfWidth-1);
@@ -5589,8 +5589,8 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       if (memory.lockStatus == POSE_REPORTED) {
 	nonBlueAmount = floor(128 * 0.5 * (1.0 + cos(lockArg2+memory.cameraTime.sec)));
       }
-      
-      rectangle(ms->config.objectMapViewerImage, outTopLock, outBotLock, 
+
+      rectangle(ms->config.objectMapViewerImage, outTopLock, outBotLock,
               CV_RGB(nonBlueAmount, nonBlueAmount, 128+nonBlueAmount));
     }
 
@@ -5604,28 +5604,28 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     color = cv::Scalar(0, 0, 255);
   }
 
-  
+
   { // drawRobot
     double radius = 20;
     cv::Point orientation_point = cv::Point(pxMax/2, pyMax/2 + radius);
-    
+
     circle(ms->config.objectMapViewerImage, center, radius, color);
     line(ms->config.objectMapViewerImage, center, orientation_point, color);
   }
   { // drawHand
     eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
     double radius = 10;
-    cv::Point handPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+    cv::Point handPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                                        tp.px, tp.py);
-    
+
     Eigen::Quaternionf handQuat(tp.qw, tp.qx, tp.qy, tp.qz);
 
     double rotated_magnitude = radius / sqrt(pow(pxMax - pxMin, 2) +  pow(pyMax - pyMin, 2)) * sqrt(pow(ms->config.mapXMax - ms->config.mapXMin, 2) + pow(ms->config.mapYMax - ms->config.mapYMin, 2));
     Eigen::Vector3f point(rotated_magnitude, 0, 0);
     Eigen::Vector3f rotated = handQuat * point;
-    
+
     cv::Point orientation_point = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
-                                               tp.px + rotated[0], 
+                                               tp.px + rotated[0],
                                                tp.py + rotated[1]);
 
 
@@ -5651,14 +5651,14 @@ void renderObjectMapViewOneArm(MachineState * ms) {
             cout << "cell time: " << ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime << endl;
             cout << "diff: " << diff << endl;
             if (diff < ros::Duration(2.0)) {
-              drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+              drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                              poly, color);
-              drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+              drawMapPolygon(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
                              mapcell, CV_RGB(255, 255, 0));
             }
           }
-     
-          
+
+
           gsl_matrix_free(poly);
         }
         gsl_matrix_free(mapcell);
@@ -5685,9 +5685,9 @@ void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin
     double x2 = gsl_vector_get(&p2.vector, 0);
     double y2 = gsl_vector_get(&p2.vector, 1);
     double px1, px2, py1, py2;
-    cv::Point cvp1 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp1 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax,
                                   x1, y1);
-    cv::Point cvp2 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax, 
+    cv::Point cvp2 = worldToMapPixel(mapImage, mapXMin, mapXMax, mapYMin, mapYMax,
                                   x2, y2);
     line(mapImage, cvp1, cvp2, color);
   }
@@ -5765,7 +5765,7 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
     //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
     ms->evaluateProgram("tenthImpulse ( zUp ) 10 replicateWord waitUntilAtCurrentPosition 1 changeToHeight");
     ms->pushWord("waitUntilGripperNotMoving");
-    
+
     ms->pushWord("closeGripper");
     ms->pushWord("pressUntilEffortOrTwist");
 
@@ -5801,32 +5801,32 @@ void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
     doObjectMapCallbackFunc(event, x, y, flags, machineStates[i]);
   }
 
-  
+
 
 }
 void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms) {
 
-  
+
 
   if ( event == EIN_EVENT_LBUTTONDBLCLK ) {
     double worldX, worldY;
     mapPixelToWorld(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, x, y, worldX, worldY);
-    ms->config.currentEEPose.px = worldX;  
-    ms->config.currentEEPose.py = worldY;  
+    ms->config.currentEEPose.px = worldX;
+    ms->config.currentEEPose.py = worldY;
 
 
     for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
       BoxMemory memory = ms->config.blueBoxMemories[i];
       string class_name = ms->config.classLabels[memory.labeledClassIndex];
-       
-      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+
+      cv::Point outTop = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
 				      memory.top.px, memory.top.py);
-      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
+      cv::Point outBot = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax,
 				      memory.bot.px, memory.bot.py);
-      
+
       cout <<" Top: " << outTop.x << ", " << outTop.y << endl;
       cout <<" Bot: " << outBot.x << ", " << outBot.y << endl;
-      if ((outBot.x <= x && x <= outTop.x) && 
+      if ((outBot.x <= x && x <= outTop.x) &&
 	  (outBot.y <= y && y <= outTop.y)) {
 
 	cout << "Got: " << memory.labeledClassIndex << ": " << ms->config.classLabels[memory.labeledClassIndex] << endl;
@@ -5834,7 +5834,7 @@ void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * 
 	ms->pushWord("deliverTargetBoxMemory");
 	ms->execute_stack = 1;
 
-	
+
       }
     }
   }
@@ -5872,7 +5872,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     ms->pushWord("drawMapRegisters"); // render register 1
     ms->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange <<
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
@@ -5884,7 +5884,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     ms->pushWord("drawMapRegisters"); // render register 1
     ms->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange <<
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
     int bigX = x / ms->config.rmiCellWidth;
@@ -5902,7 +5902,7 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
     ms->pushWord("drawMapRegisters"); // render register 1
     ms->execute_stack = 1;
 
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
+    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange <<
       " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
   } else if ( event == EIN_EVENT_MOUSEMOVE ) {
     //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
@@ -6017,7 +6017,7 @@ void loadCalibration(MachineState * ms, string inFileName) {
     ms->config.cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
 
   }
-  ms->pushWord("moveCropToProperValue"); 
+  ms->pushWord("moveCropToProperValue");
 }
 
 void saveCalibration(MachineState * ms, string outFileName) {
@@ -6038,25 +6038,25 @@ void saveCalibration(MachineState * ms, string outFileName) {
   cout << "Writing calibration information to " << outFileName << " ...";
   fsvO.open(outFileName, FileStorage::WRITE);
 
-  fsvO << "savedTime" << "[" 
-    << savedTime.toSec() 
+  fsvO << "savedTime" << "["
+    << savedTime.toSec()
   << "]";
 
-  fsvO << "currentTableZ" << "[" 
-    << ms->config.currentTableZ 
+  fsvO << "currentTableZ" << "["
+    << ms->config.currentTableZ
   << "]";
 
-  fsvO << "cropUpperLeftCorner" << "[" 
-    << ms->config.cropUpperLeftCorner.px 
-    << ms->config.cropUpperLeftCorner.py 
+  fsvO << "cropUpperLeftCorner" << "["
+    << ms->config.cropUpperLeftCorner.px
+    << ms->config.cropUpperLeftCorner.py
   << "]";
 
-  fsvO << "vanishingPointReticle" << "[" 
-    << ms->config.vanishingPointReticle.px 
-    << ms->config.vanishingPointReticle.py 
+  fsvO << "vanishingPointReticle" << "["
+    << ms->config.vanishingPointReticle.px
+    << ms->config.vanishingPointReticle.py
   << "]";
 
-  fsvO << "heightReticles" << "[" 
+  fsvO << "heightReticles" << "["
     << ms->config.heightReticles[3].px
     << ms->config.heightReticles[2].px
     << ms->config.heightReticles[1].px
@@ -6068,7 +6068,7 @@ void saveCalibration(MachineState * ms, string outFileName) {
     << ms->config.heightReticles[0].py
   << "]";
 
-  fsvO << "colorReticles" << "[" 
+  fsvO << "colorReticles" << "["
     << ms->config.xCR[0]
     << ms->config.xCR[1]
     << ms->config.xCR[2]
@@ -6084,23 +6084,23 @@ void saveCalibration(MachineState * ms, string outFileName) {
     << ms->config.xCR[12]
     << ms->config.xCR[13]
 
-    << ms->config.yCR[0] 
-    << ms->config.yCR[1] 
-    << ms->config.yCR[2] 
-    << ms->config.yCR[3] 
-    << ms->config.yCR[4] 
-    << ms->config.yCR[5] 
-    << ms->config.yCR[6] 
-    << ms->config.yCR[7] 
-    << ms->config.yCR[8] 
-    << ms->config.yCR[9] 
+    << ms->config.yCR[0]
+    << ms->config.yCR[1]
+    << ms->config.yCR[2]
+    << ms->config.yCR[3]
+    << ms->config.yCR[4]
+    << ms->config.yCR[5]
+    << ms->config.yCR[6]
+    << ms->config.yCR[7]
+    << ms->config.yCR[8]
+    << ms->config.yCR[9]
     << ms->config.yCR[10]
     << ms->config.yCR[11]
     << ms->config.yCR[12]
     << ms->config.yCR[13]
   << "]";
 
-  fsvO << "lensCorrections" << "[" 
+  fsvO << "lensCorrections" << "["
     << ms->config.m_x_h[0]
     << ms->config.m_x_h[1]
     << ms->config.m_x_h[2]
@@ -6153,7 +6153,7 @@ void pilotInit(MachineState * ms) {
 
     ms->config.beeHome = eePose(0.334217, 0.75386, 0.0362593,
                                 -0.00125253, 0.999999, -0.000146851, 0.000236656);
-    
+
     ms->config.eepReg4 = ms->config.beeHome;
     ms->config.defaultReticle = eePose(334, 100, 0.0,
                                        0.0, 0.0, 0.0, 0.0);
@@ -6183,8 +6183,8 @@ void pilotInit(MachineState * ms) {
     ms->config.counterTableZ = ms->config.leftTableZ;
     ms->config.pantryTableZ  = ms->config.leftTableZ;
 
-    ms->config.eepReg1 = ms->config.beeHome; 
-    ms->config.eepReg2 = ms->config.beeHome; 
+    ms->config.eepReg1 = ms->config.beeHome;
+    ms->config.eepReg2 = ms->config.beeHome;
 
     ms->config.mapSearchFenceXMin = -0.75;
     //ms->config.mapSearchFenceXMin = 0.25;
@@ -6375,7 +6375,7 @@ void pilotInit(MachineState * ms) {
     ms->config.heightReticles[1] = ms->config.defaultReticle;
     ms->config.heightReticles[2] = ms->config.defaultReticle;
     ms->config.heightReticles[3] = ms->config.defaultReticle;
-    
+
     ms->config.heightReticles[3].px = 314;
     ms->config.heightReticles[2].px = 317;
     ms->config.heightReticles[1].px = 320;
@@ -6444,8 +6444,8 @@ void pilotInit(MachineState * ms) {
     ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
                                   0.392321, 0.324823, -0.555039, 0.657652);
 
-  } else if (ms->config.left_or_right_arm == "ardrone") { 
-    
+  } else if (ms->config.left_or_right_arm == "ardrone") {
+
   } else {
     cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
     exit(0);
@@ -6554,7 +6554,7 @@ void pilotInit(MachineState * ms) {
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
     ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
 
-    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
+    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " <<
     //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
   }
 
@@ -6566,7 +6566,7 @@ void pilotInit(MachineState * ms) {
       }
     }
   }
-  
+
   ms->config.imRingBuffer.resize(ms->config.imRingBufferSize);
   ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
   ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
@@ -6600,7 +6600,7 @@ int shouldIPick(MachineState * ms, int classToPick) {
 
   // 6 is black tape
   // 12 is green block
-  // 2 is greenPepper 
+  // 2 is greenPepper
   // 9 is chile
   // 10 is cucumber
 //  if (
@@ -6612,7 +6612,7 @@ int shouldIPick(MachineState * ms, int classToPick) {
 //    ) {
 //    toReturn = 1;
 //  }
-  
+
   toReturn = (classToPick == ms->config.targetClass);
 
   cout << classToPick << " " << ms->config.targetClass << " " << toReturn;
@@ -6631,7 +6631,7 @@ int getLocalGraspGear(MachineState * ms, int globalGraspGearIn) {
   Quaternionf rel = eeqform * gear1Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-  
+
 
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
@@ -6649,7 +6649,7 @@ int getLocalGraspGear(MachineState * ms, int globalGraspGearIn) {
   double angle = vectorArcTan(ms, aY, aX);
   // no inversion necessary
   //angle = -angle;
-  
+
   double deltaGG = floor(angle * ms->config.totalGraspGears / (2.0 * 3.1415926));
   int ggToReturn = (ms->config.totalGraspGears + globalGraspGearIn + int(deltaGG)) % (ms->config.totalGraspGears / 2);
 
@@ -6671,7 +6671,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
   Quaternionf rel = eeqform * gear1Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-  
+
 
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
@@ -6689,7 +6689,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
   double angle = vectorArcTan(ms, aY, aX);
   // inversion to convert to global
   angle = -angle;
-  
+
   double deltaGG = floor(angle * ms->config.totalGraspGears / (2.0 * 3.1415926));
   // we are doing ceiling by taking the floor and then adding one, the inverse of getLocalGraspGear.
   int ggToReturn = (ms->config.totalGraspGears + localGraspGearIn + 1 + int(deltaGG)) % (ms->config.totalGraspGears / 2);
@@ -6702,7 +6702,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
 void changeTargetClass(MachineState * ms, int newTargetClass) {
 
   if ( (newTargetClass < 0) || (newTargetClass >= ms->config.classLabels.size()) ) {
-    CONSOLE_ERROR(ms, "changeTargetClass: tried to change to an invalid class. setting class to 0." << endl); 
+    CONSOLE_ERROR(ms, "changeTargetClass: tried to change to an invalid class. setting class to 0." << endl);
     newTargetClass = 0;
     ms->config.targetClass = 0;
     ms->config.focusedClass = 0;
@@ -6714,17 +6714,17 @@ void changeTargetClass(MachineState * ms, int newTargetClass) {
   ms->config.focusedClass = ms->config.targetClass;
   ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
   cout << "class " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-  ms->execute_stack = 1;	
+  ms->execute_stack = 1;
 
   //cout << "BTTN 1" << endl;
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
       ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
-    } 
-  } 
+    }
+  }
 
-  ms->pushWord("loadMarginalHeightMemory"); 
+  ms->pushWord("loadMarginalHeightMemory");
 
 
   ms->pushWord("drawMapRegisters"); // render register 1
@@ -6754,7 +6754,7 @@ void changeTargetClass(MachineState * ms, int newTargetClass) {
     }
     break;
   }
-  
+
   switch (ms->config.currentBoundingBoxMode) {
   case STATIC_PRIOR:
     {
@@ -6803,18 +6803,18 @@ void zeroGraspMemoryAndRangeMap(MachineState * ms) {
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0;
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0;
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0;
       ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
+      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0;
       ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
       ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
       //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
-    } 
-  } 
+    }
+  }
 
 }
 
@@ -6830,8 +6830,8 @@ void zeroClassGraspMemory(MachineState * ms) {
       ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
       ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
       ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
-    } 
-  } 
+    }
+  }
 }
 
 void guard3dGrasps(MachineState * ms) {
@@ -6973,7 +6973,7 @@ int doCalibrateGripper(MachineState * ms) {
   return return_value;
 }
 
-void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry, 
+void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry,
                                   int * localX, int * localY) {
   // COMPLETELY UNTESTED
   assert(0);
@@ -6992,8 +6992,8 @@ void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry,
   Mat didUn = un_rot_mat*toUn;
   double localThX = didUn.at<double>(0,0);
   double localThY = didUn.at<double>(1,0);
-  *localX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-  *localY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
+  *localX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth;
+  *localY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth;
 
 }
 
@@ -7014,8 +7014,8 @@ void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int
   Mat didUn = un_rot_mat*toUn;
   double localThX = didUn.at<double>(0,0);
   double localThY = didUn.at<double>(1,0);
-  *rx = (int) round(((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth); 
-  *ry = (int) round(((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth); 
+  *rx = (int) round(((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth);
+  *ry = (int) round(((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth);
 }
 
 
@@ -7024,15 +7024,15 @@ void loadSampledGraspMemory(MachineState * ms) {
   for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < ms->config.rmWidth; rx++) {
       for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        
+
 
 	// ATTN 19 this isn't quite Thompson sampling...
 	//   regularization.
         int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
         double nsuccess = ms->config.pickEccentricity * (ms->config.graspMemoryPicks[i]);
         double nfailure = ms->config.pickEccentricity * (ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i]);
-        ms->config.graspMemorySample[i] = rk_beta(&ms->config.random_state, 
-                                       nsuccess + 1, 
+        ms->config.graspMemorySample[i] = rk_beta(&ms->config.random_state,
+                                       nsuccess + 1,
                                        nfailure + 1);
       }
     }
@@ -7080,7 +7080,7 @@ void loadPriorGraspMemory(MachineState * ms, priorType prior) {
   }
 
   // ATTN 18
-  // make the grasp gears symmetric so we can reliably 
+  // make the grasp gears symmetric so we can reliably
   // populate a fixed number of grasps.
   int symmetrizeGraspGears = 0;
   if (symmetrizeGraspGears) {
@@ -7095,7 +7095,7 @@ void loadPriorGraspMemory(MachineState * ms, priorType prior) {
 	}
 	for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
 	  int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-	  ms->config.graspMemoryReg1[i] = minAtThisXY; 
+	  ms->config.graspMemoryReg1[i] = minAtThisXY;
 	}
       }
     }
@@ -7119,7 +7119,7 @@ void loadPriorGraspMemory(MachineState * ms, priorType prior) {
   //     }
   //   }
   // }
-  
+
   std::vector<double> sorted;
   for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
     for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -7129,7 +7129,7 @@ void loadPriorGraspMemory(MachineState * ms, priorType prior) {
       }
     }
   }
-  
+
   std::sort (sorted.begin(), sorted.end());
 
   int numLocationsToTry = 10;
@@ -7193,14 +7193,14 @@ void loadMarginalHeightMemory(MachineState * ms) {
     ms->config.heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
   }
 }
- 
+
 void loadSampledHeightMemory(MachineState * ms) {
   ROS_INFO("Loading sampled height memory.");
   for (int i = 0; i < ms->config.hmWidth; i++) {
     double nsuccess = ms->config.heightEccentricity * (ms->config.heightMemoryPicks[i]);
     double nfailure = ms->config.heightEccentricity * (ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i]);
-    ms->config.heightMemorySample[i] = rk_beta(&ms->config.random_state, 
-                                    nsuccess + 1, 
+    ms->config.heightMemorySample[i] = rk_beta(&ms->config.random_state,
+                                    nsuccess + 1,
                                     nfailure + 1);
   }
   drawHeightMemorySample(ms);
@@ -7253,7 +7253,7 @@ void loadPriorHeightMemory(MachineState * ms, priorType prior) {
 }
 
 void drawHeightMemorySample(MachineState * ms) {
-  
+
   {
     double max_value = -VERYBIGNUMBER;
     int max_i=0, max_ry=0, max_rx=0;
@@ -7272,7 +7272,7 @@ void drawHeightMemorySample(MachineState * ms) {
 	double redIntensity = 255 * ms->config.heightMemorySample[i];
 	//cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << ms->config.heightMemorySample[i] << endl;
 	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-	
+
 	cv::Point outTop = cv::Point((ry)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
 	cv::Point outBot = cv::Point(((ry)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
 	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
@@ -7282,10 +7282,10 @@ void drawHeightMemorySample(MachineState * ms) {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry) * ms->config.hmiCellWidth - 5, 
+      cv::Point text_anchor = cv::Point((max_ry) * ms->config.hmiCellWidth - 5,
 					(max_rx + 1) * ms->config.hmiCellWidth);
       sprintf(buff, "x");
-      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7,
 	      Scalar(0,0,255), 2);
     }
   }
@@ -7308,7 +7308,7 @@ void drawHeightMemorySample(MachineState * ms) {
 	double redIntensity = 255 * thisMarginal;
 	//cout << "Height Memory Marginal: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << thisMarginal << endl;
 	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-	
+
 	cv::Point outTop = cv::Point((ry+1)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
 	cv::Point outBot = cv::Point(((ry+1)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
 	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
@@ -7318,10 +7318,10 @@ void drawHeightMemorySample(MachineState * ms) {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry+1) * ms->config.hmiCellWidth, 
+      cv::Point text_anchor = cv::Point((max_ry+1) * ms->config.hmiCellWidth,
 					(max_rx + 1) * ms->config.hmiCellWidth);
       sprintf(buff, "x");
-      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
+      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7,
 	      Scalar(0,0,255), 2);
     }
   }
@@ -7536,7 +7536,7 @@ void drawMapRegisters(MachineState * ms) {
     int max_rx=0, max_ry=0, max_tGG=0;
     int dy[4] = {0,1,0,1};
     int dx[4] = {0,0,1,1};
-    
+
     for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
 
       for (int rx = 0; rx < ms->config.rmWidth; rx++) {
@@ -7549,7 +7549,7 @@ void drawMapRegisters(MachineState * ms) {
             max_tGG = tGG;
           }
 
-          
+
           {
             double blueIntensity = 255 * ms->config.graspMemorySample[i];
             double greenIntensity = 255 * ms->config.graspMemorySample[i];
@@ -7567,11 +7567,11 @@ void drawMapRegisters(MachineState * ms) {
       }
     }
 
-    
+
     for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
       {
         char buff[256];
-        cv::Point text_anchor = cv::Point((dy[tGG]*ms->config.rmWidth)*ms->config.rmiCellWidth, 
+        cv::Point text_anchor = cv::Point((dy[tGG]*ms->config.rmWidth)*ms->config.rmiCellWidth,
                                           (dx[tGG]*ms->config.rmWidth + 1)*ms->config.rmiCellWidth);
         sprintf(buff, "%d", tGG+1);
         putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, Scalar(192,192,192), 2);
@@ -7581,10 +7581,10 @@ void drawMapRegisters(MachineState * ms) {
     {
       // draw the max
       char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry + dy[max_tGG]*ms->config.rmWidth) * ms->config.rmiCellWidth, 
+      cv::Point text_anchor = cv::Point((max_ry + dy[max_tGG]*ms->config.rmWidth) * ms->config.rmiCellWidth,
                                         (max_rx + dx[max_tGG]*ms->config.rmWidth + 1) * ms->config.rmiCellWidth);
       sprintf(buff, "x");
-      putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, 
+      putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1,
               Scalar(0,0,255), 2);
     }
   }
@@ -7595,17 +7595,17 @@ void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMa
   //cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
 
   // ATTN 2
-  int dx[9] = { -1,  0,  1, 
-                -1,  0,  1, 
+  int dx[9] = { -1,  0,  1,
+                -1,  0,  1,
                 -1,  0,  1};
-  int dy[9] = { -1, -1, -1, 
-                0,  0,  0, 
+  int dy[9] = { -1, -1, -1,
+                0,  0,  0,
                 1,  1,  1};
-  //	int dx[9] = { -2,  0,  2, 
-  //		      -2,  0,  2, 
+  //	int dx[9] = { -2,  0,  2,
+  //		      -2,  0,  2,
   //		      -2,  0,  2};
-  //	int dy[9] = { -2, -2, -2, 
-  //		       0,  0,  0, 
+  //	int dy[9] = { -2, -2, -2,
+  //		       0,  0,  0,
   //		       2,  2,  2};
   // ATTN 2
   int transformPadding = 2;
@@ -7628,7 +7628,7 @@ void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMa
     }
   }
 
-  // XXX TODO Consider: 
+  // XXX TODO Consider:
   // Push boundary to deepest point...
   double minDepth = VERYBIGNUMBER;
   double maxDepth = 0;
@@ -7684,8 +7684,8 @@ void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, dou
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-	
-    
+
+
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
   double aY = result.y();
@@ -7720,9 +7720,9 @@ void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, dou
         // rotated
         rangeMapRegA[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
         rangeMapRegB[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
-      } 
-    } 
-  } 
+      }
+    }
+  }
 }
 
 
@@ -7732,9 +7732,9 @@ void loadLocalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, doub
       for (int x = 0; x < ms->config.rmWidth; x++) {
         rangeMapRegA[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
         rangeMapRegB[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } 
+      }
+    }
+  }
 }
 
 
@@ -7750,8 +7750,8 @@ void prepareGraspFilter(MachineState * ms, int i) {
   }
 }
 void prepareGraspFilter1(MachineState * ms) {
-  double tfilter[9]    = {   0, -1,  0, 
-                             0,  2,  0, 
+  double tfilter[9]    = {   0, -1,  0,
+                             0,  2,  0,
                              0, -1,  0};
   for (int fx = 0; fx < 9; fx++)
     ms->config.filter[fx] = tfilter[fx];
@@ -7763,11 +7763,11 @@ void prepareGraspFilter1(MachineState * ms) {
 }
 
 void prepareGraspFilter2(MachineState * ms) {
-  double tfilter[9]    = {  -1,  0,  0, 
-                            0,  2,  0, 
+  double tfilter[9]    = {  -1,  0,  0,
+                            0,  2,  0,
                             0,  0, -1};
-  //double tfilter[9]    = {  -1,  0,  0, 
-  //0,  2-diagonalKappa,  0, 
+  //double tfilter[9]    = {  -1,  0,  0,
+  //0,  2-diagonalKappa,  0,
   //0,  0, -1};
   for (int fx = 0; fx < 9; fx++)
     ms->config.filter[fx] = tfilter[fx];
@@ -7779,8 +7779,8 @@ void prepareGraspFilter2(MachineState * ms) {
   }
 }
 void prepareGraspFilter3(MachineState * ms) {
-  double tfilter[9]    = {   0,  0,  0, 
-                             -1,  2, -1, 
+  double tfilter[9]    = {   0,  0,  0,
+                             -1,  2, -1,
                              0,  0,  0};
   for (int fx = 0; fx < 9; fx++)
     ms->config.filter[fx] = tfilter[fx];
@@ -7790,11 +7790,11 @@ void prepareGraspFilter3(MachineState * ms) {
   }
 }
 void prepareGraspFilter4(MachineState * ms) {
-  double tfilter[9]    = {   0,  0, -1, 
-                             0,  2,  0, 
+  double tfilter[9]    = {   0,  0, -1,
+                             0,  2,  0,
                              -1,  0,  0};
-  //double tfilter[9]    = {   0,  0, -1, 
-  //0,  2-diagonalKappa,  0, 
+  //double tfilter[9]    = {   0,  0, -1,
+  //0,  2-diagonalKappa,  0,
   //-1,  0,  0};
   for (int fx = 0; fx < 9; fx++)
     ms->config.filter[fx] = tfilter[fx];
@@ -7811,76 +7811,76 @@ void copyClassGraspMemoryTriesToGraspMemoryTries(MachineState * ms) {
   if ((ms->config.classGraspMemoryTries1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries1[ms->config.targetClass].cols > 1) &&
       (ms->config.classGraspMemoryPicks1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks1[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-    //cout << "ms->config.classGraspMemoryTries1 " << ms->config.classGraspMemoryTries1[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks1 " << ms->config.classGraspMemoryPicks1[ms->config.targetClass] << endl; 
+    //cout << "ms->config.classGraspMemoryTries1 " << ms->config.classGraspMemoryTries1[ms->config.targetClass] << endl;
+    //cout << "classGraspMemoryPicks1 " << ms->config.classGraspMemoryPicks1[ms->config.targetClass] << endl;
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
   } else {
     cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((ms->config.classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
       (ms->config.classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-    //cout << "classGraspMemoryTries2 " << ms->config.classGraspMemoryTries2[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks2 " << ms->config.classGraspMemoryPicks2[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries2 " << ms->config.classGraspMemoryTries2[ms->config.targetClass] << endl;
+    //cout << "classGraspMemoryPicks2 " << ms->config.classGraspMemoryPicks2[ms->config.targetClass] << endl;
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
   } else {
     cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((ms->config.classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
       (ms->config.classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-    //cout << "classGraspMemoryTries3 " << ms->config.classGraspMemoryTries3[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks3 " << ms->config.classGraspMemoryPicks3[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries3 " << ms->config.classGraspMemoryTries3[ms->config.targetClass] << endl;
+    //cout << "classGraspMemoryPicks3 " << ms->config.classGraspMemoryPicks3[ms->config.targetClass] << endl;
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
   } else {
     cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
   if ((ms->config.classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
       (ms->config.classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
     cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-    //cout << "classGraspMemoryTries4 " << ms->config.classGraspMemoryTries4[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks4 " << ms->config.classGraspMemoryPicks4[ms->config.targetClass] << endl; 
+    //cout << "classGraspMemoryTries4 " << ms->config.classGraspMemoryTries4[ms->config.targetClass] << endl;
+    //cout << "classGraspMemoryPicks4 " << ms->config.classGraspMemoryPicks4[ms->config.targetClass] << endl;
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
     for (int y = 0; y < ms->config.rmWidth; y++) {
       for (int x = 0; x < ms->config.rmWidth; x++) {
         ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
+      }
+    }
   } else {
     cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   }
-        
+
   cout << "class " << ms->config.classLabels[ms->config.targetClass] << " number ";
 
 }
@@ -7890,45 +7890,45 @@ void copyGraspMemoryTriesToClassGraspMemoryTries(MachineState * ms) {
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryTries1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
-    } 
+    }
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryPicks1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
+    }
+  }
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryTries2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
+    }
+  }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryPicks2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
+    }
+  }
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryTries3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
-    } 
+    }
   }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryPicks3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
-    } 
+    }
   }
 
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryTries4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
+    }
+  }
   for (int y = 0; y < ms->config.rmWidth; y++) {
     for (int x = 0; x < ms->config.rmWidth; x++) {
       ms->config.classGraspMemoryPicks4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
-    } 
+    }
   }
 }
 
@@ -7947,8 +7947,8 @@ void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth) {
       // ATTN 5
       double graspMemoryWeight = 0.0;
       double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
+      int localIntThX = -1;
+      int localIntThY = -1;
       double localThX = 0.0;
       double localThY = 0.0;
       {
@@ -7967,14 +7967,14 @@ void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth) {
         Mat didUn = un_rot_mat*toUn;
         localThX = didUn.at<double>(0,0);
         localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
+        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth;
+        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth;
         // retrieve its value
         double mDenom = max(ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)], 1.0);
         if ((rx < ms->config.rmWidth) && (ry < ms->config.rmWidth)) {
 
           // Thompson
-          graspMemoryWeight = (ms->config.graspMemorySample[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)]) * -1;  
+          graspMemoryWeight = (ms->config.graspMemorySample[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)]) * -1;
 
           graspMemoryBias = 0;
         } else {
@@ -7985,20 +7985,20 @@ void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth) {
 
       //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
       //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
-	  
+
 	  // this breaks ties
 	  if (ms->config.breakGraspTiesWithNoise) {
-		double p_noiseAmp = 0.00001;  
+		double p_noiseAmp = 0.00001;
 		double tnoise = drand48() * p_noiseAmp;
         graspMemoryWeight = graspMemoryWeight - tnoise;
 	  } else {
 	  }
-	    
+
       // ATTN 19
       int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);
       int maxedOutTries = isThisGraspMaxedOut(ms, i);
 
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
+      //if (graspMemoryBias + graspMemoryWeight < minDepth)
       if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
           minDepth = graspMemoryWeight;
           ms->config.maxX = localIntThX;
@@ -8013,7 +8013,7 @@ void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth) {
         }
     }
   }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " ms->config.maxY: " << ms->config.maxY <<  " maxD: " << 
+  cout << "non-cumulative maxX: " << ms->config.maxX << " ms->config.maxY: " << ms->config.maxY <<  " maxD: " <<
     ms->config.maxD << " maxGG: " << ms->config.maxGG << " localMaxGG: " << ms->config.localMaxGG << endl;
 }
 
@@ -8038,7 +8038,7 @@ void recordBoundingBoxSuccess(MachineState * ms) {
   int thisNumTries = ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx];
   cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
   if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
-    if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
+    if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) &&
 	 (thisPickRate >= ms->config.thompsonMinPassRate) ) {
       ms->config.thompsonHeightHaltFlag = 1;
     }
@@ -8055,7 +8055,7 @@ void recordBoundingBoxSuccess(MachineState * ms) {
 
     double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
     double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
-    // we want probability that 
+    // we want probability that
     //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
     double result2 = presult2a - presult2b;
 
@@ -8111,7 +8111,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
       localUnitX.y() = qout.y();
       localUnitX.z() = qout.z();
     }
-      
+
     Eigen::Vector3f localUnitY;
     {
       Eigen::Quaternionf qin(0, 0, 1, 0);
@@ -8134,7 +8134,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
   { // yet another way to do this
-    // 0 assumes no rotation 
+    // 0 assumes no rotation
     //eePose finalGlobalTarget = analyticServoPixelToReticle(ms->config.pilotTarget, thisGripperReticle, 0);
     //ms->config.currentEEPose.px = finalGlobalTarget.px;
     //ms->config.currentEEPose.py = finalGlobalTarget.py;
@@ -8160,7 +8160,7 @@ Mat makeGCrop(MachineState * ms, int etaX, int etaY) {
   Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
 
 
-  
+
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
       int tx = x - tRx;
@@ -8175,11 +8175,11 @@ Mat makeGCrop(MachineState * ms, int etaX, int etaY) {
       }
     }
   }
-  
+
   cv::resize(gCrop, gCrop, toBecome);
-  
+
   processSaliency(gCrop, gCrop);
-  
+
   {
     double mean = gCrop.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, gCrop.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
     gCrop = gCrop - mean;
@@ -8201,14 +8201,14 @@ Mat makeGCrop(MachineState * ms, int etaX, int etaY) {
 void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome) {
   Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
   double angle = thisOrient*360.0/numOrientations;
-  
+
   //double scale = 1.0;
   double scale = thisScale;
 
   // Get the rotation matrix with the specifications above
   Mat rot_mat = getRotationMatrix2D(center, angle, scale);
   warpAffine(input, output, rot_mat, toBecome);
-  
+
   processSaliency(output, output);
 
   double mean = output.dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, output.type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
@@ -8244,7 +8244,7 @@ double computeSimilarity(MachineState * ms, Mat im1, Mat im2) {
   int etaS = 0;
   Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
   rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);  
+  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
   double thisScale = startScale * pow(gradientServoScaleStep, etaS);
 
   Mat preparedClass1;
@@ -8259,16 +8259,16 @@ double computeSimilarity(MachineState * ms, Mat im1, Mat im2) {
     // rotate the template and L1 normalize it
     Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
     double angle = thisOrient*360.0/numOrientations;
-    
+
     //double scale = 1.0;
     double scale = thisScale;
-    
+
     // Get the rotation matrix with the specifications above
     Mat rot_mat = getRotationMatrix2D(center, angle, scale);
     warpAffine(im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-    
+
     processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-    
+
     double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
     rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
     double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
@@ -8281,7 +8281,7 @@ double computeSimilarity(MachineState * ms, Mat im1, Mat im2) {
 
     prepareForCrossCorrelation(ms, im2, rotatedAerialGrads[thisOrient + etaS*numOrientations], thisOrient, numOrientations, thisScale, toBecome);
 
-    Mat output = preparedClass1.clone(); 
+    Mat output = preparedClass1.clone();
     filter2D(preparedClass1, output, -1, rotatedAerialGrads[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
     double minValue, maxValue;
     minMaxLoc(output, &minValue, &maxValue);
@@ -8330,7 +8330,7 @@ void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double serv
   ms->config.pilotTarget.px = servoDeltaX;
   ms->config.pilotTarget.py = servoDeltaY;
   ms->config.currentEEDeltaRPY.pz -= servoDeltaTheta;
-  
+
   // position update
   {
     double newx = 0;
@@ -8380,7 +8380,7 @@ void gradientServo(MachineState * ms) {
     mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
     int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
     if (!doWeHaveClearance) {
-      //ms->pushWord("clearStackIntoMappingPatrol"); 
+      //ms->pushWord("clearStackIntoMappingPatrol");
       cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
       ms->pushWord("endStackCollapseNoop");
       return;
@@ -8468,26 +8468,26 @@ void gradientServo(MachineState * ms) {
           }
         }
       }
-      
+
       // rotate the template and L1 normalize it
       Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
       double angle = thisOrient*360.0/numOrientations;
-      
+
       //double scale = 1.0;
       double scale = thisScale;
-      
+
       // Get the rotation matrix with the specifications above
       Mat rot_mat = getRotationMatrix2D(center, angle, scale);
       warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-      
+
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      
+
       //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
       //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-      
+
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
@@ -8524,12 +8524,12 @@ void gradientServo(MachineState * ms) {
       int gsStride = 2;
     }
   }
-  
+
   //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
   int gSTwidth = 2*gradientServoTranslation + 1;
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
-  
+
   // XXX should be etaY <= to cover whole array
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
     #pragma omp parallel for
@@ -8537,8 +8537,8 @@ void gradientServo(MachineState * ms) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
         Mat gCrop = makeGCrop(ms, etaX, etaY);
-        
-        
+
+
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (ms->config.orientationCascade) {
@@ -8558,11 +8558,11 @@ void gradientServo(MachineState * ms) {
 	       (thisOrient != 0) ) {
 	    continue;
 	  }
-          
+
           // compute the score
           double thisScore = 0;
           thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-          
+
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
@@ -8575,7 +8575,7 @@ void gradientServo(MachineState * ms) {
       }
     }
   }
-  
+
   // perform max
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -8584,13 +8584,13 @@ void gradientServo(MachineState * ms) {
         int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
         //Mat gCrop(maxDim, maxDim, CV_64F);
-        
+
         // throw it out if it isn't contained in the image
         //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
         //      continue;
         //    if ( (topCornerX < 0) || (topCornerY < 0) )
         //      continue;
-        
+
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (ms->config.orientationCascade) {
@@ -8610,11 +8610,11 @@ void gradientServo(MachineState * ms) {
 	       (thisOrient != 0) ) {
 	    continue;
 	  }
-          
+
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-          
+
           if (thisScore > bestOrientationScore) {
             bestOrientation = thisOrient;
             bestOrientationScore = thisScore;
@@ -8623,20 +8623,20 @@ void gradientServo(MachineState * ms) {
             bestS = etaS;
           }
           //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-        } 
+        }
       }
     }
   }
 
 
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY);
   int oneToDraw = bestOrientation;
   Px = -bestX;
   Py = -bestY;
-  
+
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
-  
+
   Mat toShowModel;
   Mat toShowImage;
   Size toUnBecome(maxDim, maxDim);
@@ -8645,7 +8645,7 @@ void gradientServo(MachineState * ms) {
   cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
   cv::resize(bestGCrop, toShowImage, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
-  
+
   double maxTSImage = -INFINITY;
   double minTSImage = INFINITY;
   double maxTSModel = -INFINITY;
@@ -8658,7 +8658,7 @@ void gradientServo(MachineState * ms) {
       minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
     }
   }
-  
+
   // draw the winning score in place
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
@@ -8674,7 +8674,7 @@ void gradientServo(MachineState * ms) {
         //cout << thisColor;
         int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
+
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
@@ -8691,7 +8691,7 @@ void gradientServo(MachineState * ms) {
   txt << "Score: " << bestOrientationScore;
   putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
 
-  
+
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   //double Ptheta = bestOrientation;
@@ -8700,8 +8700,8 @@ void gradientServo(MachineState * ms) {
   // set the target reticle
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
   ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
-  
-  
+
+
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
 
   // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
@@ -8716,27 +8716,27 @@ void gradientServo(MachineState * ms) {
       kPtheta = ms->config.kPtheta1;
     */
     kPtheta = ms->config.kPtheta1;
-    
+
 
     if (bestOrientation <= numOrientations/2) {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-      
+
     } else {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
     }
 
     //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
   }
-  
+
   // position update
   {
     //double pTermX = ms->config.gradKp*Px;
     //double pTermY = ms->config.gradKp*Py;
-    
+
     // servoing in z
     //double pTermS = Ps * .005;
     //ms->config.currentEEPose.pz += pTermS;
-    
+
     // invert the current eePose orientation to decide which direction to move from POV
     //Eigen::Vector3f localUnitX;
     //{
@@ -8748,7 +8748,7 @@ void gradientServo(MachineState * ms) {
       //localUnitX.y() = qout.y();
       //localUnitX.z() = qout.z();
     //}
-      
+
     //Eigen::Vector3f localUnitY;
     //{
       //Eigen::Quaternionf qin(0, 0, 1, 0);
@@ -8759,7 +8759,7 @@ void gradientServo(MachineState * ms) {
       //localUnitY.y() = qout.y();
       //localUnitY.z() = qout.z();
     //}
-    
+
     // ATTN 21
     //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
     //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
@@ -8789,10 +8789,10 @@ void gradientServo(MachineState * ms) {
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
   ms->config.bestOrientationEEPose = ms->config.currentEEPose;
 
-  
+
   // if we are at the soft max, take first histogram estimate.
   // if we are above, add to it
-  // if we are below it, we behave as if there is no histogram 
+  // if we are below it, we behave as if there is no histogram
   // That is, to disable histogramming, set softmax to hardmax.
   if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
     ms->config.gshHistogram = ms->config.currentEEPose;
@@ -8803,14 +8803,14 @@ void gradientServo(MachineState * ms) {
   } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
     ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
     ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
+    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " <<
       ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
     ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
     ms->config.currentEEPose.copyP(ms->config.gshPose);
   } else {
   } // do nothing
 
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " <<
   ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
   bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
@@ -8821,33 +8821,33 @@ void gradientServo(MachineState * ms) {
   {
 
     if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " <<
 	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
       ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
       ms->config.currentEEPose.copyP(ms->config.gshPose);
     } else {
     }
-    
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
 
-    //ms->pushWord("pauseStackExecution"); 
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;
+
+    //ms->pushWord("pauseStackExecution");
     //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    
+    //ms->pushWord("waitUntilAtCurrentPosition");
+
     // ATTN 12
     if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
       cout << "bbLearning: returning from gradient servo." << endl;
       return;
     }
-    
+
     return;
   } else {
-    ms->pushWord("gradientServoA"); 
-    //ms->pushWord("pauseStackExecution"); 
+    ms->pushWord("gradientServoA");
+    //ms->pushWord("pauseStackExecution");
     //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+    //ms->pushWord("waitUntilAtCurrentPosition");
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;
   }
 
   // update after
@@ -8974,26 +8974,26 @@ void gradientServoLatentClass(MachineState * ms) {
 	    }
 	  }
 	}
-	
+
 	// rotate the template and L1 normalize it
 	Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
 	double angle = thisOrient*360.0/numOrientations;
-	
+
 	//double scale = 1.0;
 	double scale = thisScale;
-	
+
 	// Get the rotation matrix with the specifications above
 	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
 	warpAffine(ms->config.classAerialGradients[t_class], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rot_mat, toBecome);
-	
+
 	processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
-	
+
 	//double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type()));
 	//if (l1norm <= EPSILON)
 	//l1norm = 1.0;
 	//rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] / l1norm;
 	//cout << "classOrientedGradients[t_class]: " << ms->config.classAerialGradients[t_class] << "rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] " << rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] << endl;
-	
+
 	double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
 	rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] - mean;
 	double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
@@ -9018,12 +9018,12 @@ void gradientServoLatentClass(MachineState * ms) {
 	int gsStride = 2;
       }
     }
-    
+
     //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
     int gSTwidth = 2*gradientServoTranslation + 1;
     double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
-    
+
     // XXX should be etaY <= to cover whole array
     for (int etaS = 0; etaS < gradientServoScale; etaS++) {
       #pragma omp parallel for
@@ -9031,8 +9031,8 @@ void gradientServoLatentClass(MachineState * ms) {
 	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
 	  // get the patch
 	  Mat gCrop = makeGCrop(ms, etaX, etaY);
-	  
-	  
+
+
 	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 	    // orientation cascade
 	    if (ms->config.orientationCascade) {
@@ -9052,11 +9052,11 @@ void gradientServoLatentClass(MachineState * ms) {
 		 (thisOrient != 0) ) {
 	      continue;
 	    }
-	    
+
 	    // compute the score
 	    double thisScore = 0;
 	    thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(gCrop);
-	    
+
 	    int tEtaX = etaX+gradientServoTranslation;
 	    int tEtaY = etaY+gradientServoTranslation;
 	    allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
@@ -9069,7 +9069,7 @@ void gradientServoLatentClass(MachineState * ms) {
 	}
       }
     }
-    
+
     // perform max
     for (int etaS = 0; etaS < gradientServoScale; etaS++) {
       for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -9078,13 +9078,13 @@ void gradientServoLatentClass(MachineState * ms) {
 	  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
 	  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
 	  //Mat gCrop(maxDim, maxDim, CV_64F);
-	  
+
 	  // throw it out if it isn't contained in the image
 	  //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
 	  //      continue;
 	  //    if ( (topCornerX < 0) || (topCornerY < 0) )
 	  //      continue;
-	  
+
 	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
 	    // orientation cascade
 	    if (ms->config.orientationCascade) {
@@ -9104,11 +9104,11 @@ void gradientServoLatentClass(MachineState * ms) {
 		 (thisOrient != 0) ) {
 	      continue;
 	    }
-	    
+
 	    int tEtaX = etaX+gradientServoTranslation;
 	    int tEtaY = etaY+gradientServoTranslation;
 	    double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-	    
+
 	    if (thisScore > bestOrientationScore) {
 	      bestOrientation = thisOrient;
 	      bestOrientationScore = thisScore;
@@ -9119,7 +9119,7 @@ void gradientServoLatentClass(MachineState * ms) {
 	    }
 	    classScores[t_class] = classScores[t_class] + thisScore;
 	    //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-	  } 
+	  }
 	}
       }
     }
@@ -9158,15 +9158,15 @@ void gradientServoLatentClass(MachineState * ms) {
   double Py = 0;
 
   double Ps = 0;
- 
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY);
   int oneToDraw = bestOrientation;
   Px = -bestX;
   Py = -bestY;
-  
+
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
-  
+
   Mat toShowModel;
   Mat toShowImage;
   Size toUnBecome(maxDim, maxDim);
@@ -9175,7 +9175,7 @@ void gradientServoLatentClass(MachineState * ms) {
   cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations + bestC*numOrientations*gradientServoScale], toShowModel, toUnBecome);
   cv::resize(bestGCrop, toShowImage, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
-  
+
   double maxTSImage = -INFINITY;
   double minTSImage = INFINITY;
   double maxTSModel = -INFINITY;
@@ -9188,7 +9188,7 @@ void gradientServoLatentClass(MachineState * ms) {
       minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
     }
   }
-  
+
   // draw the winning score in place
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
@@ -9204,7 +9204,7 @@ void gradientServoLatentClass(MachineState * ms) {
         //cout << thisColor;
         int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
+
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
@@ -9221,7 +9221,7 @@ void gradientServoLatentClass(MachineState * ms) {
   txt << "Score: " << bestOrientationScore;
   putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
 
-  
+
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   //double Ptheta = bestOrientation;
@@ -9230,8 +9230,8 @@ void gradientServoLatentClass(MachineState * ms) {
   // set the target reticle
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
   ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
-  
-  
+
+
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
   cout << "    is_this_last: " << is_this_last << endl;
 
@@ -9247,27 +9247,27 @@ void gradientServoLatentClass(MachineState * ms) {
       kPtheta = ms->config.kPtheta1;
     */
     kPtheta = ms->config.kPtheta1;
-    
+
 
     if (bestOrientation <= numOrientations/2) {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-      
+
     } else {
       ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
     }
 
     //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
   }
-  
+
   // position update
   {
     //double pTermX = ms->config.gradKp*Px;
     //double pTermY = ms->config.gradKp*Py;
-    
+
     // servoing in z
     //double pTermS = Ps * .005;
     //ms->config.currentEEPose.pz += pTermS;
-    
+
     // invert the current eePose orientation to decide which direction to move from POV
     //Eigen::Vector3f localUnitX;
     //{
@@ -9279,7 +9279,7 @@ void gradientServoLatentClass(MachineState * ms) {
       //localUnitX.y() = qout.y();
       //localUnitX.z() = qout.z();
     //}
-      
+
     //Eigen::Vector3f localUnitY;
     //{
       //Eigen::Quaternionf qin(0, 0, 1, 0);
@@ -9290,7 +9290,7 @@ void gradientServoLatentClass(MachineState * ms) {
       //localUnitY.y() = qout.y();
       //localUnitY.z() = qout.z();
     //}
-    
+
     // ATTN 21
     //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
     //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
@@ -9320,10 +9320,10 @@ void gradientServoLatentClass(MachineState * ms) {
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
   ms->config.bestOrientationEEPose = ms->config.currentEEPose;
 
-  
+
   // if we are at the soft max, take first histogram estimate.
   // if we are above, add to it
-  // if we are below it, we behave as if there is no histogram 
+  // if we are below it, we behave as if there is no histogram
   // That is, to disable histogramming, set softmax to hardmax.
   if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
     ms->config.gshHistogram = ms->config.currentEEPose;
@@ -9334,14 +9334,14 @@ void gradientServoLatentClass(MachineState * ms) {
   } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
     ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
     ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
+    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " <<
       ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
     ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
     ms->config.currentEEPose.copyP(ms->config.gshPose);
   } else {
   } // do nothing
 
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " <<
   ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
   bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
@@ -9352,33 +9352,33 @@ void gradientServoLatentClass(MachineState * ms) {
   {
 
     if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
+      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " <<
 	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
       ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
       ms->config.currentEEPose.copyP(ms->config.gshPose);
     } else {
     }
-    
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
 
-    //ms->pushWord("pauseStackExecution"); 
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;
+
+    //ms->pushWord("pauseStackExecution");
     //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    
+    //ms->pushWord("waitUntilAtCurrentPosition");
+
     // ATTN 12
     if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
       cout << "bbLearning: returning from gradient servo." << endl;
       return;
     }
-    
+
     return;
   } else {
-    ms->pushWord("gradientServoA"); 
-    //ms->pushWord("pauseStackExecution"); 
+    ms->pushWord("gradientServoA");
+    //ms->pushWord("pauseStackExecution");
     //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
+    //ms->pushWord("waitUntilAtCurrentPosition");
+    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;
   }
 
   // update after
@@ -9397,9 +9397,9 @@ void continuousServo(MachineState * ms) {
 
 /*
 cout << "AAA: " << weHavePoseData << " " << poseOfImage << " " << ms->config.currentEEPose << endl;
-cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl 
-     << ms->config.lastImageCallbackReceived << endl 
-     << ms->config.lastEndpointCallbackReceived << endl 
+cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
+     << ms->config.lastImageCallbackReceived << endl
+     << ms->config.lastEndpointCallbackReceived << endl
      << ros::Time::now() << endl;
 */
 
@@ -9510,26 +9510,26 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
           }
         }
       }
-      
+
       // rotate the template and L1 normalize it
       Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
       double angle = thisOrient*360.0/numOrientations;
-      
+
       //double scale = 1.0;
       double scale = thisScale;
-      
+
       // Get the rotation matrix with the specifications above
       Mat rot_mat = getRotationMatrix2D(center, angle, scale);
       warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-      
+
       processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      
+
       //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
       //if (l1norm <= EPSILON)
       //l1norm = 1.0;
       //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
       //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-      
+
       double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
       rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
       double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
@@ -9566,12 +9566,12 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
       int gsStride = 2;
     }
   }
-  
+
   //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
   int gSTwidth = 2*gradientServoTranslation + 1;
   double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
 
-  
+
   // XXX should be etaY <= to cover whole array
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
 #pragma omp parallel for
@@ -9579,8 +9579,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
         Mat gCrop = makeGCrop(ms, etaX, etaY);
-        
-        
+
+
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (ms->config.orientationCascade) {
@@ -9601,11 +9601,11 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 	       (thisOrient != 0) ) {
 	    continue;
 	  }
-          
+
           // compute the score
           double thisScore = 0;
           thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-          
+
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
@@ -9618,7 +9618,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
       }
     }
   }
-  
+
   // perform max
   for (int etaS = 0; etaS < gradientServoScale; etaS++) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
@@ -9627,13 +9627,13 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
         int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
         //Mat gCrop(maxDim, maxDim, CV_64F);
-        
+
         // throw it out if it isn't contained in the image
         //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
         //      continue;
         //    if ( (topCornerX < 0) || (topCornerY < 0) )
         //      continue;
-        
+
         for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
           // orientation cascade
           if (ms->config.orientationCascade) {
@@ -9654,11 +9654,11 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 	       (thisOrient != 0) ) {
 	    continue;
 	  }
-          
+
           int tEtaX = etaX+gradientServoTranslation;
           int tEtaY = etaY+gradientServoTranslation;
           double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-          
+
           if (thisScore > bestOrientationScore) {
             bestOrientation = thisOrient;
             bestOrientationScore = thisScore;
@@ -9667,26 +9667,26 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
             bestS = etaS;
           }
           //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-        } 
+        }
       }
     }
   }
 
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
+  Mat bestGCrop = makeGCrop(ms, bestX, bestY);
 
 
   // set the target reticle
   ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
   ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
-  
+
   int oneToDraw = bestOrientation;
   Px = -bestX;
   Py = -bestY;
-  
+
   // don't servo in Z
   //Ps = bestS - ((gradientServoScale-1)/2);
   Ps = 0;
-  
+
   Mat toShowModel;
   Mat toShowImage;
   Size toUnBecome(maxDim, maxDim);
@@ -9695,7 +9695,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
   cv::resize(bestGCrop, toShowImage, toUnBecome);
   //cout << rotatedAerialGrads[oneToDraw];
-  
+
   double maxTSImage = -INFINITY;
   double minTSImage = INFINITY;
   double maxTSModel = -INFINITY;
@@ -9708,7 +9708,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
       minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
     }
   }
-  
+
   // draw the winning score in place
   for (int x = 0; x < maxDim; x++) {
     for (int y = 0; y < maxDim; y++) {
@@ -9724,7 +9724,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
         //cout << thisColor;
         int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
         int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
+
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
         if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
@@ -9735,11 +9735,11 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
       }
     }
   }
-  
+
   oneToDraw = oneToDraw % numOrientations;
   double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
   ms->config.lastPtheta = Ptheta;
-  
+
   double kPtheta = 0.0;
   /*
   if (Ptheta < ms->config.kPThresh) {
@@ -9749,14 +9749,14 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   }
   */
   kPtheta = ms->config.kPtheta1;
-  
+
   if (bestOrientation <= numOrientations/2) {
     ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-    
+
   } else {
     ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
   }
-  
+
   {
     double newx = 0;
     double newy = 0;
@@ -9771,7 +9771,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
   ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
+  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " <<
   //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
   //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 }
@@ -9822,7 +9822,7 @@ void synchronicServo(MachineState * ms) {
 
   // ATTN 12
   // if we time out, reset the bblearning program
-  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (ms->config.bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (ms->config.bTops.size() <= 0)) &&
 	(ARE_GENERIC_HEIGHT_LEARNING(ms)) ) {
     cout << "bbLearning: synchronic servo early outting: ";
     if (ms->config.bTops.size() <= 0) {
@@ -9836,7 +9836,7 @@ void synchronicServo(MachineState * ms) {
     return;
   }
 
-  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (ms->config.bTops.size() <= 0)) && 
+  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (ms->config.bTops.size() <= 0)) &&
 	(ms->config.currentBoundingBoxMode == MAPPING) ) {
     cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
     return;
@@ -9854,22 +9854,22 @@ void synchronicServo(MachineState * ms) {
   }
 
   // ATTN 19
-  // if we time out, reset the pick learning 
-  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout)) && 
+  // if we time out, reset the pick learning
+  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout)) &&
 	ARE_GENERIC_PICK_LEARNING(ms) ) {
     // record a failure
     cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
-    ms->config.thisGraspPicked = FAILURE; 
-    ms->pushWord("shiftIntoGraspGear1"); 
-    ms->pushCopies("beep", 15); 
-    ms->pushWord("countGrasp"); 
-    return; 
+    ms->config.thisGraspPicked = FAILURE;
+    ms->pushWord("shiftIntoGraspGear1");
+    ms->pushCopies("beep", 15);
+    ms->pushWord("countGrasp");
+    return;
   }
 
   if (ms->config.bTops.size() <= 0) {
     cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
-    ms->pushWord("visionCycle"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
+    ms->pushWord("visionCycle");
+    ms->pushWord("waitUntilAtCurrentPosition");
     return;
   }
 
@@ -9896,7 +9896,7 @@ void synchronicServo(MachineState * ms) {
       double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
       pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
       mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
-      
+
       ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
       ros::Time thisNow = ros::Time::now();
 
@@ -9910,27 +9910,27 @@ void synchronicServo(MachineState * ms) {
 	// do nothing
       }
 
-      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
-                           !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
+      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) ||
+                           !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) );
 
       double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
       cout << "   Servo CUB distance for box " << c << " : " << thisDistance << ", isCooldownComplete isOutOfReach: " <<
 	      isCooldownComplete << " " << isOutOfReach << endl;
-      cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" << 
+      cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" <<
 	      thisNow.sec - thisLastMappedTime.sec << " " << ms->config.mapBlueBoxCooldown << " " <<  endl;
 
       if (isOutOfReach) {
 	mapBlueBox(ms, ms->config.bTops[c], ms->config.bBots[c], 0, ros::Time::now()+ros::Duration(ms->config.mapBlueBoxCooldown));
       }
 
-      if ( isCooldownComplete  && 
+      if ( isCooldownComplete  &&
 	   !isOutOfReach ) {
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
 	  closestUnmappedBBToReticle = c;
 	  foundAnUnmappedTarget = 1;
 	}
-      } 
+      }
     }
 
     if (foundAnUnmappedTarget) {
@@ -9940,7 +9940,7 @@ void synchronicServo(MachineState * ms) {
       ms->config.pilotTarget.pz = 0;
       ms->config.pilotClosestTarget = ms->config.pilotTarget;
     } else {
-      // this prevents gradient servo 
+      // this prevents gradient servo
       ms->config.pilotClosestBlueBoxNumber = -1;
       ms->config.bTops.resize(0);
       ms->config.bBots.resize(0);
@@ -9975,22 +9975,22 @@ void synchronicServo(MachineState * ms) {
 
       cout << "got within thresh. ";
       if ((ms->config.classAerialGradients[ms->config.targetClass].rows > 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols > 1)) {
-        ms->pushWord("gradientServo"); 
+        ms->pushWord("gradientServo");
         cout << "Queuing gradient servo." << endl;
-        //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-	//ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
-        //ms->pushCopies("resetTemporalMap", 1); 
-        //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
-        //ms->pushCopies("density", 1); 
-        //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
-        ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-        
+        //ms->pushCopies("density", ms->config.densityIterationsForGradientServo);
+	//ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo);
+        //ms->pushCopies("resetTemporalMap", 1);
+        //ms->pushWord("resetAerialGradientTemporalFrameAverage");
+        //ms->pushCopies("density", 1);
+        //ms->pushCopies("waitUntilAtCurrentPosition", 5);
+        ms->pushCopies("waitUntilAtCurrentPosition", 1);
+
       } else {
         CONSOLE_ERROR(ms, "No gradient map for class " << ms->config.targetClass << endl);
         ms->clearStack();
       }
 
-      return;	
+      return;
     } else {
 
       //double thisKp = ms->config.synKp;
@@ -10039,7 +10039,7 @@ void synchronicServo(MachineState * ms) {
         cout << "Returning because position is out of map bounds." << endl;
         return;
       } else {
-        ms->pushWord("synchronicServoRepeat"); 
+        ms->pushWord("synchronicServoRepeat");
 	// ATTN 21
         //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
         //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
@@ -10075,7 +10075,7 @@ void darkServo(MachineState * ms) {
   double pTermY = thisKp*Py;
 
   // invert the current eePose orientation to decide which direction to move from POV
-  //  of course this needs to be from the pose that corresponds to the frame this was taken from 
+  //  of course this needs to be from the pose that corresponds to the frame this was taken from
   Eigen::Vector3f localUnitX;
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
@@ -10147,7 +10147,7 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
   double pTermY = thisKp*Py;
 
   // invert the current eePose orientation to decide which direction to move from POV
-  //  of course this needs to be from the pose that corresponds to the frame this was taken from 
+  //  of course this needs to be from the pose that corresponds to the frame this was taken from
   Eigen::Vector3f localUnitX;
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
@@ -10306,13 +10306,13 @@ void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, doubl
     *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
     *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
   } else if (ms->config.currentCameraCalibrationMode == CAMCAL_HYPERBOLIC) {
-    
+
     double ooDZ = dZ;
     if (dZ == 0) {
       cout << "oops, magnification interpolate failed." << endl;
     } else {
       ooDZ = 1.0/dZ;
-    } 
+    }
     *(m_y) = ms->config.m_YQ[0] + (ooDZ * ms->config.m_YQ[1]) + (ooDZ * ooDZ * ms->config.m_YQ[2]);
     *(m_x) = ms->config.m_XQ[0] + (ooDZ * ms->config.m_XQ[1]) + (ooDZ * ooDZ * ms->config.m_XQ[2]);
   } else {
@@ -10328,7 +10328,7 @@ void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, dou
   eePose transformedPose = givenEEPose.getPoseRelativeTo(referenceFrame);
 
   pixelToGlobal(ms, pX, pY, gZ, gX, gY, transformedPose);
-  
+
 }
 
 void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache) {
@@ -10399,13 +10399,13 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->reticlePixelYOffset = cache->reticlePixelY - ms->config.offY - cache->reticlePixelX;
   cache->reticlePixelXOffset = cache->reticlePixelX - ms->config.offX - cache->reticlePixelY;
 
-  // account for rotation of the end effector 
+  // account for rotation of the end effector
   Quaternionf eeqform(givenEEPose.qw, givenEEPose.qx, givenEEPose.qy, givenEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-	
+
   Quaternionf result = rel * ex * rel.conjugate();
   double aY = result.y();
   double aX = result.x();
@@ -10448,7 +10448,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   cache->by = (cache->b42y+cache->b31y)/2.0;
 
-  
+
   cache->x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1) )/(cache->gZ);
   cache->y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1) )/(cache->gZ);
   cache->gXFactor = (cache->dx) / (cache->x_thisZ-cache->cx) ;
@@ -10584,7 +10584,7 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     reticlePixelX = x_thisZ;
 
 /*
-    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
+    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
     cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
     cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
@@ -10621,20 +10621,20 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     reticlePixelY = y_thisZ;
 
 /*
-    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
+    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl
 	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
 */
   }
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
-  // account for rotation of the end effector 
+  // account for rotation of the end effector
   Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-	
+
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
   double aY = result.y();
@@ -10747,13 +10747,13 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
-  // account for rotation of the end effector 
+  // account for rotation of the end effector
   Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-	
+
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
   double aY = result.y();
@@ -10867,13 +10867,13 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
-  // account for rotation of the end effector 
+  // account for rotation of the end effector
   Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
   Quaternionf zee(0,0,0,1);
-	
+
   Quaternionf result = rel * ex * rel.conjugate();
   Quaternionf thumb = rel * zee * rel.conjugate();
   double aY = result.y();
@@ -10907,8 +10907,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor) {
   cv::Scalar THEcOLOR(255-theColor[0], 255-theColor[1], 255-theColor[2]);
   int lineLength = 5;
-  int pXo = 0, pYo = 0;  
-  int pX = 0, pY = 0;  
+  int pXo = 0, pYo = 0;
+  int pX = 0, pY = 0;
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
   globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
@@ -10928,10 +10928,10 @@ void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor) 
     }
   }
 
-  // draw the test pattern for the inverse transformation 
+  // draw the test pattern for the inverse transformation
   if (1) {
     double gX = 0, gY = 0;
-    int pXb = 0, pYb = 0;  
+    int pXb = 0, pYb = 0;
     pixelToGlobal(ms, pXo, pYo, zToUse, &gX, &gY);
     globalToPixel(ms, &pXb, &pYb, zToUse, gX, gY);
     pX = pXb - lineLength;
@@ -10963,7 +10963,7 @@ double vectorArcTan(MachineState * ms, double y, double x) {
       maxVaDot = product;
       maxVaSlot = vaSlot;
     }
-  } 
+  }
   // return value in interval [-pi, pi]
 
   double angleZeroTwopi = (maxVaSlot * ms->config.vaDelta);
@@ -10981,9 +10981,9 @@ void initVectorArcTan(MachineState * ms) {
   }
   /* smoke test
   for (int vaSlot = 0; vaSlot < ms->config.vaNumAngles; vaSlot++) {
-    cout << "atan2 vectorArcTan: " << 
-      vectorArcTan(ms->p->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << " " << 
-      atan2(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << endl; 
+    cout << "atan2 vectorArcTan: " <<
+      vectorArcTan(ms->p->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << " " <<
+      atan2(ms->config.vaY[vaSlot], ms->config.vaX[vaSlot]) << endl;
   }
   */
 }
@@ -11137,7 +11137,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
     if (1) {
       for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
 	Sprite sprite = ms->config.instanceSprites[s];
-	
+
 	int topX=0, topY=0, botX=0, botY=0;
         globalToMapBackground(ms, sprite.bot.px, sprite.bot.py, zToUse, &topX, &topY);
         globalToMapBackground(ms, sprite.top.px, sprite.top.py, zToUse, &botX, &botY);
@@ -11175,7 +11175,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
       //cout << zToUse << " z: " << endl;
       //cout << topLx << " " << topLy << " " << botLx << " " << botLy << endl;
 
-      // account for rotation of the end effector 
+      // account for rotation of the end effector
       double mapGpFractionWidth = (ms->config.currentEEPose.px - ms->config.mapBackgroundXMin) / msfWidth;
       double mapGpFractionHeight = (ms->config.currentEEPose.py - ms->config.mapBackgroundYMin) / msfHeight;
       int mapGpPx = floor(mapGpFractionWidth * ms->config.mbiWidth);
@@ -11188,7 +11188,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
       Quaternionf rel = eeqform * crane2Orient.inverse();
       Quaternionf ex(0,1,0,0);
       Quaternionf zee(0,0,0,1);
-	    
+
       Quaternionf result = rel * ex * rel.conjugate();
       Quaternionf thumb = rel * zee * rel.conjugate();
       double aY = result.y();
@@ -11317,7 +11317,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
 //	int localMapStartPy = min(mapStartPy, mapEndPy);
 //	int localMapEndPx = max(mapStartPx, mapEndPx);
 //	int localMapEndPy = max(mapStartPy, mapEndPy);
-//	
+//
 //	Mat backgroundMapCrop = ms->config.mapBackgroundImage(cv::Rect(localMapStartPx, localMapStartPy, localMapEndPx-localMapStartPx, localMapEndPy-localMapStartPy));
 //	Mat screenCrop = dummyImage(cv::Rect(topPx, topPy, botPx-topPx, botPy-topPy));
 //	resize(backgroundMapCrop, screenCrop, screenCrop.size(), 0, 0, CV_INTER_LINEAR);
@@ -11421,14 +11421,14 @@ void findOptimum(MachineState * ms, int * xout, int * yout, int sign) {
   int xmax = imW-findPadX;
   int ymax = imH-findPadY;
 
-  xmax = min(max(0, xmax), imW); 
-  xmin = min(max(0, xmin), imW); 
-  ymax = min(max(0, ymax), imH); 
-  ymin = min(max(0, ymin), imH); 
+  xmax = min(max(0, xmax), imW);
+  xmin = min(max(0, xmin), imW);
+  ymax = min(max(0, ymax), imH);
+  ymin = min(max(0, ymin), imH);
 
   for (int x = xmin; x < xmax; x++) {
     for (int y = ymin; y < ymax; y++) {
-      double thisVal = 
+      double thisVal =
       ( (ms->config.accumulatedImage.at<Vec3d>(y,x)[0]*
          ms->config.accumulatedImage.at<Vec3d>(y,x)[0])+
         (ms->config.accumulatedImage.at<Vec3d>(y,x)[1]*
@@ -11454,8 +11454,8 @@ void findOptimum(MachineState * ms, int * xout, int * yout, int sign) {
     }
   }
 
-  maxX = min(max(xmin, maxX), xmax); 
-  maxY = min(max(ymin, maxY), ymax); 
+  maxX = min(max(xmin, maxX), xmax);
+  maxY = min(max(ymin, maxY), ymax);
 
   *xout = maxX;
   *yout = maxY;
@@ -11492,9 +11492,9 @@ void fillLocalUnitBasis(eePose localFrame, Vector3d * localUnitX, Vector3d * loc
 }
 
 ////////////////////////////////////////////////
-// end pilot definitions 
+// end pilot definitions
 //
-// start node definitions 
+// start node definitions
 ////////////////////////////////////////////////
 
 int doubleToByte(double in) {
@@ -11514,7 +11514,7 @@ void gridKeypoints(MachineState * ms, int gImW, int gImH, cv::Point top, cv::Poi
   cv::Point sBot(strideX*(((bot.x-top.x-featurePadX)/strideX)-2), strideY*(((bot.y-top.y-featurePadY)/strideY)-2));
 
   int responseIndex = 1;
-  
+
   int mX = ms->config.gBoxW / 2;
   int mY = ms->config.gBoxH / 2;
 
@@ -11544,7 +11544,7 @@ void gridKeypoints(MachineState * ms, int gImW, int gImH, cv::Point top, cv::Poi
 	  keypoints.push_back(thisKeypoint);
 	}
       }
-      
+
       //if ((ms->config.pBoxIndicator[(top.y+y)*gImW+(top.x+x)] >= kpGreenThresh))
 	//keypoints.push_back(thisKeypoint);
     }
@@ -11554,11 +11554,11 @@ void gridKeypoints(MachineState * ms, int gImW, int gImH, cv::Point top, cv::Poi
 
 
 bool isFiniteNumber(double x) {
-    return (x <= DBL_MAX && x >= -DBL_MAX); 
-} 
+    return (x <= DBL_MAX && x >= -DBL_MAX);
+}
 
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2) {
-  
+
   // paramaters for the color histogram feature
   // ATTN 25
   //const double colorHistNumBins = 8;
@@ -11576,7 +11576,7 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
   int imH = sz.height;
 
   Mat colorHist(1, colorHistNumBins*colorHistNumBins, descriptors.type());
-  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++)
     colorHist.at<float>(i) = 0;
 
   double numPix = 0;
@@ -11602,11 +11602,11 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
     }
   }
   // normalize the histogram
-  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) 
+  for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++)
     colorHist.at<float>(i) = colorHist.at<float>(i) / numPix;
 
   descriptors2 = Mat(1, descriptors.size().width + colorHistNumBins*colorHistNumBins, descriptors.type());
-  for (int i = 0; i < descriptors.size().width; i++) 
+  for (int i = 0; i < descriptors.size().width; i++)
     descriptors2.at<float>(i) = descriptors.at<float>(i);
   for (int i = 0; i < colorHistNumBins*colorHistNumBins; i++) {
     colorHist.at<float>(i) = min(colorHist.at<float>(i), float(colorHistThresh));
@@ -11715,7 +11715,7 @@ void kNNGetFeatures(MachineState * ms, std::string classDir, const char *classNa
         Mat yCrCb_image;
 
 	//if ((ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
-	if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
+	if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
 	{
 	  processImage(image, gray_image, yCrCb_image, sigma);
 	  for (int i = 0; i < param_kNNOverSampleFactor; i++) {
@@ -11984,7 +11984,7 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
 
 	FileStorage fsfI;
 	fsfI.open(poseLabelsPath, FileStorage::READ);
-	fsfI[thisCropLabel] >> tLQ; 
+	fsfI[thisCropLabel] >> tLQ;
 	fsfI.release();
 
         vector<KeyPoint> keypoints;
@@ -11999,7 +11999,7 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
 	int cropW = sz.width;
 	int cropH = sz.height;
 	cv::Point bot(cropW, cropH);
-	
+
         Mat gray_image;
         Mat yCrCb_image;
 	processImage(image, gray_image, yCrCb_image, sigma);
@@ -12009,7 +12009,7 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
 	  gridKeypoints(ms, 0, 0, cv::Point(0,0), bot, ms->config.gBoxStrideX, ms->config.gBoxStrideY, keypoints, keypointPeriod);
 	  bowExtractor->compute(gray_image, keypoints, descriptors);
 
-	  cout << className << ":  "  << epdf->d_name << "  "  << fileName << " " << descriptors.size() << 
+	  cout << className << ":  "  << epdf->d_name << "  "  << fileName << " " << descriptors.size() <<
 	    " type: " << descriptors.type() << " label: " << label << endl;
 
 	  if (!descriptors.empty() && !keypoints.empty()) {
@@ -12213,7 +12213,7 @@ void goCalculateDensity(MachineState * ms) {
   processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, ms->config.sobel_sigma);
   ms->config.objectViewerYCbCrBlur = sobelYCrCbBlur;
   ms->config.objectViewerGrayBlur = sobelYCrCbBlur;
-  
+
   Mat totalGraySobel;
   {
     Mat grad_x, grad_y;
@@ -12395,7 +12395,7 @@ void goCalculateDensity(MachineState * ms) {
       maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
     }
   }
-  
+
   // ATTN 11
   // experimental
   int combineYandGray = 1;
@@ -12562,7 +12562,7 @@ void goCalculateDensity(MachineState * ms) {
   }
   for (int x = 1; x < imW; x++) {
     for (int y = 1; y < imH; y++) {
-      ms->config.integralDensity[y*imW+x] = 
+      ms->config.integralDensity[y*imW+x] =
 	ms->config.integralDensity[(y-1)*imW+x]+ms->config.integralDensity[y*imW+(x-1)]-ms->config.integralDensity[(y-1)*imW+(x-1)]+ms->config.density[y*imW + x];
     }
   }
@@ -12579,13 +12579,13 @@ void goCalculateDensity(MachineState * ms) {
   { // temporal averaging of aerial gradient
     if ( (ms->config.aerialGradientTemporalFrameAverage.rows < ms->config.aerialGradientReticleWidth) ||
 	 (ms->config.aerialGradientTemporalFrameAverage.cols < ms->config.aerialGradientReticleWidth) ) {
-      ms->config.aerialGradientTemporalFrameAverage = Mat(imH,imW,ms->config.frameGraySobel.type()); 
+      ms->config.aerialGradientTemporalFrameAverage = Mat(imH,imW,ms->config.frameGraySobel.type());
     }
 
     for (int x = 0; x < imW; x++) {
       for (int y = 0; y < imH; y++) {
-	ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) = 
-	  ms->config.aerialGradientDecay*ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) + 
+	ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) =
+	  ms->config.aerialGradientDecay*ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) +
 	  (1.0 - ms->config.aerialGradientDecay)*ms->config.frameGraySobel.at<double>(y, x);
       }
     }
@@ -12618,7 +12618,7 @@ void goCalculateDensity(MachineState * ms) {
 
       minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
       maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
-      
+
       minAerTemp = min(minAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
       maxAerTemp = max(maxAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
     }
@@ -12672,7 +12672,7 @@ void goFindBlueBoxes(MachineState * ms) {
   vector<int> parentX;
   vector<int> parentY;
   vector<int> parentD;
-  
+
   ms->config.cTops.resize(0);
   ms->config.cBots.resize(0);
 
@@ -12737,7 +12737,7 @@ void goFindBlueBoxes(MachineState * ms) {
     //{for (int y = 0; y < imH-ms->config.gBoxH; y+=ms->config.gBoxStrideY)}
   for (int x = xS; x <= xF; x+=ms->config.gBoxStrideX) {
     for (int y = yS; y <= yF; y+=ms->config.gBoxStrideY) {
-  
+
       if (ms->config.gBoxIndicator[y*imW+x] == 2 && gBoxGrayNodes[y*imW+x] == 0) {
 
       	gBoxGrayNodes[y*imW+x] = 1;
@@ -12764,17 +12764,17 @@ void goFindBlueBoxes(MachineState * ms) {
       	  int nextX = parentX[index] + ms->config.gBoxStrideX*directionX[direction];
       	  int nextY = parentY[index] + ms->config.gBoxStrideY*directionY[direction];
 
-      	  // if we have no more directions, then pop this parent 
+      	  // if we have no more directions, then pop this parent
       	  if (direction > 3) {
       	    parentX.pop_back();
       	    parentY.pop_back();
       	    parentD.pop_back();
-      	  } 
+      	  }
       	  // if the next direction is valid, push it on to the stack and increment direction counter
-      	  //else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH && 
-	    //ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
-      	  else if(nextX >= xS && nextX <= xF && nextY >= yS && nextY <= yF && 
-	    ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0) 
+      	  //else if(nextX > -1 && nextX < imW && nextY > -1 && nextY < imH &&
+	    //ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0)
+      	  else if(nextX >= xS && nextX <= xF && nextY >= yS && nextY <= yF &&
+	    ms->config.gBoxIndicator[nextY*imW+nextX] >= 1 && gBoxGrayNodes[nextY*imW+nextX] == 0)
 	    {
 
       	    gBoxGrayNodes[nextY*imW+nextX] = 1;
@@ -12792,7 +12792,7 @@ void goFindBlueBoxes(MachineState * ms) {
       	    parentX.push_back(nextX);
       	    parentY.push_back(nextY);
       	    parentD.push_back(0);
-      	  } 
+      	  }
       	}
 
       }
@@ -12817,7 +12817,7 @@ void goFindBlueBoxes(MachineState * ms) {
   int closestBBToReticle = -1;
   double closestBBDistance = VERYBIGNUMBER;
 
-  // this should be -1 if we don't find the target class 
+  // this should be -1 if we don't find the target class
   ms->config.pilotTarget.px = -1;
   ms->config.pilotTarget.py = -1;
   ms->config.pilotClosestTarget.px = -1;
@@ -12839,7 +12839,7 @@ void goFindBlueBoxes(MachineState * ms) {
 	allow = 0;
       //if (ms->config.cTops[c].y > rejectLow || ms->config.cBots[c].y < rejectHigh)
 	//allow = 0;
-      
+
       // XXX for some reason there were spurious blue boxes outside of the gray box, with no green boxes,
       //  so we reject them here for now
 //      if ( (ms->config.cTops[c].x < max(ms->config.grayTop.x-ms->config.gBoxW, 0)) || (ms->config.cBots[c].x > min(ms->config.grayBot.x+ms->config.gBoxW, imW-1)) ||
@@ -12858,11 +12858,11 @@ void goFindBlueBoxes(MachineState * ms) {
 	      int bigWidth = max(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x, thisCen.x-ms->config.cTops[c].x);
 
 	      // this tests overlap
-	      //if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x+thisCen.x-ms->config.cTops[c].x) && 
-		   //fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(ms->config.bCens[cbc].y-ms->config.bTops[cbc].y+thisCen.y-ms->config.cTops[c].y) ) 
+	      //if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(ms->config.bCens[cbc].x-ms->config.bTops[cbc].x+thisCen.x-ms->config.cTops[c].x) &&
+		   //fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(ms->config.bCens[cbc].y-ms->config.bTops[cbc].y+thisCen.y-ms->config.cTops[c].y) )
 	      //this tests containment
-	      if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(bigWidth - smallWidth) && 
-		   fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(bigWidth - smallWidth) ) 
+	      if ( fabs(thisCen.x - ms->config.bCens[cbc].x) < fabs(bigWidth - smallWidth) &&
+		   fabs(thisCen.y - ms->config.bCens[cbc].y) < fabs(bigWidth - smallWidth) )
 	      {
 		allow = 0;
 		ms->config.bTops[cbc].x = min(ms->config.bTops[cbc].x, ms->config.cTops[c].x);
@@ -12912,12 +12912,12 @@ void goFindBlueBoxes(MachineState * ms) {
     p.x = ms->config.bCens[biggestBB].x;
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
-    
+
       //ms->config.ee_target_pub.publish(p);
     ms->config.pilotTarget.px = p.x;
     ms->config.pilotTarget.py = p.y;
     ms->config.pilotTarget.pz = p.z;
-    
+
     ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
   if (closestBBToReticle > -1) {
@@ -12925,7 +12925,7 @@ void goFindBlueBoxes(MachineState * ms) {
     p.x = ms->config.bCens[closestBBToReticle].x;
     p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
-  
+
     //ms->config.ee_target_pub.publish(p);
     ms->config.pilotClosestTarget.px = p.x;
     ms->config.pilotClosestTarget.py = p.y;
@@ -12941,7 +12941,7 @@ void goFindBlueBoxes(MachineState * ms) {
     p.x = ms->config.bCens[biggestBB].x;
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
-  
+
     //ms->config.ee_target_pub.publish(p);
     //ms->config.pilotTarget.px = p.x;
     //ms->config.pilotTarget.py = p.y;
@@ -13028,7 +13028,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     Mat& yCrCb_image = ms->config.bYCrCb[c];
 
     //if ((ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) || (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST))
-    if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST) 
+    if (ms->config.chosen_feature == SIFTBOW_GLOBALCOLOR_HIST)
     {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
 
@@ -13048,7 +13048,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	    ms->config.bWords[c][pIoCbuffer[w][w2]] = w;
 	  }
 	}
-    
+
 	if (ms->config.drawBlueKP) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
@@ -13059,7 +13059,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	      (kpTop.x >= 1) &&
 	      (kpBot.x <= imW-2) &&
 	      (kpTop.y >= 1) &&
-	      (kpBot.y <= imH-2) 
+	      (kpBot.y <= imH-2)
 	      ) {
 	      rectangle(ms->config.objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
 	    }
@@ -13067,9 +13067,9 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	}
 
       }
-      
+
       if (!descriptors.empty() && !keypoints.empty()) {
-      
+
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	label = ms->config.kNN->find_nearest(descriptors2, param_numNeighbors);
 	ms->config.bLabels[c] = label;
@@ -13097,7 +13097,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	    ms->config.bWords[c][pIoCbuffer[w][w2]] = w;
 	  }
 	}
-    
+
 	if (ms->config.drawBlueKP) {
 	  for (int kp = 0; kp < keypoints.size(); kp++) {
 	    int tX = keypoints[kp].pt.x;
@@ -13108,7 +13108,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	      (kpTop.x >= 1) &&
 	      (kpBot.x <= imW-2) &&
 	      (kpTop.y >= 1) &&
-	      (kpBot.y <= imH-2) 
+	      (kpBot.y <= imH-2)
 	      ) {
 	      rectangle(ms->config.objectViewerImage, kpTop, kpBot, cv::Scalar(255,0,0));
 	    }
@@ -13116,9 +13116,9 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	}
 
       }
-      
+
       if (!descriptors.empty() && !keypoints.empty()) {
-      
+
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	//label = kNN->find_nearest(descriptors2,k);
 	label = ms->config.kNN->find_nearest(descriptors, param_numNeighbors);
@@ -13312,7 +13312,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
       ms->config.bLabels[c] = label;
     }
 
-    string labelName; 
+    string labelName;
     string augmentedLabelName;
     double poseIndex = -1;
     int winningO = -1;
@@ -13335,8 +13335,8 @@ void goClassifyBlueBoxes(MachineState * ms) {
     if (label >= 0) {
 
       int thisArea = (ms->config.bBots[c].x - ms->config.bTops[c].x)*(ms->config.bBots[c].y - ms->config.bTops[c].y);
-      if ((thisArea > biggestBBArea) && (label == ms->config.targetClass)) 
-      //if ((thisArea > biggestBBArea) && (shouldIPick(label))) 
+      if ((thisArea > biggestBBArea) && (label == ms->config.targetClass))
+      //if ((thisArea > biggestBBArea) && (shouldIPick(label)))
       {
 	biggestBBArea = thisArea;
 	biggestBB = c;
@@ -13357,12 +13357,12 @@ void goClassifyBlueBoxes(MachineState * ms) {
     p.x = ms->config.bCens[biggestBB].x;
     p.y = ms->config.bCens[biggestBB].y;
     p.z = 0.0;
-    
+
       //ms->config.ee_target_pub.publish(p);
     ms->config.pilotTarget.px = p.x;
     ms->config.pilotTarget.py = p.y;
     ms->config.pilotTarget.pz = p.z;
-    
+
     ms->config.pilotTargetBlueBoxNumber = biggestBB;
   }
   if (closestBBToReticle > -1) {
@@ -13370,7 +13370,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     p.x = ms->config.bCens[closestBBToReticle].x;
     p.y = ms->config.bCens[closestBBToReticle].y;
     p.z = 0.0;
-  
+
     //ms->config.ee_target_pub.publish(p);
     ms->config.pilotClosestTarget.px = p.x;
     ms->config.pilotClosestTarget.py = p.y;
@@ -13438,7 +13438,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
     ms->config.robot_description = content;
     ms->config.robot_serial = "simulatedserial";
     ms->config.currentCameraCalibrationMode = CAMCAL_LINBOUNDED;
-  } 
+  }
 
   if (ms->config.left_or_right_arm == "ardrone") {
     ms->config.robot_serial = "ardrone";
@@ -13508,7 +13508,7 @@ void detectorsInit(MachineState * ms) {
 
   // XXX TODO this function should reinit the structures if this function is to be called multiple times
 
-  // SIFT 
+  // SIFT
   //ms->config.detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
   //cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
   if (ms->config.detector == NULL)
@@ -13525,7 +13525,7 @@ void detectorsInit(MachineState * ms) {
     }
   }
 #endif
-  if ( (ms->config.chosen_feature == GRADIENT) || 
+  if ( (ms->config.chosen_feature == GRADIENT) ||
        (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) ||
        (ms->config.chosen_feature == CBCR_HISTOGRAM) ){
     ms->config.retrain_vocab = 0;
@@ -13553,7 +13553,7 @@ void detectorsInit(MachineState * ms) {
   int numCachedClasses = 0;
 
   if (ms->config.rewrite_labels) {
-    // load cached labels 
+    // load cached labels
     vector<string> classCacheLabels;
     vector<string> classCachePoseModels;
     if (ms->config.cache_prefix.size() > 0) {
@@ -13607,7 +13607,7 @@ void detectorsInit(MachineState * ms) {
   ms->config.grandTotalDescriptors = 0;
   if (ms->config.retrain_vocab) {
     for (unsigned int i = 0; i < ms->config.classLabels.size(); i++) {
-      cout << "Getting BOW features for class " << ms->config.classLabels[i] 
+      cout << "Getting BOW features for class " << ms->config.classLabels[i]
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
       bowGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), ms->config.grayBlur, ms->config.keypointPeriod, &ms->config.grandTotalDescriptors,
                      ms->config.extractor, ms->config.bowTrainer);
@@ -13659,10 +13659,10 @@ void detectorsInit(MachineState * ms) {
   ms->config.classQuaternions.resize(ms->config.numClasses);
 
   if (ms->config.reextract_knn) {
-    //for (int i = 0; i < numNewClasses; i++) 
-    for (int i = numCachedClasses; i < ms->config.numClasses; i++) 
+    //for (int i = 0; i < numNewClasses; i++)
+    for (int i = numCachedClasses; i < ms->config.numClasses; i++)
     {
-      cout << "Getting kNN features for class " << ms->config.classLabels[i] 
+      cout << "Getting kNN features for class " << ms->config.classLabels[i]
 	   << " with pose model " << ms->config.classPoseModels[i] << " index " << i << endl;
       kNNGetFeatures(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i, ms->config.grayBlur, kNNfeatures, kNNlabels, ms->config.sobel_sigma);
       if (ms->config.classPoseModels[i].compare("G") == 0) {
@@ -13672,7 +13672,7 @@ void detectorsInit(MachineState * ms) {
       }
     }
 
-    // load cached kNN features 
+    // load cached kNN features
     // XXX experimental handling of G pose models
     Mat kNNCachefeatures;
     Mat kNNCachelabels;
@@ -13723,7 +13723,7 @@ void detectorsInit(MachineState * ms) {
     }
     fsfO.release();
     cout << "done." << endl;
-  } else { 
+  } else {
     FileStorage fsfI;
     cout<<"Reading features and labels... " << featuresPath << " ..." << endl;
     fsfI.open(featuresPath, FileStorage::READ);
@@ -13807,15 +13807,15 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 	}
       }
 
-      fsfI["rangeMap"] >> ms->config.classRangeMaps[i]; 
+      fsfI["rangeMap"] >> ms->config.classRangeMaps[i];
 
       fsfI.release();
-      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl; 
+      cout << "Loaded rangeMap from " << this_range_path << ms->config.classRangeMaps[i].size() << endl;
 
     } else {
       ms->config.classRangeMaps[i] = Mat(1, 1, CV_64F);
 
-      cout << "Failed to load rangeMap from " << this_range_path << endl; 
+      cout << "Failed to load rangeMap from " << this_range_path << endl;
     }
   }
 
@@ -13842,14 +13842,14 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       fsfI["heightMemoryPicks"] >> ms->config.classHeightMemoryPicks[i];
 
       fsfI.release();
-      cout << "Loaded classGraspMemoryTries1 from " << this_grasp_path << ms->config.classGraspMemoryTries1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks1 from " << this_grasp_path << ms->config.classGraspMemoryPicks1[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries2 from " << this_grasp_path << ms->config.classGraspMemoryTries2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks2 from " << this_grasp_path << ms->config.classGraspMemoryPicks2[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries3 from " << this_grasp_path << ms->config.classGraspMemoryTries3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks3 from " << this_grasp_path << ms->config.classGraspMemoryPicks3[i].size() << endl; 
-      cout << "Loaded classGraspMemoryTries4 from " << this_grasp_path << ms->config.classGraspMemoryTries4[i].size() << endl; 
-      cout << "Loaded classGraspMemoryPicks4 from " << this_grasp_path << ms->config.classGraspMemoryPicks4[i].size() << endl; 
+      cout << "Loaded classGraspMemoryTries1 from " << this_grasp_path << ms->config.classGraspMemoryTries1[i].size() << endl;
+      cout << "Loaded classGraspMemoryPicks1 from " << this_grasp_path << ms->config.classGraspMemoryPicks1[i].size() << endl;
+      cout << "Loaded classGraspMemoryTries2 from " << this_grasp_path << ms->config.classGraspMemoryTries2[i].size() << endl;
+      cout << "Loaded classGraspMemoryPicks2 from " << this_grasp_path << ms->config.classGraspMemoryPicks2[i].size() << endl;
+      cout << "Loaded classGraspMemoryTries3 from " << this_grasp_path << ms->config.classGraspMemoryTries3[i].size() << endl;
+      cout << "Loaded classGraspMemoryPicks3 from " << this_grasp_path << ms->config.classGraspMemoryPicks3[i].size() << endl;
+      cout << "Loaded classGraspMemoryTries4 from " << this_grasp_path << ms->config.classGraspMemoryTries4[i].size() << endl;
+      cout << "Loaded classGraspMemoryPicks4 from " << this_grasp_path << ms->config.classGraspMemoryPicks4[i].size() << endl;
 
       cout << "Loaded classHeightMemoryTries from " << this_grasp_path << ms->config.classHeightMemoryTries[i].size() << endl;
       cout << "Loaded classHeightMemoryPicks from " << this_grasp_path << ms->config.classHeightMemoryPicks[i].size() << endl;
@@ -13866,7 +13866,7 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       ms->config.classHeightMemoryTries[i] = Mat(1, 1, CV_64F);
       ms->config.classHeightMemoryPicks[i] = Mat(1, 1, CV_64F);
 
-      cout << "Failed to load grasp memories from " << this_grasp_path << endl; 
+      cout << "Failed to load grasp memories from " << this_grasp_path << endl;
     }
   }
 
@@ -13878,12 +13878,12 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight0Gradients"] >> ms->config.classHeight0AerialGradients[i]; 
+	fsfI["aerialHeight0Gradients"] >> ms->config.classHeight0AerialGradients[i];
 	fsfI.release();
 	cout << "Loaded aerial height 0 gradient from " << this_ag_path << ms->config.classHeight0AerialGradients[i].size() << endl;
       } else {
 	ms->config.classHeight0AerialGradients[i] = Mat(1, 1, CV_64F);
-	cout << "Failed to load aerialHeight0Gradients from " << this_ag_path << endl; 
+	cout << "Failed to load aerialHeight0Gradients from " << this_ag_path << endl;
       }
     }
     {
@@ -13893,12 +13893,12 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight1Gradients"] >> ms->config.classHeight1AerialGradients[i]; 
+	fsfI["aerialHeight1Gradients"] >> ms->config.classHeight1AerialGradients[i];
 	fsfI.release();
 	cout << "Loaded aerial height 1 gradient from " << this_ag_path << ms->config.classHeight1AerialGradients[i].size() << endl;
       } else {
 	ms->config.classHeight1AerialGradients[i] = Mat(1, 1, CV_64F);
-	cout << "Failed to load aerialHeight1Gradients from " << this_ag_path << endl; 
+	cout << "Failed to load aerialHeight1Gradients from " << this_ag_path << endl;
       }
     }
     {
@@ -13908,12 +13908,12 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight2Gradients"] >> ms->config.classHeight2AerialGradients[i]; 
+	fsfI["aerialHeight2Gradients"] >> ms->config.classHeight2AerialGradients[i];
 	fsfI.release();
 	cout << "Loaded aerial height 2 gradient from " << this_ag_path << ms->config.classHeight2AerialGradients[i].size() << endl;
       } else {
 	ms->config.classHeight2AerialGradients[i] = Mat(1, 1, CV_64F);
-	cout << "Failed to load aerialHeight2Gradients from " << this_ag_path << endl; 
+	cout << "Failed to load aerialHeight2Gradients from " << this_ag_path << endl;
       }
     }
     {
@@ -13923,12 +13923,12 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
       FileStorage fsfI;
       fsfI.open(this_ag_path, FileStorage::READ);
       if (fsfI.isOpened()) {
-	fsfI["aerialHeight3Gradients"] >> ms->config.classHeight3AerialGradients[i]; 
+	fsfI["aerialHeight3Gradients"] >> ms->config.classHeight3AerialGradients[i];
 	fsfI.release();
 	cout << "Loaded aerial height 3 gradient from " << this_ag_path << ms->config.classHeight3AerialGradients[i].size() << endl;
       } else {
 	ms->config.classHeight3AerialGradients[i] = Mat(1, 1, CV_64F);
-	cout << "Failed to load aerialHeight3Gradients from " << this_ag_path << endl; 
+	cout << "Failed to load aerialHeight3Gradients from " << this_ag_path << endl;
       }
     }
     cout << "Initializing classAerialGradients with classAerialHeight0Gradients." << endl;
@@ -14097,7 +14097,7 @@ void processSaliency(Mat in, Mat out) {
 //
 //  double saliencyPreSigma = 4.0;//0.5;//2.0;
 //  GaussianBlur(out, out, cv::Size(0,0), saliencyPreSigma);
-//  
+//
 //  double tMax = -INFINITY;
 //  double tMin =  INFINITY;
 //  for (int x = 0; x < in.cols; x++) {
@@ -14123,7 +14123,7 @@ void processSaliency(Mat in, Mat out) {
 
   double saliencyPreSigma = 4.0;//0.5;//2.0;
   GaussianBlur(out, out, cv::Size(0,0), saliencyPreSigma);
-  
+
   double tMax = -INFINITY;
   double tMin =  INFINITY;
   for (int x = 0; x < in.cols; x++) {
@@ -14148,12 +14148,12 @@ void processSaliency(Mat in, Mat out) {
 }
 
 
-void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j) 
+void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j)
 {
   *i = round((x - xmin) / mapStep);
   *j = round((y - ymin) / mapStep);
 }
-void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y) 
+void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y)
 {
   *x = xmin + i * mapStep;
   *y = ymin + j * mapStep;
@@ -14176,7 +14176,7 @@ bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, do
 
 
 gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) {
-  
+
   double min_x, min_y;
   mapijToxy(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, map_i, map_j, &min_x, &min_y);
   double max_x = min_x + ms->config.mapStep;
@@ -14275,7 +14275,7 @@ bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2) {
   gsl_matrix * p2 = boxMemoryToPolygon(b2);
 
   bool result = math2d_overlaps(p1, p2);
-  
+
   gsl_matrix_free(p1);
   gsl_matrix_free(p2);
 
@@ -14289,13 +14289,13 @@ bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2) {
   gsl_vector * p2_center = math2d_point(b2.centroid.px, b2.centroid.py);
 
   bool result;
-  if (math2d_is_interior_point(p2_center, p1) || 
+  if (math2d_is_interior_point(p2_center, p1) ||
       math2d_is_interior_point(p1_center, p2)) {
     result = true;
   } else {
     result = false;
   }
-    
+
   gsl_matrix_free(p1);
   gsl_matrix_free(p2);
   gsl_vector_free(p1_center);
@@ -14343,7 +14343,7 @@ int getBoxMemoryOfLabel(MachineState * ms, string label, int * idxOfLabel, BoxMe
   }
 }
 
-int placementPoseLabel1BetweenLabel2AndLabel3(MachineState * ms, string label1, 
+int placementPoseLabel1BetweenLabel2AndLabel3(MachineState * ms, string label1,
   // XXX guard affPXPs
   // XXX guard affPXPs
   // XXX guard affPXPs
@@ -14365,14 +14365,14 @@ int placementPoseLabel1BetweenLabel2AndLabel3(MachineState * ms, string label1,
       if (success) {
 
 	eePose label1PickOffset = label1Mem.aimedPose.minusP(label1Mem.affPlaceUnderPoses[0]);
-	
+
 	eePose betweenL2AndL3PlaceOver = label2Mem.affPlaceOverPoses[0].plusP(label3Mem.affPlaceOverPoses[0]);
 	betweenL2AndL3PlaceOver = betweenL2AndL3PlaceOver.multP(0.5);
 
 	label1Pose = betweenL2AndL3PlaceOver.plusP(label1PickOffset);
 	double thisPickZ = 0.0;
 	double label2TipZAtPick = 0;
-	if ( (ms->config.classGraspZsSet.size() > label2Idx) && 
+	if ( (ms->config.classGraspZsSet.size() > label2Idx) &&
 	     (ms->config.classGraspZs.size() > label2Idx) &&
 	     (ms->config.classGraspZsSet[label2Idx] == 1) ) {
 	  label2TipZAtPick = -ms->config.classGraspZs[label2Idx] - ms->config.pickFlushFactor;
@@ -14465,7 +14465,7 @@ int placementPoseLabel1AboveLabel2By(MachineState * ms, string label1, string la
       label2TipZAtPick = (label2Mem.affPlaceOverPoses[0].pz - (-ms->config.currentTableZ)) - ms->config.pickFlushFactor;
 
       double totalZOffset = zAbove + label2TipZAtPick;
-      if ( (ms->config.classGraspZsSet.size() > label1Idx) && 
+      if ( (ms->config.classGraspZsSet.size() > label1Idx) &&
 	   (ms->config.classGraspZs.size() > label1Idx) &&
 	   (ms->config.classGraspZsSet[label1Idx] == 1) ) {
 //cout << "YYY cGZ: " << -ms->config.classGraspZs[label1Idx] << endl;
@@ -14479,7 +14479,7 @@ int placementPoseLabel1AboveLabel2By(MachineState * ms, string label1, string la
 
       label2Pose.pz = thisPickZ;
       label2Pose.copyQ(ms->config.beeHome);
-cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl; 
+cout << "ZZZ currentTableZ: " << ms->config.currentTableZ << " thisPickZ: " << thisPickZ << endl;
       (*out) = label2Pose;
       return 1;
     } else {
@@ -14505,10 +14505,10 @@ int placementPoseHeldAboveLabel2By(MachineState * ms, string label2, double zAbo
 
   int tbb = ms->config.targetBlueBox;
   if (tbb < ms->config.blueBoxMemories.size()) {
-    labelHeldMem = ms->config.blueBoxMemories[tbb];  
-    success = 1;  
+    labelHeldMem = ms->config.blueBoxMemories[tbb];
+    success = 1;
   } else {
-    success = 0;  
+    success = 0;
   }
 
   eePose heldPickedPose = labelHeldMem.pickedPose;
@@ -14553,7 +14553,7 @@ void recordBlueBoxInHistogram(MachineState * ms, int idx) {
 }
 
 void computeClassificationDistributionFromHistogram(MachineState * ms) {
-  int thisNC = ms->config.chHistogram.cols; 
+  int thisNC = ms->config.chHistogram.cols;
   assert( thisNC == ms->config.chDistribution.cols );
   double total = 0.0;
   for (int i = 0; i < thisNC; i++) {
@@ -14586,10 +14586,10 @@ bool positionIsMapped(MachineState * ms, double x, double y) {
 bool isCellInPursuitZone(MachineState * ms, int i, int j) {
   return ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ||
 	   (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) );
-} 
+}
 bool isCellInPatrolZone(MachineState * ms, int i, int j) {
   return (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2);
-} 
+}
 
 bool isCellInteresting(MachineState * ms, int i, int j) {
   if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ||
@@ -14598,7 +14598,7 @@ bool isCellInteresting(MachineState * ms, int i, int j) {
   } else {
     return false;
   }
-} 
+}
 void markCellAsInteresting(MachineState * ms, int i, int j) {
   if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ||
        (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
@@ -14607,7 +14607,7 @@ void markCellAsInteresting(MachineState * ms, int i, int j) {
   } else {
     return;
   }
-} 
+}
 void markCellAsNotInteresting(MachineState * ms, int i, int j) {
   if ( (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 1) ||
        (ms->config.clearanceMap[i + ms->config.mapWidth * j] == 2) ) {
@@ -14616,17 +14616,17 @@ void markCellAsNotInteresting(MachineState * ms, int i, int j) {
   } else {
     return;
   }
-} 
+}
 
 bool isCellIkColliding(MachineState * ms, int i, int j) {
   return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_LIKELY_IN_COLLISION);
-} 
+}
 bool isCellIkPossible(MachineState * ms, int i, int j) {
   return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_GOOD);
-} 
+}
 bool isCellIkImpossible(MachineState * ms, int i, int j) {
   return (ms->config.ikMap[i + ms->config.mapWidth * j] == IK_FAILED);
-} 
+}
 
 
 int blueBoxForPixel(MachineState * ms, int px, int py)
@@ -14644,7 +14644,7 @@ int skirtedBlueBoxForPixel(MachineState * ms, int px, int py, int skirtPixels) {
   vector<cv::Point> newBTops;
   vector<cv::Point> newBBots;
   newBTops.resize(ms->config.bBots.size());
-  newBBots.resize(ms->config.bTops.size()); 
+  newBBots.resize(ms->config.bTops.size());
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     newBTops[c].x = ms->config.bTops[c].x-skirtPixels;
     newBTops[c].y = ms->config.bTops[c].y-skirtPixels;
@@ -14815,9 +14815,9 @@ void guardViewers(MachineState * ms) {
 
 
 ////////////////////////////////////////////////
-// end node definitions 
+// end node definitions
 //
-// start ein 
+// start ein
 ////////////////////////////////////////////////
 
 int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSearch) {
@@ -14829,7 +14829,7 @@ int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSe
     for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
       if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	   ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
-	  double square_dist = 
+	  double square_dist =
 	    eePose::squareDistance(targetPose, ms->config.blueBoxMemories[j].centroid);
 	if (square_dist < min_square_dist) {
 	  min_square_dist = square_dist;
@@ -14842,7 +14842,7 @@ int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSe
       if (ms->config.blueBoxMemories[j].labeledClassIndex == classToSearch &&
 	  (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	   ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
-	  double square_dist = 
+	  double square_dist =
 	    eePose::squareDistance(targetPose, ms->config.blueBoxMemories[j].centroid);
 	if (square_dist < min_square_dist) {
 	  min_square_dist = square_dist;
@@ -14904,7 +14904,7 @@ void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recogn
 	if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
 	    (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	     ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
-	  double square_dist = 
+	  double square_dist =
 	    eePose::squareDistance(centroid, ms->config.blueBoxMemories[j].centroid);
 	  if (square_dist < min_square_dist) {
 	    min_square_dist = square_dist;
@@ -14988,7 +14988,7 @@ void promoteBlueBoxes(MachineState * ms) {
 	    if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
 	        (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
 	         ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
-	      double square_dist = 
+	      double square_dist =
 	        eePose::squareDistance(centroid, ms->config.blueBoxMemories[j].centroid);
 	      if (square_dist < min_square_dist) {
 	        min_square_dist = square_dist;
@@ -15082,8 +15082,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
   //cout << "all_range_mode: " << ms->config.all_range_mode << endl;
   cout << "data_directory: " << ms->config.data_directory << endl;
-  //<< "run_prefix: " << ms->config.run_prefix << endl << endl 
-  //<< "vocab_file: " << ms->config.vocab_file << endl 
+  //<< "run_prefix: " << ms->config.run_prefix << endl << endl
+  //<< "vocab_file: " << ms->config.vocab_file << endl
   //<< "knn_file: " << ms->config.knn_file << endl << "label_file: " << ms->config.label_file << endl
   //<< endl;
 
@@ -15095,7 +15095,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
     ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
   } else if (ms->config.left_or_right_arm == "ardrone") {
-    ms->config.image_topic = "/ardrone/front/image_raw";
+    ms->config.image_topic = "/ardrone/bottom/image_raw";
   } else {
     CONSOLE_ERROR(ms, "Unexpected arm: " << ms->config.left_or_right_arm);
     assert(0);
@@ -15115,15 +15115,15 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
       ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
       ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
       ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
-      
+
       ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
-      
+
       ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms);
       ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms);
       ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms);
-      
+
       ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms);
-      
+
 #ifdef RETHINK_SDK_1_2_0
       ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms);
       ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms);
@@ -15133,8 +15133,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
       ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms);
       ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms);
 #endif
-      
-      
+
+
       ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms);
       ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms);
       ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms);
@@ -15149,7 +15149,9 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
       ms->arDroneState.resetPublisher = n.advertise<std_msgs::Empty>("/ardrone/reset", 10);
 
       ms->arDroneState.posePublisher = n.advertise<geometry_msgs::Pose>("/ardrone/current_position", 10);
-      
+
+      /* ms->arDroneState.cameraSwitchService = n.serviceClient<ardrone_autonomy::SetCamChannel>("ardrone/setcamchannel"); */
+
     } else {
       assert(0);
     }
@@ -15265,7 +15267,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
 
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SIMULATED) {
-    ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1, 
+    ms->config.forthCommandSubscriber = n.subscribe("/ein/" + ms->config.left_or_right_arm + "/forth_commands", 1,
 						    &MachineState::forthCommandCallback, ms);
     ms->config.forthCommandPublisher = n.advertise<std_msgs::String>("/ein/" + ms->config.other_arm + "/forth_commands", 10);
   } else if (ms->config.currentRobotMode == SNOOP) {
@@ -15339,12 +15341,12 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
     for (int i = 0; i < ms->config.numCornellTables; i++) {
       double yDelta = (ms->config.mapSearchFenceYMax - ms->config.mapSearchFenceXMin) / (double(i));
       eePose thisTablePose = ms->config.beeHome;
-      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin; 
+      thisTablePose.px = 0.75*(ms->config.mapSearchFenceXMax - ms->config.mapSearchFenceXMin) + ms->config.mapSearchFenceXMin;
       thisTablePose.py = ms->config.mapSearchFenceYMin + (double(i) + 0.5)*yDelta;
-      thisTablePose.pz = ms->config.currentTableZ; 
+      thisTablePose.pz = ms->config.currentTableZ;
       ms->config.cornellTables.push_back(thisTablePose);
     }
-  } 
+  }
 
 
 
@@ -15401,40 +15403,40 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.coreViewWindow = new EinWindow(NULL, ms);
   ms->config.coreViewWindow->setWindowTitle("Core View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.coreViewWindow);
-  
-  
+
+
   ms->config.faceViewWindow = new EinWindow(NULL, ms);
   ms->config.faceViewWindow->setWindowTitle("Face View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.faceViewWindow);
-  
-  
+
+
 
   ms->config.rangemapWindow = new EinWindow(NULL, ms);
   ms->config.rangemapWindow->setWindowTitle("Range Map View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.rangemapWindow);
-  
-  
+
+
   ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
   ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.graspMemoryWindow);
   ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, ms);
-  
-  
-  
+
+
+
   ms->config.graspMemorySampleWindow = new EinWindow(NULL, ms);
   ms->config.graspMemorySampleWindow->setWindowTitle("Grasp Memory Sample View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.graspMemorySampleWindow);
 
-  
+
   ms->config.heightMemorySampleWindow = new EinWindow(NULL, ms);
   ms->config.heightMemorySampleWindow->setWindowTitle("Height Memory Sample View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.heightMemorySampleWindow);
-  
-  
+
+
   ms->config.hiRangemapWindow = new EinWindow(NULL, ms);
   ms->config.hiRangemapWindow->setWindowTitle("Hi Range Map View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.hiRangemapWindow);
-  
+
   ms->config.hiColorRangemapWindow = new EinWindow(NULL, ms);
   ms->config.hiColorRangemapWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.hiColorRangemapWindow);
@@ -15578,7 +15580,7 @@ int main(int argc, char **argv) {
   } else {
     ROS_ERROR("Must pass left, right, or both.");
   }
-  
+
 
 
   string programName;
@@ -15613,7 +15615,7 @@ int main(int argc, char **argv) {
       cout << "bad mode: " << ms->config.robot_mode << endl;
       assert(0);
     }
-    
+
     machineStates.push_back(ms);
     if (left_or_right == "left") {
       left_arm = ms;
@@ -15632,7 +15634,7 @@ int main(int argc, char **argv) {
     ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms);
   }
 
-  
+
   if (left_or_right_arm == "ardrone") {
     einMainWindow = new MainWindow(NULL, ardrone_arm, NULL);
   } else {
@@ -15662,9 +15664,9 @@ int main(int argc, char **argv) {
   signal(SIGHUP, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  
+
   ros::spin();
 
   return 0;
 }
- 
+
