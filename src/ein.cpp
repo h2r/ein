@@ -13377,7 +13377,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
 
   nh.getParam("/robot_description", ms->config.robot_description);
   nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
-
+  nh.getParam("/rethink/software_version", ms->config.robot_software_version);
 
   if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;
@@ -14984,6 +14984,12 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   //cout << "n namespace: " << n.getNamespace() << endl;
   ms->config.data_directory = ros::package::getPath("ein") + "/default";
+
+  std::ifstream ifs("src/ein/VERSION");
+  std::string content( (std::istreambuf_iterator<char>(ifs) ),
+                       (std::istreambuf_iterator<char>()    ) );
+  boost::trim(content);
+  ms->config.ein_software_version = content;
 
   loadROSParamsFromArgs(ms);
   //cout << "mask_gripper: " << ms->config.mask_gripper << endl;

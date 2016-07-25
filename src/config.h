@@ -738,6 +738,8 @@ class EinConfig {
   string other_arm = "left";
   string robot_serial;
   string robot_description;
+  string robot_software_version;
+  string ein_software_version;
 
 
   geometry_msgs::Pose trueEEPose;
