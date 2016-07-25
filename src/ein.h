@@ -426,7 +426,6 @@ void substituteAccumulatedImageQuantities(MachineState * ms);
 void substituteLatestImageQuantities(MachineState * ms);
 
 void loadROSParamsFromArgs(MachineState * ms);
-void saveROSParams(MachineState * ms);
 
 void spinlessNodeMain(MachineState * ms);
 void nodeInit(MachineState * ms);

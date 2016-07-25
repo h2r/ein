@@ -13377,35 +13377,6 @@ void loadROSParamsFromArgs(MachineState * ms) {
 
   nh.getParam("/robot_description", ms->config.robot_description);
   nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
-  nh.param<string>("vocab_file", ms->config.vocab_file, "vocab.yml");
-  nh.param<string>("knn_file", ms->config.knn_file, "knn.yml");
-  nh.param<string>("label_file", ms->config.label_file, "labels.yml");
-
-  nh.getParam("data_directory", ms->config.data_directory);
-  cout << "Using data directory: " << ms->config.data_directory << endl;
-
-  nh.getParam("run_prefix", ms->config.run_prefix);
-
-  nh.getParam("all_range_mode", ms->config.all_range_mode);
-
-  nh.getParam("arm_box_top", ms->config.tARM);
-  nh.getParam("arm_box_bot", ms->config.bARM);
-  nh.getParam("arm_box_left", ms->config.lARM);
-
-  nh.getParam("arm_box_right", ms->config.rARM);
-
-  nh.getParam("image_topic", ms->config.image_topic);
-
-  nh.getParam("retrain_vocab", ms->config.retrain_vocab);
-  nh.getParam("reextract_knn", ms->config.reextract_knn);
-  nh.getParam("rewrite_labels", ms->config.rewrite_labels);
-
-  nh.getParam("cache_prefix", ms->config.cache_prefix);
-
-  nh.param<int>("mask_gripper", ms->config.mask_gripper, 1);
-
-  //nh.getParam("ms->config.chosen_feature", cfi);
-  //ms->config.chosen_feature = static_cast<featureType>(cfi);
 
 
   if (ms->config.robot_mode == "simulated") {
@@ -13425,46 +13396,6 @@ void loadROSParamsFromArgs(MachineState * ms) {
 }
 
 
-void saveROSParams(MachineState * ms) {
-  ros::NodeHandle nh("~");
-
-  nh.setParam("threshold_fraction", ms->config.threshFraction);
-  nh.setParam("reject_scale", ms->config.rejectScale);
-  nh.setParam("reject_area_scale", ms->config.rejectAreaScale);
-  nh.setParam("density_decay", ms->config.densityDecay);
-
-  nh.setParam("data_directory", ms->config.data_directory);
-  nh.setParam("run_prefix", ms->config.run_prefix);
-  nh.setParam("all_range_mode", ms->config.all_range_mode);
-
-
-  nh.setParam("gray_box_top", ms->config.tGO);
-  nh.setParam("gray_box_bot", ms->config.bGO);
-  nh.setParam("gray_box_left", ms->config.lGO);
-  nh.setParam("gray_box_right", ms->config.rGO);
-
-  nh.setParam("arm_box_top", ms->config.tARM);
-  nh.setParam("arm_box_bot", ms->config.bARM);
-  nh.setParam("arm_box_left", ms->config.lARM);
-  nh.setParam("arm_box_right", ms->config.rARM);
-
-  nh.setParam("image_topic", ms->config.image_topic);
-
-  nh.setParam("retrain_vocab", ms->config.retrain_vocab);
-  nh.setParam("reextract_knn", ms->config.reextract_knn);
-  nh.setParam("rewrite_labels", ms->config.rewrite_labels);
-
-  nh.setParam("sobel_sigma", ms->config.sobel_sigma);
-  nh.setParam("canny_hi_thresh",ms->config.canny_hi_thresh);
-  nh.setParam("canny_lo_thresh",ms->config.canny_lo_thresh);
-  nh.setParam("sobel_scale_factor",ms->config.sobel_scale_factor);
-
-  nh.setParam("mask_gripper", ms->config.mask_gripper);
-
-  //nh.setParam("ms->config.chosen_feature", cfi);
-  //ms->config.chosen_feature = static_cast<featureType>(cfi);
-
-}
 
 void spinlessNodeMain(MachineState * ms) {
   nodeInit(ms);
@@ -15052,6 +14983,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   ms->config.it = make_shared<image_transport::ImageTransport>(n);
 
   //cout << "n namespace: " << n.getNamespace() << endl;
+  ms->config.data_directory = ros::package::getPath("ein") + "/default";
 
   loadROSParamsFromArgs(ms);
   //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
@@ -15285,8 +15217,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   spinlessNodeMain(ms);
   spinlessPilotMain(ms);
-
-  saveROSParams(ms);
 
   ms->config.lastImageCallbackReceived = ros::Time::now();
   ms->config.lastMovementStateSet = ros::Time::now();

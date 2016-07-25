@@ -1327,10 +1327,10 @@ class EinConfig {
 
 
 
-  std::string data_directory = "unspecified_dd";
-  std::string vocab_file = "unspecified_vf";
-  std::string knn_file = "unspecified_kf";
-  std::string label_file = "unspecified_lf";
+  std::string data_directory;
+  std::string vocab_file = "vocab.yml";
+  std::string knn_file = "knn.yml";
+  std::string label_file = "labels.yml";
   std::string config_directory = "/config/";
   
   std::string run_prefix = "";
