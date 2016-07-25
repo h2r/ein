@@ -126,6 +126,16 @@ that the lighting hasn't changed since you made your background map.
 <img src="../assets/allenwrench_observed.jpg" width="350" alt="Observed map with allen wrench."/>
 <img src="../assets/allenwrench_density.jpg" width="350" alt="Observed map with ."/>
 
+Note that at any time you can save all of the maps (observed, background, predicted) with:
+```"<fileName>" sceneSaveScene```
+
+You can reload it with: 
+```"<fileName>" sceneLoadScene```
+
+You can also save and load individual maps to yaml with
+```"<fileName>" sceneSavePredictedMap```, ```"<fileName>"
+sceneLoadPredictedMap```.
+
 
 #### Exercise: Put several objects in the scene and update the observed map.  
 

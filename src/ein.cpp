@@ -6930,7 +6930,7 @@ int calibrateGripper(MachineState * ms) {
 	return return_value;
       }
     }
-    CONSOLE_ERROR(ms, "Gripper could not calibrate!");
+    CONSOLE_ERROR(ms, "Gripper could not calibrate!  Try running from the command line, because this often means your Baxter SDK is set up incorrectly. 'rosrun baxter_examples gripper_keyboard.py'");
     ms->pushWord("pauseStackExecution"); // pause stack execution
     ms->pushCopies("beep", 15); // beep
     return -1;
