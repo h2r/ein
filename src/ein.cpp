@@ -14985,11 +14985,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   //cout << "n namespace: " << n.getNamespace() << endl;
   ms->config.data_directory = ros::package::getPath("ein") + "/default";
 
-  std::ifstream ifs("src/ein/VERSION");
-  std::string content( (std::istreambuf_iterator<char>(ifs) ),
-                       (std::istreambuf_iterator<char>()    ) );
-  boost::trim(content);
-  ms->config.ein_software_version = content;
 
   loadROSParamsFromArgs(ms);
   //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
@@ -15488,10 +15483,16 @@ int main(int argc, char **argv) {
   ros::NodeHandle n("~");
 
 
+  std::ifstream ifs("src/ein/VERSION");
+  std::string ein_software_version( (std::istreambuf_iterator<char>(ifs) ),
+                                    (std::istreambuf_iterator<char>()    ) );
+  boost::trim(ein_software_version);
+
 
   for(int i = 0; i < arm_names.size(); i++) {
     string left_or_right = arm_names[i];
     MachineState * ms = new MachineState();
+    ms->config.ein_software_version = ein_software_version;
     ms->config.robot_mode = robot_mode;
     if (ms->config.robot_mode == "simulated") {
       ms->config.currentRobotMode = SIMULATED;
@@ -15530,7 +15531,7 @@ int main(int argc, char **argv) {
 
   einMainWindow->show();
   einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
+  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ein_software_version + " Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
 
 
 

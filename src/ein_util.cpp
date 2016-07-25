@@ -174,7 +174,7 @@ void initializeMachine(MachineState * ms) {
   ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
 
   stringstream s;
-  s << "*** Starting Ein " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
+  s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
   cout << "start message: " << s.str() << endl;
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
