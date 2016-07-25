@@ -13,13 +13,14 @@ particular, Ein assumes there is a flat ground surface parallel to the
 xy-plane whose constant z coordinate is known and that gravity pulls
 toward that plane.
 
-A consequence of these assumptions is that we can forgo labeling grasp depth
-and close the fingers when they encounter an obstruction. When moving toward an
-object for a pick, stabbing our fingers outward from a pre-pick position, our
-fingertips will either press the object against the tabletop and trigger a
-grasp or go around the object (spoon handle, small block) and hit the table on
-either side of the target, triggering a grasp. Grasping in free space without a
-backing or resistor is less reliable because tipping is more likely to occur.
+A consequence of these assumptions is that we can forgo labeling grasp
+depth and close the fingers when they encounter an obstruction. When
+moving toward an object for a pick, stabbing our fingers outward from
+a pre-pick position, our fingertips will either press the object
+against the tabletop and trigger a grasp or go around the object
+(spoon handle, small block) and hit the table on either side of the
+target, triggering a grasp. Grasping in free space without a backing
+or resistor is less reliable because tipping is more likely to occur.
 
 Another consequence is that most objects will come to rest on the
 ground plane.  This is important because in order to see an object
@@ -56,10 +57,12 @@ The basic workflow for object picking is:
 Now you need to create a workspace background model, which we call a
 background map. Send the gripper to the home position by running
 `goHome`.  The workspace should contain a square of two feet. It
-should be as flat as possible. The system can accomodate altitude
-changes but shadows and occlusion induce variance in the maps and
-require careful sampling for accurate results.  (If you would like to
-change the home position, follow [these
+should be as flat as possible.  Additionally, the workspace should be
+a nonreflective surface that is not too shiny.  A black felt surface
+is ideal, or a table covered with a tablecloth.  The system can
+accomodate altitude changes but shadows and occlusion induce variance
+in the maps and require careful sampling for accurate results.  (If
+you would like to change the home position, follow [these
 instructions](../movement/#changing-the-home-position).)
 
 The wrist should now be pointing straight down with the camera should
