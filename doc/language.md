@@ -5,13 +5,18 @@ permalink: /language/
 order: 5
 ---
 
-This page describes the Back programming language and the Ein stack machine.
-Back is a stack-based postfix programming language inspired by FORTH, RPL,
-Scheme, and Bash.  It runs on the Ein stack machine and can be stepped line by
-line for debugging, executed alternately with callbacks during normal operation
-(20 Hz or 20 instructions per second), or collapsed to execute segments of
-instructions in an accelerated mode during which callbacks are not answered
-(kHz range).
+This page describes the Back programming language and the Ein stack
+machine.  Back is a stack-based postfix programming language inspired
+by
+[FORTH](https://en.wikipedia.org/wiki/Forth_(programming_language)),
+[RPL](https://en.wikipedia.org/wiki/RPL_(programming_language)),
+[Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language)),
+and [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)).  It runs
+on the Ein stack machine and can be stepped line by line for
+debugging, executed alternately with callbacks during normal operation
+(20 Hz or 20 instructions per second), or collapsed to execute
+segments of instructions in an accelerated mode during which callbacks
+are not answered (kHz range).  
 
 Central to Ein and Back are the **call stack** and the **data stack**. Both
 stacks are collections of **words**, and each stack has at any given time a **top
@@ -45,8 +50,11 @@ int a = b + c;
 
 Here both `=` and `+` are written in **infix order**.
 
-Ein uses **postfix order**, which means
-that argments are listed first, or to the left, of the functions to which they belong: 
+Ein, like
+[Forth](https://en.wikipedia.org/wiki/Forth_(programming_language))
+and [RPL](https://en.wikipedia.org/wiki/RPL_(programming_language)),
+uses **postfix order**, which means that argments are listed first, or
+to the left, of the functions to which they belong:
 
 ```
 /* back code */
@@ -58,8 +66,22 @@ The reason for this is that words take their arguments from the data stack. In o
 something to end up on the data stack, something must put it there, and it needs to be put
 there before it is used.
 
+#### Exercise:  Calculate with Ein!
+
+Do some arithmetic with Ein!  Push some numbers on the data stack, and
+observe them appearing at the console.  Then add them together with
+`+`, and observe the result on the data stack.
+
+
+#### Exercise:  Hello World!
+
+Write a program to print hello world.  First you push a string on the
+data stack.  Then use the `print` word to print it to the console.
+
 
 ### Data and Variables
+
+
 
 <!--  
 
@@ -117,4 +139,6 @@ tableReconstructTakeScene
 
 
 
+
+### Back files
 
