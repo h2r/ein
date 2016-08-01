@@ -82,23 +82,38 @@ data stack.  Then use the `print` word to print it to the console.
 ### Data and Variables
 
 
+Ein words can be multiple types.  Primitive types include string,
+integer, double, EePose (the pose of the robot's end effector as (x,
+y, z, quaterion)).  Additionally, compound words can be defined using
+parenthesis as list of other words.
 
-<!--  
+To define a string literal, use quotes: 
+```"Hello world"```
 
-String Integer Double CompoundWord
+This command will push the string "Hello world" on the data stack. 
 
-`store`
 
-`define`
+Variables can be defined using the `store` word, which takes two
+arguemnts: the value (any word), and a string for the variable name.
+For example, `0 "x" store` will store the integer word zero in the
+variable x.  Aftewards, typing `x` will push a `0` on the data stack,
+just as if you had typed `0`.
 
-`1 1 +`
+You can also use store to define new compound words: 
 
-compound words
-good for storing lists and tuples
+`( 1 + ) "inc" store` definse a new compound word, `inc` which adds
+`1` to the argument on the data stack and pushes the result.
 
-Reactive variables: truePose
 
---> 
+Finally, the `define` word takes both a word and help text: 
+
+`( 1 + ) "Increment the value on the data stack" "inc" define`
+
+
+
+Ein gets its power from reactive variables, defined in C, such as
+truePose, which is always set to the value of the current pose of the end effector.   This reactivity 
+
 
 ### Elementary Operations
 
@@ -142,3 +157,18 @@ tableReconstructTakeScene
 
 ### Back files
 
+
+Back programs live in the `ein/back` directory, in <filename>.back.
+You can load them by running `"<filename>" import`.  For example,
+`"kids" import` will load the words in kids.back.  Text in a back file
+is any back program that can be typed at the repl.  It is common for
+back files to consist of `define` and `store` commands to create new
+compound words.
+
+#### Exercise:  Back files
+
+Create a new back file called `hello.back`.  First put a "hello world"
+program in it and run `"hello" import`.  Then write a new word that
+prints "hello" and also causes the robot to wave its arm (use the
+`truePose` variable to read the arm's position and `moveEeToPoseWord`
+to move to a predefined pose) and nod its head (`nod`).
