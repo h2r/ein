@@ -389,9 +389,6 @@ void renderCoreView(MachineState * ms) {
   lText += " epRB: ";
   sprintf(buf, "%+.02d/%d", ms->config.epRingBufferEnd-ms->config.epRingBufferStart, ms->config.epRingBufferSize);
   lText += buf;
-  lText += " imRB: ";
-  sprintf(buf, "%+.02d/%d", ms->config.imRingBufferEnd-ms->config.imRingBufferStart, ms->config.imRingBufferSize);
-  lText += buf;
   putText(coreImage, lText, lAnchor, MY_FONT, 0.5, dataColor, 2.0);
 
   int stackRowY = lAnchor.y + 40; 

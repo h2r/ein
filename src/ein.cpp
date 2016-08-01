@@ -18,6 +18,7 @@
 
 #include "ein.h"
 #include "ein_ik.h"
+#include "camera.h"
 
 #include "qtgui/mainwindow.h"
 #include "qtgui/einwindow.h"
@@ -64,132 +65,6 @@ void neutral(MachineState * ms) {
 }
 
 
-int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack, bool debug) {
-  if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
-    
-    if (debug) {
-      cout << "Denied request in getRingImageAtTime(): Buffer empty." << endl;
-    }
-    return 0;
-  } else {
-    int earliestSlot = ms->config.imRingBufferStart;
-    ros::Duration deltaTdur = t - ms->config.imRBTimes[earliestSlot];
-    // if the request comes before our earliest record, deny
-    if (deltaTdur.toSec() <= 0.0) {
-      if (debug) {
-	cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
-	  ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << t << " " << ms->config.imRBTimes[earliestSlot] << endl;
-      }
-      return -1;
-    } else if (ms->config.imRingBufferStart < ms->config.imRingBufferEnd) {
-      for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
-	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = ms->config.imRingBuffer[s];
-	  Mat m2 = ms->config.imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  if (w1 >= w2)
-	    //value = m1;
-	    value = m1*w1 + m2*w2;
-	  else
-	    //value = m2;
-	    value = m1*w1 + m2*w2;
-
-	  int newStart = s;
-	  if(drawSlack) {
-	    ms->config.imRingBufferStart = newStart;
-	  }
-	  return 1;
-	}
-      }
-      // if we didn't find it we should return failure
-      if (debug) {
-	cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-      }
-      return -2;
-    } else {
-      for (int s = ms->config.imRingBufferStart; s < ms->config.imRingBufferSize-1; s++) {
-	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
-	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = ms->config.imRingBuffer[s];
-	  Mat m2 = ms->config.imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  if (w1 >= w2)
-	    value = m1;
-	  else
-	    value = m2;
-
-	  int newStart = s;
-	  if(drawSlack) {
-	    ms->config.imRingBufferStart = newStart;
-	  }
-	  return 1;
-	}
-      } {
-	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[ms->config.imRingBufferSize-1];
-	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[0];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = ms->config.imRingBuffer[ms->config.imRingBufferSize-1];
-	  Mat m2 = ms->config.imRingBuffer[0];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  if (w1 >= w2)
-	    value = m1;
-	  else
-	    value = m2;
-
-	  int newStart = ms->config.imRingBufferSize-1;
-	  if(drawSlack) {
-	    ms->config.imRingBufferStart = newStart;
-	  }
-	  return 1;
-	}
-      } for (int s = 0; s < ms->config.imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - ms->config.imRBTimes[s];
-	ros::Duration deltaTdurPost = t - ms->config.imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
-	  Mat m1 = ms->config.imRingBuffer[s];
-	  Mat m2 = ms->config.imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
-	  double totalWeight = w1 + w2;
-	  w1 = w1 / totalWeight;
-	  w2 = w2 / totalWeight;
-	  if (w1 >= w2)
-	    value = m1;
-	  else
-	    value = m2;
-
-	  int newStart = s;
-	  if(drawSlack) {
-	    ms->config.imRingBufferStart = newStart;
-	  }
-	  return 1;
-	}
-      }
-      // if we didn't find it we should return failure
-      if (debug) {
-	cout << "Denied out of order range value in getRingImageAtTime(): Too large." << endl;
-      }
-
-      return -2;
-    }
-  }
-}
 int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack) {
   if (ms->config.rgRingBufferStart == ms->config.rgRingBufferEnd) {
 #ifdef DEBUG_RING_BUFFER
@@ -305,8 +180,9 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
     cout << "Ring buffer not yet initialized. " << ms->config.epRingBufferEnd << " times: " << ms->config.epRBTimes.size() << endl;
     assert(0);
   }
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
   ros::Time poseTime = ms->config.epRBTimes[ms->config.epRingBufferEnd - 1];
-  ros::Time imageTime = ms->config.imRBTimes[ms->config.imRingBufferEnd - 1];
+  ros::Time imageTime = camera->imRBTimes[camera->imRingBufferEnd - 1];
 
   * time = min(poseTime, imageTime);
   geometry_msgs::Pose thisPose;
@@ -317,7 +193,7 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
     error = true;
   }
   *pose = eePose::fromGeometryMsgPose(thisPose);
-  result = getRingImageAtTime(ms, *time, *image, 0, debug);
+  result = camera->getRingImageAtTime(*time, *image, 0, debug);
   if (result != 1) {
     CONSOLE_ERROR(ms, "Image ring buffer error: " << result);
     error = true;
@@ -501,44 +377,6 @@ int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value
   }
 }
 
-void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet) {
-#ifdef DEBUG_RING_BUFFER
-  //cout << "setRingImageAtTime() start end size: " << ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << ms->config.imRingBufferSize << endl;
-#endif
-
-  // if the ring buffer is empty, always re-initialize
-  if (ms->config.imRingBufferStart == ms->config.imRingBufferEnd) {
-    ms->config.imRingBufferStart = 0;
-    ms->config.imRingBufferEnd = 1;
-    ms->config.imRingBuffer[0] = imToSet;
-    ms->config.imRBTimes[0] = t;
-  } else {
-    ros::Duration deltaTdur = t - ms->config.imRBTimes[ms->config.imRingBufferStart];
-    if (deltaTdur.toSec() <= 0.0) {
-#ifdef DEBUG_RING_BUFFER 
-      //cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
-#endif
-    } else {
-      int slot = ms->config.imRingBufferEnd;
-      ms->config.imRingBuffer[slot] = imToSet;
-      ms->config.imRBTimes[slot] = t;
-
-      if (ms->config.imRingBufferEnd >= (ms->config.imRingBufferSize-1)) {
-	ms->config.imRingBufferEnd = 0;
-      } else {
-	ms->config.imRingBufferEnd++;
-      }
-
-      if (ms->config.imRingBufferEnd == ms->config.imRingBufferStart) {
-	if (ms->config.imRingBufferStart >= (ms->config.imRingBufferSize-1)) {
-	  ms->config.imRingBufferStart = 0;
-	} else {
-	  ms->config.imRingBufferStart++;
-	}
-      }
-    }
-  }
-}
 void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet) {
 #ifdef DEBUG_RING_BUFFER
   //cout << "setRingRangeAtTime() start end size: " << ms->config.rgRingBufferStart << " " << ms->config.rgRingBufferEnd << " " << ms->config.rgRingBufferSize << endl;
@@ -624,15 +462,6 @@ void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToS
   }
 }
 
-void imRingBufferAdvance(MachineState * ms) {
-  if (ms->config.imRingBufferEnd != ms->config.imRingBufferStart) {
-    if (ms->config.imRingBufferStart >= (ms->config.imRingBufferSize-1)) {
-      ms->config.imRingBufferStart = 0;
-    } else {
-      ms->config.imRingBufferStart++;
-    }
-  }
-}
 void rgRingBufferAdvance(MachineState * ms) {
   if (ms->config.rgRingBufferEnd != ms->config.rgRingBufferStart) {
     if (ms->config.rgRingBufferStart >= (ms->config.rgRingBufferSize-1)) {
@@ -661,7 +490,9 @@ void allRingBuffersAdvance(MachineState * ms, ros::Time t) {
   geometry_msgs::Pose thisPose;
 
   getRingPoseAtTime(ms, t, thisPose, 1);
-  getRingImageAtTime(ms, t, thisIm, 1);
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->getRingImageAtTime(t, thisIm, 1);
+  }
   //getRingRangeAtTime(t, thisRange, 1);
 }
 
@@ -679,11 +510,12 @@ void recordReadyRangeReadings(MachineState * ms) {
 	
       double thisRange = ms->config.rgRingBuffer[ms->config.rgRingBufferStart];
       ros::Time thisTime = ms->config.rgRBTimes[ms->config.rgRingBufferStart];
-    
+
+      shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
       geometry_msgs::Pose thisPose;
       Mat thisImage;
       int weHavePoseData = getRingPoseAtTime(ms, thisTime, thisPose);
-      int weHaveImData = getRingImageAtTime(ms, thisTime, thisImage);
+      int weHaveImData = camera->getRingImageAtTime(thisTime, thisImage);
 
 #ifdef DEBUG_RING_BUFFER
       cout << "  recordReadyRangeReadings()  weHavePoseData weHaveImData: " << weHavePoseData << " " << weHaveImData << endl;
@@ -2298,7 +2130,9 @@ void activateSensorStreaming(MachineState * ms) {
     // turn that queue size up!
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms);
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms);
-    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 30, &MachineState::imageCallback, ms);
+    for (int i = 0; i < ms->config.cameras.size(); i++) {
+      ms->config.cameras[i]->activateSensorStreaming();
+    }
     cout << "Activating sensor stream." << endl;
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
@@ -2317,9 +2151,9 @@ void deactivateSensorStreaming(MachineState * ms) {
   ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
   cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
   ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
-  cout << "deactivateSensorStreaming: Subscribe to image." << ms->config.image_topic << endl;
-  ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
-  cout << "Subscribed to image." << endl;
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->deactivateSensorStreaming();
+  }
   if (ms->config.diskStreamingEnabled) {
     cout << "deactivateSensorStreaming: About to write batches... ";
     int cfClass = ms->config.focusedClass;
@@ -4686,34 +4520,25 @@ void publishConsoleMessage(MachineState * ms, string msg) {
 
 
 
-int renderInit(MachineState * ms, bool converted, const sensor_msgs::ImageConstPtr& msg) {
+int renderInit(MachineState * ms,  Camera * camera) {
+
   ms->config.renderInit = 1;
   
   ms->config.shouldIRender = ms->config.shouldIRenderDefault;
   
-  try {
-    if (!converted) {
-      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    } 
-    ms->config.cam_img = ms->config.cv_ptr->image.clone();
-  } catch(cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return -1;
-  }
-  
-  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
+  ms->config.wristCamImage = camera->cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
-  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
-  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-  cout << "Wrist Image: " << ms->config.cv_ptr->image.rows << ", " << ms->config.cv_ptr->image.cols << endl;
-  ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
-  ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+  ms->config.wristViewImage = camera->cv_ptr->image.clone();
+  ms->config.faceViewImage = camera->cv_ptr->image.clone();
+  cout << "Wrist Image: " << camera->cv_ptr->image.rows << ", " << camera->cv_ptr->image.cols << endl;
+  ms->config.accumulatedImage = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64F);
   
-  ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.densityViewerImage = camera->cv_ptr->image.clone();
   ms->config.densityViewerImage *= 0;
-  ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+  ms->config.gradientViewerImage = Mat(2*camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, camera->cv_ptr->image.type());
   ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.objectViewerImage = camera->cv_ptr->image.clone();
   
   
   int imW = ms->config.wristViewImage.cols;
@@ -5065,75 +4890,28 @@ void renderWristViewImage(MachineState * ms) {
   }
 }
 
-void MachineState::imageCallback(const sensor_msgs::ImageConstPtr& msg){
-
-  MachineState * ms = this;
-  ms->config.lastImageCallbackReceived = ros::Time::now();
-
-  ms->config.lastImageStamp = msg->header.stamp;
-
-  int converted = 0;
-  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    try{
-      ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      int cfClass = ms->config.focusedClass;
-      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(ms, ms->config.cv_ptr->image, cfClass, thisNow); 
-      } else {
-      } // do nothing
-      converted = 1;
-    }catch(cv_bridge::Exception& e){
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
-  }
-
-  if (!ms->config.shouldIImageCallback) {
-    //cout << "Early exit image callback." << endl;
-    return;
-  }
-
+void MachineState::imageCallback(Camera * camera) {
   if (!ms->config.renderInit) {
-    if (renderInit(ms, converted, msg) == -1) {
+    if (renderInit(ms, camera) == -1) {
       ROS_ERROR("Couldn't initialize rendering system.");
       return;
     }
   }
 
-  try{
-    ms->config.cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    ms->config.cam_img = ms->config.cv_ptr->image.clone();
-  }catch(cv_bridge::Exception& e){
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-
-  ms->config.wristCamImage = ms->config.cv_ptr->image.clone();
+  ms->config.wristCamImage = camera->cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
-  ms->config.wristViewImage = ms->config.cv_ptr->image.clone();
-  ms->config.faceViewImage = ms->config.cv_ptr->image.clone();
-
+  ms->config.wristViewImage = camera->cv_ptr->image.clone();
+  ms->config.faceViewImage = camera->cv_ptr->image.clone();
 
   guardViewers(ms);
 
   accumulateImage(ms);
 
-  setRingImageAtTime(ms, msg->header.stamp, ms->config.wristCamImage);
-  Mat thisImage;
-  int weHaveImData = getRingImageAtTime(ms, msg->header.stamp, thisImage);
-
-  if (ms->config.castRecentRangeRay) {
-    recordReadyRangeReadings(ms);
-  } else {
-  }
-
   renderWristViewImage(ms);
-
   if (ms->config.shouldIRender) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
-    ms->config.wristViewWindow->updateImage(ms->config.cam_img);
+    ms->config.wristViewWindow->updateImage(camera->cam_img);
     //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
     //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
@@ -6546,11 +6324,9 @@ void pilotInit(MachineState * ms) {
     }
   }
   
-  ms->config.imRingBuffer.resize(ms->config.imRingBufferSize);
   ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
   ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
 
-  ms->config.imRBTimes.resize(ms->config.imRingBufferSize);
   ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
   ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
 
@@ -10971,7 +10747,7 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
-
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
   for (double px = tbTop.x-ms->config.mapBlueBoxPixelSkirt; px <= tbBot.x+ms->config.mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-ms->config.mapBlueBoxPixelSkirt; py <= tbBot.y+ms->config.mapBlueBoxPixelSkirt; py++) {
       double x, y;
@@ -10993,12 +10769,12 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   //      }
 
 	double blueBoxWeight = 0.1;
-	if ( (ms->config.cam_img.rows != 0 && ms->config.cam_img.cols != 0) &&
+	if ( (camera->cam_img.rows != 0 && camera->cam_img.cols != 0) &&
 	     ((px >=0) && (px < imW)) &&
 	     ((py >=0) && (py < imH)) ) {
-	  ms->config.objectMap[i + ms->config.mapWidth * j].b = (ms->config.cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
-	  ms->config.objectMap[i + ms->config.mapWidth * j].g = (ms->config.cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
-	  ms->config.objectMap[i + ms->config.mapWidth * j].r = (ms->config.cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].b = (camera->cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].g = (camera->cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].r = (camera->cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
 	  ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = blueBoxWeight;
 	}
       }
@@ -11323,7 +11099,9 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
     myImagePtr->is_bigendian = false;
     myImagePtr->encoding = sensor_msgs::image_encodings::BGR8;
     myImagePtr->data.assign(dummyImage.data, dummyImage.data + size_t(dummyImage.rows * myImagePtr->step));
-    imageCallback(myImagePtr);
+    for (int i = 0; i < ms->config.cameras.size(); i++) {
+      ms->config.cameras[i]->imageCallback(myImagePtr);
+    }
   }
 
 
@@ -12145,16 +11923,16 @@ void substituteAccumulatedImageQuantities(MachineState * ms) {
 void substituteLatestImageQuantities(MachineState * ms) {
   double param_aerialGradientDecayIteratedDensity = 0.9;
   ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
-
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
   double param_sobel_sigma_substitute_latest = 4.0;
   ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
-  if (ms->config.cv_ptr == NULL) {
+  if (camera->cv_ptr == NULL) {
     ROS_ERROR("Not receiving camera data, clearing call stack.");
     ms->clearStack();
     return;
   }
 
-  ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+  ms->config.objectViewerImage = camera->cv_ptr->image.clone();
 }
 
 void drawDensity(MachineState * ms, double scale) {
@@ -12992,16 +12770,14 @@ void goClassifyBlueBoxes(MachineState * ms) {
     }
     return;
     //assert(0);
-  } else {
   }
-
-
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     vector<KeyPoint>& keypoints = ms->config.bKeypoints[c];
     Mat descriptors;
     Mat descriptors2;
 
-    Mat original_cam_img = ms->config.cam_img;
+    Mat original_cam_img = camera->cam_img;
     Mat crop = original_cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = ms->config.bYCrCb[c];
@@ -14690,30 +14466,33 @@ void initializeMap(MachineState * ms) {
 
 
 void guardViewers(MachineState * ms) {
+
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+
   if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
-    ms->config.objectViewerYCbCrBlur = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerYCbCrBlur = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.objectViewerGrayBlur) ) {
-    ms->config.objectViewerGrayBlur = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerGrayBlur = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.densityViewerImage) ) {
-    ms->config.densityViewerImage = ms->config.cv_ptr->image.clone();
+    ms->config.densityViewerImage = camera->cv_ptr->image.clone();
     ms->config.densityViewerImage *= 0;
   }
   if ( isSketchyMat(ms->config.accumulatedImage) ) {
-    ms->config.accumulatedImage = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64FC3);
+    ms->config.accumulatedImage = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.accumulatedImageMass) ) {
-    ms->config.accumulatedImageMass = Mat(ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, CV_64F);
+    ms->config.accumulatedImageMass = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64F);
   }
   if ( isSketchyMat(ms->config.gradientViewerImage) ) {
-    ms->config.gradientViewerImage = Mat(2*ms->config.cv_ptr->image.rows, ms->config.cv_ptr->image.cols, ms->config.cv_ptr->image.type());
+    ms->config.gradientViewerImage = Mat(2*camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, camera->cv_ptr->image.type());
   }
   if ( isSketchyMat(ms->config.aerialGradientViewerImage) ) {
     ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   }
   if ( isSketchyMat(ms->config.objectViewerImage) ) {
-    ms->config.objectViewerImage = ms->config.cv_ptr->image.clone();
+    ms->config.objectViewerImage = camera->cv_ptr->image.clone();
   }
 }
 
@@ -14980,8 +14759,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
     ms->config.other_arm = "none";
   }
 
-  ms->config.it = make_shared<image_transport::ImageTransport>(n);
-
   //cout << "n namespace: " << n.getNamespace() << endl;
   ms->config.data_directory = ros::package::getPath("ein") + "/default";
 
@@ -15001,8 +14778,13 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   rk_seed(seed, &ms->config.random_state);
 
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
-    ms->config.image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
+    string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
+    shared_ptr<Camera> c = make_shared<Camera>(ms, image_topic);
+    ms->config.cameras.push_back(c);
+    ms->config.focused_camera = 0;
   }
+  shared_ptr<Camera> k2 = make_shared<Camera>(ms, "/kinect2/qhd/image_color");
+  ms->config.cameras.push_back(k2);
 
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);
@@ -15016,7 +14798,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
     ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
     ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
-    ms->config.image_sub = ms->config.it->subscribe(ms->config.image_topic, 1, &MachineState::imageCallback, ms);
 
     ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
 
@@ -15219,7 +15000,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   spinlessNodeMain(ms);
   spinlessPilotMain(ms);
 
-  ms->config.lastImageCallbackReceived = ros::Time::now();
   ms->config.lastMovementStateSet = ros::Time::now();
 
   {

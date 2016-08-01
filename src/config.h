@@ -8,6 +8,7 @@ class GaussianMap;
 class TransitionTable;
 class Scene;
 class OrientedRay;
+class Camera;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -474,7 +475,7 @@ class EinConfig {
 
   int zero_g_toggle = 1;
 
-  const int imRingBufferSize = 300;
+
   const int epRingBufferSize = 10000;
   const int rgRingBufferSize = 100;
 
@@ -482,21 +483,19 @@ class EinConfig {
   // if the current index passes the last recorded index, then we just proceed
   //  and lose the ranges we skipped over. alert when this happens
   // first valid entries
-  int imRingBufferStart = 0;
   int epRingBufferStart = 0;
   int rgRingBufferStart = 0;
   
   // first free entries
-  int imRingBufferEnd = 0;
   int epRingBufferEnd = 0;
   int rgRingBufferEnd = 0;
 
 
-  std::vector<Mat> imRingBuffer;
+
   std::vector<geometry_msgs::Pose> epRingBuffer;
   std::vector<double> rgRingBuffer;
   
-  std::vector<ros::Time> imRBTimes;
+
   std::vector<ros::Time> epRBTimes;
   std::vector<ros::Time> rgRBTimes;
 
@@ -1175,17 +1174,17 @@ class EinConfig {
 
 
   ros::Time lastAccelerometerCallbackRequest;
-  ros::Time lastImageCallbackRequest;
   ros::Time lastGripperCallbackRequest;
   ros::Time lastEndpointCallbackRequest;
   
   ros::Time lastAccelerometerCallbackReceived;
-  ros::Time lastImageCallbackReceived;
   ros::Time lastGripperCallbackReceived;
   ros::Time lastEndpointCallbackReceived;
 
   ros::Time lastImageStamp;
   ros::Time lastImageFromDensityReceived;
+
+  ros::Time lastImageCallbackRequest;
 
   bool usePotentiallyCollidingIK = 0;
 
@@ -1291,7 +1290,6 @@ class EinConfig {
 
 
 
-  cv_bridge::CvImagePtr cv_ptr = NULL;
   Mat stereoViewerImage;
   Mat objectViewerImage;
   Mat objectMapViewerImage;
@@ -1341,8 +1339,8 @@ class EinConfig {
   //std::string class_labels= "unspecified_cl1 unspecified_cl2";
   //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
   
-  std::string image_topic = "/camera/rgb/image_raw"; 
-  
+  vector<shared_ptr< Camera> > cameras;
+  int focused_camera = -1;
 
   std::string cache_prefix = "";
 
@@ -1367,7 +1365,6 @@ class EinConfig {
 
   std::string class_crops_path;
 
-  cv::Mat cam_img;
 
   int cropCounter;
 
@@ -1580,7 +1577,6 @@ class EinConfig {
     return numCollisions;
   }
 
-  image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
   ros::Subscriber gravity_comp_sub;
@@ -1595,7 +1591,6 @@ class EinConfig {
 
 
 
-  shared_ptr<image_transport::ImageTransport> it;
 
   ros::Subscriber collisionDetectionState;
   ros::Subscriber gripState;
@@ -1751,7 +1746,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void rangeCallback(const sensor_msgs::Range& range);
   void update_baxter(ros::NodeHandle &n);
   void timercallback1(const ros::TimerEvent&);
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+  void imageCallback(Camera * camera);
   void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
   void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;

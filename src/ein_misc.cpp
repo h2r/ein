@@ -3,7 +3,7 @@
 #include "ein.h"
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -1126,6 +1126,29 @@ END_WORD
 REGISTER_WORD(Fetch)
 
 
+WORD(IncrementCamera)
+virtual void execute(MachineState * ms)
+{
+  if (ms->config.numClasses > 0) {
+    int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
+    changeCamera(ms, newCamera);
+  }
+}
+END_WORD
+REGISTER_WORD(IncrementCamera)
+
+
+WORD(DecrementCamera)
+virtual void execute(MachineState * ms)
+{
+  if (ms->config.numClasses > 0) {
+    int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
+    changeCamera(ms, newCamera);
+  }
+}
+END_WORD
+REGISTER_WORD(DecrementCamera)
+
 
 
 
@@ -1659,7 +1682,7 @@ REGISTER_WORD(WaitUntilImageCallbackReceived)
 WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute(MachineState * ms)
 {
-  if (ms->config.lastImageCallbackRequest >= ms->config.lastImageCallbackReceived) {
+  if (ms->config.lastImageCallbackRequest >= ms->config.cameras[ms->config.focused_camera]->lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
     ms->config.shouldIImageCallback = 1;
     ms->config.endThisStackCollapse = 1;
@@ -2925,6 +2948,9 @@ CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
 CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
 
+CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
+
+CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 

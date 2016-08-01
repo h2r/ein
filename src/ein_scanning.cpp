@@ -1,6 +1,6 @@
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
 using namespace std;
@@ -745,10 +745,12 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(MachineState * ms)       {
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+
   cout << "recordExamplesFocusedClass is deprecated." << endl;
   if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
+    Mat crop = camera->cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 
@@ -764,10 +766,12 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(MachineState * ms)       {
   cout << "recordAllExamplesFocusedClass is deprecated." << endl;
+  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < ms->config.bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
+      Mat crop = camera->cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 

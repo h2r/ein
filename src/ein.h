@@ -147,10 +147,7 @@ bool isCellIkImpossible(MachineState * ms, int i, int j);
 //
 // start pilot prototypes 
 ////////////////////////////////////////////////
-
 int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
-int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
-int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack = 0);
 int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
 
 
@@ -160,7 +157,6 @@ double cephes_incbet(double a, double b, double x) ;
 void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet);
 void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet);
 void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet);
-void imRingBufferAdvance(MachineState * ms);
 void rgRingBufferAdvance(MachineState * ms);
 void epRingBufferAdvance(MachineState * ms);
 void allRingBuffersAdvance(MachineState * ms, ros::Time t);
