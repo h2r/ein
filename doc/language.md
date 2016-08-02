@@ -70,7 +70,9 @@ there before it is used.
 
 Do some arithmetic with Ein!  Push some numbers on the data stack, and
 observe them appearing at the console.  Then add them together with
-`+`, and observe the result on the data stack.
+`+`, and observe the result on the data stack.  Press enter after each
+word to observe the intermediate states, e.g., `1`, `1`, `+` should
+leave `2` on the data stack.  Then try running them all at once:  `1 1 +`. q
 
 
 #### Exercise:  Hello World!
