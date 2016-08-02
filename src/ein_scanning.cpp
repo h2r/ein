@@ -745,7 +745,7 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(MachineState * ms)       {
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   cout << "recordExamplesFocusedClass is deprecated." << endl;
   if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
@@ -766,7 +766,7 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(MachineState * ms)       {
   cout << "recordAllExamplesFocusedClass is deprecated." << endl;
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < ms->config.bTops.size(); c++) {

@@ -180,7 +180,7 @@ int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose,
     cout << "Ring buffer not yet initialized. " << ms->config.epRingBufferEnd << " times: " << ms->config.epRBTimes.size() << endl;
     assert(0);
   }
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   ros::Time poseTime = ms->config.epRBTimes[ms->config.epRingBufferEnd - 1];
   ros::Time imageTime = camera->imRBTimes[camera->imRingBufferEnd - 1];
 
@@ -511,7 +511,7 @@ void recordReadyRangeReadings(MachineState * ms) {
       double thisRange = ms->config.rgRingBuffer[ms->config.rgRingBufferStart];
       ros::Time thisTime = ms->config.rgRBTimes[ms->config.rgRingBufferStart];
 
-      shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
       geometry_msgs::Pose thisPose;
       Mat thisImage;
       int weHavePoseData = getRingPoseAtTime(ms, thisTime, thisPose);
@@ -4897,7 +4897,9 @@ void MachineState::imageCallback(Camera * camera) {
       return;
     }
   }
-
+  if (camera != ms->config.cameras[ms->config.focused_camera]) {
+    return;
+  }
   ms->config.wristCamImage = camera->cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = camera->cv_ptr->image.clone();
@@ -6452,6 +6454,12 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
   //assert(getLocalGraspGear(ms, ggToReturn) == localGraspGearIn);
 
   return ggToReturn;
+}
+
+
+void changeCamera(MachineState * ms, int newCamera) {
+  ms->config.focused_camera = newCamera;
+  ms->config.renderInit = 0;
 }
 
 void changeTargetClass(MachineState * ms, int newTargetClass) {
@@ -10747,7 +10755,7 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   for (double px = tbTop.x-ms->config.mapBlueBoxPixelSkirt; px <= tbBot.x+ms->config.mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-ms->config.mapBlueBoxPixelSkirt; py <= tbBot.y+ms->config.mapBlueBoxPixelSkirt; py++) {
       double x, y;
@@ -11923,7 +11931,7 @@ void substituteAccumulatedImageQuantities(MachineState * ms) {
 void substituteLatestImageQuantities(MachineState * ms) {
   double param_aerialGradientDecayIteratedDensity = 0.9;
   ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   double param_sobel_sigma_substitute_latest = 4.0;
   ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
   if (camera->cv_ptr == NULL) {
@@ -12771,7 +12779,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     return;
     //assert(0);
   }
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     vector<KeyPoint>& keypoints = ms->config.bKeypoints[c];
     Mat descriptors;
@@ -14467,7 +14475,7 @@ void initializeMap(MachineState * ms) {
 
 void guardViewers(MachineState * ms) {
 
-  shared_ptr<Camera> camera  = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
     ms->config.objectViewerYCbCrBlur = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
@@ -14779,12 +14787,15 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
     string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
-    shared_ptr<Camera> c = make_shared<Camera>(ms, image_topic);
+    Camera * c = new Camera(ms, image_topic);
     ms->config.cameras.push_back(c);
     ms->config.focused_camera = 0;
   }
-  shared_ptr<Camera> k2 = make_shared<Camera>(ms, "/kinect2/qhd/image_color");
-  ms->config.cameras.push_back(k2);
+  Camera * k2rgb = new Camera(ms, "/kinect2/qhd/image_color");
+  ms->config.cameras.push_back(k2rgb);
+
+  //Camera * k2ir = new Camera(ms, "/kinect2/sd/image_ir");
+  //ms->config.cameras.push_back(k2ir);
 
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);

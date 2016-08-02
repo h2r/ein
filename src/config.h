@@ -1339,7 +1339,7 @@ class EinConfig {
   //std::string class_labels= "unspecified_cl1 unspecified_cl2";
   //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
   
-  vector<shared_ptr< Camera> > cameras;
+  vector<Camera *> cameras;
   int focused_camera = -1;
 
   std::string cache_prefix = "";

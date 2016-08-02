@@ -284,6 +284,7 @@ void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int
                                   int * rx, int * ry);
 
 void changeTargetClass(MachineState * ms, int);
+void changeCamera(MachineState * ms, int);
 
 void zeroGraspMemoryAndRangeMap(MachineState * ms);
 void zeroClassGraspMemory(MachineState * ms);

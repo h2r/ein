@@ -766,7 +766,7 @@ CONFIG_SETTER_INT(SetMapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 
 WORD(MapEmptySpace)
 virtual void execute(MachineState * ms) {
-  shared_ptr<Camera> camera = ms->config.cameras[ms->config.focused_camera];
+  Camera * camera = ms->config.cameras[ms->config.focused_camera];
   
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
