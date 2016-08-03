@@ -96,7 +96,7 @@ This command will push the string "Hello world" on the data stack.
 
 
 Variables can be defined using the `store` word, which takes two
-arguemnts: the value (any word), and a string for the variable name.
+arguments: the value (any word), and a string for the variable name.
 For example, `0 "x" store` will store the integer word zero in the
 variable x.  Aftewards, typing `x` will push a `0` on the data stack,
 just as if you had typed `0`.
