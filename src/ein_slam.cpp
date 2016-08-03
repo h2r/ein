@@ -27,7 +27,6 @@ using namespace std;
 namespace ein_words {
   WORD(testSlam)
   virtual void execute(MachineState * ms) {
-
   }
   END_WORD
   REGISTER_WORD(testSlam)
