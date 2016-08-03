@@ -70,7 +70,9 @@ there before it is used.
 
 Do some arithmetic with Ein!  Push some numbers on the data stack, and
 observe them appearing at the console.  Then add them together with
-`+`, and observe the result on the data stack.
+`+`, and observe the result on the data stack.  Press enter after each
+word to observe the intermediate states, e.g., `1`, `1`, `+` should
+leave `2` on the data stack.  Then try running them all at once:  `1 1 +`. q
 
 
 #### Exercise:  Hello World!
@@ -94,7 +96,7 @@ This command will push the string "Hello world" on the data stack.
 
 
 Variables can be defined using the `store` word, which takes two
-arguemnts: the value (any word), and a string for the variable name.
+arguments: the value (any word), and a string for the variable name.
 For example, `0 "x" store` will store the integer word zero in the
 variable x.  Aftewards, typing `x` will push a `0` on the data stack,
 just as if you had typed `0`.

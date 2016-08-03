@@ -18,12 +18,13 @@ session.
 
 ### What if the robot won't move?
 
-Verify that you are not in zero gravity mode by checking the status
-window; it should be set to 0. Type `zeroGOff` to turn off zero
-gravity.  You can also press the grey circular button on the arm to
-toggle zero gravity (the "Ok" button).
-
-This problem also occurs if your ROS environment is misconfigured.  A
+First verify you are receiving state messages; the state window in the
+console should be updating as the robot's pose changes.  If not, you
+may be connecting to the wrong arm. Make sure if you are running on
+the left arm, you are using the left console window.  Alternately,
+your ROS environment may be misconfigured.  Verify that Baxter
+commands such as ` rosrun baxter_tools enable_robot.py -s` work
+correctly, and that `rostopic list` and `rostopic echo` work.  A
 common problem is that the $ROS_IP xor $ROS_HOSTNAME environment
 variables are not correctly set.  You should verify that one of these
 is set in the client machine, and that your Baxter can ping your
@@ -31,7 +32,15 @@ client machine using the exact IP address/hostname that is set via the
 environment variable.  One might think that a networking
 misconfiguration would result in no messages being sent, but in fact,
 often your client machine will receive messages from Baxter, but not
-be able to send messages.  
+be able to send messages, if your $ROS_MASTER_URI is correct, but not
+your $ROS_HOSTNAME or $ROS_IP.
+
+
+Verify that you are not in zero gravity mode by checking the status
+window; it should be set to 0. Type `zeroGOff` to turn off zero
+gravity.  You can also press the grey circular button on the arm to
+toggle zero gravity (the "Ok" button).
+
 
 
 ### What if the wrist camera image is not updating? 
