@@ -44,7 +44,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 	streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
       }
     } catch(cv_bridge::Exception& e) {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
+      ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
       return;
     }
   }
@@ -60,7 +60,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cam_img = cv_ptr->image.clone();
   }catch(cv_bridge::Exception& e){
-    ROS_ERROR("cv_bridge exception: %s", e.what());
+    ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
     return;
   }
 
