@@ -175,12 +175,6 @@ void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
-streamImage * setIsbIdx(MachineState * ms, int idx);
-streamImage * setIsbIdxNoLoad(MachineState * ms, int idx);
-streamImage * setIsbIdxYesLoadNoKick(MachineState * ms, int idx);
-streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx);
-streamImage * getIsbIdxNoLoadNoKick(MachineState * ms, int idx);
-void resetAccumulatedStreamImage(MachineState * ms);
 int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
@@ -198,7 +192,6 @@ void deactivateSensorStreaming(MachineState * ms);
 
 int didSensorStreamTimeout(MachineState * ms);
 
-void populateStreamImageBuffer(MachineState * ms);
 void populateStreamPoseBuffer(MachineState * ms);
 void populateStreamRangeBuffer(MachineState * ms);
 void populateStreamWordBuffer(MachineState * ms);
@@ -217,7 +210,7 @@ void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx);
 
 void checkAndStreamWord(MachineState * ms, string wordIn, string commandIn);
 
-void writeSideAndSerialToFileStorage(FileStorage& fsvO);
+void writeSideAndSerialToFileStorage(MachineState * ms, FileStorage& fsvO);
 void readSideAndSerialFromFileStorage(MachineState * ms, FileStorage fsvI, string * serial, string * side);
 string appendSideAndSerial(MachineState * ms, string root);
 

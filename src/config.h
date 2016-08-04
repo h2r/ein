@@ -620,7 +620,6 @@ class EinConfig {
   int streamLabelBatchSize = 5;
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
-  std::vector<streamImage> streamImageBuffer;
   std::vector<streamJoints> streamJointsBuffer;
   std::vector<streamWord> streamWordBuffer;
   std::vector<streamLabel> streamLabelBuffer;

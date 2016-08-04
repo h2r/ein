@@ -1099,154 +1099,6 @@ void writeIr2D(MachineState * ms, int idx, string this_range_path) {
   imwrite(png_path, rmImageOut, args);
 }
 
-streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
-  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
-    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
-      //cout << "setIsbIdx: last was valid and different." << endl;
-    } else {
-      //cout << "setIsbIdx: last was invalid or the same." << endl;
-    }
-
-    if (tsi.loaded) {
-    } else {
-      tsi.loaded = 0;
-    } 
-
-    ms->config.sibCurIdx = idx;
-  } else {
-    cout << "Tried to set ISB index out of bounds: " << idx << endl;
-    return NULL;
-  }
-
-  return &(ms->config.streamImageBuffer[idx]);
-}
-
-streamImage * getIsbIdxNoLoadNoKick(MachineState * ms, int idx) {
-  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
-    return &(ms->config.streamImageBuffer[idx]);
-  } else {
-    cout << "Tried to set ISB index out of bounds: " << idx << endl;
-    return NULL;
-  }
-}
-
-streamImage * setIsbIdxNoLoad(MachineState * ms, int idx) {
-  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
-    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
-      streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
-      lsi.image.create(1, 1, CV_8UC3);
-      lsi.loaded = 0;
-      //cout << "setIsbIdx: last was valid and different." << endl;
-    } else {
-      //cout << "setIsbIdx: last was invalid or the same." << endl;
-    }
-
-    if (tsi.loaded) {
-    } else {
-      tsi.loaded = 0;
-    } 
-
-    ms->config.sibCurIdx = idx;
-  } else {
-    cout << "Tried to set ISB index out of bounds: " << idx << endl;
-    return NULL;
-  }
-
-  return &(ms->config.streamImageBuffer[idx]);
-}
-
-streamImage * setIsbIdxYesLoadNoKick(MachineState *  ms, int idx) {
-  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
-    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
-      //streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
-      //lsi.image.create(1, 1, CV_8UC3);
-      //lsi.loaded = 0;
-      //cout << "setIsbIdx: last was valid and different." << endl;
-    } else {
-      //cout << "setIsbIdx: last was invalid or the same." << endl;
-    }
-
-    if (tsi.loaded) {
-      //cout << "setIsbIdx: this was loaded." << endl;
-    } else {
-      //cout << "setIsbIdx: this was not loaded." << endl;
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-	tsi.loaded = 0;
-	cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
-	return NULL;
-      } else {
-	tsi.loaded = 1;
-	ms->config.sibCurIdx = idx;
-      }
-    } 
-
-    ms->config.sibCurIdx = idx;
-  } else {
-    cout << "Tried to set ISB index out of bounds: " << idx << endl;
-    return NULL;
-  }
-
-  return &(ms->config.streamImageBuffer[ms->config.sibCurIdx]);
-}
-
-streamImage * setIsbIdx(MachineState * ms, int idx) {
-  if ( (idx > -1) && (idx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
-    if ( (lastIdx > -1) && (lastIdx < ms->config.streamImageBuffer.size()) && (lastIdx != idx) ) {
-      streamImage &lsi = ms->config.streamImageBuffer[lastIdx];
-      lsi.image.create(1, 1, CV_8UC3);
-      lsi.loaded = 0;
-      //cout << "setIsbIdx: last was valid and different." << endl;
-    } else {
-      //cout << "setIsbIdx: last was invalid or the same." << endl;
-    }
-
-    if (tsi.loaded) {
-      //cout << "setIsbIdx: this was loaded." << endl;
-    } else {
-      //cout << "setIsbIdx: this was not loaded." << endl;
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-	tsi.loaded = 0;
-	cout << "Tried to set ISB index but image failed to load: " << tsi.filename << endl;
-	return NULL;
-      } else {
-	tsi.loaded = 1;
-	ms->config.sibCurIdx = idx;
-      }
-    } 
-
-    ms->config.sibCurIdx = idx;
-  } else {
-    cout << "Tried to set ISB index out of bounds: " << idx << endl;
-    return NULL;
-  }
-
-  return &(ms->config.streamImageBuffer[idx]);
-}
-
-void resetAccumulatedStreamImage(MachineState * ms) {
-  Size sz = ms->config.accumulatedStreamImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] = 0.0;
-      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] = 0.0;
-      ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] = 0.0;
-      ms->config.accumulatedStreamImageMass.at<double>(y,x) = 0.0;
-    }
-  }
-}
 
 int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase) {
 
@@ -2172,79 +2024,6 @@ void deactivateSensorStreaming(MachineState * ms) {
   }
 }
 
-void populateStreamImageBuffer(MachineState * ms) {
-  DIR *dpdf;
-  struct dirent *epdf;
-  string dot(".");
-  string dotdot("..");
-  string dotpng(".png");
-
-  int classToStreamIdx = ms->config.focusedClass;
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-  dpdf = opendir(this_image_path.c_str());
-  cout << "Populating stream image buffer from " << this_image_path << endl;
-  if (dpdf != NULL) {
-    while (epdf = readdir(dpdf)) {
-
-      string fname(epdf->d_name);
-      string fextension;
-      string fnoextension;
-      if (fname.length() > 4) {
-	fextension = fname.substr(fname.length() - 4, 4);
-	fnoextension = fname.substr(0, fname.length() - 4);
-      } else {
-      } // do nothing
-
-      if (!dotpng.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-
-	int loaded = 1;
-
-        char filename[1024];
-        sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
-	string imfilename(filename);
-
-	/* this is slow
-        Mat image;
-        image = imread(imfilename);
-
-	if (image.data != NULL) {
-	} else {
-	  loaded = 0;
-	}
-	*/
-
-        sprintf(filename, "%s%s.yml", this_image_path.c_str(), fnoextension.c_str());
-	string inFileName(filename);
-	FileStorage fsvI;
-	cout << "Streaming image from " << inFileName << " ...";
-	fsvI.open(inFileName, FileStorage::READ);
-
-	double time = 0.0;
-	{
-	  FileNode anode = fsvI["time"];
-	  FileNodeIterator it = anode.begin(), it_end = anode.end();
-	  if (it != it_end) {
-	    time = *(it++);
-	  } else {
-	    loaded = 0;
-	  }
-	}
-
-	if (loaded) {
-	  streamImage toAdd;
-	  toAdd.time = time;
-	  toAdd.loaded = 0;
-	  toAdd.filename = imfilename;
-	  ms->config.streamImageBuffer.push_back(toAdd);
-	  cout << "done." << endl;
-	} else {
-	  cout << "failed :P" << endl;
-	}
-      }
-    }
-  }
-}
 
 int didSensorStreamTimeout(MachineState * ms) {
   ros::Time safetyNow =  ros::Time::now();
@@ -2259,49 +2038,6 @@ int didSensorStreamTimeout(MachineState * ms) {
   }
 }
 
-void streamImageAsClass(MachineState * ms, Mat im, int classToStreamIdx, double now) {
-
-  if (didSensorStreamTimeout(ms)) {
-    return;
-  } else {
-  }
-
-  if (ms->config.diskStreamingEnabled) {
-    string thisLabelName = ms->config.classLabels[classToStreamIdx];
-    string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-    char buf[1024];
-    sprintf(buf, "%s%f", this_image_path.c_str(), now);
-    string root_path(buf); 
-	root_path = appendSideAndSerial(ms, root_path);
-
-    string png_path = root_path + ".png";
-    string yaml_path = root_path + ".yml";
-    //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, im, args);
-
-    // may want to save additional camera parameters
-    FileStorage fsvO;
-    fsvO.open(yaml_path, FileStorage::WRITE);
-
-	writeSideAndSerialToFileStorage(ms, fsvO);
-
-    fsvO << "time" <<  now;
-    fsvO.release();
-  } else {
-    streamImage toAdd;
-    toAdd.image = im;
-    toAdd.time = now;
-    toAdd.loaded = 1;
-    toAdd.filename = "CAMERA";
-    ms->config.streamImageBuffer.push_back(toAdd);
-
-    //cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
-  }
-}
 
 void streamRangeAsClass(MachineState * ms, double rangeIn, int classToStreamIdx, double now) {
 
@@ -2349,6 +2085,7 @@ void streamPoseAsClass(MachineState * ms, eePose poseIn, int classToStreamIdx, d
     toAdd.arm_pose = poseIn;
     toAdd.base_pose = ms->config.c3dPoseBase;
     toAdd.time = now;
+
     ms->config.streamPoseBuffer.push_back(toAdd);
   } else {
     cout << "streamPoseAsClass: invalid focused class, deactivating streaming." << endl;
@@ -11887,11 +11624,12 @@ void substituteStreamImageQuantities(MachineState * ms) {
 
   double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
   ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int thisIdx = ms->config.sibCurIdx;
   //cout << "substituteStreamImageQuantities: " << thisIdx << endl;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       cout << "encountered NULL data in sib, clearing stack." << endl;
       ms->clearStack();

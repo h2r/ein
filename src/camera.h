@@ -28,6 +28,8 @@ class Camera {
   std::vector<ros::Time> imRBTimes;
   int imRingBufferStart = 0;
   int imRingBufferEnd = 0;
+  std::vector<streamImage> streamImageBuffer;
+
 
 
   MachineState * ms;
@@ -44,6 +46,17 @@ class Camera {
   int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
   void setRingImageAtTime(ros::Time t, Mat& imToSet);
   void imRingBufferAdvance();
+
+
+  streamImage * setIsbIdx(int idx);
+  streamImage * setIsbIdxNoLoad(int idx);
+  streamImage * setIsbIdxYesLoadNoKick(int idx);
+  streamImage * setIsbIdxNoLoadNoKick(int idx);
+  streamImage * getIsbIdxNoLoadNoKick(int idx);
+  void resetAccumulatedStreamImage();
+  void populateStreamImageBuffer();
+  void clearStreamBuffer();
+  void streamImageAsClass(Mat im, int classToStreamIdx, double now);
 
 };
 

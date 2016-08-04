@@ -2,6 +2,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "camera.h"
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 
@@ -3807,10 +3808,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -5243,10 +5245,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -5422,6 +5425,7 @@ virtual void execute(MachineState * ms) {
   }
 
   int numThreads = 8;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   vector<shared_ptr<GaussianMap> > maps;
   maps.resize(numThreads);
@@ -5437,13 +5441,13 @@ virtual void execute(MachineState * ms) {
     maps[thread]->zero();
 
     
-    int thisStart = thread * (ms->config.streamImageBuffer.size()  / numThreads);
-    int thisEnd = (thread + 1) * (ms->config.streamImageBuffer.size()  / numThreads); 
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
     stringstream buf;    
     buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
     cout << buf.str();
     for (int i = thisStart; i < thisEnd; i+=stride) {
-      streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
       
       
       
@@ -5591,6 +5595,7 @@ virtual void execute(MachineState * ms) {
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int numThreads = 8;
 
@@ -5608,14 +5613,14 @@ virtual void execute(MachineState * ms) {
     maps[thread]->zero();
 
     
-    int thisStart = thread * (ms->config.streamImageBuffer.size()  / numThreads);
-    int thisEnd = (thread + 1) * (ms->config.streamImageBuffer.size()  / numThreads); 
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
     stringstream buf;    
     buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
     cout << buf.str();
     for (int i = thisStart; i < thisEnd; i+=stride) {
       //streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
-      streamImage * tsi = getIsbIdxNoLoadNoKick(ms, i);
+      streamImage * tsi = camera->getIsbIdxNoLoadNoKick(i);
       
       
       
@@ -5842,6 +5847,7 @@ virtual void execute(MachineState * ms) {
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int numThreads = 8;
 
@@ -5859,13 +5865,13 @@ virtual void execute(MachineState * ms) {
     maps[thread]->zero();
 
     
-    int thisStart = thread * (ms->config.streamImageBuffer.size()  / numThreads);
-    int thisEnd = (thread + 1) * (ms->config.streamImageBuffer.size()  / numThreads); 
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
     stringstream buf;    
     buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
     cout << buf.str();
     for (int i = thisStart; i < thisEnd; i+=stride) {
-      streamImage * tsi = setIsbIdxNoLoadNoKick(ms, i);
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
       //streamImage * tsi = getIsbIdxNoLoadNoKick(ms, i);
       
       
@@ -6073,10 +6079,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -6293,10 +6300,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -6489,10 +6497,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -6952,10 +6961,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -7145,10 +7155,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -7298,10 +7309,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
@@ -8780,10 +8792,11 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int success = 1;
-  if ( (thisIdx > -1) && (thisIdx < ms->config.streamImageBuffer.size()) ) {
-    streamImage &tsi = ms->config.streamImageBuffer[thisIdx];
+  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
+    streamImage &tsi = camera->streamImageBuffer[thisIdx];
     if (tsi.image.data == NULL) {
       tsi.image = imread(tsi.filename);
       if (tsi.image.data == NULL) {
