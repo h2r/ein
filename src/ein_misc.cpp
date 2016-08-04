@@ -1129,10 +1129,8 @@ REGISTER_WORD(Fetch)
 WORD(IncrementCamera)
 virtual void execute(MachineState * ms)
 {
-  if (ms->config.numClasses > 0) {
-    int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
-    changeCamera(ms, newCamera);
-  }
+  int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
+  changeCamera(ms, newCamera);
 }
 END_WORD
 REGISTER_WORD(IncrementCamera)
@@ -1141,10 +1139,8 @@ REGISTER_WORD(IncrementCamera)
 WORD(DecrementCamera)
 virtual void execute(MachineState * ms)
 {
-  if (ms->config.numClasses > 0) {
-    int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
-    changeCamera(ms, newCamera);
-  }
+  int newCamera = (ms->config.focused_camera - 1) % ms->config.cameras.size();
+  changeCamera(ms, newCamera);
 }
 END_WORD
 REGISTER_WORD(DecrementCamera)

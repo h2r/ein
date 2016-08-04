@@ -33,19 +33,18 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lastImageCallbackReceived = ros::Time::now();
 
   lastImageStamp = msg->header.stamp;
-
+  try{
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+  } catch(cv_bridge::Exception& e) {
+    ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
+    return;
+  }
 
   if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    try{
-      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      int cfClass = ms->config.focusedClass;
-      if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-	double thisNow = msg->header.stamp.toSec();
-	streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
-      }
-    } catch(cv_bridge::Exception& e) {
-      ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
-      return;
+    int cfClass = ms->config.focusedClass;
+    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
+      double thisNow = msg->header.stamp.toSec();
+      streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
     }
   }
 
@@ -54,15 +53,8 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     return;
   }
 
-
-
-  try{
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cam_img = cv_ptr->image.clone();
-  }catch(cv_bridge::Exception& e){
-    ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
-    return;
-  }
+  
+  cam_img = cv_ptr->image.clone();
 
 
 
