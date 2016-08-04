@@ -261,7 +261,7 @@ void Camera::imRingBufferAdvance() {
 streamImage * Camera::setIsbIdxNoLoadNoKick(int idx) {
   if ( (idx > -1) && (idx < streamImageBuffer.size()) ) {
     streamImage &tsi = streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
+    int lastIdx = sibCurIdx;
     if ( (lastIdx > -1) && (lastIdx < streamImageBuffer.size()) && (lastIdx != idx) ) {
       //cout << "setIsbIdx: last was valid and different." << endl;
     } else {
@@ -273,7 +273,7 @@ streamImage * Camera::setIsbIdxNoLoadNoKick(int idx) {
       tsi.loaded = 0;
     } 
 
-    ms->config.sibCurIdx = idx;
+    sibCurIdx = idx;
   } else {
     cout << "Tried to set ISB index out of bounds: " << idx << endl;
     return NULL;
@@ -299,7 +299,7 @@ streamImage * Camera::getIsbIdxNoLoadNoKick(int idx) {
 streamImage * Camera::setIsbIdxNoLoad(int idx) {
   if ( (idx > -1) && (idx < streamImageBuffer.size()) ) {
     streamImage &tsi = streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
+    int lastIdx = sibCurIdx;
     if ( (lastIdx > -1) && (lastIdx < streamImageBuffer.size()) && (lastIdx != idx) ) {
       streamImage &lsi = streamImageBuffer[lastIdx];
       lsi.image.create(1, 1, CV_8UC3);
@@ -314,7 +314,7 @@ streamImage * Camera::setIsbIdxNoLoad(int idx) {
       tsi.loaded = 0;
     } 
 
-    ms->config.sibCurIdx = idx;
+    sibCurIdx = idx;
   } else {
     cout << "Tried to set ISB index out of bounds: " << idx << endl;
     return NULL;
@@ -326,7 +326,7 @@ streamImage * Camera::setIsbIdxNoLoad(int idx) {
 streamImage * Camera::setIsbIdxYesLoadNoKick(int idx) {
   if ( (idx > -1) && (idx < streamImageBuffer.size()) ) {
     streamImage &tsi = streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
+    int lastIdx = sibCurIdx;
     if ( (lastIdx > -1) && (lastIdx < streamImageBuffer.size()) && (lastIdx != idx) ) {
       //streamImage &lsi = streamImageBuffer[lastIdx];
       //lsi.image.create(1, 1, CV_8UC3);
@@ -347,23 +347,23 @@ streamImage * Camera::setIsbIdxYesLoadNoKick(int idx) {
 	return NULL;
       } else {
 	tsi.loaded = 1;
-	ms->config.sibCurIdx = idx;
+	sibCurIdx = idx;
       }
     } 
 
-    ms->config.sibCurIdx = idx;
+    sibCurIdx = idx;
   } else {
     cout << "Tried to set ISB index out of bounds: " << idx << endl;
     return NULL;
   }
 
-  return &(streamImageBuffer[ms->config.sibCurIdx]);
+  return &(streamImageBuffer[sibCurIdx]);
 }
 
 streamImage * Camera::setIsbIdx(int idx) {
   if ( (idx > -1) && (idx < streamImageBuffer.size()) ) {
     streamImage &tsi = streamImageBuffer[idx];
-    int lastIdx = ms->config.sibCurIdx;
+    int lastIdx = sibCurIdx;
     if ( (lastIdx > -1) && (lastIdx < streamImageBuffer.size()) && (lastIdx != idx) ) {
       streamImage &lsi = streamImageBuffer[lastIdx];
       lsi.image.create(1, 1, CV_8UC3);
@@ -384,11 +384,11 @@ streamImage * Camera::setIsbIdx(int idx) {
 	return NULL;
       } else {
 	tsi.loaded = 1;
-	ms->config.sibCurIdx = idx;
+	sibCurIdx = idx;
       }
     } 
 
-    ms->config.sibCurIdx = idx;
+    sibCurIdx = idx;
   } else {
     cout << "Tried to set ISB index out of bounds: " << idx << endl;
     return NULL;

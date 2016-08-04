@@ -3803,12 +3803,14 @@ REGISTER_WORD(SceneUpdateObservedFromWrist)
 // XXX TODO NOT DONE
 WORD(SceneUpdateObservedFromStreamBufferNoRecalc)
 virtual void execute(MachineState * ms) {
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -5239,13 +5241,13 @@ WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
 virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -6057,8 +6059,8 @@ WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray)
 virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   double arrayDimension = 25;
@@ -6079,7 +6081,7 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -6290,8 +6292,8 @@ virtual void execute(MachineState * ms) {
     cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray: given 0 lens_strength, using " << lens_strength_x << " instead." << endl;
   }
 
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   cout << "zToUse lens_gap: " << z_to_use << " " << lens_gap << endl;
@@ -6300,7 +6302,7 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -6489,15 +6491,15 @@ virtual void execute(MachineState * ms) {
     lambda = 1.0e-6;
     cout << "sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray: given 0 lambda, using " << lambda << " instead." << endl;
   }
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   //cout << "zToUse lens_gap: " << z_to_use << " " << lens_gap << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -6939,8 +6941,8 @@ virtual void execute(MachineState * ms) {
 // it in the observed map, possibly to be put onto the depth stack
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   double arrayDimension = 25;
@@ -6961,7 +6963,7 @@ virtual void execute(MachineState * ms) {
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -7149,13 +7151,13 @@ WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc)
 virtual void execute(MachineState * ms) {
   double zToUse = 0.0;
   GET_NUMERIC_ARG(ms, zToUse);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -7303,13 +7305,13 @@ WORD(SceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc)
 virtual void execute(MachineState * ms) {
   double zToUse = 0.0;
   GET_NUMERIC_ARG(ms, zToUse);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
@@ -8786,13 +8788,13 @@ virtual void execute(MachineState * ms) {
 
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
-
-  int thisIdx = ms->config.sibCurIdx;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  int thisIdx = camera->sibCurIdx;
   //cout << "sceneUpdateObservedFromStreamBuffer: " << thisIdx << endl;
 
   Mat bufferImage;
   eePose thisPose, tBaseP;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {

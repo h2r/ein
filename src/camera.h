@@ -47,6 +47,7 @@ class Camera {
   void setRingImageAtTime(ros::Time t, Mat& imToSet);
   void imRingBufferAdvance();
 
+  int sibCurIdx = 0;
 
   streamImage * setIsbIdx(int idx);
   streamImage * setIsbIdxNoLoad(int idx);

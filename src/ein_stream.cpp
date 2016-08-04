@@ -240,7 +240,9 @@ REGISTER_WORD(IntegrateRangeStreamBuffer)
 WORD(StreamPushImageStreamIndex)
 virtual void execute(MachineState * ms)
 {
-  ms->pushWord( make_shared<DoubleWord>(ms->config.sibCurIdx) );
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  ms->pushWord( make_shared<DoubleWord>(camera->sibCurIdx) );
 }
 END_WORD
 REGISTER_WORD(StreamPushImageStreamIndex)
@@ -377,7 +379,7 @@ virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int nextIdx = ms->config.sibCurIdx + 1;
+  int nextIdx = camera->sibCurIdx + 1;
   cout << "incrementImageStreamBuffer: Incrementing to " << nextIdx << " out of " << camera->streamImageBuffer.size() << endl;
   if ( (nextIdx > -1) && (nextIdx < camera->streamImageBuffer.size()) ) {
     streamImage * result = camera->setIsbIdx(nextIdx);  
@@ -396,7 +398,7 @@ virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int nextIdx = ms->config.sibCurIdx + 1;
+  int nextIdx = camera->sibCurIdx + 1;
   //cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < camera->streamImageBuffer.size()) ) {
     streamImage * result = camera->setIsbIdxNoLoadNoKick(nextIdx);  
@@ -415,7 +417,7 @@ virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int nextIdx = ms->config.sibCurIdx + 1;
+  int nextIdx = camera->sibCurIdx + 1;
   //cout << "incrementImageStreamBufferNoLoad: Incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < camera->streamImageBuffer.size()) ) {
     streamImage * result = camera->setIsbIdxNoLoad(nextIdx);  
@@ -434,7 +436,7 @@ virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int thisIdx = ms->config.sibCurIdx;
+  int thisIdx = camera->sibCurIdx;
   //cout << "imageStreamBufferLoadCurrent: reloading " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage * result = camera->setIsbIdxYesLoadNoKick(thisIdx);  
@@ -452,7 +454,7 @@ WORD(StreamCropsAsFocusedClass)
 virtual void execute(MachineState * ms)       {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  streamImage * tsi = camera->setIsbIdxNoLoad(ms->config.sibCurIdx);
+  streamImage * tsi = camera->setIsbIdxNoLoad(camera->sibCurIdx);
   if (tsi == NULL) {
     cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
   } else {
@@ -471,7 +473,7 @@ virtual void execute(MachineState * ms)       {
   // only load if we pass the distance test
   if (dist_to_base < p_dist_thresh) {
     cout << "streamCropsAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    tsi = camera->setIsbIdx(ms->config.sibCurIdx);
+    tsi = camera->setIsbIdx(camera->sibCurIdx);
     if (tsi == NULL) {
       cout << "streamCropsAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
     } else {
@@ -509,7 +511,7 @@ WORD(StreamCenterCropAsFocusedClass)
 virtual void execute(MachineState * ms)       {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  streamImage * tsi = camera->setIsbIdxNoLoad(ms->config.sibCurIdx);
+  streamImage * tsi = camera->setIsbIdxNoLoad(camera->sibCurIdx);
   if (tsi == NULL) {
     cout << "streamCenterCropAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
   } else {
@@ -528,7 +530,7 @@ virtual void execute(MachineState * ms)       {
   // only load if we pass the distance test
   if (dist_to_base < p_dist_thresh) {
     cout << "streamCenterCropAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    tsi = camera->setIsbIdx(ms->config.sibCurIdx);
+    tsi = camera->setIsbIdx(camera->sibCurIdx);
     if (tsi == NULL) {
       cout << "streamCenterCropAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
     } else {
@@ -651,7 +653,7 @@ WORD(IterateIsbAndAccumulateHeightImages)
 virtual void execute(MachineState * ms)       {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  streamImage * tsi = camera->setIsbIdxNoLoad(ms->config.sibCurIdx);
+  streamImage * tsi = camera->setIsbIdxNoLoad(camera->sibCurIdx);
   if (tsi == NULL) {
     cout << "iterateIsbAndAccumulateHeightImages: setIsbIdxNoLoad returned null. Returning." << endl;
   } else {
@@ -676,7 +678,7 @@ virtual void execute(MachineState * ms)       {
   if ( success && (dist_to_servo_p < p_dtp) && (dist_to_servo_q < p_dtq)) {
     cout << "Stream servo image test SUCCESS, accepting, dist_to_servo_p, p_dtp, dist_to_servo_q, p_dtq: " << dist_to_servo_p << " " << p_dtp << " " << dist_to_servo_q << " " << p_dtq << endl;
 
-    tsi = camera->setIsbIdx(ms->config.sibCurIdx);
+    tsi = camera->setIsbIdx(camera->sibCurIdx);
     if (tsi == NULL) {
       cout << "iterateIsbAndAccumulateHeightImages: setIsbIdx returned null after pose check! Returning." << endl;
     } else {
@@ -717,7 +719,7 @@ virtual void execute(MachineState * ms)       {
   }
 
   int recall = 1;
-  int nextIdx = ms->config.sibCurIdx + 1;
+  int nextIdx = camera->sibCurIdx + 1;
   cout << "iterateIsbAndAccumulateHeightImages incrementing to " << nextIdx << endl;
   if ( (nextIdx > -1) && (nextIdx < camera->streamImageBuffer.size()) ) {
     streamImage * result = camera->setIsbIdx(nextIdx);  

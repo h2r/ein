@@ -11626,7 +11626,7 @@ void substituteStreamImageQuantities(MachineState * ms) {
   ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int thisIdx = ms->config.sibCurIdx;
+  int thisIdx = camera->sibCurIdx;
   //cout << "substituteStreamImageQuantities: " << thisIdx << endl;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];

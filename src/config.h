@@ -624,7 +624,6 @@ class EinConfig {
   std::vector<streamWord> streamWordBuffer;
   std::vector<streamLabel> streamLabelBuffer;
   // stream image buffer current index
-  int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
   int sjbCurIdx = 0;
