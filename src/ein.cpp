@@ -4263,19 +4263,24 @@ int renderInit(MachineState * ms,  Camera * camera) {
   
   ms->config.shouldIRender = ms->config.shouldIRenderDefault;
   
-  ms->config.wristCamImage = camera->cv_ptr->image.clone();
   ms->config.wristCamInit = 1;
-  ms->config.wristViewImage = camera->cv_ptr->image.clone();
-  ms->config.faceViewImage = camera->cv_ptr->image.clone();
-  cout << "Wrist Image: " << camera->cv_ptr->image.rows << ", " << camera->cv_ptr->image.cols << endl;
-  ms->config.accumulatedImage = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
-  ms->config.accumulatedImageMass = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64F);
+  if (camera->cam_img.type() == CV_16UC1) {
+    Mat graybgr;
+    cvtColor(camera->cam_img, graybgr, CV_GRAY2BGR);  //ir image looks okay but drawing is messed up; gripper mask is green and reticles don't have color.
+    graybgr.convertTo(ms->config.wristViewImage, CV_8U, 1.0/256.0);
+  } else {
+    ms->config.wristViewImage = camera->cam_img.clone();
+  }
+  ms->config.faceViewImage = camera->cam_img.clone();
+  cout << "Wrist Image: " << camera->cam_img.rows << ", " << camera->cam_img.cols << endl;
+  ms->config.accumulatedImage = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64F);
   
-  ms->config.densityViewerImage = camera->cv_ptr->image.clone();
+  ms->config.densityViewerImage = camera->cam_img.clone();
   ms->config.densityViewerImage *= 0;
-  ms->config.gradientViewerImage = Mat(2*camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, camera->cv_ptr->image.type());
+  ms->config.gradientViewerImage = Mat(2*camera->cam_img.rows, camera->cam_img.cols, camera->cam_img.type());
   ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-  ms->config.objectViewerImage = camera->cv_ptr->image.clone();
+  ms->config.objectViewerImage = camera->cam_img.clone();
   
   
   int imW = ms->config.wristViewImage.cols;
@@ -4628,19 +4633,29 @@ void renderWristViewImage(MachineState * ms) {
 }
 
 void MachineState::imageCallback(Camera * camera) {
+  if (camera != ms->config.cameras[ms->config.focused_camera]) {
+    return;
+  }
+
   if (!ms->config.renderInit) {
     if (renderInit(ms, camera) == -1) {
       ROS_ERROR("Couldn't initialize rendering system.");
       return;
     }
   }
-  if (camera != ms->config.cameras[ms->config.focused_camera]) {
-    return;
-  }
-  ms->config.wristCamImage = camera->cv_ptr->image.clone();
+
+  ms->config.wristCamImage = camera->cam_img.clone();
   ms->config.wristCamInit = 1;
-  ms->config.wristViewImage = camera->cv_ptr->image.clone();
-  ms->config.faceViewImage = camera->cv_ptr->image.clone();
+  ms->config.wristViewImage = camera->cam_img.clone();
+  if (camera->cam_img.type() == CV_16UC1) {
+    Mat graybgr;
+    cvtColor(camera->cam_img, graybgr, CV_GRAY2BGR);  //ir image looks okay but drawing is messed up; gripper mask is green and reticles don't have color.
+    graybgr.convertTo(ms->config.wristViewImage, CV_8U, 1.0/256.0);
+  } else {
+    ms->config.wristViewImage = camera->cam_img.clone();
+  }
+
+  ms->config.faceViewImage = camera->cam_img.clone();
 
   guardViewers(ms);
 
@@ -11672,13 +11687,8 @@ void substituteLatestImageQuantities(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   double param_sobel_sigma_substitute_latest = 4.0;
   ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
-  if (camera->cv_ptr == NULL) {
-    ROS_ERROR("Not receiving camera data, clearing call stack.");
-    ms->clearStack();
-    return;
-  }
 
-  ms->config.objectViewerImage = camera->cv_ptr->image.clone();
+  ms->config.objectViewerImage = camera->cam_img.clone();
 }
 
 void drawDensity(MachineState * ms, double scale) {
@@ -14216,29 +14226,29 @@ void guardViewers(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
-    ms->config.objectViewerYCbCrBlur = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerYCbCrBlur = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.objectViewerGrayBlur) ) {
-    ms->config.objectViewerGrayBlur = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
+    ms->config.objectViewerGrayBlur = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.densityViewerImage) ) {
-    ms->config.densityViewerImage = camera->cv_ptr->image.clone();
+    ms->config.densityViewerImage = camera->cam_img.clone();
     ms->config.densityViewerImage *= 0;
   }
   if ( isSketchyMat(ms->config.accumulatedImage) ) {
-    ms->config.accumulatedImage = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64FC3);
+    ms->config.accumulatedImage = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
   }
   if ( isSketchyMat(ms->config.accumulatedImageMass) ) {
-    ms->config.accumulatedImageMass = Mat(camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, CV_64F);
+    ms->config.accumulatedImageMass = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64F);
   }
   if ( isSketchyMat(ms->config.gradientViewerImage) ) {
-    ms->config.gradientViewerImage = Mat(2*camera->cv_ptr->image.rows, camera->cv_ptr->image.cols, camera->cv_ptr->image.type());
+    ms->config.gradientViewerImage = Mat(2*camera->cam_img.rows, camera->cam_img.cols, camera->cam_img.type());
   }
   if ( isSketchyMat(ms->config.aerialGradientViewerImage) ) {
     ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   }
   if ( isSketchyMat(ms->config.objectViewerImage) ) {
-    ms->config.objectViewerImage = camera->cv_ptr->image.clone();
+    ms->config.objectViewerImage = camera->cam_img.clone();
   }
 }
 
@@ -14522,7 +14532,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
-
+  ms->config.cameras.resize(0);
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
     string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
     Camera * c = new Camera(ms, image_topic);
@@ -14532,8 +14542,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   Camera * k2rgb = new Camera(ms, "/kinect2/qhd/image_color");
   ms->config.cameras.push_back(k2rgb);
 
-  //Camera * k2ir = new Camera(ms, "/kinect2/sd/image_ir");
-  //ms->config.cameras.push_back(k2ir);
+  Camera * k2ir = new Camera(ms, "/kinect2/sd/image_ir");
+  ms->config.cameras.push_back(k2ir);
 
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);

@@ -21,7 +21,6 @@ class Camera {
   ros::Time lastImageCallbackReceived;
   ros::Time lastImageStamp;
 
-  cv_bridge::CvImagePtr cv_ptr = NULL;
   cv::Mat cam_img;
   const int imRingBufferSize = 300;
   std::vector<Mat> imRingBuffer;

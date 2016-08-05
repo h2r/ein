@@ -33,8 +33,11 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lastImageCallbackReceived = ros::Time::now();
 
   lastImageStamp = msg->header.stamp;
+  cv_bridge::CvImageConstPtr cv_ptr = NULL;
+
   try{
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    //cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    cv_ptr = cv_bridge::toCvShare(msg);
   } catch(cv_bridge::Exception& e) {
     ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
     return;
@@ -52,11 +55,15 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //cout << "Early exit image callback." << endl;
     return;
   }
+  //cout << "Topic: " << image_topic << " ";
+  //cout << "Type: " << cv_ptr->image.type() << endl;
+  //cout << "type: " << CV_16U << endl;
 
-  
-  cam_img = cv_ptr->image.clone();
-
-
+  if (cv_ptr->image.type()==CV_8UC4) {
+    cvtColor(cv_ptr->image, cam_img, CV_BGRA2BGR);
+  } else {
+    cam_img = cv_ptr->image.clone();
+  }
 
   setRingImageAtTime(msg->header.stamp, cam_img);
 
@@ -523,7 +530,7 @@ void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
     fsvO.release();
   } else {
     streamImage toAdd;
-    toAdd.image = im;
+    toAdd.image = im.clone();
     toAdd.time = now;
     toAdd.loaded = 1;
     toAdd.filename = "CAMERA";
