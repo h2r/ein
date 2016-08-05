@@ -2684,9 +2684,11 @@ REGISTER_WORD(InitializeConfig)
 
 WORD(LoadCalibration)
 virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  camera->loadCalibration(fileName);
   ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
@@ -2697,7 +2699,9 @@ virtual void execute(MachineState * ms) {
   string fileName;
   GET_ARG(ms, StringWord, fileName);
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->loadCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(LoadCalibrationRaw)
@@ -2706,7 +2710,9 @@ WORD(LoadDefaultCalibration)
 virtual void execute(MachineState * ms) {
   string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->loadCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(LoadDefaultCalibration)
@@ -2716,7 +2722,10 @@ WORD(SaveCalibration)
 virtual void execute(MachineState * ms) {
   string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
   cout << "Saving calibration file from " << fileName << endl;
-  saveCalibration(ms, fileName);
+
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->saveCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(SaveCalibration)
@@ -2740,7 +2749,9 @@ virtual void execute(MachineState * ms) {
   string fileName(buf); 
 
   cout << "saveCalibrationToClass: Saving calibration file to " << fileName << endl;
-  saveCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->saveCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(SaveCalibrationToClass)

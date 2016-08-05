@@ -370,8 +370,6 @@ void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositio
 
 void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
-void loadCalibration(MachineState * ms, string inFileName);
-void saveCalibration(MachineState * ms, string outFileName);
 
 void findDarkness(MachineState * ms, int * xout, int * yout);
 void findLight(MachineState * ms, int * xout, int * yout);

@@ -58,6 +58,10 @@ class Camera {
   void clearStreamBuffer();
   void streamImageAsClass(Mat im, int classToStreamIdx, double now);
 
+  void loadCalibration(string inFileName);
+  void saveCalibration(string outFileName);
+
+
 };
 
 
