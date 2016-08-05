@@ -559,7 +559,7 @@ void recordReadyRangeReadings(MachineState * ms) {
 
 	{
 	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
@@ -1241,8 +1241,9 @@ int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm
 // casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut 
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut) {
 
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
   Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
   Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
   Eigen::Quaternionf irSensorStartGlobal(
@@ -2423,10 +2424,12 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
       // this is a fake box to test intersection
       int probeBoxHalfWidthPixels = 10;
       BoxMemory box;
-      box.bTop.x = ms->config.vanishingPointReticle.px-probeBoxHalfWidthPixels;
-      box.bTop.y = ms->config.vanishingPointReticle.py-probeBoxHalfWidthPixels;
-      box.bBot.x = ms->config.vanishingPointReticle.px+probeBoxHalfWidthPixels;
-      box.bBot.y = ms->config.vanishingPointReticle.py+probeBoxHalfWidthPixels;
+      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+      box.bTop.x = camera->vanishingPointReticle.px-probeBoxHalfWidthPixels;
+      box.bTop.y = camera->vanishingPointReticle.py-probeBoxHalfWidthPixels;
+      box.bBot.x = camera->vanishingPointReticle.px+probeBoxHalfWidthPixels;
+      box.bBot.y = camera->vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
       box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -2475,10 +2478,12 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
   } else if (ms->config.currentRobotMode == SIMULATED) {
     if (ms->config.objectInHandLabel >= 0) {
       BoxMemory box;
-      box.bTop.x = ms->config.vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
-      box.bTop.y = ms->config.vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
-      box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
-      box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
+      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+      box.bTop.x = camera->vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
+      box.bTop.y = camera->vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
+      box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
+      box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
       box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
       box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -2825,6 +2830,8 @@ void initialize3DParzen(MachineState * ms) {
 }
 
 void l2Normalize3DParzen(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   double norm = 0;
   for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
@@ -2836,7 +2843,7 @@ void l2Normalize3DParzen(MachineState * ms) {
       }
     }
   }
-  if (fabs(norm) < ms->config.fEpsilon)
+  if (fabs(norm) < camera->fEpsilon)
     norm = 1;
   for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
@@ -2866,6 +2873,8 @@ void initializeParzen(MachineState * ms) {
 
 
 void l2NormalizeParzen(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   double norm = 0;
   for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
@@ -2874,7 +2883,7 @@ void l2NormalizeParzen(MachineState * ms) {
       norm += ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth];
     }
   }
-  if (fabs(norm) < ms->config.fEpsilon)
+  if (fabs(norm) < camera->fEpsilon)
     norm = 1;
   for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
@@ -2889,11 +2898,13 @@ void l2NormalizeParzen(MachineState * ms) {
 }
 
 void l2NormalizeFilter(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   double norm = 0;
   for (int fx = 0; fx < 9; fx++) {
     norm += ms->config.filter[fx]*ms->config.filter[fx];
   }
-  if (fabs(norm) < ms->config.fEpsilon)
+  if (fabs(norm) < camera->fEpsilon)
     norm = 1;
   for (int fx = 0; fx < 9; fx++) {
     ms->config.filter[fx] /= norm;
@@ -2903,44 +2914,47 @@ void l2NormalizeFilter(MachineState * ms) {
 
 int getColorReticleX(MachineState * ms) {
   // rounding
-  //int tcri = int(round((eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  //tcri = min(max(tcri,0),ms->config.numCReticleIndeces-1);
-  //return ms->config.xCR[tcri];
+  //int tcri = int(round((eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  //tcri = min(max(tcri,0),camera->numCReticleIndexes-1);
+  //return camera->xCR[tcri];
 
   // interpolating
-  int tcriL = int(floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  int tcriH = int(ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  tcriL = min(max(tcriL,0),ms->config.numCReticleIndeces-1);
-  tcriH = min(max(tcriH,0),ms->config.numCReticleIndeces-1);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  double tcrwL = ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
-  double tcrwH = ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
+  int tcriL = int(floor((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),camera->numCReticleIndexes-1);
+  tcriH = min(max(tcriH,0),camera->numCReticleIndexes-1);
+
+  double tcrwL = ((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta) - floor((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta) - ((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta);
 
   if (tcriL == tcriH)
-    return ms->config.xCR[tcriL];
+    return camera->xCR[tcriL];
   else
-    return int(round(tcrwL*double(ms->config.xCR[tcriL]) + tcrwH*double(ms->config.xCR[tcriH])));
+    return int(round(tcrwL*double(camera->xCR[tcriL]) + tcrwH*double(camera->xCR[tcriH])));
 }
 
 int getColorReticleY(MachineState * ms) {
   // rounding
-  //int tcri = int(round((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  //tcri = min(max(tcri,0),ms->config.numCReticleIndeces-1);
-  //return ms->config.yCR[tcri];
+  //int tcri = int(round((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  //tcri = min(max(tcri,0),camera->numCReticleIndexes-1);
+  //return camera->yCR[tcri];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   // interpolating
-  int tcriL = int(floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  int tcriH = int(ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta));
-  tcriL = min(max(tcriL,0),ms->config.numCReticleIndeces-1);
-  tcriH = min(max(tcriH,0),ms->config.numCReticleIndeces-1);
+  int tcriL = int(floor((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  int tcriH = int(ceil((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta));
+  tcriL = min(max(tcriL,0),camera->numCReticleIndexes-1);
+  tcriH = min(max(tcriH,0),camera->numCReticleIndexes-1);
 
-  double tcrwL = ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - floor((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
-  double tcrwH = ceil((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta) - ((ms->config.eeRange - ms->config.firstCReticleIndexDepth)/ms->config.cReticleIndexDelta);
+  double tcrwL = ((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta) - floor((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta);
+  double tcrwH = ceil((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta) - ((ms->config.eeRange - camera->firstCReticleIndexDepth)/camera->cReticleIndexDelta);
 
   if (tcriL == tcriH)
-    return ms->config.yCR[tcriL];
+    return camera->yCR[tcriL];
   else
-    return int(round(tcrwL*double(ms->config.yCR[tcriL]) + tcrwH*double(ms->config.yCR[tcriH])));
+    return int(round(tcrwL*double(camera->yCR[tcriL]) + tcrwH*double(camera->yCR[tcriH])));
 }
 
 cv::Vec3b getCRColor(MachineState * ms) {
@@ -3470,8 +3484,10 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
     double dY = 0;
 
     {
+      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
       Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
       Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
       Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
@@ -4391,8 +4407,10 @@ void renderWristViewImage(MachineState * ms) {
     {
       eePose irPose;
       {
+        Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
@@ -4424,9 +4442,10 @@ void renderWristViewImage(MachineState * ms) {
   // draw vanishing point reticle
   {
     int vanishingPointReticleRadius = 15;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    int x0 = ms->config.vanishingPointReticle.px;
-    int y0 = ms->config.vanishingPointReticle.py;
+    int x0 = camera->vanishingPointReticle.px;
+    int y0 = camera->vanishingPointReticle.py;
     Point pt1(x0, y0);
 
     cv::Scalar theColor(192, 64, 64);
@@ -4442,8 +4461,10 @@ void renderWristViewImage(MachineState * ms) {
     // XXX TODO this should be guarded 
     int movementIndicatorInnerHalfWidth = 7;
     int movementIndicatorOuterHalfWidth = 10;
-    int x0 = ms->config.vanishingPointReticle.px;
-    int y0 = ms->config.vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    int x0 = camera->vanishingPointReticle.px;
+    int y0 = camera->vanishingPointReticle.py+3*movementIndicatorOuterHalfWidth;
     Point pt1(x0, y0);
     Mat innerCrop = ms->config.wristViewImage(cv::Rect(pt1.x-movementIndicatorInnerHalfWidth, pt1.y-movementIndicatorInnerHalfWidth, 
 					  2*movementIndicatorInnerHalfWidth, 2*movementIndicatorInnerHalfWidth) );
@@ -4474,20 +4495,22 @@ void renderWristViewImage(MachineState * ms) {
 
   // draw probe reticle
   {
-    int probeReticleHalfWidth = 7;
-    int x0 = ms->config.probeReticle.px;
-    int y0 = ms->config.probeReticle.py;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    int x1 = max(int(ms->config.probeReticle.px-probeReticleHalfWidth), 0);
-    int x2 = min(int(ms->config.probeReticle.px+probeReticleHalfWidth), ms->config.wristViewImage.cols);
-    int y1 = max(int(ms->config.probeReticle.py-probeReticleHalfWidth), 0);
-    int y2 = min(int(ms->config.probeReticle.py+probeReticleHalfWidth), ms->config.wristViewImage.rows);
+    int probeReticleHalfWidth = 7;
+    int x0 = camera->probeReticle.px;
+    int y0 = camera->probeReticle.py;
+
+    int x1 = max(int(camera->probeReticle.px-probeReticleHalfWidth), 0);
+    int x2 = min(int(camera->probeReticle.px+probeReticleHalfWidth), ms->config.wristViewImage.cols);
+    int y1 = max(int(camera->probeReticle.py-probeReticleHalfWidth), 0);
+    int y2 = min(int(camera->probeReticle.py+probeReticleHalfWidth), ms->config.wristViewImage.rows);
 
     int probeReticleShortHalfWidth = 3;
-    int x1s = max(int(ms->config.probeReticle.px-probeReticleShortHalfWidth), 0);
-    int x2s = min(int(ms->config.probeReticle.px+probeReticleShortHalfWidth), ms->config.wristViewImage.cols);
-    int y1s = max(int(ms->config.probeReticle.py-probeReticleShortHalfWidth), 0);
-    int y2s = min(int(ms->config.probeReticle.py+probeReticleShortHalfWidth), ms->config.wristViewImage.rows);
+    int x1s = max(int(camera->probeReticle.px-probeReticleShortHalfWidth), 0);
+    int x2s = min(int(camera->probeReticle.px+probeReticleShortHalfWidth), ms->config.wristViewImage.cols);
+    int y1s = max(int(camera->probeReticle.py-probeReticleShortHalfWidth), 0);
+    int y2s = min(int(camera->probeReticle.py+probeReticleShortHalfWidth), ms->config.wristViewImage.rows);
 
     cv::Scalar theColor(255, 0, 0);
     cv::Scalar THEcOLOR(0, 255, 255);
@@ -4561,9 +4584,9 @@ void renderWristViewImage(MachineState * ms) {
   // draw color reticle
   /*
   {
-    for (int cr = 0; cr < ms->config.numCReticleIndeces; cr++) {
-      cv::Point outTop = cv::Point(ms->config.xCR[cr]-3, ms->config.yCR[cr]-3);
-      cv::Point outBot = cv::Point(ms->config.xCR[cr]+3, ms->config.yCR[cr]+3);
+    for (int cr = 0; cr < camera->numCReticleIndexes; cr++) {
+      cv::Point outTop = cv::Point(camera->xCR[cr]-3, camera->yCR[cr]-3);
+      cv::Point outBot = cv::Point(camera->xCR[cr]+3, camera->yCR[cr]+3);
       cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
       cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
       rectangle(ms->config.wristViewImage, outTop, outBot, cv::Scalar(0,192,0)); 
@@ -4586,7 +4609,8 @@ void renderWristViewImage(MachineState * ms) {
     for (int hri = 0; hri < 4; hri++) {
       if (hri != ms->config.currentThompsonHeightIdx)
 	continue;
-      eePose thisReticle = ms->config.heightReticles[hri];
+      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+      eePose thisReticle = camera->heightReticles[hri];
       int param_reticleHalfWidth = 18;
       int thisReticleHalfWidth = int(  ceil( double(param_reticleHalfWidth) / double(1+hri) )  );
       cv::Point outTop = cv::Point(thisReticle.px-thisReticleHalfWidth, thisReticle.py-thisReticleHalfWidth);
@@ -5246,6 +5270,7 @@ void MachineState::targetCallback(const geometry_msgs::Point& point) {
 
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   MachineState * ms = ((MachineState *) userdata);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   //if (!ms->config.shouldIMiscCallback) {
     //return;
@@ -5253,18 +5278,20 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
 
   if ( event == EIN_EVENT_LBUTTONDOWN ) {
     cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-    ms->config.probeReticle.px = x;
-    ms->config.probeReticle.py = y;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    camera->probeReticle.px = x;
+    camera->probeReticle.py = y;
     cout << "x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << endl;
 
     // form a rotation about the vanishing point, measured from positive x axis
     // window is inverted
-    double thisTheta = vectorArcTan(ms, ms->config.vanishingPointReticle.py - y, x - ms->config.vanishingPointReticle.px);
+    double thisTheta = vectorArcTan(ms, camera->vanishingPointReticle.py - y, x - camera->vanishingPointReticle.px);
 
     ms->pushWord("pixelServoA");
     ms->pushWord(std::make_shared<DoubleWord>(thisTheta));
-    ms->pushWord(std::make_shared<IntegerWord>(ms->config.vanishingPointReticle.py));
-    ms->pushWord(std::make_shared<IntegerWord>(ms->config.vanishingPointReticle.px));
+    ms->pushWord(std::make_shared<IntegerWord>(camera->vanishingPointReticle.py));
+    ms->pushWord(std::make_shared<IntegerWord>(camera->vanishingPointReticle.px));
     ms->execute_stack = 1;
   } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
     //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
@@ -5448,9 +5475,11 @@ void pilotInit(MachineState * ms) {
                                 -0.00125253, 0.999999, -0.000146851, 0.000236656);
     
     ms->config.eepReg4 = ms->config.beeHome;
-    ms->config.defaultReticle = eePose(334, 100, 0.0,
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    camera->defaultReticle = eePose(334, 100, 0.0,
                                        0.0, 0.0, 0.0, 0.0);
-    ms->config.reticle = ms->config.defaultReticle;
+    camera->reticle = camera->defaultReticle;
 
     ms->config.crane1 = eePose(-0.0155901, 0.981296, 0.71078,
                                0.709046, -0.631526, -0.226613, -0.216967);
@@ -5500,71 +5529,72 @@ void pilotInit(MachineState * ms) {
 
     // left arm
     // (313, 163)
-    ms->config.vanishingPointReticle.px = 313;
-    ms->config.vanishingPointReticle.py = 163;
-    ms->config.probeReticle = ms->config.vanishingPointReticle;
+
+    camera->vanishingPointReticle.px = 313;
+    camera->vanishingPointReticle.py = 163;
+    camera->probeReticle = camera->vanishingPointReticle;
 
     // ATTN 16
-    ms->config.heightReticles[0] = ms->config.defaultReticle;
-    ms->config.heightReticles[1] = ms->config.defaultReticle;
-    ms->config.heightReticles[2] = ms->config.defaultReticle;
-    ms->config.heightReticles[3] = ms->config.defaultReticle;
+    camera->heightReticles[0] = camera->defaultReticle;
+    camera->heightReticles[1] = camera->defaultReticle;
+    camera->heightReticles[2] = camera->defaultReticle;
+    camera->heightReticles[3] = camera->defaultReticle;
 
-    ms->config.heightReticles[3].px = 323;
-    ms->config.heightReticles[2].px = 326;
-    ms->config.heightReticles[1].px = 329;
-    ms->config.heightReticles[0].px = 336;
+    camera->heightReticles[3].px = 323;
+    camera->heightReticles[2].px = 326;
+    camera->heightReticles[1].px = 329;
+    camera->heightReticles[0].px = 336;
 
-    ms->config.heightReticles[3].py = 135;
-    ms->config.heightReticles[2].py = 128;
-    ms->config.heightReticles[1].py = 117;
-    ms->config.heightReticles[0].py = 94;
+    camera->heightReticles[3].py = 135;
+    camera->heightReticles[2].py = 128;
+    camera->heightReticles[1].py = 117;
+    camera->heightReticles[0].py = 94;
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
-    //const int ms->config.xCR[ms->config.numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    ms->config.xCR[0] = 462;
-    ms->config.xCR[1] = 450;
-    ms->config.xCR[2] = 439;
-    ms->config.xCR[3] = 428;
-    ms->config.xCR[4] = 419;
-    ms->config.xCR[5] = 410;
-    ms->config.xCR[6] = 405;
-    ms->config.xCR[7] = 399;
-    ms->config.xCR[8] = 394;
-    ms->config.xCR[9] = 389;
-    ms->config.xCR[10] = 383;
-    ms->config.xCR[11] = 381;
-    ms->config.xCR[12] = 379;
-    ms->config.xCR[13] = 378;
+    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    camera->xCR[0] = 462;
+    camera->xCR[1] = 450;
+    camera->xCR[2] = 439;
+    camera->xCR[3] = 428;
+    camera->xCR[4] = 419;
+    camera->xCR[5] = 410;
+    camera->xCR[6] = 405;
+    camera->xCR[7] = 399;
+    camera->xCR[8] = 394;
+    camera->xCR[9] = 389;
+    camera->xCR[10] = 383;
+    camera->xCR[11] = 381;
+    camera->xCR[12] = 379;
+    camera->xCR[13] = 378;
 
     /* left arm */
-    //const int ms->config.yCR[ms->config.numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    ms->config.yCR[0] = 153;
-    ms->config.yCR[1] = 153;
-    ms->config.yCR[2] = 153;
-    ms->config.yCR[3] = 153;
-    ms->config.yCR[4] = 153;
-    ms->config.yCR[5] = 154;
-    ms->config.yCR[6] = 154;
-    ms->config.yCR[7] = 154;
-    ms->config.yCR[8] = 154;
-    ms->config.yCR[9] = 154;
-    ms->config.yCR[10] = 155;
-    ms->config.yCR[11] = 155;
-    ms->config.yCR[12] = 155;
-    ms->config.yCR[13] = 155;
+    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    camera->yCR[0] = 153;
+    camera->yCR[1] = 153;
+    camera->yCR[2] = 153;
+    camera->yCR[3] = 153;
+    camera->yCR[4] = 153;
+    camera->yCR[5] = 154;
+    camera->yCR[6] = 154;
+    camera->yCR[7] = 154;
+    camera->yCR[8] = 154;
+    camera->yCR[9] = 154;
+    camera->yCR[10] = 155;
+    camera->yCR[11] = 155;
+    camera->yCR[12] = 155;
+    camera->yCR[13] = 155;
 
     /* lens correction */
-    ms->config.m_x_h[0] = 1.2;
-    ms->config.m_x_h[1] = 1.06;
-    ms->config.m_x_h[2] = 0.98;
-    ms->config.m_x_h[3] = 0.94;
+    camera->m_x_h[0] = 1.2;
+    camera->m_x_h[1] = 1.06;
+    camera->m_x_h[2] = 0.98;
+    camera->m_x_h[3] = 0.94;
 
-    ms->config.m_y_h[0] = 0.95;
-    ms->config.m_y_h[1] = 0.93;
-    ms->config.m_y_h[2] = 0.92;
-    ms->config.m_y_h[3] = 0.92;
+    camera->m_y_h[0] = 0.95;
+    camera->m_y_h[1] = 0.93;
+    camera->m_y_h[2] = 0.92;
+    camera->m_y_h[3] = 0.92;
 
     //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
     //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
@@ -5574,7 +5604,7 @@ void pilotInit(MachineState * ms) {
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
-    ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     ms->config.calibrationPose = eePose(0.434176, 0.633423, 0.48341,
                                         0.000177018, 1, -0.000352912, -0.000489087);
@@ -5607,9 +5637,11 @@ void pilotInit(MachineState * ms) {
                                 -0.00122177, 0.999998, 0.00116169, -0.001101);
 
     ms->config.eepReg4 = ms->config.beeHome;
-    ms->config.defaultReticle = eePose(325, 127, 0.0,
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    camera->defaultReticle = eePose(325, 127, 0.0,
                                        0.0, 0.0, 0.0, 0.0);
-    ms->config.reticle = ms->config.defaultReticle;
+    camera->reticle = camera->defaultReticle;
 
     ms->config.crane1 = eePose(0.0448714, -1.04476, 0.698522,
                                0.631511, 0.68929, -0.25435, 0.247748);
@@ -5659,78 +5691,78 @@ void pilotInit(MachineState * ms) {
     ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
 
     // right arm
-    ms->config.vanishingPointReticle.px = 313;
-    ms->config.vanishingPointReticle.py = 185;
-    ms->config.probeReticle = ms->config.vanishingPointReticle;
+    camera->vanishingPointReticle.px = 313;
+    camera->vanishingPointReticle.py = 185;
+    camera->probeReticle = camera->vanishingPointReticle;
 
     // ATTN 16
-    ms->config.heightReticles[0] = ms->config.defaultReticle;
-    ms->config.heightReticles[1] = ms->config.defaultReticle;
-    ms->config.heightReticles[2] = ms->config.defaultReticle;
-    ms->config.heightReticles[3] = ms->config.defaultReticle;
+    camera->heightReticles[0] = camera->defaultReticle;
+    camera->heightReticles[1] = camera->defaultReticle;
+    camera->heightReticles[2] = camera->defaultReticle;
+    camera->heightReticles[3] = camera->defaultReticle;
     
-    ms->config.heightReticles[3].px = 314;
-    ms->config.heightReticles[2].px = 317;
-    ms->config.heightReticles[1].px = 320;
-    ms->config.heightReticles[0].px = 328;
+    camera->heightReticles[3].px = 314;
+    camera->heightReticles[2].px = 317;
+    camera->heightReticles[1].px = 320;
+    camera->heightReticles[0].px = 328;
 
-    ms->config.heightReticles[3].py = 154;
-    ms->config.heightReticles[2].py = 149;
-    ms->config.heightReticles[1].py = 139;
-    ms->config.heightReticles[0].py = 120;
+    camera->heightReticles[3].py = 154;
+    camera->heightReticles[2].py = 149;
+    camera->heightReticles[1].py = 139;
+    camera->heightReticles[0].py = 120;
 
     /* color reticle init */
     /* XXX TODO needs recalibrating */
-    //const int ms->config.xCR[ms->config.numCReticleIndeces] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    ms->config.xCR[0] = 462;
-    ms->config.xCR[1] = 450;
-    ms->config.xCR[2] = 439;
-    ms->config.xCR[3] = 428;
-    ms->config.xCR[4] = 419;
-    ms->config.xCR[5] = 410;
-    ms->config.xCR[6] = 405;
-    ms->config.xCR[7] = 399;
-    ms->config.xCR[8] = 394;
-    ms->config.xCR[9] = 389;
-    ms->config.xCR[10] = 383;
-    ms->config.xCR[11] = 381;
-    ms->config.xCR[12] = 379;
-    ms->config.xCR[13] = 378;
+    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    camera->xCR[0] = 462;
+    camera->xCR[1] = 450;
+    camera->xCR[2] = 439;
+    camera->xCR[3] = 428;
+    camera->xCR[4] = 419;
+    camera->xCR[5] = 410;
+    camera->xCR[6] = 405;
+    camera->xCR[7] = 399;
+    camera->xCR[8] = 394;
+    camera->xCR[9] = 389;
+    camera->xCR[10] = 383;
+    camera->xCR[11] = 381;
+    camera->xCR[12] = 379;
+    camera->xCR[13] = 378;
 
     /* right arm */
-    //const int ms->config.yCR[ms->config.numCReticleIndeces] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    ms->config.yCR[0] = 153;
-    ms->config.yCR[1] = 153;
-    ms->config.yCR[2] = 153;
-    ms->config.yCR[3] = 153;
-    ms->config.yCR[4] = 153;
-    ms->config.yCR[5] = 154;
-    ms->config.yCR[6] = 154;
-    ms->config.yCR[7] = 154;
-    ms->config.yCR[8] = 154;
-    ms->config.yCR[9] = 154;
-    ms->config.yCR[10] = 155;
-    ms->config.yCR[11] = 155;
-    ms->config.yCR[12] = 155;
-    ms->config.yCR[13] = 155;
+    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    camera->yCR[0] = 153;
+    camera->yCR[1] = 153;
+    camera->yCR[2] = 153;
+    camera->yCR[3] = 153;
+    camera->yCR[4] = 153;
+    camera->yCR[5] = 154;
+    camera->yCR[6] = 154;
+    camera->yCR[7] = 154;
+    camera->yCR[8] = 154;
+    camera->yCR[9] = 154;
+    camera->yCR[10] = 155;
+    camera->yCR[11] = 155;
+    camera->yCR[12] = 155;
+    camera->yCR[13] = 155;
 
     /* lens correction */
-    ms->config.m_x_h[0] = 1.18;
-    ms->config.m_x_h[1] = 1.12;
-    ms->config.m_x_h[2] = 1.09;
-    ms->config.m_x_h[3] = 1.08;
+    camera->m_x_h[0] = 1.18;
+    camera->m_x_h[1] = 1.12;
+    camera->m_x_h[2] = 1.09;
+    camera->m_x_h[3] = 1.08;
 
-    ms->config.m_y_h[0] = 1.16;
-    ms->config.m_y_h[1] = 1.17;
-    ms->config.m_y_h[2] = 1.16;
-    ms->config.m_y_h[3] = 1.2;
+    camera->m_y_h[0] = 1.16;
+    camera->m_y_h[1] = 1.17;
+    camera->m_y_h[2] = 1.16;
+    camera->m_y_h[3] = 1.2;
 
     ms->config.handingPose = eePose(0.879307, -0.0239328, 0.223839,
                                     0.459157, 0.527586, 0.48922, 0.521049);
     ms->config.eepReg3 = ms->config.handingPose;
 
     // ir offset
-    ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
 
     ms->config.calibrationPose = eePose(0.562169, -0.348055, 0.493231,
                                         0.00391311, 0.999992, -0.00128095, 8.18951e-05);
@@ -5837,14 +5869,16 @@ void pilotInit(MachineState * ms) {
   {
     //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //if (0 == ms->config.left_or_right_arm.compare("left")) {
-      //ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
-      //ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
     //}
 
     // invert the transformation
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 
     //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
     //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
@@ -7427,7 +7461,8 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     ms->config.currentEEPose.py += yToAdd;
   } else {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+    pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
   { // yet another way to do this
     // 0 assumes no rotation 
@@ -7448,9 +7483,10 @@ Mat makeGCrop(MachineState * ms, int etaX, int etaY) {
   int tRy = (maxDim-crows)/2;
   int tRx = (maxDim-ccols)/2;
 
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+  int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+  int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
 
   Mat gCrop(maxDim, maxDim, CV_64F);
   Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
@@ -7605,8 +7641,8 @@ double computeSimilarity(MachineState * ms, int class1, int class2) {
 }
 
 void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta) {
-
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->reticle = camera->vanishingPointReticle;
 
   cout << "entered pixel servo..." << endl;
   cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
@@ -7635,7 +7671,7 @@ void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double serv
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
 
@@ -7656,8 +7692,10 @@ void gradientServo(MachineState * ms) {
   int imH = sz.height;
 
   // ATTN 23
-  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->reticle = camera->vanishingPointReticle;
 
   // ATTN 12
   //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
@@ -7877,8 +7915,8 @@ void gradientServo(MachineState * ms) {
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
         //Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
@@ -7968,8 +8006,8 @@ void gradientServo(MachineState * ms) {
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
-        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
         
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
@@ -7994,8 +8032,8 @@ void gradientServo(MachineState * ms) {
   ms->config.lastPtheta = Ptheta;
 
   // set the target reticle
-  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
-  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  ms->config.pilotTarget.px = camera->reticle.px + bestX;
+  ms->config.pilotTarget.py = camera->reticle.py + bestY;
   
   
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
@@ -8070,7 +8108,7 @@ void gradientServo(MachineState * ms) {
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
@@ -8106,8 +8144,8 @@ void gradientServo(MachineState * ms) {
   } else {
   } // do nothing
 
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
-  ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << camera->reticle.px << " " << 
+  ms->config.pilotTarget.px << " " << camera->reticle.py << " " << ms->config.pilotTarget.py << " " <<
   bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
   // ATTN 5
@@ -8156,8 +8194,10 @@ void gradientServoLatentClass(MachineState * ms) {
   int imH = sz.height;
 
   // ATTN 23
-  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->reticle = camera->vanishingPointReticle;
 
   // ATTN 12
   //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
@@ -8371,8 +8411,8 @@ void gradientServoLatentClass(MachineState * ms) {
       for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
 	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
 	  // get the patch
-	  int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-	  int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+	  int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+	  int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
 	  //Mat gCrop(maxDim, maxDim, CV_64F);
 	  
 	  // throw it out if it isn't contained in the image
@@ -8498,8 +8538,8 @@ void gradientServoLatentClass(MachineState * ms) {
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
-        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
         
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
@@ -8524,8 +8564,8 @@ void gradientServoLatentClass(MachineState * ms) {
   ms->config.lastPtheta = Ptheta;
 
   // set the target reticle
-  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
-  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  ms->config.pilotTarget.px = camera->reticle.px + bestX;
+  ms->config.pilotTarget.py = camera->reticle.py + bestY;
   
   
   int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
@@ -8601,7 +8641,7 @@ void gradientServoLatentClass(MachineState * ms) {
     // ATTN 23
     // second analytic
     // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
     //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
@@ -8637,8 +8677,8 @@ void gradientServoLatentClass(MachineState * ms) {
   } else {
   } // do nothing
 
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << ms->config.reticle.px << " " << 
-  ms->config.pilotTarget.px << " " << ms->config.reticle.py << " " << ms->config.pilotTarget.py << " " <<
+  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << camera->reticle.px << " " << 
+  ms->config.pilotTarget.px << " " << camera->reticle.py << " " << ms->config.pilotTarget.py << " " <<
   bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
 
   // ATTN 5
@@ -8699,9 +8739,11 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
      << ros::Time::now() << endl;
 */
 
-  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
   // ATTN a1
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->reticle = camera->vanishingPointReticle;
 
   cout << "entered continuous servo... iteration " << endl;
   if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
@@ -8920,8 +8962,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
     for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
       for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
         // get the patch
-        int topCornerX = etaX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
         //Mat gCrop(maxDim, maxDim, CV_64F);
         
         // throw it out if it isn't contained in the image
@@ -8972,8 +9014,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
 
 
   // set the target reticle
-  ms->config.pilotTarget.px = ms->config.reticle.px + bestX;
-  ms->config.pilotTarget.py = ms->config.reticle.py + bestY;
+  ms->config.pilotTarget.px = camera->reticle.px + bestX;
+  ms->config.pilotTarget.py = camera->reticle.py + bestY;
   
   int oneToDraw = bestOrientation;
   Px = -bestX;
@@ -9018,8 +9060,8 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
         //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
         //cout << thisColor;
-        int thisTopCornerX = bestX + ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
         
         int tgX = thisTopCornerX + tx;
         int tgY = thisTopCornerY + ty;
@@ -9056,7 +9098,7 @@ cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl
   {
     double newx = 0;
     double newy = 0;
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
+    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
     newx = newGlobalTarget.px;
     newy = newGlobalTarget.py;
 
@@ -9104,14 +9146,16 @@ void synchronicServo(MachineState * ms) {
   ms->config.synServoLockFrames++;
 
   // ATTN 23
-  //reticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
   eePose thisGripperReticle;
   double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
   int xOut=-1, yOut=-1;
   globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
   thisGripperReticle.px = xOut;
   thisGripperReticle.py = yOut;
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->reticle = camera->vanishingPointReticle;
 
   // ATTN 17
   ms->config.currentGradientServoIterations = 0;
@@ -9209,7 +9253,7 @@ void synchronicServo(MachineState * ms) {
       int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
                            !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
 
-      double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
+      double thisDistance = sqrt((ms->config.bCens[c].x-camera->reticle.px)*(ms->config.bCens[c].x-camera->reticle.px) + (ms->config.bCens[c].y-camera->reticle.py)*(ms->config.bCens[c].y-camera->reticle.py));
       cout << "   Servo CUB distance for box " << c << " : " << thisDistance << ", isCooldownComplete isOutOfReach: " <<
 	      isCooldownComplete << " " << isOutOfReach << endl;
       cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" << 
@@ -9247,8 +9291,8 @@ void synchronicServo(MachineState * ms) {
   }
 
 
-  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
-  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
+  double Px = camera->reticle.px - ms->config.pilotTarget.px;
+  double Py = camera->reticle.py - ms->config.pilotTarget.py;
 
   {
     if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
@@ -9327,7 +9371,7 @@ void synchronicServo(MachineState * ms) {
       //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
       // ATTN 23
       // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, ms->config.reticle, 0, ms->config.trueEEPoseEEPose);
+      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, 0, ms->config.trueEEPoseEEPose);
       newx = newGlobalTarget.px;
       newy = newGlobalTarget.py;
 
@@ -9358,13 +9402,14 @@ void darkServo(MachineState * ms) {
   findDarkness(ms, &darkX, &darkY);
 
   cout << "darkServo darkX darkY heightAboveTable: " << darkX << " " << darkY << " " << heightAboveTable << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  camera->reticle = camera->vanishingPointReticle;
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
-  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
+  double Px = camera->reticle.px - ms->config.pilotTarget.px;
+  double Py = camera->reticle.py - ms->config.pilotTarget.py;
 
   double thisKp = ms->config.darkKp * heightFactor;
   double pTermX = thisKp*Px;
@@ -9418,9 +9463,11 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
 
   eePose bestFacePose;
   double distance = VERYBIGNUMBER;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   for (int i = 0; i < faces.size(); i++) {
     eePose faceImagePose = eePose::fromRectCentroid(faces[i]);
-    double thisDistance = eePose::squareDistance(ms->config.vanishingPointReticle, faceImagePose);
+    double thisDistance = eePose::squareDistance(camera->vanishingPointReticle, faceImagePose);
     if (thisDistance < distance) {
       distance = thisDistance;
       bestFacePose = faceImagePose;
@@ -9429,12 +9476,12 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
 
   double heightFactor = 1 / ms->config.minHeight;
 
-  ms->config.reticle = ms->config.vanishingPointReticle;
+  camera->reticle = camera->vanishingPointReticle;
   ms->config.pilotTarget.px = bestFacePose.px;
   ms->config.pilotTarget.py = bestFacePose.py;
 
-  double Px = ms->config.reticle.px - ms->config.pilotTarget.px;
-  double Py = ms->config.reticle.py - ms->config.pilotTarget.py;
+  double Px = camera->reticle.px - ms->config.pilotTarget.px;
+  double Py = camera->reticle.py - ms->config.pilotTarget.py;
 
   //double thisKp = ms->config.faceKp * heightFactor;
   double yScale = 1.0;
@@ -9561,8 +9608,9 @@ eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
 }
 
 void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, double * m_y) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  if (ms->config.currentCameraCalibrationMode == CAMCAL_LINBOUNDED) {
+  if (camera->currentCameraCalibrationMode == CAMCAL_LINBOUNDED) {
     double bBZ[4];
     bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
     bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -9570,38 +9618,38 @@ void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, doubl
     bBZ[3] = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
     if (dZ <= bBZ[0]) {
-      *m_x = ms->config.m_x_h[0];
-      *m_y = ms->config.m_y_h[0];
+      *m_x = camera->m_x_h[0];
+      *m_y = camera->m_y_h[0];
     } else if (dZ <= bBZ[1]) {
       double gap = bBZ[1] - bBZ[0];
       double c0 = 1.0 - ((dZ - bBZ[0])/gap);
       double c1 = 1.0 - ((bBZ[1] - dZ)/gap);
-      *m_x = c0*ms->config.m_x_h[0] + c1*ms->config.m_x_h[1];
-      *m_y = c0*ms->config.m_y_h[0] + c1*ms->config.m_y_h[1];
+      *m_x = c0*camera->m_x_h[0] + c1*camera->m_x_h[1];
+      *m_y = c0*camera->m_y_h[0] + c1*camera->m_y_h[1];
     } else if (dZ <= bBZ[2]) {
       double gap = bBZ[2] - bBZ[1];
       double c1 = 1.0 - ((dZ - bBZ[1])/gap);
       double c2 = 1.0 - ((bBZ[2] - dZ)/gap);
-      *m_x = c1*ms->config.m_x_h[1] + c2*ms->config.m_x_h[2];
-      *m_y = c1*ms->config.m_y_h[1] + c2*ms->config.m_y_h[2];
+      *m_x = c1*camera->m_x_h[1] + c2*camera->m_x_h[2];
+      *m_y = c1*camera->m_y_h[1] + c2*camera->m_y_h[2];
     } else if (dZ <= bBZ[3]) {
       double gap = bBZ[3] - bBZ[2];
       double c2 = 1.0 - ((dZ - bBZ[2])/gap);
       double c3 = 1.0 - ((bBZ[3] - dZ)/gap);
-      *m_x = c2*ms->config.m_x_h[2] + c3*ms->config.m_x_h[3];
-      *m_y = c2*ms->config.m_y_h[2] + c3*ms->config.m_y_h[3];
+      *m_x = c2*camera->m_x_h[2] + c3*camera->m_x_h[3];
+      *m_y = c2*camera->m_y_h[2] + c3*camera->m_y_h[3];
     } else if (dZ > bBZ[3]) {
-      *m_x = ms->config.m_x_h[3];
-      *m_y = ms->config.m_y_h[3];
+      *m_x = camera->m_x_h[3];
+      *m_y = camera->m_y_h[3];
     } else {
       assert(0); // my my
     }
-    //cout << ms->config.m_x_h[0] << " " << ms->config.m_x_h[1] << " " << ms->config.m_x_h[2] << " " << ms->config.m_x_h[3] << " " << *m_x << endl;
-    //cout << m_y_h[0] << " " << ms->config.m_y_h[1] << " " << ms->config.m_y_h[2] << " " << ms->config.m_y_h[3] << " " << *m_y << endl;
-  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
-    *(m_y) = ms->config.m_YQ[0] + (dZ * ms->config.m_YQ[1]) + (dZ * dZ * ms->config.m_YQ[2]);
-    *(m_x) = ms->config.m_XQ[0] + (dZ * ms->config.m_XQ[1]) + (dZ * dZ * ms->config.m_XQ[2]);
-  } else if (ms->config.currentCameraCalibrationMode == CAMCAL_HYPERBOLIC) {
+    //cout << camera->m_x_h[0] << " " << camera->m_x_h[1] << " " << camera->m_x_h[2] << " " << camera->m_x_h[3] << " " << *m_x << endl;
+    //cout << m_y_h[0] << " " << camera->m_y_h[1] << " " << camera->m_y_h[2] << " " << camera->m_y_h[3] << " " << *m_y << endl;
+  } else if (camera->currentCameraCalibrationMode == CAMCAL_QUADRATIC) {
+    *(m_y) = camera->m_YQ[0] + (dZ * camera->m_YQ[1]) + (dZ * dZ * camera->m_YQ[2]);
+    *(m_x) = camera->m_XQ[0] + (dZ * camera->m_XQ[1]) + (dZ * dZ * camera->m_XQ[2]);
+  } else if (camera->currentCameraCalibrationMode == CAMCAL_HYPERBOLIC) {
     
     double ooDZ = dZ;
     if (dZ == 0) {
@@ -9609,9 +9657,11 @@ void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, doubl
     } else {
       ooDZ = 1.0/dZ;
     } 
-    *(m_y) = ms->config.m_YQ[0] + (ooDZ * ms->config.m_YQ[1]) + (ooDZ * ooDZ * ms->config.m_YQ[2]);
-    *(m_x) = ms->config.m_XQ[0] + (ooDZ * ms->config.m_XQ[1]) + (ooDZ * ooDZ * ms->config.m_XQ[2]);
+    *(m_y) = camera->m_YQ[0] + (ooDZ * camera->m_YQ[1]) + (ooDZ * ooDZ * camera->m_YQ[2]);
+    *(m_x) = camera->m_XQ[0] + (ooDZ * camera->m_XQ[1]) + (ooDZ * ooDZ * camera->m_XQ[2]);
   } else {
+    ROS_ERROR_STREAM("Invalid camera calibration mode: " << camera->currentCameraCalibrationMode);
+    assert(0);
   }
 }
 
@@ -9633,18 +9683,20 @@ void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, 
 }
 
 void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
   cache->givenEEPose = givenEEPose;
   cache->gZ = gZ;
-  cache->x1 = ms->config.heightReticles[0].px;
-  cache->x2 = ms->config.heightReticles[1].px;
-  cache->x3 = ms->config.heightReticles[2].px;
-  cache->x4 = ms->config.heightReticles[3].px;
+  cache->x1 = camera->heightReticles[0].px;
+  cache->x2 = camera->heightReticles[1].px;
+  cache->x3 = camera->heightReticles[2].px;
+  cache->x4 = camera->heightReticles[3].px;
 
-  cache->y1 = ms->config.heightReticles[0].py;
-  cache->y2 = ms->config.heightReticles[1].py;
-  cache->y3 = ms->config.heightReticles[2].py;
-  cache->y4 = ms->config.heightReticles[3].py;
+  cache->y1 = camera->heightReticles[0].py;
+  cache->y2 = camera->heightReticles[1].py;
+  cache->y3 = camera->heightReticles[2].py;
+  cache->y4 = camera->heightReticles[3].py;
 
   cache->z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   cache->z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -9722,7 +9774,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->roty[2] = cache->un_rot_mat.at<double>(1, 2);
 
 
-  cache->dx = ms->config.d_x/ms->config.m_x;
+  cache->dx = ms->config.d_x/camera->m_x;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
   cache->b42x = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*cache->cx)/(cache->x4-cache->x2);
   cache->b31x = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*cache->cx)/(cache->x3-cache->x1);
@@ -9731,7 +9783,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->bx = (cache->b42x+cache->b31x)/2.0;
 
 
-  cache->dy = ms->config.d_y/ms->config.m_y;
+  cache->dy = ms->config.d_y/camera->m_y;
   cache->cy = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
 
   cache->b42y = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*cache->cy)/(cache->y4-cache->y2);
@@ -9830,17 +9882,18 @@ void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * 
 }
 
 void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
 
-  int x1 = ms->config.heightReticles[0].px;
-  int x2 = ms->config.heightReticles[1].px;
-  int x3 = ms->config.heightReticles[2].px;
-  int x4 = ms->config.heightReticles[3].px;
+  int x1 = camera->heightReticles[0].px;
+  int x2 = camera->heightReticles[1].px;
+  int x3 = camera->heightReticles[2].px;
+  int x4 = camera->heightReticles[3].px;
 
-  int y1 = ms->config.heightReticles[0].py;
-  int y2 = ms->config.heightReticles[1].py;
-  int y3 = ms->config.heightReticles[2].py;
-  int y4 = ms->config.heightReticles[3].py;
+  int y1 = camera->heightReticles[0].py;
+  int y2 = camera->heightReticles[1].py;
+  int y3 = camera->heightReticles[2].py;
+  int y4 = camera->heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -9851,7 +9904,7 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
   double reticlePixelY = 0.0;
   {
     //double d = ms->config.d_x;
-    double d = ms->config.d_x/ms->config.m_x;
+    double d = ms->config.d_x/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -9868,27 +9921,27 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     // taking out other singularity
     double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
     //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( camera->m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
 
 /*
     cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << camera->m_x << " " << endl;
     cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
     cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
 */
   }
   {
     //double d = ms->config.d_y;
-    double d = ms->config.d_y/ms->config.m_y;
+    double d = ms->config.d_y/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -9905,20 +9958,20 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
     // taking out other singularity
     double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
     //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( camera->m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // XXX removed the above correction still need to check
     reticlePixelY = y_thisZ;
 
 /*
     cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << camera->m_y << " " << endl;
 */
   }
 
@@ -9961,17 +10014,18 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
   *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
 }
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
 
-  int x1 = ms->config.heightReticles[0].px;
-  int x2 = ms->config.heightReticles[1].px;
-  int x3 = ms->config.heightReticles[2].px;
-  int x4 = ms->config.heightReticles[3].px;
+  int x1 = camera->heightReticles[0].px;
+  int x2 = camera->heightReticles[1].px;
+  int x3 = camera->heightReticles[2].px;
+  int x4 = camera->heightReticles[3].px;
 
-  int y1 = ms->config.heightReticles[0].py;
-  int y2 = ms->config.heightReticles[1].py;
-  int y3 = ms->config.heightReticles[2].py;
-  int y4 = ms->config.heightReticles[3].py;
+  int y1 = camera->heightReticles[0].py;
+  int y2 = camera->heightReticles[1].py;
+  int y3 = camera->heightReticles[2].py;
+  int y4 = camera->heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -9982,7 +10036,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   double reticlePixelY = 0.0;
   {
     //double d = ms->config.d_x;
-    double d = ms->config.d_x/ms->config.m_x;
+    double d = ms->config.d_x/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -9999,20 +10053,20 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     // taking out other singularity
     double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
     //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( camera->m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
   }
   {
     //double d = ms->config.d_y;
-    double d = ms->config.d_y/ms->config.m_y;
+    double d = ms->config.d_y/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -10029,13 +10083,13 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     // taking out other singularity
     double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
     //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( camera->m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelY = y_thisZ;
@@ -10074,24 +10128,25 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 
   double oldPx = *pX;
   double oldPy = *pY;
-  //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
-  //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
+  //*pX = reticlePixelX + camera->m_y*(oldPy - reticlePixelY) + ms->config.offX;
+  //*pY = reticlePixelY + camera->m_x*(oldPx - reticlePixelX) + ms->config.offY;
   *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
   *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
 
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
-  interpolateM_xAndM_yFromZ(ms, gZ, &ms->config.m_x, &ms->config.m_y);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
 
-  int x1 = ms->config.heightReticles[0].px;
-  int x2 = ms->config.heightReticles[1].px;
-  int x3 = ms->config.heightReticles[2].px;
-  int x4 = ms->config.heightReticles[3].px;
+  int x1 = camera->heightReticles[0].px;
+  int x2 = camera->heightReticles[1].px;
+  int x3 = camera->heightReticles[2].px;
+  int x4 = camera->heightReticles[3].px;
 
-  int y1 = ms->config.heightReticles[0].py;
-  int y2 = ms->config.heightReticles[1].py;
-  int y3 = ms->config.heightReticles[2].py;
-  int y4 = ms->config.heightReticles[3].py;
+  int y1 = camera->heightReticles[0].py;
+  int y2 = camera->heightReticles[1].py;
+  int y3 = camera->heightReticles[2].py;
+  int y4 = camera->heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -10102,7 +10157,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   double reticlePixelY = 0.0;
   {
     //double d = ms->config.d_x;
-    double d = ms->config.d_x/ms->config.m_x;
+    double d = ms->config.d_x/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -10119,20 +10174,20 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     // taking out other singularity
     double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
     //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( ms->config.m_x*(gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( camera->m_x*(gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
     *pX = c + ( (gX-givenEEPose.px+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/zFraction;
+    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelX = x_thisZ;
   }
   {
     //double d = ms->config.d_y;
-    double d = ms->config.d_y/ms->config.m_y;
+    double d = ms->config.d_y/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -10149,13 +10204,13 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     // taking out other singularity
     double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
     //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( ms->config.m_y*(gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( camera->m_y*(gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
     *pY = c + ( (gY-givenEEPose.py+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/zFraction;
+    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // removed the above correction
     reticlePixelY = y_thisZ;
@@ -10194,8 +10249,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 
   double oldPx = *pX;
   double oldPy = *pY;
-  //*pX = reticlePixelX + ms->config.m_y*(oldPy - reticlePixelY) + ms->config.offX;
-  //*pY = reticlePixelY + ms->config.m_x*(oldPx - reticlePixelX) + ms->config.offY;
+  //*pX = reticlePixelX + camera->m_y*(oldPy - reticlePixelY) + ms->config.offX;
+  //*pY = reticlePixelY + camera->m_x*(oldPx - reticlePixelX) + ms->config.offY;
   *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
   *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
 }
@@ -10350,6 +10405,7 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
     MachineState * ms = this;
     //cout << "Received cam msg." << msg.name << " " << msg.line << " " << msg.msg << endl;
     size_t loc = msg.msg.find(':');
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
     if (loc != std::string::npos) {
       string key = msg.msg.substr(0, loc);
@@ -10365,9 +10421,9 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	}
 	//cout << "boolean key: " << key << " value: " << value << endl;
 	if (key == "mirror") {
-	  ms->config.observedCameraMirror = value;
+	  camera->observedCameraMirror = value;
 	} else if (key == "flip") {
-	  ms->config.observedCameraFlip = value;
+	  camera->observedCameraFlip = value;
 	} else {
 	  assert(0);
 	}
@@ -10377,19 +10433,19 @@ void MachineState::rosoutCallback(const rosgraph_msgs::Log & msg) {
 	ss >> std::skipws >>  value;
 	//cout << "key: " << key << " value: " << value << endl;
 	if (key == "exposure") {
-	  ms->config.observedCameraExposure = value;
+	  camera->observedCameraExposure = value;
 	} else if (key == "gain") {
-	  ms->config.observedCameraGain = value;
+	  camera->observedCameraGain = value;
 	} else if (key == "white balance red") {
-	  ms->config.observedCameraWhiteBalanceRed = value;
+	  camera->observedCameraWhiteBalanceRed = value;
 	} else if (key == "white balance green") {
-	  ms->config.observedCameraWhiteBalanceGreen = value;
+	  camera->observedCameraWhiteBalanceGreen = value;
 	} else if (key == "white balance blue") {
-	  ms->config.observedCameraWhiteBalanceBlue = value;
+	  camera->observedCameraWhiteBalanceBlue = value;
 	} else if (key == "window x") {
-	  ms->config.observedCameraWindowX = value;
+	  camera->observedCameraWindowX = value;
 	} else if (key == "window y") {
-	  ms->config.observedCameraWindowY = value;
+	  camera->observedCameraWindowY = value;
 	} else {
 	  // ignoring keys for now for now.
 	}
@@ -10685,8 +10741,9 @@ void findOptimum(MachineState * ms, int * xout, int * yout, int sign) {
 
   if (isSketchyMat(ms->config.accumulatedImage)) {
     ROS_ERROR("Whoops, accumulatedImage is sketchy, returning vanishing point to findOptimum.");
-    *xout = ms->config.vanishingPointReticle.px;
-    *yout = ms->config.vanishingPointReticle.py;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+    *xout = camera->vanishingPointReticle.px;
+    *yout = camera->vanishingPointReticle.py;
     return;
   }
 
@@ -11956,6 +12013,7 @@ void goFindBlueBoxes(MachineState * ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   ms->config.gBoxIndicator = new double[imW*imH];
   double *gBoxGrayNodes = new double[imW*imH];
@@ -12187,7 +12245,7 @@ void goFindBlueBoxes(MachineState * ms) {
 	  biggestBB = t;
 	}
 
-	double thisDistance = sqrt((ms->config.bCens[t].x-ms->config.reticle.px)*(ms->config.bCens[t].x-ms->config.reticle.px) + (ms->config.bCens[t].y-ms->config.reticle.py)*(ms->config.bCens[t].y-ms->config.reticle.py));
+	double thisDistance = sqrt((ms->config.bCens[t].x-camera->reticle.px)*(ms->config.bCens[t].x-camera->reticle.px) + (ms->config.bCens[t].y-camera->reticle.py)*(ms->config.bCens[t].y-camera->reticle.py));
 	//cout << "   (density) Distance for box " << t << " : " << thisDistance << endl;
 	if (thisDistance < closestBBDistance) {
 	  closestBBDistance = thisDistance;
@@ -12635,7 +12693,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
       }
 
       //int thisDistance = int(fabs(ms->config.bCens[c].x-reticle.px) + fabs(ms->config.bCens[c].y-reticle.py));
-      double thisDistance = sqrt((ms->config.bCens[c].x-ms->config.reticle.px)*(ms->config.bCens[c].x-ms->config.reticle.px) + (ms->config.bCens[c].y-ms->config.reticle.py)*(ms->config.bCens[c].y-ms->config.reticle.py));
+      double thisDistance = sqrt((ms->config.bCens[c].x-camera->reticle.px)*(ms->config.bCens[c].x-camera->reticle.px) + (ms->config.bCens[c].y-camera->reticle.py)*(ms->config.bCens[c].y-camera->reticle.py));
       cout << "   Distance for box " << c << " : " << thisDistance << endl;
       if (thisDistance < closestBBDistance) {
 	closestBBDistance = thisDistance;
@@ -12700,7 +12758,9 @@ void loadROSParamsFromArgs(MachineState * ms) {
 			 (std::istreambuf_iterator<char>()    ) );
     ms->config.robot_description = content;
     ms->config.robot_serial = "simulatedserial";
-    ms->config.currentCameraCalibrationMode = CAMCAL_LINBOUNDED;
+    for (int i = 0; i < ms->config.cameras.size(); i++) {
+      ms->config.cameras[i]->currentCameraCalibrationMode = CAMCAL_LINBOUNDED;
+    }
   } 
 
   ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";

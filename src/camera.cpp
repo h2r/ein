@@ -562,93 +562,93 @@ void Camera::loadCalibration(string inFileName) {
   {
     FileNode anode = fsvI["cropUpperLeftCorner"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.cropUpperLeftCorner.px = *(it++);
-    ms->config.cropUpperLeftCorner.py = *(it++);
+    cropUpperLeftCorner.px = *(it++);
+    cropUpperLeftCorner.py = *(it++);
   }
 
   {
     FileNode anode = fsvI["vanishingPointReticle"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.vanishingPointReticle.px = *(it++);
-    ms->config.vanishingPointReticle.py = *(it++);
+    vanishingPointReticle.px = *(it++);
+    vanishingPointReticle.py = *(it++);
   }
 
   {
     FileNode anode = fsvI["heightReticles"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.heightReticles[3].px = *(it++);
-    ms->config.heightReticles[2].px = *(it++);
-    ms->config.heightReticles[1].px = *(it++);
-    ms->config.heightReticles[0].px = *(it++);
+    heightReticles[3].px = *(it++);
+    heightReticles[2].px = *(it++);
+    heightReticles[1].px = *(it++);
+    heightReticles[0].px = *(it++);
 
-    ms->config.heightReticles[3].py = *(it++);
-    ms->config.heightReticles[2].py = *(it++);
-    ms->config.heightReticles[1].py = *(it++);
-    ms->config.heightReticles[0].py = *(it++);
+    heightReticles[3].py = *(it++);
+    heightReticles[2].py = *(it++);
+    heightReticles[1].py = *(it++);
+    heightReticles[0].py = *(it++);
   }
 
   {
     FileNode anode = fsvI["colorReticles"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.xCR[0]  = *(it++);
-    ms->config.xCR[1]  = *(it++);
-    ms->config.xCR[2]  = *(it++);
-    ms->config.xCR[3]  = *(it++);
-    ms->config.xCR[4]  = *(it++);
-    ms->config.xCR[5]  = *(it++);
-    ms->config.xCR[6]  = *(it++);
-    ms->config.xCR[7]  = *(it++);
-    ms->config.xCR[8]  = *(it++);
-    ms->config.xCR[9]  = *(it++);
-    ms->config.xCR[10] = *(it++);
-    ms->config.xCR[11] = *(it++);
-    ms->config.xCR[12] = *(it++);
-    ms->config.xCR[13] = *(it++);
+    xCR[0]  = *(it++);
+    xCR[1]  = *(it++);
+    xCR[2]  = *(it++);
+    xCR[3]  = *(it++);
+    xCR[4]  = *(it++);
+    xCR[5]  = *(it++);
+    xCR[6]  = *(it++);
+    xCR[7]  = *(it++);
+    xCR[8]  = *(it++);
+    xCR[9]  = *(it++);
+    xCR[10] = *(it++);
+    xCR[11] = *(it++);
+    xCR[12] = *(it++);
+    xCR[13] = *(it++);
 
-    ms->config.yCR[0]  = *(it++);
-    ms->config.yCR[1]  = *(it++);
-    ms->config.yCR[2]  = *(it++);
-    ms->config.yCR[3]  = *(it++);
-    ms->config.yCR[4]  = *(it++);
-    ms->config.yCR[5]  = *(it++);
-    ms->config.yCR[6]  = *(it++);
-    ms->config.yCR[7]  = *(it++);
-    ms->config.yCR[8]  = *(it++);
-    ms->config.yCR[9]  = *(it++);
-    ms->config.yCR[10] = *(it++);
-    ms->config.yCR[11] = *(it++);
-    ms->config.yCR[12] = *(it++);
-    ms->config.yCR[13] = *(it++);
+    yCR[0]  = *(it++);
+    yCR[1]  = *(it++);
+    yCR[2]  = *(it++);
+    yCR[3]  = *(it++);
+    yCR[4]  = *(it++);
+    yCR[5]  = *(it++);
+    yCR[6]  = *(it++);
+    yCR[7]  = *(it++);
+    yCR[8]  = *(it++);
+    yCR[9]  = *(it++);
+    yCR[10] = *(it++);
+    yCR[11] = *(it++);
+    yCR[12] = *(it++);
+    yCR[13] = *(it++);
   }
 
   {
     FileNode anode = fsvI["lensCorrections"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.m_x_h[0] = *(it++);
-    ms->config.m_x_h[1] = *(it++);
-    ms->config.m_x_h[2] = *(it++);
-    ms->config.m_x_h[3] = *(it++);
+    m_x_h[0] = *(it++);
+    m_x_h[1] = *(it++);
+    m_x_h[2] = *(it++);
+    m_x_h[3] = *(it++);
 
-    ms->config.m_y_h[0] = *(it++);
-    ms->config.m_y_h[1] = *(it++);
-    ms->config.m_y_h[2] = *(it++);
-    ms->config.m_y_h[3] = *(it++);
+    m_y_h[0] = *(it++);
+    m_y_h[1] = *(it++);
+    m_y_h[2] = *(it++);
+    m_y_h[3] = *(it++);
   }
 
   {
     FileNode anode = fsvI["gear0offset"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.gear0offset.x() = *(it++);
-    ms->config.gear0offset.y() = *(it++);
-    ms->config.gear0offset.z() = *(it++);
-    ms->config.gear0offset.w() = *(it++);
+    gear0offset.x() = *(it++);
+    gear0offset.y() = *(it++);
+    gear0offset.z() = *(it++);
+    gear0offset.w() = *(it++);
   }
   {
-    ms->config.cameraExposure = (int) fsvI["cameraExposure"];
-    ms->config.cameraGain = (int) fsvI["cameraGain"];
-    ms->config.cameraWhiteBalanceRed = (int) fsvI["cameraWhiteBalanceRed"];
-    ms->config.cameraWhiteBalanceGreen = (int) fsvI["cameraWhiteBalanceGreen"];
-    ms->config.cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
+    cameraExposure = (int) fsvI["cameraExposure"];
+    cameraGain = (int) fsvI["cameraGain"];
+    cameraWhiteBalanceRed = (int) fsvI["cameraWhiteBalanceRed"];
+    cameraWhiteBalanceGreen = (int) fsvI["cameraWhiteBalanceGreen"];
+    cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
 
   }
   ms->pushWord("moveCropToProperValue"); 
@@ -681,82 +681,82 @@ void Camera::saveCalibration(string outFileName) {
   << "]";
 
   fsvO << "cropUpperLeftCorner" << "[" 
-    << ms->config.cropUpperLeftCorner.px 
-    << ms->config.cropUpperLeftCorner.py 
+    << cropUpperLeftCorner.px 
+    << cropUpperLeftCorner.py 
   << "]";
 
   fsvO << "vanishingPointReticle" << "[" 
-    << ms->config.vanishingPointReticle.px 
-    << ms->config.vanishingPointReticle.py 
+    << vanishingPointReticle.px 
+    << vanishingPointReticle.py 
   << "]";
 
   fsvO << "heightReticles" << "[" 
-    << ms->config.heightReticles[3].px
-    << ms->config.heightReticles[2].px
-    << ms->config.heightReticles[1].px
-    << ms->config.heightReticles[0].px
+    << heightReticles[3].px
+    << heightReticles[2].px
+    << heightReticles[1].px
+    << heightReticles[0].px
 
-    << ms->config.heightReticles[3].py
-    << ms->config.heightReticles[2].py
-    << ms->config.heightReticles[1].py
-    << ms->config.heightReticles[0].py
+    << heightReticles[3].py
+    << heightReticles[2].py
+    << heightReticles[1].py
+    << heightReticles[0].py
   << "]";
 
   fsvO << "colorReticles" << "[" 
-    << ms->config.xCR[0]
-    << ms->config.xCR[1]
-    << ms->config.xCR[2]
-    << ms->config.xCR[3]
-    << ms->config.xCR[4]
-    << ms->config.xCR[5]
-    << ms->config.xCR[6]
-    << ms->config.xCR[7]
-    << ms->config.xCR[8]
-    << ms->config.xCR[9]
-    << ms->config.xCR[10]
-    << ms->config.xCR[11]
-    << ms->config.xCR[12]
-    << ms->config.xCR[13]
+    << xCR[0]
+    << xCR[1]
+    << xCR[2]
+    << xCR[3]
+    << xCR[4]
+    << xCR[5]
+    << xCR[6]
+    << xCR[7]
+    << xCR[8]
+    << xCR[9]
+    << xCR[10]
+    << xCR[11]
+    << xCR[12]
+    << xCR[13]
 
-    << ms->config.yCR[0] 
-    << ms->config.yCR[1] 
-    << ms->config.yCR[2] 
-    << ms->config.yCR[3] 
-    << ms->config.yCR[4] 
-    << ms->config.yCR[5] 
-    << ms->config.yCR[6] 
-    << ms->config.yCR[7] 
-    << ms->config.yCR[8] 
-    << ms->config.yCR[9] 
-    << ms->config.yCR[10]
-    << ms->config.yCR[11]
-    << ms->config.yCR[12]
-    << ms->config.yCR[13]
+    << yCR[0] 
+    << yCR[1] 
+    << yCR[2] 
+    << yCR[3] 
+    << yCR[4] 
+    << yCR[5] 
+    << yCR[6] 
+    << yCR[7] 
+    << yCR[8] 
+    << yCR[9] 
+    << yCR[10]
+    << yCR[11]
+    << yCR[12]
+    << yCR[13]
   << "]";
 
   fsvO << "lensCorrections" << "[" 
-    << ms->config.m_x_h[0]
-    << ms->config.m_x_h[1]
-    << ms->config.m_x_h[2]
-    << ms->config.m_x_h[3]
+    << m_x_h[0]
+    << m_x_h[1]
+    << m_x_h[2]
+    << m_x_h[3]
 
-    << ms->config.m_y_h[0]
-    << ms->config.m_y_h[1]
-    << ms->config.m_y_h[2]
-    << ms->config.m_y_h[3]
+    << m_y_h[0]
+    << m_y_h[1]
+    << m_y_h[2]
+    << m_y_h[3]
   << "]";
 
   fsvO << "gear0offset" << "["
-    << ms->config.gear0offset.x()
-    << ms->config.gear0offset.y()
-    << ms->config.gear0offset.z()
-    << ms->config.gear0offset.w()
+    << gear0offset.x()
+    << gear0offset.y()
+    << gear0offset.z()
+    << gear0offset.w()
   << "]";
-  fsvO << "cameraExposure" << ms->config.cameraExposure;
-  fsvO << "cameraGain" << ms->config.cameraGain;
-  fsvO << "cameraWhiteBalanceRed" << ms->config.cameraWhiteBalanceRed;
-  fsvO << "cameraWhiteBalanceGreen" << ms->config.cameraWhiteBalanceGreen;
-  fsvO << "cameraWhiteBalanceBlue" << ms->config.cameraWhiteBalanceBlue;
+  fsvO << "cameraExposure" << cameraExposure;
+  fsvO << "cameraGain" << cameraGain;
+  fsvO << "cameraWhiteBalanceRed" << cameraWhiteBalanceRed;
+  fsvO << "cameraWhiteBalanceGreen" << cameraWhiteBalanceGreen;
+  fsvO << "cameraWhiteBalanceBlue" << cameraWhiteBalanceBlue;
 
   fsvO.release();
   cout << "done." << endl;

@@ -1,7 +1,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -354,8 +354,10 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, thisRandThompsonHeight);
   ms->config.currentThompsonHeightIdx = thisRandThompsonHeight;
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(UniformlySampleHeight)
@@ -451,15 +453,20 @@ virtual void execute(MachineState * ms) {
     ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, max_i);
     ms->config.currentThompsonHeightIdx = max_i;
     ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-    ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-    ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+    for (int i = 0; i < ms->config.cameras.size(); i++) {
+      ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+      ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+    }
   } else {
     cout << "SampleHeight going to mappingHeightIdx: " << ms->config.mappingHeightIdx << endl;
     ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.mappingHeightIdx);
     ms->config.currentThompsonHeightIdx = ms->config.mappingHeightIdx;
     ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
-    ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-    ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+
+    for (int i = 0; i < ms->config.cameras.size(); i++) {
+      ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+      ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+    }
   }
 }
 END_WORD

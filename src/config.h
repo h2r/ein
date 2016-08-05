@@ -693,19 +693,6 @@ class EinConfig {
   eePose straightDown = eePose(0.0, 0.0, 0.0,
                                0.0, 1.0, 0.0, 0.0); 
 
-  eePose cropUpperLeftCorner = eePose(320, 200, 0.0,
-                                      0.0, 1.0, 0.0, 0.0); // center of image
-
-  eePose centerReticle = eePose(325, 127, 0.0,
-                                0.0, 0.0, 0.0, 0.0);
-
-  eePose defaultReticle = centerReticle;
-  eePose heightReticles[4];
-
-  eePose probeReticle = defaultReticle;
-  eePose vanishingPointReticle = defaultReticle;
-  eePose reticle = defaultReticle;
-
 
 
   eePose eepReg1;
@@ -966,7 +953,7 @@ class EinConfig {
   // grasp gear should always be even
   static const int totalGraspGears = 8;
   int currentGraspGear = -1;
-  Eigen::Quaternionf gear0offset;
+
   // XXX maybe we should initialize this to a reasonable value
   //// reticles
   double ggX[totalGraspGears];
@@ -978,16 +965,6 @@ class EinConfig {
 
   Quaternionf irGlobalPositionEEFrame;
  
-  constexpr static double cReticleIndexDelta = .01;
-  const static int numCReticleIndeces = 14;
-  constexpr static double firstCReticleIndexDepth = .08;
-  int xCR[numCReticleIndeces];
-  int yCR[numCReticleIndeces];
-  double fEpsilon = 1.0e-9;
-
-  int curseReticleX = 0;
-  int curseReticleY = 0;
-
 
   
   double w1GoThresh = 0.03;//0.01;
@@ -1124,16 +1101,7 @@ class EinConfig {
   double d_x = 0.011;
   double offX = 0;
   double offY = 0;
-  // these corrective magnification factors should be close to 1
-  //  these are set elsewhere according to chirality
-  double m_x = 1.08;
-  double m_y = 0.94;
-  double m_x_h[4];
-  double m_y_h[4];
-  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_HYPERBOLIC;
   sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
-  double m_XQ[3] = {0,0,0};
-  double m_YQ[3] = {0,0,0};
 
   int mappingServoTimeout = 5;
   //const int mappingHeightIdx = 0;
@@ -1268,23 +1236,6 @@ class EinConfig {
   int drawBlue = 1;
   int drawGray = 1;
   int drawBlueKP = 1;
-
-  ros::Time lastCameraLogTime;
-  bool observedCameraFlip;
-  bool observedCameraMirror;
-  int observedCameraExposure = -1;
-  int observedCameraGain = -1;
-  int observedCameraWhiteBalanceRed = -1;
-  int observedCameraWhiteBalanceGreen = -1;
-  int observedCameraWhiteBalanceBlue = -1;
-  int observedCameraWindowX = -1;
-  int observedCameraWindowY = -1;
-
-  int cameraExposure = -1;
-  int cameraGain = -1;
-  int cameraWhiteBalanceRed = -1;
-  int cameraWhiteBalanceGreen = -1;
-  int cameraWhiteBalanceBlue = -1;
 
 
 

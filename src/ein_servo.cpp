@@ -1,7 +1,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -1649,7 +1649,9 @@ virtual void execute(MachineState * ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
 
   ms->config.currentEEPose.px = vpx;
   ms->config.currentEEPose.py = vpy;
@@ -1662,7 +1664,9 @@ virtual void execute(MachineState * ms) {
   double vpx = 0.0;
   double vpy = 0.0;
   double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  pixelToGlobal(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, zToUse, &vpx, &vpy, ms->config.currentEEPose);
 
   double gpx = ms->config.currentEEPose.px;
   double gpy = ms->config.currentEEPose.py;

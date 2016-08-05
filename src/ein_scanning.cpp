@@ -838,7 +838,8 @@ REGISTER_WORD(RgbScan)
 
 WORD(SetPhotoPinHere)
 virtual void execute(MachineState * ms) {
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -846,7 +847,8 @@ REGISTER_WORD(SetPhotoPinHere)
 WORD(PutCameraOverPhotoPin)
 virtual void execute(MachineState * ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -1281,9 +1283,10 @@ virtual void execute(MachineState * ms) {
 
     //int hbb = ms->config.pilotTargetBlueBoxNumber;
     //int hbb = 0;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    int topCornerX = ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-    int topCornerY = ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerX = camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerY = camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
     int crows = ms->config.aerialGradientReticleWidth;
     int ccols = ms->config.aerialGradientReticleWidth;
 
@@ -1627,9 +1630,11 @@ REGISTER_WORD(SetIROffset)
 
 WORD(ZeroIROffset)
 virtual void execute(MachineState * ms) {
-  ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(ZeroIROffset)
@@ -1666,14 +1671,15 @@ virtual void execute(MachineState * ms) {
   double offByY = ((minY-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
 
   cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  ms->config.gear0offset = Eigen::Quaternionf(0.0, 
-    ms->config.gear0offset.x()+offByX, 
-    ms->config.gear0offset.y()+offByY, 
+  camera->gear0offset = Eigen::Quaternionf(0.0, 
+    camera->gear0offset.x()+offByX, 
+    camera->gear0offset.y()+offByY, 
     0.0167228); // z is from TF, good for depth alignment
 
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)
@@ -1751,6 +1757,8 @@ REGISTER_WORD(PrintGlobalToPixel)
 
 WORD(SetHeightReticlesA)
 virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   int darkX = 0;
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
@@ -1758,14 +1766,14 @@ virtual void execute(MachineState * ms) {
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
-  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
+  camera->heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
+  camera->heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
 
   cout << "setHeightReticles,  currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  eePose::print(ms->config.heightReticles[0]); cout << endl;
-  eePose::print(ms->config.heightReticles[1]); cout << endl;
-  eePose::print(ms->config.heightReticles[2]); cout << endl;
-  eePose::print(ms->config.heightReticles[3]); cout << endl;
+  eePose::print(camera->heightReticles[0]); cout << endl;
+  eePose::print(camera->heightReticles[1]); cout << endl;
+  eePose::print(camera->heightReticles[2]); cout << endl;
+  eePose::print(camera->heightReticles[3]); cout << endl;
 }
 END_WORD
 REGISTER_WORD(SetHeightReticlesA)
@@ -1775,8 +1783,10 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
-  ms->config.cropUpperLeftCorner.px = 320;
-  ms->config.cropUpperLeftCorner.py = 200;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->cropUpperLeftCorner.px = 320;
+  camera->cropUpperLeftCorner.py = 200;
   ms->pushWord("moveCropToProperValue");
 }
 END_WORD
@@ -1792,25 +1802,27 @@ REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToProperValueNoUpdate)
 virtual void execute(MachineState * ms) {
-  cout << "Setting exposure " << ms->config.cameraExposure << " gain: " << ms->config.cameraGain;
-  cout << " wbr: " << ms->config.cameraWhiteBalanceRed << " wbg: " << ms->config.cameraWhiteBalanceGreen << " wbb: " << ms->config.cameraWhiteBalanceBlue << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  cout << "Setting exposure " << camera->cameraExposure << " gain: " << camera->cameraGain;
+  cout << " wbr: " << camera->cameraWhiteBalanceRed << " wbg: " << camera->cameraWhiteBalanceGreen << " wbb: " << camera->cameraWhiteBalanceBlue << endl;
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(7);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
   ocMessage.request.settings.controls[2].id = 100;
-  ocMessage.request.settings.controls[2].value = ms->config.cameraExposure;
+  ocMessage.request.settings.controls[2].value = camera->cameraExposure;
   ocMessage.request.settings.controls[3].id = 101;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraGain;
+  ocMessage.request.settings.controls[3].value = camera->cameraGain;
   ocMessage.request.settings.controls[4].id = 102;
-  ocMessage.request.settings.controls[4].value = ms->config.cameraWhiteBalanceRed;
+  ocMessage.request.settings.controls[4].value = camera->cameraWhiteBalanceRed;
   ocMessage.request.settings.controls[5].id = 103;
-  ocMessage.request.settings.controls[5].value = ms->config.cameraWhiteBalanceGreen;
+  ocMessage.request.settings.controls[5].value = camera->cameraWhiteBalanceGreen;
   ocMessage.request.settings.controls[6].id = 104;
-  ocMessage.request.settings.controls[6].value = ms->config.cameraWhiteBalanceBlue;
+  ocMessage.request.settings.controls[6].value = camera->cameraWhiteBalanceBlue;
 
   int testResult = ms->config.cameraClient.call(ocMessage);
 }
@@ -1835,7 +1847,9 @@ REGISTER_WORD(FixCameraLightingToAutomaticParameters)
 WORD(FixCameraLightingToObservedValues)
 virtual void execute(MachineState * ms) {
   stringstream p;
-  p << ms->config.observedCameraExposure << " " << ms->config.observedCameraGain << " " << ms->config.observedCameraWhiteBalanceRed << " " << ms->config.observedCameraWhiteBalanceGreen << " " << ms->config.observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  p << camera->observedCameraExposure << " " << camera->observedCameraGain << " " << camera->observedCameraWhiteBalanceRed << " " << camera->observedCameraWhiteBalanceGreen << " " << camera->observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
   cout << p.str() << endl;
   ms->evaluateProgram(p.str());
 }
@@ -1859,11 +1873,12 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, gain);
   GET_INT_ARG(ms, exposure);
 
-  ms->config.cameraGain = gain;
-  ms->config.cameraExposure = exposure;
-  ms->config.cameraWhiteBalanceRed = wbRed;
-  ms->config.cameraWhiteBalanceGreen = wbGreen;
-  ms->config.cameraWhiteBalanceBlue = wbBlue;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cameraGain = gain;
+  camera->cameraExposure = exposure;
+  camera->cameraWhiteBalanceRed = wbRed;
+  camera->cameraWhiteBalanceGreen = wbGreen;
+  camera->cameraWhiteBalanceBlue = wbBlue;
 
   ms->pushWord("moveCropToProperValueNoUpdate");
 
@@ -1909,13 +1924,15 @@ REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
 
 WORD(UnFixCameraLightingNoUpdate)
 virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
   int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1936,14 +1953,15 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
-  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
+  double Vx = camera->vanishingPointReticle.px - (imW/2);
+  double Vy = camera->vanishingPointReticle.py - (imH/2);
 
-  ms->config.cropUpperLeftCorner.px += Vx;
-  ms->config.cropUpperLeftCorner.py += Vy;
-  ms->config.vanishingPointReticle.px -= Vx;
-  ms->config.vanishingPointReticle.py -= Vy;
+  camera->cropUpperLeftCorner.px += Vx;
+  camera->cropUpperLeftCorner.py += Vy;
+  camera->vanishingPointReticle.px -= Vx;
+  camera->vanishingPointReticle.py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
   ms->pushWord("moveCropToProperValue");
@@ -1956,24 +1974,25 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
-  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
+  double Vx = camera->vanishingPointReticle.px - (imW/2);
+  double Vy = camera->vanishingPointReticle.py - (imH/2);
 
-  ms->config.cropUpperLeftCorner.px += Vx;
-  ms->config.cropUpperLeftCorner.py += Vy;
-  ms->config.vanishingPointReticle.px -= Vx;
-  ms->config.vanishingPointReticle.py -= Vy;
+  camera->cropUpperLeftCorner.px += Vx;
+  camera->cropUpperLeftCorner.py += Vy;
+  camera->vanishingPointReticle.px -= Vx;
+  camera->vanishingPointReticle.py -= Vy;
 
-  ms->config.heightReticles[0].px -= Vx;
-  ms->config.heightReticles[1].px -= Vx;
-  ms->config.heightReticles[2].px -= Vx;
-  ms->config.heightReticles[3].px -= Vx;
+  camera->heightReticles[0].px -= Vx;
+  camera->heightReticles[1].px -= Vx;
+  camera->heightReticles[2].px -= Vx;
+  camera->heightReticles[3].px -= Vx;
 
-  ms->config.heightReticles[0].py -= Vy;
-  ms->config.heightReticles[1].py -= Vy;
-  ms->config.heightReticles[2].py -= Vy;
-  ms->config.heightReticles[3].py -= Vy;
+  camera->heightReticles[0].py -= Vy;
+  camera->heightReticles[1].py -= Vy;
+  camera->heightReticles[2].py -= Vy;
+  camera->heightReticles[3].py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
   ms->pushWord("moveCropToProperValue");
@@ -2044,15 +2063,16 @@ virtual void execute(MachineState * ms) {
   int darkX = 0;
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  int Px = darkX - ms->config.vanishingPointReticle.px;
-  int Py = darkY - ms->config.vanishingPointReticle.py;
+  int Px = darkX - camera->vanishingPointReticle.px;
+  int Py = darkY - camera->vanishingPointReticle.py;
 
-  ms->config.vanishingPointReticle.px = darkX;
-  ms->config.vanishingPointReticle.py = darkY;
+  camera->vanishingPointReticle.px = darkX;
+  camera->vanishingPointReticle.py = darkY;
   
   cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
 
@@ -2196,6 +2216,7 @@ virtual void execute(MachineState * ms) {
 
   int magIters = 2000; 
   double magStep = 0.01;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   for (int i = 0; i < magIters; i++) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
@@ -2210,8 +2231,9 @@ virtual void execute(MachineState * ms) {
     double xFlip = 1.0;
     double yFlip = 1.0;
 
+
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -2223,12 +2245,12 @@ virtual void execute(MachineState * ms) {
 
     // only do x
     if ((Px*xFlip) > 0) {
-      ms->config.m_x += .01;
-      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+      camera->m_x += .01;
+      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
       cout << "m_x++ ";
     } else if ((Px*xFlip) < 0) {
-      ms->config.m_x -= .01;
-      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+      camera->m_x -= .01;
+      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
       cout << "m_x-- ";
     }
 
@@ -2238,29 +2260,30 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetMagnificationA)
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
-
-
-CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.vanishingPointReticle.px) 
-CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.vanishingPointReticle.px) 
-
-CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.vanishingPointReticle.py) 
-CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.vanishingPointReticle.py) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
-CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
+CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
-CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
 WORD(SetMagnificationB)
 virtual void execute(MachineState * ms) {
   // adjust until close	
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int darkX = 0;
   int darkY = 0;
@@ -2286,7 +2309,7 @@ virtual void execute(MachineState * ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -2298,12 +2321,12 @@ virtual void execute(MachineState * ms) {
 
     // only do y
     if ((Py*yFlip) > 0) {
-      ms->config.m_y += .01;
-      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+      camera->m_y += .01;
+      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
       cout << "m_y++ ";
     } else if ((Py*yFlip) < 0) {
-      ms->config.m_y -= .01;
-      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+      camera->m_y -= .01;
+      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
       cout << "m_y-- ";
     }
 
@@ -2758,9 +2781,9 @@ REGISTER_WORD(SaveCalibrationToClass)
 
 WORD(SetColorReticles)
 virtual void execute(MachineState * ms) {
-
-  ms->config.bDelta = ms->config.cReticleIndexDelta;
-  ms->config.currentEEPose.pz = ms->config.firstCReticleIndexDepth;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  ms->config.bDelta = camera->cReticleIndexDelta;
+  ms->config.currentEEPose.pz = camera->firstCReticleIndexDepth;
 
   // leave it in a canonical state
   ms->pushWord("setGridSizeCoarse");
@@ -2768,7 +2791,8 @@ virtual void execute(MachineState * ms) {
   int * ii = &(ms->config.scrI);
   (*ii) = 0;
 
-  for (int i = 0; i < ms->config.numCReticleIndeces; i++) {
+
+  for (int i = 0; i < camera->numCReticleIndexes; i++) {
     ms->pushWord("zUp");
     ms->pushWord("setColorReticlesA");
     ms->pushWord("accumulatedDensity");
@@ -2789,10 +2813,11 @@ virtual void execute(MachineState * ms) {
 
   ms->config.pilotTarget.px = lightX;
   ms->config.pilotTarget.py = lightY;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int * ii = &(ms->config.scrI);
-  ms->config.xCR[(*ii)] = lightX;
-  ms->config.yCR[(*ii)] = lightY;
+  camera->xCR[(*ii)] = lightX;
+  camera->yCR[(*ii)] = lightY;
 
   (*ii)++;
 }
@@ -5559,11 +5584,12 @@ virtual void execute(MachineState * ms)
     ms->config.bCens.resize(1);
     ms->config.bLabels.resize(1);
 
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - ms->config.fakeBBWidth;
-    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - ms->config.fakeBBWidth;
-    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + ms->config.fakeBBWidth;
-    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + ms->config.fakeBBWidth;
+    ms->config.bTops[0].x = camera->vanishingPointReticle.px - ms->config.fakeBBWidth;
+    ms->config.bTops[0].y = camera->vanishingPointReticle.py - ms->config.fakeBBWidth;
+    ms->config.bBots[0].x = camera->vanishingPointReticle.px + ms->config.fakeBBWidth;
+    ms->config.bBots[0].y = camera->vanishingPointReticle.py + ms->config.fakeBBWidth;
 
     ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
     ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;
@@ -5594,11 +5620,12 @@ virtual void execute(MachineState * ms)
     ms->config.bCens.resize(1);
     ms->config.bLabels.resize(1);
 
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - ms->config.fakeBBWidth;
-    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - ms->config.fakeBBWidth;
-    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + ms->config.fakeBBWidth;
-    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + ms->config.fakeBBWidth;
+    ms->config.bTops[0].x = camera->vanishingPointReticle.px - ms->config.fakeBBWidth;
+    ms->config.bTops[0].y = camera->vanishingPointReticle.py - ms->config.fakeBBWidth;
+    ms->config.bBots[0].x = camera->vanishingPointReticle.px + ms->config.fakeBBWidth;
+    ms->config.bBots[0].y = camera->vanishingPointReticle.py + ms->config.fakeBBWidth;
 
     ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
     ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;

@@ -6,7 +6,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -791,10 +791,12 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
+  //camera->reticle = heightReticles[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight)
@@ -806,10 +808,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight0)
@@ -821,10 +824,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight1)
@@ -836,10 +840,11 @@ virtual void execute(MachineState * ms)  {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight2)
@@ -851,10 +856,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight3)
@@ -1031,11 +1037,12 @@ virtual void execute(MachineState * ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
     BoxMemory box;
-    box.bTop.x = ms->config.vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
-    box.bTop.y = ms->config.vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
+    box.bTop.x = camera->vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
+    box.bTop.y = camera->vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);

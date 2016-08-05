@@ -8449,22 +8449,23 @@ virtual void execute(MachineState * ms) {
 
   // XXX optionally add a translation of the height reticles here to avoid going into "dead" configurations
   /*
-  double delta_x = pixel_scene_x - ms->config.vanishingPointReticle.px;
-  double delta_y = pixel_scene_x - ms->config.vanishingPointReticle.py;
+  double delta_x = pixel_scene_x - camera->vanishingPointReticle.px;
+  double delta_y = pixel_scene_x - camera->vanishingPointReticle.py;
 
-  ms->config.heightReticles[0].px += delta_x;
-  ms->config.heightReticles[1].px += delta_x;
-  ms->config.heightReticles[2].px += delta_x;
-  ms->config.heightReticles[3].px += delta_x;
+  camera->heightReticles[0].px += delta_x;
+  camera->heightReticles[1].px += delta_x;
+  camera->heightReticles[2].px += delta_x;
+  camera->heightReticles[3].px += delta_x;
 
-  ms->config.heightReticles[0].py += delta_y;
-  ms->config.heightReticles[1].py += delta_y;
-  ms->config.heightReticles[2].py += delta_y;
-  ms->config.heightReticles[3].py += delta_y;
+  camera->heightReticles[0].py += delta_y;
+  camera->heightReticles[1].py += delta_y;
+  camera->heightReticles[2].py += delta_y;
+  camera->heightReticles[3].py += delta_y;
   */
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  ms->config.vanishingPointReticle.px = pixel_scene_x;
-  ms->config.vanishingPointReticle.py = pixel_scene_y;
+  camera->vanishingPointReticle.px = pixel_scene_x;
+  camera->vanishingPointReticle.py = pixel_scene_y;
 }
 END_WORD
 REGISTER_WORD(SceneSetVanishingPointFromPixel)
@@ -8479,9 +8480,10 @@ virtual void execute(MachineState * ms) {
   GET_NUMERIC_ARG(ms, this_height_idx);
 
   cout << "sceneSetHeightReticleFromPixel x, y: " << pixel_scene_x << " " << pixel_scene_y << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  ms->config.heightReticles[this_height_idx].px = pixel_scene_x;
-  ms->config.heightReticles[this_height_idx].py = pixel_scene_y;
+  camera->heightReticles[this_height_idx].px = pixel_scene_x;
+  camera->heightReticles[this_height_idx].py = pixel_scene_y;
 
   // XXX should really consider regressing a straight line for the reticles since if
   // they are bad the whole thing will be ill posed

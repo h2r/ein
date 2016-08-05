@@ -2,13 +2,15 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
-
+#include "camera.h"
 
 namespace ein_words {
 
 WORD(PaintReticles)
 CODE(1048679)     // numlock + g
 virtual void execute(MachineState * ms)       {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   double ddrX = (ms->config.drX)/ms->config.rmDelta;
   double ddrY = (ms->config.drY)/ms->config.rmDelta;
   double ttrX = (ms->config.trX-ms->config.rmcX)/ms->config.rmDelta;
@@ -78,8 +80,8 @@ virtual void execute(MachineState * ms)       {
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
   }
-  double cttrX = ms->config.curseReticleX - ms->config.hrmHalfWidth;
-  double cttrY = ms->config.curseReticleY - ms->config.hrmHalfWidth;
+  double cttrX = camera->curseReticleX - ms->config.hrmHalfWidth;
+  double cttrY = camera->curseReticleY - ms->config.hrmHalfWidth;
   if ((fabs(cttrX) <= ms->config.hrmHalfWidth-hiCellWidth) && (fabs(cttrY) <= ms->config.hrmHalfWidth-hiCellWidth)) {
     int ciiX = (int)round(cttrX + ms->config.hrmHalfWidth);
     int ciiY = (int)round(cttrY + ms->config.hrmHalfWidth);
@@ -93,7 +95,7 @@ virtual void execute(MachineState * ms)       {
     line(ms->config.hiRangemapImage, l1p1, l1p2, backColor);
     line(ms->config.hiRangemapImage, l2p1, l2p2, backColor);
 #ifdef DEBUG4
-    cout << "printing curseReticle xy globalz: " << ms->config.curseReticleX << " " << ms->config.curseReticleY << " " << ms->config.hiRangeMap[ciiX + ciiY*ms->config.hrmWidth] << endl;
+    cout << "printing curseReticle xy globalz: " << camera->curseReticleX << " " << camera->curseReticleY << " " << ms->config.hiRangeMap[ciiX + ciiY*ms->config.hrmWidth] << endl;
 #endif
   }
   {
