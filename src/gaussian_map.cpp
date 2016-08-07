@@ -5321,7 +5321,7 @@ virtual void execute(MachineState * ms) {
 
   int numPixels = 0;
   int numNulls = 0;
-  Mat gripperMask = ms->config.gripperMask;
+  Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
@@ -5339,7 +5339,7 @@ virtual void execute(MachineState * ms) {
     //for (int py = topy; py <= boty; py++) 
       for (int py = ttopy; py < tboty; py++) 
       {
-        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
         cv::Vec3b* wristViewPixel = wristViewYCbCr.ptr<cv::Vec3b>(py);
 
       //double opy = py-topy;
@@ -5419,15 +5419,15 @@ virtual void execute(MachineState * ms) {
   int topy = imHoT - aahr; 
   int boty = imHoT + aahr; 
   
-
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   //computePixelToGlobalCache(ms, z, thisPose, &data);
-  Mat gripperMask = ms->config.gripperMask;
+  Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
 
   int numThreads = 8;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   vector<shared_ptr<GaussianMap> > maps;
   maps.resize(numThreads);
@@ -5495,7 +5495,7 @@ virtual void execute(MachineState * ms) {
       uchar *input = (uchar*) (wristViewYCbCr.data);
       
       for (int py = topy; py <= boty; py++) {
-        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
         for (int px = topx; px <= botx; px++) {
           if (gripperMaskPixel[px] == 0) {
             continue;
@@ -5591,13 +5591,13 @@ virtual void execute(MachineState * ms) {
 
   cout << "viewSynth fp ap awm str: " << z_focal_plane << " " << z_aperture_plane << " " << global_aperture_width_meters << " " << stride << endl;
   
-
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   //computePixelToGlobalCache(ms, z, thisPose, &data);
-  Mat gripperMask = ms->config.gripperMask;
+  Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int numThreads = 8;
 
@@ -5710,7 +5710,7 @@ virtual void execute(MachineState * ms) {
       uchar *input = (uchar*) (wristViewYCbCr.data);
       
       for (int py = topy; py <= boty; py++) {
-        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
         for (int px = topx; px <= botx; px++) {
           if (gripperMaskPixel[px] == 0) {
             continue;
@@ -5843,13 +5843,13 @@ virtual void execute(MachineState * ms) {
 
   cout << "viewSynth fp ap awm str: " << z_focal_plane << " " << z_aperture_plane << " " << global_aperture_width_meters << " " << stride << endl;
   
-
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   //computePixelToGlobalCache(ms, z, thisPose, &data);
-  Mat gripperMask = ms->config.gripperMask;
+  Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
   }
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
 
   int numThreads = 8;
 
@@ -5962,7 +5962,7 @@ virtual void execute(MachineState * ms) {
       uchar *input = (uchar*) (wristViewYCbCr.data);
       
       for (int py = topy; py <= boty; py++) {
-        uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(py); // point to first pixel in row
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
         for (int px = topx; px <= botx; px++) {
           if (gripperMaskPixel[px] == 0) {
             continue;

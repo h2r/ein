@@ -4645,9 +4645,10 @@ void renderWristViewImage(MachineState * ms) {
     }
   }
   if (ms->config.mask_gripper) {
-    for (int y = 0; y < ms->config.gripperMask.rows; y++) {
-      uchar* gripperMaskPixel = ms->config.gripperMask.ptr<uchar>(y); // point to first pixel in row
-      for (int x = 0; x < ms->config.gripperMask.cols; x++) {
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+    for (int y = 0; y < camera->gripperMask.rows; y++) {
+      uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(y); // point to first pixel in row
+      for (int x = 0; x < camera->gripperMask.cols; x++) {
         if (gripperMaskPixel[x] == 0) {
           ms->config.wristViewImage.at<Vec3b>(y,x)[0] = 255;
 	}
@@ -6031,6 +6032,7 @@ int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
 void changeCamera(MachineState * ms, int newCamera) {
   ms->config.focused_camera = newCamera;
   ms->config.renderInit = 0;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 }
 
 void changeTargetClass(MachineState * ms, int newTargetClass) {
@@ -10718,11 +10720,12 @@ bool isInGripperMaskBlocks(MachineState * ms, int x, int y) {
 }
 
 bool isInGripperMask(MachineState * ms, int x, int y) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   if (ms->config.mask_gripper) {
-    if (isSketchyMat(ms->config.gripperMask)) {
+    if (isSketchyMat(camera->gripperMask)) {
       return false;
     } else {
-      return (( ms->config.gripperMask.at<uchar>(y,x) == 0 ));
+      return (( camera->gripperMask.at<uchar>(y,x) == 0 ));
     }
   } else if (ms->config.mask_gripper_blocks) {
     return isInGripperMaskBlocks(ms, x,y);

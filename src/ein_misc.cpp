@@ -2906,8 +2906,8 @@ CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
 CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 
-CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.gripperMaskThresh)
-CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.gripperMaskThresh)
+CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
+CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
 
 
 CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)

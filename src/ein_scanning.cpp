@@ -2341,18 +2341,18 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   
 
-  ms->config.gripperMask.create(camera->cam_img.size(), CV_8U);
-  ms->config.cumulativeGripperMask.create(camera->cam_img.size(), CV_8U);
+  camera->gripperMask.create(camera->cam_img.size(), CV_8U);
+  camera->cumulativeGripperMask.create(camera->cam_img.size(), CV_8U);
 
-  Size sz = ms->config.gripperMask.size();
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      ms->config.gripperMask.at<uchar>(y,x) = 1;
-      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 1;
+      camera->gripperMask.at<uchar>(y,x) = 1;
+      camera->cumulativeGripperMask.at<uchar>(y,x) = 1;
     }
   }
 }
@@ -2374,22 +2374,23 @@ REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskAA)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
-  ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskMean = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskMean = 0.0;
-  ms->config.gripperMaskSquares = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskSquares = 0.0;
-  ms->config.gripperMaskCounts = 0;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
+  camera->gripperMaskSecondContrast = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = 0.0;
+  camera->gripperMaskSquares = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskSquares = 0.0;
+  camera->gripperMaskCounts = 0;
 
-  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
+  camera->gripperMask.create(camera->gripperMaskFirstContrast.size(), CV_8U);
 
-  Size sz = ms->config.gripperMask.size();
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   cout << "Updating image" << endl;
-  //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
+  //camera->gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2397,11 +2398,11 @@ virtual void execute(MachineState * ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMask.at<uchar>(y,x) = 0;
+      camera->gripperMask.at<uchar>(y,x) = 0;
     }
   }
   //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
@@ -2411,13 +2412,14 @@ REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(MachineState * ms) {
-  ms->config.cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
-  Size sz = ms->config.cumulativeGripperMask.size();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
+  Size sz = camera->cumulativeGripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 0;
+      camera->cumulativeGripperMask.at<uchar>(y,x) = 0;
     }
   }
 }
@@ -2449,13 +2451,13 @@ REGISTER_WORD(SetGripperMaskB)
 
 WORD(SetGripperMaskBA)
 virtual void execute(MachineState * ms) {
-
-  Size sz = ms->config.gripperMask.size();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int dilationPixels = 10;
-  double baseThresh = ms->config.gripperMaskThresh;
+  double baseThresh = camera->gripperMaskThresh;
   //double multiThresh = 3*baseThresh*baseThresh; // for rgb
   double multiThresh = 2*baseThresh*baseThresh; // for ycbcr
 
@@ -2467,27 +2469,27 @@ virtual void execute(MachineState * ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[0] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[1] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[2] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[0] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[1] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[2] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[0] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom), 2);
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[1] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom), 2);
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[0] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[1] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
     }
   }
-  ms->config.gripperMaskCounts += 1;
+  camera->gripperMaskCounts += 1;
   //ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
-  Mat firstFloat; Mat firstYCBCR;  ms->config.gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
-  Mat secondFloat; Mat secondYCBCR;  ms->config.gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
+  Mat firstFloat; Mat firstYCBCR;  camera->gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
+  Mat secondFloat; Mat secondYCBCR;  camera->gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
 
-  Mat varianceImage = ms->config.gripperMaskFirstContrast.clone();
+  Mat varianceImage = camera->gripperMaskFirstContrast.clone();
 
-  Mat differenceImage = ms->config.gripperMaskFirstContrast.clone();
+  Mat differenceImage = camera->gripperMaskFirstContrast.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2513,9 +2515,9 @@ virtual void execute(MachineState * ms) {
       differenceImage.at<Vec3d>(y,x)[1] = 0.0;
       differenceImage.at<Vec3d>(y,x)[2] = 0.0;
 
-      varianceImage.at<Vec3d>(y,x)[0] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts, 2) ;
-      varianceImage.at<Vec3d>(y,x)[1] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts, 2) ;
-      varianceImage.at<Vec3d>(y,x)[2] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[0] = camera->gripperMaskSquares.at<Vec3d>(y, x)[0] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[0] / camera->gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[1] = camera->gripperMaskSquares.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[2] = camera->gripperMaskSquares.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts, 2) ;
 
       varianceImage.at<Vec3d>(y,x)[0] = 0;//varianceImage.at<Vec3d>(y,x)[0] / pow(255.0, 2);
       varianceImage.at<Vec3d>(y,x)[1] = varianceImage.at<Vec3d>(y,x)[1] / pow(255.0, 2);
@@ -2523,9 +2525,9 @@ virtual void execute(MachineState * ms) {
 
       double maskDiffVariance = sqrt( pow(varianceImage.at<Vec3d>(y,x)[1],2) + pow(varianceImage.at<Vec3d>(y,x)[2],2) );
       if (maskDiffVariance > multiThresh) {
-	ms->config.gripperMask.at<uchar>(y,x) = 1;
+	camera->gripperMask.at<uchar>(y,x) = 1;
       } else {
-	ms->config.gripperMask.at<uchar>(y,x) = 0;
+	camera->gripperMask.at<uchar>(y,x) = 0;
       }
     }
   }
@@ -2535,7 +2537,7 @@ virtual void execute(MachineState * ms) {
   //ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
   //ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
 
-  Mat tmpMask = ms->config.gripperMask.clone();
+  Mat tmpMask = camera->gripperMask.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2546,7 +2548,7 @@ virtual void execute(MachineState * ms) {
 	int ymax = min(imH-1, y + dilationPixels);
 	for (int xp = xmin; xp < xmax; xp++) {
 	  for (int yp = ymin; yp < ymax; yp++) {
-	    ms->config.gripperMask.at<uchar>(yp,xp) = 0;
+	    camera->gripperMask.at<uchar>(yp,xp) = 0;
 	  }
 	}
       }
@@ -2602,14 +2604,16 @@ REGISTER_WORD(SetGripperMaskWithMotionA)
 
 WORD(SetGripperMaskCA)
 virtual void execute(MachineState * ms) {
-  ms->config.cumulativeGripperMask = max(ms->config.cumulativeGripperMask, ms->config.gripperMask);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cumulativeGripperMask = max(camera->cumulativeGripperMask, camera->gripperMask);
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskCA)
 
 WORD(SetGripperMaskCB)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMask = ms->config.cumulativeGripperMask.clone();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->gripperMask = camera->cumulativeGripperMask.clone();
   cout << "Thank you. Don't forget to save your mask!" << endl;
 }
 END_WORD
@@ -2618,28 +2622,7 @@ REGISTER_WORD(SetGripperMaskCB)
 WORD(LoadGripperMask)
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  
-  CONSOLE(ms, "Loading gripper mask from " << camera->gripperMaskFilename << "...");
-  Mat tmpMask = imread(camera->gripperMaskFilename, CV_LOAD_IMAGE_GRAYSCALE);
-  if (tmpMask.data == NULL) {
-    CONSOLE_ERROR(ms, "Could not load gripper mask; will use empty one.");
-  }
-
-  ms->config.gripperMask.create(tmpMask.size(), CV_8U);
-  Size sz = ms->config.gripperMask.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      if (tmpMask.at<uchar>(y,x) > 0) {
-	ms->config.gripperMask.at<uchar>(y,x) = 1;
-      } else {
-	ms->config.gripperMask.at<uchar>(y,x) = 0;
-      }
-    }
-  }
-  
+  camera->loadGripperMask();
 }
 END_WORD
 REGISTER_WORD(LoadGripperMask)
@@ -2647,12 +2630,7 @@ REGISTER_WORD(LoadGripperMask)
 WORD(SaveGripperMask)
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  CONSOLE(ms, "Saving gripper mask to " << camera->gripperMaskFilename);
-  bool result = imwrite(camera->gripperMaskFilename, 255*ms->config.gripperMask);
-  if (! result) {
-    CONSOLE_ERROR(ms, "Could not save gripper mask.");
-  }
+  camera->saveGripperMask();
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)

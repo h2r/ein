@@ -1204,14 +1204,6 @@ class EinConfig {
   vector<Sprite> instanceSprites;
 
 
-  Mat gripperMaskFirstContrast;
-  Mat gripperMaskSecondContrast;
-  Mat gripperMaskMean;
-  Mat gripperMaskSquares;
-  int gripperMaskCounts;
-  Mat gripperMask;
-  Mat cumulativeGripperMask;
-  double gripperMaskThresh = 0.02;
 
   int darkServoIterations = 0;
   int darkServoTimeout = 20;

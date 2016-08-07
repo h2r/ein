@@ -28,6 +28,16 @@ class Camera {
   int imRingBufferStart = 0;
   int imRingBufferEnd = 0;
   std::vector<streamImage> streamImageBuffer;
+
+  Mat gripperMaskFirstContrast;
+  Mat gripperMaskSecondContrast;
+  Mat gripperMaskMean;
+  Mat gripperMaskSquares;
+  int gripperMaskCounts;
+  Mat gripperMask;
+  Mat cumulativeGripperMask;
+  double gripperMaskThresh = 0.02;
+
   string name;
   string calibrationDirectory;
   string gripperMaskFilename;
@@ -122,6 +132,11 @@ class Camera {
   void loadCalibration();
   void saveCalibration(string outFileName);
   void saveCalibration();
+
+  void loadGripperMask(string inFileName);
+  void loadGripperMask();
+  void saveGripperMask(string outFileName);
+  void saveGripperMask();
 
 
 

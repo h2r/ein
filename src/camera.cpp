@@ -30,8 +30,8 @@ Camera::Camera(MachineState * m, string iname, string topic) {
   }  
   calibrationFilename = calibrationDirectory + "/cameraCalibration.yml";
   gripperMaskFilename = calibrationDirectory + "/gripperMask.bmp";
-
-
+  loadCalibration();
+  loadGripperMask();
 }
 
 
@@ -787,4 +787,40 @@ void Camera::saveCalibration(string outFileName) {
 
   fsvO.release();
   cout << "done." << endl;
+}
+void Camera::saveGripperMask() {
+  saveGripperMask(gripperMaskFilename);
+}
+void Camera::saveGripperMask(string filename) {
+  CONSOLE(ms, "Saving gripper mask to " << filename);
+  bool result = imwrite(filename, 255*gripperMask);
+  if (! result) {
+    CONSOLE_ERROR(ms, "Could not save gripper mask.");
+  }
+}
+
+void Camera::loadGripperMask() {
+  loadGripperMask(gripperMaskFilename);
+}
+void Camera::loadGripperMask(string filename) {
+  CONSOLE(ms, "Loading gripper mask from " << filename << "...");
+  Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+  if (tmpMask.data == NULL) {
+    CONSOLE_ERROR(ms, "Could not load gripper mask; will use empty one.");
+  }
+
+  gripperMask.create(tmpMask.size(), CV_8U);
+  Size sz = gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      if (tmpMask.at<uchar>(y,x) > 0) {
+	gripperMask.at<uchar>(y,x) = 1;
+      } else {
+	gripperMask.at<uchar>(y,x) = 0;
+      }
+    }
+  }
 }
