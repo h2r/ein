@@ -2338,8 +2338,11 @@ REGISTER_WORD(SetMagnificationB)
 
 WORD(SetGripperMaskOnes)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
-  ms->config.cumulativeGripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  
+
+  ms->config.gripperMask.create(camera->cam_img.size(), CV_8U);
+  ms->config.cumulativeGripperMask.create(camera->cam_img.size(), CV_8U);
 
   Size sz = ms->config.gripperMask.size();
   int imW = sz.width;

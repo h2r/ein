@@ -4668,6 +4668,10 @@ void MachineState::imageCallback(Camera * camera) {
     }
   }
 
+  if (ms->config.castRecentRangeRay) {
+    recordReadyRangeReadings(ms);
+  }
+
   ms->config.wristCamImage = camera->cam_img.clone();
   ms->config.wristCamInit = 1;
   ms->config.wristViewImage = camera->cam_img.clone();

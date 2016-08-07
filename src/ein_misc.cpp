@@ -2951,6 +2951,8 @@ CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
 CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
 
+CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
+
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
