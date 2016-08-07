@@ -14359,6 +14359,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   //cout << "n namespace: " << n.getNamespace() << endl;
   ms->config.data_directory = ros::package::getPath("ein") + "/default";
 
+  string console_topic = "/ein/" + ms->config.left_or_right_arm + "/console";
+  ms->config.einConsolePub = n.advertise<EinConsole>(console_topic, 10);
 
   loadROSParamsFromArgs(ms);
   //cout << "mask_gripper: " << ms->config.mask_gripper << endl;
@@ -14588,8 +14590,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   string state_topic = "/ein/" + ms->config.left_or_right_arm + "/state";
   ms->config.einStatePub = n.advertise<EinState>(state_topic, 10);
 
-  string console_topic = "/ein/" + ms->config.left_or_right_arm + "/console";
-  ms->config.einConsolePub = n.advertise<EinConsole>(console_topic, 10);
 
   ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 

@@ -3,6 +3,12 @@
 #include <vector>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
+#include <boost/filesystem.hpp>
+#include <boost/system/error_code.hpp>
+
+using namespace boost::filesystem;
+using namespace boost::system;
+
 
 Camera::Camera(MachineState * m, string iname, string topic) {
   image_topic = topic;
@@ -15,10 +21,21 @@ Camera::Camera(MachineState * m, string iname, string topic) {
   imRBTimes.resize(imRingBufferSize);
   lastImageCallbackReceived = ros::Time::now();
   calibrationDirectory = ms->config.data_directory + ms->config.config_directory + name;
+
+  // call after ROS is all set up.
+  error_code ec;
+  create_directories(calibrationDirectory, ec);
+  if (ec) {
+    CONSOLE_ERROR(ms, "Unable to create camera calibration directory " << calibrationDirectory << " boost error code: " << ec);
+  }  
   calibrationFilename = calibrationDirectory + "/cameraCalibration.yml";
   gripperMaskFilename = calibrationDirectory + "/gripperMask.bmp";
 
+
 }
+
+
+
 void Camera::deactivateSensorStreaming() {
   cout << "deactivateSensorStreaming: Subscribe to image." << image_topic << endl;
   image_sub = it->subscribe(image_topic, 1, &Camera::imageCallback, this);

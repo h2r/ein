@@ -2646,7 +2646,10 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   CONSOLE(ms, "Saving gripper mask to " << camera->gripperMaskFilename);
-  imwrite(camera->gripperMaskFilename, 255*ms->config.gripperMask);
+  bool result = imwrite(camera->gripperMaskFilename, 255*ms->config.gripperMask);
+  if (! result) {
+    CONSOLE_ERROR(ms, "Could not save gripper mask.");
+  }
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)
