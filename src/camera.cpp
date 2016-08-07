@@ -85,7 +85,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cam_img = cv_ptr->image.clone();
   }
 
-  setRingImageAtTime(msg->header.stamp, cam_img);
+
 
   if (cam_img.type() == CV_16UC1) {
     Mat graybgr;
@@ -96,6 +96,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   }
   cvtColor(cam_bgr_img, cam_ycrcb_img, CV_BGR2YCrCb);
 
+  setRingImageAtTime(msg->header.stamp, cam_bgr_img);
 
   ms->imageCallback(this);
 }

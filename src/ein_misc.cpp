@@ -1146,6 +1146,14 @@ END_WORD
 REGISTER_WORD(DecrementCamera)
 
 
+WORD(ReloadCamera)
+virtual void execute(MachineState * ms)
+{
+  changeCamera(ms, ms->config.focused_camera);
+}
+END_WORD
+REGISTER_WORD(ReloadCamera)
+
 
 
 WORD(IncrementTargetClass)

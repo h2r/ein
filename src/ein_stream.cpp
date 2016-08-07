@@ -680,8 +680,7 @@ virtual void execute(MachineState * ms)       {
 
     tsi = camera->setIsbIdx(camera->sibCurIdx);
     if (tsi == NULL) {
-      cout << "iterateIsbAndAccumulateHeightImages: setIsbIdx returned null after pose check! Returning." << endl;
-    } else {
+      CONSOLE_ERROR(ms, "iterateIsbAndAccumulateHeightImages: setIsbIdx returned null after pose check!");
     }
 
     Size sz = ms->config.accumulatedStreamImage.size();

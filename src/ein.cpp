@@ -4349,11 +4349,12 @@ void accumulateImage(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   for (int y = 0; y < imH; y++) {
 
     cv::Vec3d* pixel = ms->config.accumulatedImage.ptr<cv::Vec3d>(y); // point to first pixel in row
 
-    cv::Vec3b* wpixel = ms->config.wristCamImage.ptr<cv::Vec3b>(y); // point to first pixel in row
+    cv::Vec3b* wpixel = camera->cam_bgr_img.ptr<cv::Vec3b>(y); // point to first pixel in row
     double * mass = ms->config.accumulatedImageMass.ptr<double>(y);
     for (int x = 0; x < imW; x++) {
       pixel[x][0] += wpixel[x][0];
@@ -11515,6 +11516,10 @@ void substituteAccumulatedImageQuantities(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+
+  cout << "Object viewer image: " << ms->config.objectViewerImage.size() << " type: " << ms->config.objectViewerImage.type() << endl;
+  cout << "accumulated image: " << ms->config.accumulatedImage.size() << " type: " << ms->config.accumulatedImage.type() << endl;
+  
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
