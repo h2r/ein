@@ -28,6 +28,10 @@ class Camera {
   int imRingBufferStart = 0;
   int imRingBufferEnd = 0;
   std::vector<streamImage> streamImageBuffer;
+  string name;
+  string calibrationDirectory;
+  string gripperMaskFilename;
+  string calibrationFilename;
 
   cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_HYPERBOLIC;
 
@@ -93,7 +97,7 @@ class Camera {
   void deactivateSensorStreaming();
   void activateSensorStreaming();
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-  Camera(MachineState * ms, string topic);
+  Camera(MachineState * ms, string name, string topic);
 
 
   int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
@@ -115,7 +119,10 @@ class Camera {
   void streamImageAsClass(Mat im, int classToStreamIdx, double now);
 
   void loadCalibration(string inFileName);
+  void loadCalibration();
   void saveCalibration(string outFileName);
+  void saveCalibration();
+
 
 
 };

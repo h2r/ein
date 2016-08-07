@@ -4,8 +4,9 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
-Camera::Camera(MachineState * m, string topic) {
+Camera::Camera(MachineState * m, string iname, string topic) {
   image_topic = topic;
+  name = iname;
   ms = m;
   ros::NodeHandle n("~");
   it = make_shared<image_transport::ImageTransport>(n);
@@ -13,7 +14,9 @@ Camera::Camera(MachineState * m, string topic) {
   imRingBuffer.resize(imRingBufferSize);
   imRBTimes.resize(imRingBufferSize);
   lastImageCallbackReceived = ros::Time::now();
-
+  calibrationDirectory = ms->config.data_directory + ms->config.config_directory + name;
+  calibrationFilename = calibrationDirectory + "/cameraCalibration.yml";
+  gripperMaskFilename = calibrationDirectory + "/gripperMask.bmp";
 
 }
 void Camera::deactivateSensorStreaming() {
@@ -544,13 +547,13 @@ void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
 
 
 void Camera::loadCalibration(string inFileName) {
+  CONSOLE(ms, "Loading calibration file from " << inFileName);
   FileStorage fsvI;
-  cout << "Reading calibration information from " << inFileName << " ..." << endl;
   fsvI.open(inFileName, FileStorage::READ);
 
   if (!fsvI.isOpened()) {
-    cout << "Couldn't open calibration." << endl;
-    assert(0);
+    CONSOLE_ERROR(ms, "Couldn't open calibration.");
+    return;
   }
 
   {
@@ -654,8 +657,15 @@ void Camera::loadCalibration(string inFileName) {
   ms->pushWord("moveCropToProperValue"); 
 }
 
-void Camera::saveCalibration(string outFileName) {
+void Camera::saveCalibration() {
+  saveCalibration(calibrationFilename);
+}
 
+void Camera::loadCalibration() {
+  loadCalibration(calibrationFilename);
+}
+void Camera::saveCalibration(string outFileName) {
+  CONSOLE(ms, "Saving calibration file from " << outFileName);
   ros::Time savedTime = ros::Time::now();
 
   /* this works

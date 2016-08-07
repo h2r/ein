@@ -2614,10 +2614,13 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(MachineState * ms) {
-  string filename = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "GripperMask.bmp";
-  cout << "Loading gripper mask from " << filename << "...";
-  Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-  cout << "Read type: " <<  tmpMask.type() << " Size:" << tmpMask.size() << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  
+  CONSOLE(ms, "Loading gripper mask from " << camera->gripperMaskFilename << "...");
+  Mat tmpMask = imread(camera->gripperMaskFilename, CV_LOAD_IMAGE_GRAYSCALE);
+  if (tmpMask.data == NULL) {
+    CONSOLE_ERROR(ms, "Could not load gripper mask; will use empty one.");
+  }
 
   ms->config.gripperMask.create(tmpMask.size(), CV_8U);
   Size sz = ms->config.gripperMask.size();
@@ -2640,9 +2643,10 @@ REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(MachineState * ms) {
-  string filename = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "GripperMask.bmp";
-  cout << "Saving gripper mask to " << filename << endl;
-  imwrite(filename, 255*ms->config.gripperMask);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  CONSOLE(ms, "Saving gripper mask to " << camera->gripperMaskFilename);
+  imwrite(camera->gripperMaskFilename, 255*ms->config.gripperMask);
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)
@@ -2708,10 +2712,7 @@ REGISTER_WORD(InitializeConfig)
 WORD(LoadCalibration)
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
-  cout << "Loading calibration file from " << fileName << endl;
-  camera->loadCalibration(fileName);
+  camera->loadCalibration();
   ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
@@ -2721,17 +2722,16 @@ WORD(LoadCalibrationRaw)
 virtual void execute(MachineState * ms) {
   string fileName;
   GET_ARG(ms, StringWord, fileName);
-  cout << "Loading calibration file from " << fileName << endl;
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
   camera->loadCalibration(fileName);
+  ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
 REGISTER_WORD(LoadCalibrationRaw)
 
 WORD(LoadDefaultCalibration)
 virtual void execute(MachineState * ms) {
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/defaultCamera/cameraCalibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
@@ -2743,12 +2743,8 @@ REGISTER_WORD(LoadDefaultCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(MachineState * ms) {
-  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
-  cout << "Saving calibration file from " << fileName << endl;
-
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->saveCalibration(fileName);
+  camera->saveCalibration();
 }
 END_WORD
 REGISTER_WORD(SaveCalibration)
