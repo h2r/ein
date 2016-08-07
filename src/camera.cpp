@@ -55,11 +55,11 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   lastImageStamp = msg->header.stamp;
   cv_bridge::CvImageConstPtr cv_ptr = NULL;
 
-  try{
+  try {
     //cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv_ptr = cv_bridge::toCvShare(msg);
   } catch(cv_bridge::Exception& e) {
-    ROS_ERROR_STREAM("cv_bridge exception " << __FILE__ ":" << __LINE__ << ": " << e.what());
+    CONSOLE_ERROR(ms, "cv_bridge exception " << __FILE__ ":" << __LINE__ << " camera " << name << ": " << e.what());
     return;
   }
 
@@ -92,7 +92,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     cvtColor(cam_img, graybgr, CV_GRAY2BGR);  
     graybgr.convertTo(cam_bgr_img, CV_8U, 1.0/256.0);
   } else {
-    cam_bgr_img = cam_img;
+    cam_bgr_img = cam_img.clone();
   }
   cvtColor(cam_bgr_img, cam_ycrcb_img, CV_BGR2YCrCb);
 

@@ -4281,21 +4281,21 @@ int renderInit(MachineState * ms,  Camera * camera) {
   
   ms->config.wristCamInit = 1;
 
-  ms->config.faceViewImage = camera->cam_img.clone();
+  ms->config.faceViewImage = camera->cam_bgr_img.clone();
   ms->config.wristViewImage = camera->cam_bgr_img.clone();
-  cout << "Camera Image: " << camera->cam_img.rows << ", " << camera->cam_img.cols << endl;
-  ms->config.accumulatedImage = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
-  ms->config.accumulatedImageMass = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64F);
+  cout << "Camera Image: " << camera->cam_bgr_img.rows << ", " << camera->cam_bgr_img.cols << endl;
+  ms->config.accumulatedImage = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
+  ms->config.accumulatedImageMass = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64F);
   
-  ms->config.densityViewerImage = camera->cam_img.clone();
+  ms->config.densityViewerImage = camera->cam_bgr_img.clone();
   ms->config.densityViewerImage *= 0;
-  ms->config.gradientViewerImage = Mat(2*camera->cam_img.rows, camera->cam_img.cols, camera->cam_img.type());
+  ms->config.gradientViewerImage = Mat(2*camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, camera->cam_bgr_img.type());
   ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-  ms->config.objectViewerImage = camera->cam_img.clone();
+  ms->config.objectViewerImage = camera->cam_bgr_img.clone();
   
   
-  int imW = camera->cam_img.cols;
-  int imH = camera->cam_img.rows;
+  int imW = camera->cam_bgr_img.cols;
+  int imH = camera->cam_bgr_img.rows;
   
   // determine table edges, i.e. the gray boxes
   ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
@@ -4339,6 +4339,8 @@ int renderInit(MachineState * ms,  Camera * camera) {
       ms->config.temporalDensity[y*imW + x] = 0;
     }
   }
+
+  initializeViewers(ms);
 
   return 0;
 }
@@ -4687,9 +4689,7 @@ void MachineState::imageCallback(Camera * camera) {
 
   ms->config.wristViewImage = camera->cam_bgr_img.clone();
 
-  ms->config.faceViewImage = camera->cam_img.clone();
-
-  guardViewers(ms);
+  ms->config.faceViewImage = camera->cam_bgr_img.clone();
 
   accumulateImage(ms);
 
@@ -10374,12 +10374,12 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   //      }
 
 	double blueBoxWeight = 0.1;
-	if ( (camera->cam_img.rows != 0 && camera->cam_img.cols != 0) &&
+	if ( (camera->cam_bgr_img.rows != 0 && camera->cam_bgr_img.cols != 0) &&
 	     ((px >=0) && (px < imW)) &&
 	     ((py >=0) && (py < imH)) ) {
-	  ms->config.objectMap[i + ms->config.mapWidth * j].b = (camera->cam_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
-	  ms->config.objectMap[i + ms->config.mapWidth * j].g = (camera->cam_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
-	  ms->config.objectMap[i + ms->config.mapWidth * j].r = (camera->cam_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].b = (camera->cam_bgr_img.at<cv::Vec3b>(py, px)[0] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].g = (camera->cam_bgr_img.at<cv::Vec3b>(py, px)[1] * blueBoxWeight);
+	  ms->config.objectMap[i + ms->config.mapWidth * j].r = (camera->cam_bgr_img.at<cv::Vec3b>(py, px)[2] * blueBoxWeight);
 	  ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = blueBoxWeight;
 	}
       }
@@ -10980,15 +10980,8 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
 }
 
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
-  if (image.type() != CV_16UC1) {
-    cvtColor(image, gray_image, CV_BGR2GRAY);
-    cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
-  } else {
-    gray_image = image.clone();
-    Mat bgrImage;
-    cvtColor(image, bgrImage, CV_GRAY2BGR);  
-    cvtColor(bgrImage, yCrCb_image, CV_BGR2YCrCb);
-  }
+  cvtColor(image, gray_image, CV_BGR2GRAY);
+  cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
   GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
   GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
 }
@@ -11431,12 +11424,13 @@ void renderAccumulatedImageAndDensity(MachineState * ms) {
   }
   }
   */
-  Size sz = ms->config.objectViewerYCbCrBlur.size();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  Size sz = camera->cam_bgr_img.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int YConstant = 128;
-  Mat oviToConstantize = ms->config.objectViewerYCbCrBlur.clone();
+  Mat oviToConstantize = camera->cam_ycrcb_img.clone();
 
 
   Mat oviInBGR;
@@ -11543,7 +11537,7 @@ void substituteLatestImageQuantities(MachineState * ms) {
   double param_sobel_sigma_substitute_latest = 4.0;
   ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
 
-  ms->config.objectViewerImage = camera->cam_img.clone();
+  ms->config.objectViewerImage = camera->cam_bgr_img.clone();
 }
 
 void drawDensity(MachineState * ms, double scale) {
@@ -11564,7 +11558,7 @@ void goCalculateDensity(MachineState * ms) {
 
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  Size sz = camera->cam_img.size();
+  Size sz = camera->cam_bgr_img.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -11572,8 +11566,8 @@ void goCalculateDensity(MachineState * ms) {
 
   // XXX TODO might be able to pick up some time here if their allocation is slow
   // by making these global
-  ms->config.densityViewerImage = camera->cam_img.clone();
-  Mat tmpImage = camera->cam_img.clone();
+  ms->config.densityViewerImage = camera->cam_bgr_img.clone();
+  Mat tmpImage = camera->cam_bgr_img.clone();
 
   Mat yCrCbGradientImage = camera->cam_bgr_img.clone();
 
@@ -11858,9 +11852,7 @@ void goCalculateDensity(MachineState * ms) {
 	if ( isInGripperMask(ms, x, y) ) {
 	  ms->config.density[y*imW+x] = 0;
 	  totalGraySobel.at<double>(y,x) = 0;
-	  if (!isSketchyMat(ms->config.objectViewerImage)) {
-	    ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = 255;
-	  }
+          ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = 255;
 	}
       }
     }
@@ -11877,10 +11869,9 @@ void goCalculateDensity(MachineState * ms) {
 	totalGraySobel.at<double>(y,x) = 0;
       }
     }
-    if (!isSketchyMat(ms->config.objectViewerImage)) {
-      Mat vCrop = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
-      vCrop = vCrop/2;
-    }
+    Mat vCrop = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
+    vCrop = vCrop/2;
+
     xs = ms->config.g2xs;
     xe = ms->config.g2xe;
     ys = ms->config.g2ys;
@@ -12392,7 +12383,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     Mat descriptors;
     Mat descriptors2;
 
-    Mat original_cam_img = camera->cam_img;
+    Mat original_cam_img = camera->cam_bgr_img;
     Mat crop = original_cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
     Mat gray_image;
     Mat& yCrCb_image = ms->config.bYCrCb[c];
@@ -14082,35 +14073,32 @@ void initializeMap(MachineState * ms) {
 }
 
 
-void guardViewers(MachineState * ms) {
+void initializeViewers(MachineState * ms) {
 
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  if ( isSketchyMat(ms->config.objectViewerYCbCrBlur) ) {
-    ms->config.objectViewerYCbCrBlur = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
-  }
-  if ( isSketchyMat(ms->config.objectViewerGrayBlur) ) {
-    ms->config.objectViewerGrayBlur = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
-  }
-  if ( isSketchyMat(ms->config.densityViewerImage) ) {
-    ms->config.densityViewerImage = camera->cam_img.clone();
-    ms->config.densityViewerImage *= 0;
-  }
-  if ( isSketchyMat(ms->config.accumulatedImage) ) {
-    ms->config.accumulatedImage = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
-  }
-  if ( isSketchyMat(ms->config.accumulatedImageMass) ) {
-    ms->config.accumulatedImageMass = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64F);
-  }
-  if ( isSketchyMat(ms->config.gradientViewerImage) ) {
-    ms->config.gradientViewerImage = Mat(2*camera->cam_img.rows, camera->cam_img.cols, camera->cam_img.type());
-  }
-  if ( isSketchyMat(ms->config.aerialGradientViewerImage) ) {
-    ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
-  }
-  if ( isSketchyMat(ms->config.objectViewerImage) ) {
-    ms->config.objectViewerImage = camera->cam_img.clone();
-  }
+  ms->config.objectViewerYCbCrBlur = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
+
+
+  ms->config.objectViewerGrayBlur = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
+
+
+  ms->config.densityViewerImage = camera->cam_bgr_img.clone();
+  ms->config.densityViewerImage *= 0;
+
+
+  ms->config.accumulatedImage = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
+
+
+  ms->config.accumulatedImageMass = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64F);
+
+
+  ms->config.gradientViewerImage = Mat(2*camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, camera->cam_bgr_img.type());
+
+
+  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
+  ms->config.objectViewerImage = camera->cam_bgr_img.clone();
+
 }
 
 

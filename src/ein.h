@@ -430,7 +430,7 @@ void sad(MachineState * ms);
 void neutral(MachineState * ms);
 
 
-void guardViewers(MachineState * ms);
+void initializeViewers(MachineState * ms);
 
 int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSearch = -1);
 void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa);
