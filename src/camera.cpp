@@ -87,6 +87,16 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   setRingImageAtTime(msg->header.stamp, cam_img);
 
+  if (cam_img.type() == CV_16UC1) {
+    Mat graybgr;
+    cvtColor(cam_img, graybgr, CV_GRAY2BGR);  
+    graybgr.convertTo(cam_bgr_img, CV_8U, 1.0/256.0);
+  } else {
+    cam_bgr_img = cam_img;
+  }
+  cvtColor(cam_bgr_img, cam_ycrcb_img, CV_BGR2YCrCb);
+
+
   ms->imageCallback(this);
 }
 

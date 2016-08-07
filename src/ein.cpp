@@ -4280,15 +4280,10 @@ int renderInit(MachineState * ms,  Camera * camera) {
   ms->config.shouldIRender = ms->config.shouldIRenderDefault;
   
   ms->config.wristCamInit = 1;
-  if (camera->cam_img.type() == CV_16UC1) {
-    Mat graybgr;
-    cvtColor(camera->cam_img, graybgr, CV_GRAY2BGR);  //ir image looks okay but drawing is messed up; gripper mask is green and reticles don't have color.
-    graybgr.convertTo(ms->config.wristViewImage, CV_8U, 1.0/256.0);
-  } else {
-    ms->config.wristViewImage = camera->cam_img.clone();
-  }
+
   ms->config.faceViewImage = camera->cam_img.clone();
-  cout << "Wrist Image: " << camera->cam_img.rows << ", " << camera->cam_img.cols << endl;
+  ms->config.wristViewImage = camera->cam_bgr_img.clone();
+  cout << "Camera Image: " << camera->cam_img.rows << ", " << camera->cam_img.cols << endl;
   ms->config.accumulatedImage = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64FC3);
   ms->config.accumulatedImageMass = Mat(camera->cam_img.rows, camera->cam_img.cols, CV_64F);
   
@@ -4299,8 +4294,8 @@ int renderInit(MachineState * ms,  Camera * camera) {
   ms->config.objectViewerImage = camera->cam_img.clone();
   
   
-  int imW = ms->config.wristViewImage.cols;
-  int imH = ms->config.wristViewImage.rows;
+  int imW = camera->cam_img.cols;
+  int imH = camera->cam_img.rows;
   
   // determine table edges, i.e. the gray boxes
   ms->config.lGO = ms->config.gBoxW*(ms->config.lGO/ms->config.gBoxW);
@@ -4317,20 +4312,34 @@ int renderInit(MachineState * ms,  Camera * camera) {
     ms->config.grayBot = ms->config.armBot;
   }
   
-  if (ms->config.integralDensity == NULL)
-    ms->config.integralDensity = new double[imW*imH];
-  if (ms->config.density == NULL)
-    ms->config.density = new double[imW*imH];
-  if (ms->config.preDensity == NULL)
-    ms->config.preDensity = new double[imW*imH];
-  if (ms->config.temporalDensity == NULL) {
-    ms->config.temporalDensity = new double[imW*imH];
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-        ms->config.temporalDensity[y*imW + x] = 0;
-      }
+  if (ms->config.integralDensity != NULL) {
+    delete ms->config.integralDensity;
+  }
+  ms->config.integralDensity = new double[imW*imH];
+
+
+  if (ms->config.density != NULL) {
+    delete ms->config.density;
+  }
+  ms->config.density = new double[imW*imH];
+
+
+  if (ms->config.preDensity != NULL) {
+    delete ms->config.preDensity;
+  }
+  ms->config.preDensity = new double[imW*imH];
+
+  if (ms->config.temporalDensity != NULL) {
+    delete ms->config.temporalDensity;
+  }
+
+  ms->config.temporalDensity = new double[imW*imH];
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      ms->config.temporalDensity[y*imW + x] = 0;
     }
   }
+
   return 0;
 }
 
@@ -4675,14 +4684,8 @@ void MachineState::imageCallback(Camera * camera) {
 
   ms->config.wristCamImage = camera->cam_img.clone();
   ms->config.wristCamInit = 1;
-  ms->config.wristViewImage = camera->cam_img.clone();
-  if (camera->cam_img.type() == CV_16UC1) {
-    Mat graybgr;
-    cvtColor(camera->cam_img, graybgr, CV_GRAY2BGR);  //ir image looks okay but drawing is messed up; gripper mask is green and reticles don't have color.
-    graybgr.convertTo(ms->config.wristViewImage, CV_8U, 1.0/256.0);
-  } else {
-    ms->config.wristViewImage = camera->cam_img.clone();
-  }
+
+  ms->config.wristViewImage = camera->cam_bgr_img.clone();
 
   ms->config.faceViewImage = camera->cam_img.clone();
 
@@ -10977,8 +10980,15 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
 }
 
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma) {
-  cvtColor(image, gray_image, CV_BGR2GRAY);
-  cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
+  if (image.type() != CV_16UC1) {
+    cvtColor(image, gray_image, CV_BGR2GRAY);
+    cvtColor(image, yCrCb_image, CV_BGR2YCrCb);
+  } else {
+    gray_image = image.clone();
+    Mat bgrImage;
+    cvtColor(image, bgrImage, CV_GRAY2BGR);  
+    cvtColor(bgrImage, yCrCb_image, CV_BGR2YCrCb);
+  }
   GaussianBlur(gray_image, gray_image, cv::Size(0,0), sigma);
   GaussianBlur(yCrCb_image, yCrCb_image, cv::Size(0,0), sigma);
 }
@@ -11551,7 +11561,10 @@ void drawDensity(MachineState * ms, double scale) {
 }
 
 void goCalculateDensity(MachineState * ms) {
-  Size sz = ms->config.objectViewerImage.size();
+
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  Size sz = camera->cam_img.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -11559,10 +11572,10 @@ void goCalculateDensity(MachineState * ms) {
 
   // XXX TODO might be able to pick up some time here if their allocation is slow
   // by making these global
-  ms->config.densityViewerImage = ms->config.objectViewerImage.clone();
-  Mat tmpImage = ms->config.objectViewerImage.clone();
+  ms->config.densityViewerImage = camera->cam_img.clone();
+  Mat tmpImage = camera->cam_img.clone();
 
-  Mat yCbCrGradientImage = ms->config.objectViewerImage.clone();
+  Mat yCrCbGradientImage = camera->cam_bgr_img.clone();
 
 
   // Sobel business
@@ -11990,14 +12003,14 @@ void goCalculateDensity(MachineState * ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      yCbCrGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
+      yCrCbGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
 	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
 	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
 	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
     }
   }
   Mat convertedYCbCrGradientImage;
-  cvtColor(yCbCrGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
+  cvtColor(yCrCbGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
 
   // copy the density map to the rendered image
   for (int x = 0; x < imW; x++) {

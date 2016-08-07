@@ -22,6 +22,8 @@ class Camera {
   ros::Time lastImageStamp;
 
   cv::Mat cam_img;
+  cv::Mat cam_bgr_img;
+  cv::Mat cam_ycrcb_img;
   const int imRingBufferSize = 300;
   std::vector<Mat> imRingBuffer;
   std::vector<ros::Time> imRBTimes;
