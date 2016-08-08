@@ -4345,6 +4345,50 @@ int renderInit(MachineState * ms,  Camera * camera) {
   return 0;
 }
 
+void saveConfig(MachineState * ms, string outFileName) {
+  CONSOLE(ms, "Saving config file from " << outFileName);
+  ros::Time savedTime = ros::Time::now();
+
+  FileStorage fsvO;
+
+  fsvO.open(outFileName, FileStorage::WRITE);
+
+  if (! fsvO.isOpened()) {
+    CONSOLE_ERROR(ms, "Couldn't open config file " << outFileName);
+    return;
+  }
+
+  fsvO << "savedTime" << "[" 
+    << savedTime.toSec() 
+  << "]";
+
+  fsvO << "currentTableZ" << "[" 
+    << ms->config.currentTableZ 
+  << "]";
+
+  fsvO.release();
+
+}
+
+void loadConfig(MachineState * ms, string filename) {
+
+  CONSOLE(ms, "Loading config file from " << filename);
+  FileStorage fsvI;
+  fsvI.open(filename, FileStorage::READ);
+
+  if (!fsvI.isOpened()) {
+    CONSOLE_ERROR(ms, "Couldn't open config file " << filename);
+    return;
+  }
+
+  FileNode anode = fsvI["currentTableZ"];
+  FileNodeIterator it = anode.begin(), it_end = anode.end();
+  ms->config.currentTableZ = *(it++);
+
+  
+}
+
+
 void accumulateImage(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
@@ -12780,8 +12824,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
   } 
 
   ms->config.config_directory = "/config_" + ms->config.robot_serial + "/";
-  //ms->config.config_directory = "/config/";
-
+  ms->config.config_filename = ms->config.data_directory + "/" + ms->config.config_directory + "config.yml";
 }
 
 

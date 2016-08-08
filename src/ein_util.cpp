@@ -205,6 +205,7 @@ void initializeMachine(MachineState * ms) {
     ms->pushWord("loadCalibration"); 
     ms->pushWord("loadIkMap"); 
     ms->pushWord("loadGripperMask"); 
+    ms->pushWord("loadConfig"); 
     ms->pushWord("initializeConfig");
   }
   ms->execute_stack = 1;

@@ -1273,6 +1273,7 @@ class EinConfig {
   std::string knn_file = "knn.yml";
   std::string label_file = "labels.yml";
   std::string config_directory = "/config/";
+  std::string config_filename;
   
   std::string run_prefix = "";
   std::string scan_group = "";

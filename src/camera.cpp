@@ -580,15 +580,10 @@ void Camera::loadCalibration(string inFileName) {
   fsvI.open(inFileName, FileStorage::READ);
 
   if (!fsvI.isOpened()) {
-    CONSOLE_ERROR(ms, "Couldn't open calibration.");
+    CONSOLE_ERROR(ms, "Couldn't open calibration file " << inFileName);
     return;
   }
 
-  {
-    FileNode anode = fsvI["currentTableZ"];
-    FileNodeIterator it = anode.begin(), it_end = anode.end();
-    ms->config.currentTableZ = *(it++);
-  }
 
   {
     FileNode anode = fsvI["cropUpperLeftCorner"];
@@ -707,15 +702,15 @@ void Camera::saveCalibration(string outFileName) {
   */
 
   FileStorage fsvO;
-  cout << "Writing calibration information to " << outFileName << " ...";
   fsvO.open(outFileName, FileStorage::WRITE);
+
+  if (! fsvO.isOpened()) {
+    CONSOLE_ERROR(ms, "Couldn't open calibration file " << outFileName);
+    return;
+  }
 
   fsvO << "savedTime" << "[" 
     << savedTime.toSec() 
-  << "]";
-
-  fsvO << "currentTableZ" << "[" 
-    << ms->config.currentTableZ 
   << "]";
 
   fsvO << "cropUpperLeftCorner" << "[" 

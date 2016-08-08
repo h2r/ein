@@ -452,7 +452,8 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void publishConsoleMessage(MachineState * ms, string msg);
 
-
+void loadConfig(MachineState * ms, string filename);
+void saveConfig(MachineState * ms, string outFileName);
 
 ////////////////////////////////////////////////
 // end node prototypes 

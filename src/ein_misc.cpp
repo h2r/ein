@@ -2869,6 +2869,23 @@ END_WORD
 REGISTER_WORD(Eval)
 
 
+WORD(SaveConfig)
+virtual void execute(MachineState * ms) {
+  saveConfig(ms, ms->config.config_filename);
+}
+END_WORD
+REGISTER_WORD(SaveConfig)
+
+
+WORD(LoadConfig)
+virtual void execute(MachineState * ms) {
+  loadConfig(ms, ms->config.config_filename);
+}
+END_WORD
+REGISTER_WORD(LoadConfig)
+
+
+
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 
