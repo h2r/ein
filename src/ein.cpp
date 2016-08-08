@@ -14439,6 +14439,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
     ms->config.focused_camera = 0;
   }
   Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color");
+  //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color");
   ms->config.cameras.push_back(k2rgb);
 
   Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir");
