@@ -245,15 +245,15 @@ typedef enum {
 
 
 
-typedef enum { 
+typedef enum {
 	ANIMATION_OFF = 0,
-	ANIMATION_ON = 1 
-} animationMode; 
+	ANIMATION_ON = 1
+} animationMode;
 
 struct AnimationState {
-	String emotion; 
-	int value; 
-}; 
+	String emotion;
+	int value;
+};
 
 
 
@@ -433,13 +433,13 @@ class EinConfig {
   std_msgs::Bool currentHeadNodCommand;
   std_msgs::UInt16 currentSonarCommand;
   std_msgs::UInt32 currentStiffnessCommand;
-  
+
   tf::TransformListener* tfListener;
-  
+
   baxter_core_msgs::SolvePositionIK currentJointPositions;
   baxter_core_msgs::SolvePositionIK ikRequest;
   baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
-  
+
   ros::ServiceClient ikClient;
   ros::ServiceClient cameraClient;
   ros::Publisher joint_mover;
@@ -484,7 +484,7 @@ class EinConfig {
   int imRingBufferStart = 0;
   int epRingBufferStart = 0;
   int rgRingBufferStart = 0;
-  
+
   // first free entries
   int imRingBufferEnd = 0;
   int epRingBufferEnd = 0;
@@ -494,7 +494,7 @@ class EinConfig {
   std::vector<Mat> imRingBuffer;
   std::vector<geometry_msgs::Pose> epRingBuffer;
   std::vector<double> rgRingBuffer;
-  
+
   std::vector<ros::Time> imRBTimes;
   std::vector<ros::Time> epRBTimes;
   std::vector<ros::Time> rgRBTimes;
@@ -542,7 +542,7 @@ class EinConfig {
   vector< vector<eePose> > classPlaceUnderPoints;
 
   double movingThreshold = 0.02;
-  double hoverThreshold = 0.003; 
+  double hoverThreshold = 0.003;
   double stoppedTimeout = 0.25;
 
 
@@ -554,7 +554,7 @@ class EinConfig {
 
   int driveVelocities = 0;
   int testJoint = 3;
-  
+
   int jointNamesInit = 0;
   std::vector<std::string> jointNames;
 
@@ -566,7 +566,7 @@ class EinConfig {
   double joint_max[NUM_JOINTS];
 
   double last_joint_actual_effort[NUM_JOINTS];
-  double actual_effort_thresh = 0.0; 
+  double actual_effort_thresh = 0.0;
   double target_joint_actual_effort[NUM_JOINTS];
 
   rk_state random_state;
@@ -691,9 +691,9 @@ class EinConfig {
   eePose handingPose;
 
   //eePose straightDown = {.px = 0.0, .py = 0.0, .pz = 0.0,
-  //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
+  //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0};
   eePose straightDown = eePose(0.0, 0.0, 0.0,
-                               0.0, 1.0, 0.0, 0.0); 
+                               0.0, 1.0, 0.0, 0.0);
 
   eePose cropUpperLeftCorner = eePose(320, 200, 0.0,
                                       0.0, 1.0, 0.0, 0.0); // center of image
@@ -757,13 +757,13 @@ class EinConfig {
   double oneTable = 0.175;
   double rightTableZ = 0.172;//0.165;//0.19;//0.18;
   double leftTableZ = 0.172;//0.165;//0.19;//0.177;
-  
+
   double bagTableZ = oneTable;//0.165;//0.19;//0.18; //0.195;//0.22;
   double counterTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.20;//0.18;
   double pantryTableZ = oneTable;//0.165;//0.19;//0.18;//0.209123; //0.195;
-  
+
   double currentTableZ = leftTableZ;
-  
+
 
   ros::Time firstTableHeightTime;
   double mostRecentUntabledZWait = 2.0;
@@ -793,7 +793,7 @@ class EinConfig {
 
 
   const static int totalRangeHistoryLength = 100;
-  const static int rggScale = 1;  
+  const static int rggScale = 1;
   const static int rggStride = 5*rggScale;
   const static int rggHeight = 300*rggScale;
   const static int rggWidth = totalRangeHistoryLength*rggStride;
@@ -808,12 +808,12 @@ class EinConfig {
   const static int rmiWidth = rmiCellWidth*rmWidth;
 
 
-  constexpr static double rmDelta = 0.01; 
+  constexpr static double rmDelta = 0.01;
   int rangeMapTargetSearchPadding = 3;
   double rangeMap[rmWidth*rmWidth];
   double rangeMapAccumulator[rmWidth*rmWidth];
   double rangeMapMass[rmWidth*rmWidth];
-  
+
   double rangeMapReg1[rmWidth*rmWidth];
   double rangeMapReg2[rmWidth*rmWidth];
   double rangeMapReg3[rmWidth*rmWidth];
@@ -831,7 +831,7 @@ class EinConfig {
 
   pickMode currentPickMode = STATIC_MARGINALS;
   pickMode currentBoundingBoxMode = STATIC_MARGINALS;
-  
+
 
   const static int hrmWidth = 211; // must be odd
   const static int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
@@ -839,35 +839,35 @@ class EinConfig {
   double hiRangeMap[hrmWidth*hrmWidth];
   double hiRangeMapAccumulator[hrmWidth*hrmWidth];
   double hiRangeMapMass[hrmWidth*hrmWidth];
-  
+
   double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
   double hiColorRangeMapMass[hrmWidth*hrmWidth];
-  
+
   double hiRangeMapReg1[hrmWidth*hrmWidth];
   double hiRangeMapReg2[hrmWidth*hrmWidth];
 
 
-  double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
-                      1.0/8.0, 1.0/4.0, 1.0/8.0, 
+  double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0,
+                      1.0/8.0, 1.0/4.0, 1.0/8.0,
                       1.0/16.0, 1.0/8.0, 1.0/16.0};;
-  
+
   // diagonalKappa: 0.72 deltaDiagonalKappa: 0.01
   // below .72, the horizontal won when it should have. Set to .67 to be safe.
   // .67 was a little unreliable, trimming a bit more.
   double diagonalKappa = 0.60;
-  
+
   const static int parzenKernelHalfWidth = 15;
   const static int parzenKernelWidth = 2*parzenKernelHalfWidth+1;
   double parzenKernel[parzenKernelWidth*parzenKernelWidth];
   double parzenKernelSigma = 4.0;
   //double parzenKernelSigma = 2.0;
   //double parzenKernelSigma = 1.0; // this is approximately what it should be at 20 cm height
-  //double parzenKernelSigma = 0.5;  
+  //double parzenKernelSigma = 0.5;
   // 13.8 cm high -> 2.2 cm gap
   // 23.8 cm high -> 3.8 cm gap
   // 4 sigma (centered at 0) should be the gap
   // TODO can 'adjust' and bounds on the fly during lookup in proportion to the measured depth
-  
+
   // assumptions are made here so if these values changes, the code must
   //  be audited.
   const static int vmWidth = hrmWidth;
@@ -876,30 +876,30 @@ class EinConfig {
   double volumeMap[vmWidth*vmWidth*vmWidth];
   double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
   double volumeMapMass[vmWidth*vmWidth*vmWidth];
-  
+
   double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
   double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
-  
+
   const static int parzen3DKernelHalfWidth = 9;
   const static int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
   double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
-  double parzen3DKernelSigma = 2.0; 
-  
+  double parzen3DKernelSigma = 2.0;
+
   // range map center
   double rmcX;
   double rmcY;
   double rmcZ;
-  
+
   double lastiX = 0;
   double lastiY = 0;
   double thisiX = 0;
   double thisiY = 0;
-  
-  
+
+
   int hrmiHeight = hrmWidth;
   int hrmiWidth = hrmWidth;
-  
-  const static int hmWidth = 4; 
+
+  const static int hmWidth = 4;
   int hmiCellWidth = 100;
   int hmiWidth = hmiCellWidth;
   int hmiHeight = hmiCellWidth*hmWidth;
@@ -912,7 +912,7 @@ class EinConfig {
   double heightMemoryTries[hmWidth];
   double heightMemoryPicks[hmWidth];
   double heightMemorySample[hmWidth];
-  
+
   double heightAttemptCounter = 0;
   double heightSuccessCounter = 0;
   double thompsonTries = 50;
@@ -924,7 +924,7 @@ class EinConfig {
 
   int bbLearningMaxTries = 15;
   int graspLearningMaxTries = 10;
-  
+
   int thompsonHardCutoff = 0;
   int thompsonMinTryCutoff = 5;
   double thompsonMinPassRate = 0.80;
@@ -948,12 +948,12 @@ class EinConfig {
   // the currently equipped depth reticle
   double drX = .02; //.01;
   double drY = .02;
-  
+
   // target reticle
   double trX = 0;
   double trY = 0;
   double trZ = 0;
-  
+
   int maxX = 0;
   int maxY = 0;
   double maxD = 0;
@@ -962,7 +962,7 @@ class EinConfig {
   int localMaxY = 0;
   int localMaxGG = 0;
   bool breakGraspTiesWithNoise = true;
-  
+
   // grasp gear should always be even
   static const int totalGraspGears = 8;
   int currentGraspGear = -1;
@@ -977,7 +977,7 @@ class EinConfig {
   int recordRangeMap = 0;
 
   Quaternionf irGlobalPositionEEFrame;
- 
+
   constexpr static double cReticleIndexDelta = .01;
   const static int numCReticleIndeces = 14;
   constexpr static double firstCReticleIndexDepth = .08;
@@ -989,9 +989,9 @@ class EinConfig {
   int curseReticleY = 0;
 
 
-  
+
   double w1GoThresh = 0.03;//0.01;
-  double w1AngleThresh = 0.02; 
+  double w1AngleThresh = 0.02;
   double synKp = 0.0005;
   double darkKp = 0.0005;
   double faceKp = 0.001;
@@ -1009,7 +1009,7 @@ class EinConfig {
   int synServoPixelThresh = 15;//30;//15;//10;
   int gradServoPixelThresh = 5;
   int gradServoThetaThresh = 2;
-  
+
   int synServoLockFrames = 0;
 
 
@@ -1020,7 +1020,7 @@ class EinConfig {
   double oscAmpX = 0.10;//.0.16;//0.08;//0.1;
   double oscAmpY = 0.10;//0.16;//0.2;
   double oscAmpZ = 0.0;
-  
+
   constexpr static double commonFreq = 1.0;//1.0/2.0;
   double oscFreqX = commonFreq*1.0/3.0;
   double oscFreqY = commonFreq*1.0/20.0;
@@ -1074,7 +1074,7 @@ class EinConfig {
   int lPTthresh = 3;
   int orientationCascadeHalfWidth = 2;
 
-  
+
   double aerialGradientDecay = 0.9;//0.965;//0.9;
   Mat aerialGradientTemporalFrameAverage;
   Mat preFrameGraySobel;
@@ -1085,7 +1085,7 @@ class EinConfig {
   eePose lastPickPose;
   eePose lastPrePickPose;
   eePose lastLockedPose;
-  
+
   // this needs to place the gripper BELOW the table
   //  by a margin, or it could prevent getting flush
   //  with the table near a sag
@@ -1175,7 +1175,7 @@ class EinConfig {
   ros::Time lastImageCallbackRequest;
   ros::Time lastGripperCallbackRequest;
   ros::Time lastEndpointCallbackRequest;
-  
+
   ros::Time lastAccelerometerCallbackReceived;
   ros::Time lastImageCallbackReceived;
   ros::Time lastGripperCallbackReceived;
@@ -1198,7 +1198,7 @@ class EinConfig {
 
   ros::Time lastMovementStateSet;
   eePose lastTrueEEPoseEEPose;
-  
+
   ros::Time comeToHoverStart;
   double comeToHoverTimeout = 3.0;
   ros::Time comeToStopStart;
@@ -1213,22 +1213,22 @@ class EinConfig {
   ros::Timer simulatorCallbackTimer;
 
   ros::Timer timer1;
-  
+
   int mbiWidth = 2000;
   int mbiHeight = 2000;
   Mat mapBackgroundImage;
   Mat originalMapBackgroundImage;
-  
+
   int objectInHandLabel = -1;
   int simulatedObjectHalfWidthPixels = 50;
-  
+
   int numCornellTables = 10;
   vector<eePose> cornellTables;
   int currentCornellTableIndex = 0;
-  
-  
+
+
   string robot_mode = "";
-  
+
   int targetInstanceSprite = 0;
   int targetMasterSprite = 0;
 
@@ -1248,11 +1248,11 @@ class EinConfig {
   int darkServoIterations = 0;
   int darkServoTimeout = 20;
   int darkServoPixelThresh = 10;
-  
+
   int faceServoIterations = 0;
   int faceServoTimeout = 2000;
   int faceServoPixelThresh = 1;
-  
+
   int setVanishingPointPixelThresh = 3;
   int setVanishingPointIterations = 0;
   int setVanishingPointTimeout = 6;
@@ -1304,7 +1304,7 @@ class EinConfig {
   int loTrackbarVariable = 20;//30;//45;//75;
   int hiTrackbarVariable = 35;//40;//50;
   int postDensitySigmaTrackbarVariable = 10.0;
-  
+
 
   double canny_hi_thresh = 5e5;//7;
   double canny_lo_thresh = 5e5;//4;
@@ -1331,22 +1331,22 @@ class EinConfig {
   std::string knn_file = "unspecified_kf";
   std::string label_file = "unspecified_lf";
   std::string config_directory = "/config/";
-  
+
   std::string run_prefix = "";
   std::string scan_group = "";
   //std::string class_name = "unspecified_cn";
   //std::string class_labels= "unspecified_cl1 unspecified_cl2";
   //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
-  
-  std::string image_topic = "/camera/rgb/image_raw"; 
-  
+
+  std::string image_topic = "/camera/rgb/image_raw";
+
 
   std::string cache_prefix = "";
 
 
   int numClasses = 0;
 
-  vector<string> classLabels; 
+  vector<string> classLabels;
   vector<string> classPoseModels;
   vector<CvKNearest*> classPosekNNs;
   vector<Mat> classPosekNNfeatures;
@@ -1357,7 +1357,7 @@ class EinConfig {
   DescriptorMatcher *matcher = NULL;
   FeatureDetector *detector = NULL;
   DescriptorExtractor *extractor = NULL;
-  BOWKMeansTrainer *bowTrainer = NULL; 
+  BOWKMeansTrainer *bowTrainer = NULL;
   BOWImgDescriptorExtractor *bowExtractor = NULL;
   CvKNearest *kNN = NULL;
 
@@ -1373,10 +1373,10 @@ class EinConfig {
   double *preDensity = NULL;
   double *integralDensity = NULL;
   double *temporalDensity = NULL;
-  
+
   double densityDecay = 0.5;//0.9;//0.3;//0.7;
   double threshFraction = 0.2;
-  
+
   int biggestL1 = 0;
 
 
@@ -1384,10 +1384,10 @@ class EinConfig {
   // Top variables are top left corners of bounding boxes (smallest coordinates)
   // Bot variables are bottom right corners of bounding boxes (largest coordinates)
   // Cen variables are centers of bounding boxes
-  
+
   // bounding boxes of connected components of green matter,
   //  they are the candidate blue boxes
-  vector<cv::Point> cTops; 
+  vector<cv::Point> cTops;
   vector<cv::Point> cBots;
 
 
@@ -1399,35 +1399,35 @@ class EinConfig {
 
 
   //  constexpr static double mapXMin = -1.5;
-  //  constexpr static double mapXMax = 1.5; 
+  //  constexpr static double mapXMax = 1.5;
   //  constexpr static double mapYMin = -1.5;
-  //  constexpr static double mapYMax = 1.5; 
+  //  constexpr static double mapYMax = 1.5;
   //  constexpr static double mapStep = 0.01;
 
 
   //constexpr static double mapXMin = -0.75;
-  //constexpr static double mapXMax = 1.0; 
+  //constexpr static double mapXMax = 1.0;
   //constexpr static double mapYMin = -0.1;
-  //constexpr static double mapYMax = 1.25; 
-  //constexpr static double mapStep = 0.01; 
-  
+  //constexpr static double mapYMax = 1.25;
+  //constexpr static double mapStep = 0.01;
+
   double mapSearchFenceXMin;
   double mapSearchFenceXMax;
   double mapSearchFenceYMin;
   double mapSearchFenceYMax;
-  
+
   double mapRejectFenceXMin;
   double mapRejectFenceXMax;
   double mapRejectFenceYMin;
   double mapRejectFenceYMax;
-  
+
   double mapBackgroundXMin;
   double mapBackgroundXMax;
   double mapBackgroundYMin;
   double mapBackgroundYMax;
-  
+
   double mapBackgroundBufferMeters = 1.0;
-  
+
   const static int mapWidth = (mapXMax - mapXMin) / mapStep;
   const static int mapHeight = (mapYMax - mapYMin) / mapStep;
 
@@ -1455,14 +1455,14 @@ class EinConfig {
   double ikMapEndHeight;
   const static int numIkMapHeights = 10;
   int ikMapAtHeight[mapWidth * mapHeight * numIkMapHeights];
-  
-  
+
+
   vector<BoxMemory> blueBoxMemories;
   int targetBlueBox = 0;
 
 
   // create the blue boxes from the parental green boxes
-  vector<cv::Point> bTops; 
+  vector<cv::Point> bTops;
   vector<cv::Point> bBots;
   vector<cv::Point> bCens;
   vector< vector<KeyPoint> > bKeypoints;
@@ -1478,12 +1478,12 @@ class EinConfig {
   // XXX this should probably be odd
   int aerialGradientWidth = 100;
   int aerialGradientReticleWidth = 200;
-  
-  
+
+
   double *gBoxIndicator;
   int gBoxW = 10;
   int gBoxH = 10;
-  
+
   int gBoxStrideX;
   int gBoxStrideY;
 
@@ -1511,14 +1511,14 @@ class EinConfig {
   cv::Point armBot;
 
   vector<Mat> classRangeMaps;
-  
+
   // ATTN 16
   vector<Mat> classAerialGradients;
   vector<Mat> classHeight0AerialGradients;
   vector<Mat> classHeight1AerialGradients;
   vector<Mat> classHeight2AerialGradients;
   vector<Mat> classHeight3AerialGradients;
-  
+
   vector<Mat> classGraspMemoryTries1;
   vector<Mat> classGraspMemoryPicks1;
   vector<Mat> classGraspMemoryTries2;
@@ -1527,23 +1527,23 @@ class EinConfig {
   vector<Mat> classGraspMemoryPicks3;
   vector<Mat> classGraspMemoryTries4;
   vector<Mat> classGraspMemoryPicks4;
-  
+
   vector<Mat> classHeightMemoryTries;
   vector<Mat> classHeightMemoryPicks;
 
   int fuseBlueBoxes = 1;
   int fusePasses = 5;
-  
+
   int g1xs = 200;
   int g1xe = 295;
   int g1ys = 0;
   int g1ye = 75;
-  
+
   int g2xs = 420;
   int g2xe = 560;
   int g2ys = 0;
   int g2ye = 75;
-  
+
   Mat accumulatedImage;
   Mat accumulatedImageMass;
 
@@ -1615,7 +1615,7 @@ class EinConfig {
   ros::Time measureTimeTarget;
   ros::Time measureTimeStart;
   double measureTimePeriod = 1.0;
-  
+
 
   eePose pressPose;
   double twistThresh = 0.01;
@@ -1634,7 +1634,7 @@ class EinConfig {
   int lastArmBackButtonState = 0;
 
   double torsoFanState;
-  
+
 
   shared_ptr<TransitionTable> transition_table;
   shared_ptr<Scene> scene;
@@ -1660,19 +1660,16 @@ class EinConfig {
   int angular_baffle_cols = 0;
   int angular_baffle_rows = 0;
 
-  animationMode currentAnimationMode = ANIMATION_ON; 
-  AnimationState currentAnimationState = {"confused", 0}; 
-  AnimationState targetAnimationState = {"confused", 0}; 
-  std::map<string, int> emotionIndex; 
+  animationMode currentAnimationMode = ANIMATION_ON;
+  AnimationState currentAnimationState = {"confused", 0};
+  AnimationState targetAnimationState = {"confused", 0};
+  std::map<string, int> emotionIndex;
   vector< vector<Mat> > emotionImages;
-  double animationRate = 60; 
+  double animationRate = 60;
 
+  // SLAM Stuff
+  Mat reconstructed;
 
-
-
-
-
-  
 }; // config end
 
 
@@ -1708,7 +1705,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   executionMode execution_mode = INSTANT;
   map<string, shared_ptr<Word> > wordsInNamespace();
-  
+
   bool pushWord(int code);
   bool pushWord(string name);
   bool pushWord(std::shared_ptr<Word> word);
@@ -1763,6 +1760,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void einStateCallback(const ein::EinState & msg);
 
   void rosoutCallback(const rosgraph_msgs::Log& js);
+
 };
 
 

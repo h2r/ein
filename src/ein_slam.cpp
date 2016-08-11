@@ -72,35 +72,48 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
 }
 
 namespace ein_words {
-  WORD(testSlam)
+  WORD(initSlam)
+    virtual void execute(MachineState * ms) {
+      Mat observed;
+      ms->config.scene->observed_map.get()->rgbMuToMat(observed);
+      cvtColor(observed, ms->config.reconstructed, CV_YCrCb2BGR);
+      imshow("init", ms->config.reconstructed);
+      waitKey(0);
+    }
+  END_WORD
+  REGISTER_WORD(initSlam)
+
+  WORD(runSlam)
   virtual void execute(MachineState * ms) {
-    Mat background;
+    Mat background = ms->config.reconstructed;
     Mat observed;
-    ms->config.scene->background_map.get()->rgbMuToMat(background);
     ms->config.scene->observed_map.get()->rgbMuToMat(observed);
-    cvtColor(background, background, CV_YCrCb2BGR);
     cvtColor(observed, observed, CV_YCrCb2BGR);
 
-    Rect roi = Rect(100, 100, 800, 800);
+    Rect crop = Rect(200, 200, 600, 600);
 
-    vector<double> estimated = estimate_pos(observed(roi), background);
+    vector<double> estimated = estimate_pos(observed(crop), background(crop));
 
-    double x_pos = (estimated[0] + estimated[1]) / 2 - 500;
-    double y_pos = (estimated[2] + estimated[3]) / 2 - 500;
+    double x_pos = (estimated[0] + estimated[1]) / 2 - 300;
+    double y_pos = (estimated[2] + estimated[3]) / 2 - 300;
+    double z_global = ms->config.trueEEPoseEEPose.pz;
+
+    double x_global = 0.0;
+    double y_global = 0.0;
+
+    ms->config.scene->background_map.get()->cellToMeters(int(x_pos) + 500, int(y_pos) + 500, &x_global, &y_global);
+
+    estimated[0] += crop.y;
+    estimated[1] += crop.y;
+    estimated[2] += crop.x;
+    estimated[3] += crop.x;
 
     cout << x_pos << ", " << y_pos << ", " << estimated[4] << endl;
+    cout << x_global << ", " << y_global << ", " << estimated[4] << endl;
 
-    imshow("background", background);
-    imshow("observed", observed(roi));
-    waitKey(0);
-
-    double border[] = {0, 0, 0, 0};
-    if (estimated[1] > background.cols) {
-      border[1] = estimated[1] - background.cols;
-    }
-    if (estimated[3] > background.rows) {
-      border[3] = estimated[3] - background.rows;
-    }
+    /* imshow("background", background(crop)); */
+    /* imshow("observed", observed(crop)); */
+    /* waitKey(0); */
 
     Point2f center(background.cols/2.0F, background.rows/2.0F);
     Mat rot_mat = getRotationMatrix2D(center, estimated[4], 1.0);
@@ -109,14 +122,15 @@ namespace ein_words {
 
     cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
 
-    observed(roi).copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1]));
+    observed(crop).copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1]));
 
     Mat re_rot_mat = getRotationMatrix2D(center, -estimated[4], 1.0);
     warpAffine(rot_reconstructed, background, re_rot_mat, background.size());
 
+    imshow("observed", observed);
     imshow("background", background);
     waitKey(0);
   }
   END_WORD
-  REGISTER_WORD(testSlam)
+  REGISTER_WORD(runSlam)
 }
