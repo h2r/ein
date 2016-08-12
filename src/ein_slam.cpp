@@ -111,23 +111,47 @@ namespace ein_words {
     cout << x_pos << ", " << y_pos << ", " << estimated[4] << endl;
     cout << x_global << ", " << y_global << ", " << estimated[4] << endl;
 
-    /* imshow("background", background(crop)); */
-    /* imshow("observed", observed(crop)); */
-    /* waitKey(0); */
-
     Point2f center(background.cols/2.0F, background.rows/2.0F);
     Mat rot_mat = getRotationMatrix2D(center, estimated[4], 1.0);
     Mat rot_reconstructed;
     warpAffine(background, rot_reconstructed, rot_mat, background.size());
+
+    bool needs_expansion = false;
+    int border[] = {0, 0, 0, 0};
+
+    if (estimated[0] < 0) {
+      border[0] = abs(estimated[0]);
+      needs_expansion = true;
+    }
+    if (estimated[2] < 0) {
+      border[2] = abs(estimated[0]);
+      needs_expansion = true;
+    }
+    if (estimated[1] > rot_reconstructed.cols) {
+      border[1] = estimated[1];
+      needs_expansion = true;
+    }
+    if (estimated[3] > rot_reconstructed.rows) {
+      border[3] = estimated[3];
+      needs_expansion = true;
+    }
+
+    if (needs_expansion) {
+      copyMakeBorder(rot_reconstructed, rot_reconstructed, border[0], border[1], border[2], border[3], BORDER_CONSTANT, Scalar(0));
+    }
+
+    /* imshow("background", background(crop)); */
+    /* imshow("observed", observed(crop)); */
+    /* waitKey(0); */
 
     cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
 
     observed(crop).copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1]));
 
     Mat re_rot_mat = getRotationMatrix2D(center, -estimated[4], 1.0);
-    warpAffine(rot_reconstructed, background, re_rot_mat, background.size());
+    warpAffine(rot_reconstructed, background, re_rot_mat, rot_reconstructed.size());
 
-    imshow("observed", observed);
+    /* imshow("observed", observed); */
     imshow("background", background);
     waitKey(0);
   }
