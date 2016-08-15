@@ -2670,6 +2670,41 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
       }
     }
 
+    ms->config.trueCameraPoseStatic.px = transformed_pose.pose.position.x;
+    ms->config.trueCameraPoseStatic.py = transformed_pose.pose.position.y;
+    ms->config.trueCameraPoseStatic.pz = transformed_pose.pose.position.z;
+    ms->config.trueCameraPoseStatic.qx = transformed_pose.pose.orientation.x;
+    ms->config.trueCameraPoseStatic.qy = transformed_pose.pose.orientation.y;
+    ms->config.trueCameraPoseStatic.qz = transformed_pose.pose.orientation.z;
+    ms->config.trueCameraPoseStatic.qw = transformed_pose.pose.orientation.w;
+  }
+
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.pose.position.x = 0;
+    pose.pose.position.y = 0;
+    pose.pose.position.z = 0;
+    pose.pose.orientation.x = 0;
+    pose.pose.orientation.y = 0;
+    pose.pose.orientation.z = 0;
+    pose.pose.orientation.w = 1;
+
+    //pose.header.stamp = ros::Time(0);
+    pose.header.stamp = eps.header.stamp;
+    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand_camera";
+    
+    geometry_msgs::PoseStamped transformed_pose;
+    if (ms->config.currentRobotMode != SIMULATED) {    
+      try {
+        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand_camera", pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand_camera", transformed_pose);
+      } catch (tf::TransformException ex){
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << ex.what();
+        //throw;
+      }
+    }
+
     ms->config.trueCameraPose.px = transformed_pose.pose.position.x;
     ms->config.trueCameraPose.py = transformed_pose.pose.position.y;
     ms->config.trueCameraPose.pz = transformed_pose.pose.position.z;
@@ -2678,6 +2713,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     ms->config.trueCameraPose.qz = transformed_pose.pose.orientation.z;
     ms->config.trueCameraPose.qw = transformed_pose.pose.orientation.w;
   }
+
   {
     geometry_msgs::PoseStamped pose;
     pose.pose.position.x = ms->config.handRangeOffset.px;

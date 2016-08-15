@@ -735,6 +735,7 @@ class EinConfig {
   eePose lastHandEEPose;
 
   eePose trueCameraPose;
+  eePose trueCameraPoseStatic;
   eePose trueRangePose;
 
   std::string forthCommand;
