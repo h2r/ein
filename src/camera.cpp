@@ -677,7 +677,9 @@ void Camera::loadCalibration(string inFileName) {
     cameraWhiteBalanceBlue = (int) fsvI["cameraWhiteBalanceBlue"];
 
   }
-  ms->pushWord("moveCropToProperValue"); 
+  if (name.find("hand_camera") != std::string::npos) {
+    ms->pushWord("moveCropToProperValue"); 
+  }
 }
 
 void Camera::saveCalibration() {
