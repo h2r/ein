@@ -14413,11 +14413,11 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color", ms->config.left_or_right_arm + "_hand", "kinect2_link");
   ms->config.cameras.push_back(k2rgb);
 
-  Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
-  ms->config.cameras.push_back(k2ir);
+  //Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
+  //ms->config.cameras.push_back(k2ir);
 
-  Camera * k2depth = new Camera(ms, "left_kinect2_depth", "/kinect2/sd/image_depth", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
-  ms->config.cameras.push_back(k2depth);
+  //Camera * k2depth = new Camera(ms, "left_kinect2_depth", "/kinect2/sd/image_depth", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
+  //ms->config.cameras.push_back(k2depth);
 
 
   ms->config.rec_objs_blue_memory = n.advertise<object_recognition_msgs::RecognizedObjectArray>("blue_memory_objects", 10);

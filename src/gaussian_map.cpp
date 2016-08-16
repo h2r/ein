@@ -3696,22 +3696,9 @@ REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(MachineState * ms) {
-  Mat ringImage;
-  eePose thisPose;
-  ros::Time time;
-  int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  if (result != 1) {
-    CONSOLE_ERROR(ms, "Not doing update because of ring buffer errors.");
-    return;
-  }
-
-  Mat wristViewYCbCr = ringImage.clone(); //ms->config.wristCamImage.clone();  
-  //Mat wristViewYCbCr = ms->config.wristCamImage.clone();  
-  //thisPose = ms->config.trueEEPoseEEPose;
-  cvtColor(ms->config.wristCamImage, wristViewYCbCr, CV_BGR2YCrCb);
-
-  Size sz = ms->config.wristCamImage.size();
+  Size sz = camera->cam_ycrcb_img.size();
   int imW = sz.width;
   int imH = sz.height;
 
@@ -3731,7 +3718,15 @@ virtual void execute(MachineState * ms) {
   pixelToGlobalCache data;
   double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
   //computePixelToGlobalCache(ms, z, thisPose, &data);
+
+  eePose thisPose, basePose;
+  int success = getStreamPoseAtTime(ms, camera->lastImageStamp.toSec(), &thisPose, &basePose);
+
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
+  //  imshow("image being used", camera->cam_ycrcb_img);
+  //waitKey(0);
+  cout << "top: " << topx << ", " << topy << endl;
+  cout << "bot: " << botx << ", " << boty << endl;
 
   for (int px = topx; px < botx; px++) {
     for (int py = topy; py < boty; py++) {
@@ -3743,57 +3738,23 @@ virtual void execute(MachineState * ms) {
       double x, y;
       pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
-      if (1) {
-	// single sample update
-	int i, j;
-	ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-	GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-	if (cell != NULL) {
-	  Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
-	  cell->newObservation(pixel);
-	}
-      } else {
-/*
-	Vec3b pixel = wristViewYCbCr.at<Vec3b>(py, px);
+      if (std::isnan(x) || std::isnan(y)) {
+        CONSOLE_ERROR(ms, "Nan in pixel to global; check your calibration! " << x << ", " << y);
+        return;
+      }
 
-	// bilinear update
-	double _i, _j;
-	ms->config.scene->observed_map->metersToCell(x, y, &_i, &_j);
 
-	if (ms->config.scene->safeBilinAt(_i,_j)) {
-
-	  double i = min( max(0.0, _i), double(width-1));
-	  double j = min( max(0.0, _j), double(height-1));
-
-	  // -2 makes for appropriate behavior on the upper boundary
-	  double i0 = std::min( std::max(0.0, floor(i)), double(width-2));
-	  double i1 = i0+1;
-
-	  double j0 = std::min( std::max(0.0, floor(j)), double(height-2));
-	  double j1 = j0+1;
-
-	  double wi0 = i1-i;
-	  double wi1 = i-i0;
-
-	  double wj0 = j1-j;
-	  double wj1 = j-j0;
-
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j0);
-	  cell->newObservation(pixel, wi0*wj0);
-
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j0);
-	  cell->newObservation(pixel, wi1*wj0);
-
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i0, j1);
-	  cell->newObservation(pixel, wi0*wj1);
-
-	  GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i1, j1);
-	  cell->newObservation(pixel, wi1*wj1);
-	}
-*/
+      // single sample update
+      int i, j;
+      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+      if (cell != NULL) {
+        cout << "adding pixel." << endl;
+        Vec3b pixel = camera->cam_ycrcb_img.at<Vec3b>(py, px);
+        cell->newObservation(pixel);
       }
     }
-  }  
+  }
   ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
   ms->pushWord("sceneRenderObservedMap");
 }
@@ -5425,6 +5386,7 @@ virtual void execute(MachineState * ms) {
   Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
   }
 
   int numThreads = 8;
@@ -5597,6 +5559,7 @@ virtual void execute(MachineState * ms) {
   Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
   }
 
 
@@ -5849,6 +5812,7 @@ virtual void execute(MachineState * ms) {
   Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
   }
 
 
