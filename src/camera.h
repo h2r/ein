@@ -31,6 +31,10 @@ class Camera {
   int imRingBufferEnd = 0;
   std::vector<streamImage> streamImageBuffer;
 
+  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  eePose trueCameraPose;
+
+
   Mat gripperMaskFirstContrast;
   Mat gripperMaskSecondContrast;
   Mat gripperMaskMean;
@@ -140,7 +144,11 @@ class Camera {
   void saveGripperMask(string outFileName);
   void saveGripperMask();
 
+  void setHandCameraOffsetFromTf(string tflink);
 
+  void setTrueCameraPoseFromTf();
+
+  
 
 };
 
