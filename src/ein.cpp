@@ -9731,7 +9731,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->reticlePixelX = 0.0;
   cache->reticlePixelY = 0.0;
   {
-    double d = ms->config.d_x;
+    double d = camera->handCameraOffset.py;
     double c = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
 
     double b42 = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*c)/(cache->x4-cache->x2);
@@ -9751,7 +9751,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
     //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
   }
   {
-    double d = ms->config.d_y;
+    double d = -camera->handCameraOffset.px;
     double c = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
 
     double b42 = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*c)/(cache->y4-cache->y2);
@@ -9799,7 +9799,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->roty[2] = cache->un_rot_mat.at<double>(1, 2);
 
 
-  cache->dx = ms->config.d_x/camera->m_x;
+  cache->dx = camera->handCameraOffset.py/camera->m_x;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
   cache->b42x = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*cache->cx)/(cache->x4-cache->x2);
   cache->b31x = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*cache->cx)/(cache->x3-cache->x1);
@@ -9808,7 +9808,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->bx = (cache->b42x+cache->b31x)/2.0;
 
 
-  cache->dy = ms->config.d_y/camera->m_y;
+  cache->dy = -camera->handCameraOffset.px/camera->m_y;
   cache->cy = ((cache->z4*cache->y4-cache->z2*cache->y2)*(cache->y3-cache->y1)-(cache->z3*cache->y3-cache->z1*cache->y1)*(cache->y4-cache->y2))/((cache->z1-cache->z3)*(cache->y4-cache->y2)-(cache->z2-cache->z4)*(cache->y3-cache->y1));
 
   cache->b42y = (cache->z4*cache->y4-cache->z2*cache->y2+(cache->z2-cache->z4)*cache->cy)/(cache->y4-cache->y2);
@@ -9928,8 +9928,8 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/camera->m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -9965,8 +9965,8 @@ void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double
 */
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/camera->m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -10060,8 +10060,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/camera->m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -10090,8 +10090,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     reticlePixelX = x_thisZ;
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/camera->m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -10181,8 +10181,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   double reticlePixelX = 0.0;
   double reticlePixelY = 0.0;
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/camera->m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -10211,8 +10211,8 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
     reticlePixelX = x_thisZ;
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/camera->m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);

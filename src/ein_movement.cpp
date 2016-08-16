@@ -375,6 +375,15 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TrueCameraPose)
 
+WORD(HandCameraOffset)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(camera->handCameraOffset);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(HandCameraOffset)
+
 
 
 WORD(SaveRegister1)

@@ -1489,8 +1489,8 @@ virtual void execute(MachineState * ms)
   double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/camera->m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -1521,8 +1521,8 @@ virtual void execute(MachineState * ms)
 */
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/camera->m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);

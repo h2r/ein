@@ -1095,8 +1095,6 @@ class EinConfig {
   //double d_y = -0.04;
   //double d_x = 0.018;
   //eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
-  double d_y = -0.038;
-  double d_x = 0.011;
   double offX = 0;
   double offY = 0;
   sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
