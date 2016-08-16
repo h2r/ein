@@ -10,10 +10,12 @@ using namespace boost::filesystem;
 using namespace boost::system;
 
 
-Camera::Camera(MachineState * m, string iname, string topic) {
+Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link, string _tf_camera_link) {
   image_topic = topic;
   name = iname;
   ms = m;
+  tf_ee_link = _tf_ee_link;
+  tf_camera_link = _tf_camera_link;
   ros::NodeHandle n("~");
   it = make_shared<image_transport::ImageTransport>(n);
   image_sub = it->subscribe(image_topic, 1, &Camera::imageCallback, this);
@@ -585,6 +587,9 @@ void Camera::loadCalibration(string inFileName) {
   }
 
 
+  FileNode hand_camera_offset_node = fsvI["hand_camera_offset"];
+  handCameraOffset.readFromFileNode(hand_camera_offset_node);
+
   {
     FileNode anode = fsvI["cropUpperLeftCorner"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
@@ -715,6 +720,10 @@ void Camera::saveCalibration(string outFileName) {
     << savedTime.toSec() 
   << "]";
 
+  fsvO << "hand_camera_offset";
+  handCameraOffset.writeToFileStorage(fsvO);
+
+
   fsvO << "cropUpperLeftCorner" << "[" 
     << cropUpperLeftCorner.px 
     << cropUpperLeftCorner.py 
@@ -831,4 +840,93 @@ void Camera::loadGripperMask(string filename) {
       }
     }
   }
+}
+
+
+void Camera::updateTrueCameraPoseFromTf(ros::Time time) {
+  // string tflink = ms->config.left_or_right_arm + "_hand_camera"
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = 0;
+  pose.pose.position.y = 0;
+  pose.pose.position.z = 0;
+  pose.pose.orientation.x = 0;
+  pose.pose.orientation.y = 0;
+  pose.pose.orientation.z = 0;
+  pose.pose.orientation.w = 1;
+
+  //pose.header.stamp = ros::Time(0);
+  pose.header.stamp = time;
+  pose.header.frame_id =  tf_camera_link;
+  
+  geometry_msgs::PoseStamped transformed_pose;
+  if (ms->config.currentRobotMode != SIMULATED) {    
+    try {
+      ms->config.tfListener->waitForTransform("base", tf_camera_link, pose.header.stamp, ros::Duration(1.0));
+        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, tf_camera_link, transformed_pose);
+      } catch (tf::TransformException ex){
+        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+        cout << "link: " << tf_camera_link << endl;
+        cout << "p1: " << pose << " p2: " << transformed_pose << endl;
+        cout << ex.what();
+        //throw;
+      }
+    }
+
+    truePose.px = transformed_pose.pose.position.x;
+    truePose.py = transformed_pose.pose.position.y;
+    truePose.pz = transformed_pose.pose.position.z;
+    truePose.qx = transformed_pose.pose.orientation.x;
+    truePose.qy = transformed_pose.pose.orientation.y;
+    truePose.qz = transformed_pose.pose.orientation.z;
+    truePose.qw = transformed_pose.pose.orientation.w;
+  }
+
+
+void Camera::updateTrueCameraPoseWithHandCameraOffset(ros::Time time) {
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = handCameraOffset.px;
+  pose.pose.position.y = handCameraOffset.py;
+  pose.pose.position.z = handCameraOffset.pz;
+  pose.pose.orientation.x = handCameraOffset.qx;
+  pose.pose.orientation.y = handCameraOffset.qy;
+  pose.pose.orientation.z = handCameraOffset.qz;
+  pose.pose.orientation.w = handCameraOffset.qw;
+  
+  //pose.header.stamp = ros::Time(0);
+  pose.header.stamp = time;
+  pose.header.frame_id =  tf_ee_link;
+  
+  geometry_msgs::PoseStamped transformed_pose;
+  if (ms->config.currentRobotMode != SIMULATED) {    
+    try {
+      ms->config.tfListener->waitForTransform("base", tf_ee_link, pose.header.stamp, ros::Duration(1.0));
+      ms->config.tfListener->transformPose("base", pose.header.stamp, pose, tf_ee_link, transformed_pose);
+    } catch (tf::TransformException ex){
+      cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
+      cout << "link: " << tf_ee_link << endl;
+      cout << "p1: " << pose << " p2: " << transformed_pose << endl;
+      cout << ex.what();
+      //throw;
+    }
+  }
+  
+  truePose.px = transformed_pose.pose.position.x;
+  truePose.py = transformed_pose.pose.position.y;
+  truePose.pz = transformed_pose.pose.position.z;
+  truePose.qx = transformed_pose.pose.orientation.x;
+  truePose.qy = transformed_pose.pose.orientation.y;
+  truePose.qz = transformed_pose.pose.orientation.z;
+  truePose.qw = transformed_pose.pose.orientation.w;
+}
+
+
+void Camera::setDefaultHandCameraOffset() {
+  eePose p = {0.03815,0.01144,0.01589, 0,0,0,1};
+  handCameraOffset = p;
+}
+
+
+void Camera::setHandCameraOffsetFromTf(ros::Time time)
+{
+  
 }

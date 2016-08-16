@@ -2644,75 +2644,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     //tf::Vector3 test2 = base_to_hand_transform * test;
     //cout <<  test2.x() << test2.y() << test2.z() << endl;
   }
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = ms->config.handCameraOffset.px;
-    pose.pose.position.y = ms->config.handCameraOffset.py;
-    pose.pose.position.z = ms->config.handCameraOffset.pz;
-    pose.pose.orientation.x = ms->config.handCameraOffset.qx;
-    pose.pose.orientation.y = ms->config.handCameraOffset.qy;
-    pose.pose.orientation.z = ms->config.handCameraOffset.qz;
-    pose.pose.orientation.w = ms->config.handCameraOffset.qw;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //throw;
-      }
-    }
-
-    ms->config.trueCameraPoseStatic.px = transformed_pose.pose.position.x;
-    ms->config.trueCameraPoseStatic.py = transformed_pose.pose.position.y;
-    ms->config.trueCameraPoseStatic.pz = transformed_pose.pose.position.z;
-    ms->config.trueCameraPoseStatic.qx = transformed_pose.pose.orientation.x;
-    ms->config.trueCameraPoseStatic.qy = transformed_pose.pose.orientation.y;
-    ms->config.trueCameraPoseStatic.qz = transformed_pose.pose.orientation.z;
-    ms->config.trueCameraPoseStatic.qw = transformed_pose.pose.orientation.w;
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->updateTrueCameraPoseWithHandCameraOffset(eps.header.stamp);
   }
 
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 0;
-    pose.pose.orientation.x = 0;
-    pose.pose.orientation.y = 0;
-    pose.pose.orientation.z = 0;
-    pose.pose.orientation.w = 1;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand_camera";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand_camera", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand_camera", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //throw;
-      }
-    }
-
-    ms->config.trueCameraPose.px = transformed_pose.pose.position.x;
-    ms->config.trueCameraPose.py = transformed_pose.pose.position.y;
-    ms->config.trueCameraPose.pz = transformed_pose.pose.position.z;
-    ms->config.trueCameraPose.qx = transformed_pose.pose.orientation.x;
-    ms->config.trueCameraPose.qy = transformed_pose.pose.orientation.y;
-    ms->config.trueCameraPose.qz = transformed_pose.pose.orientation.z;
-    ms->config.trueCameraPose.qw = transformed_pose.pose.orientation.w;
-  }
 
   {
     geometry_msgs::PoseStamped pose;
@@ -14467,21 +14402,21 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
-  ms->config.cameras.resize(0);
+  ms->config.cameras.clear();
   if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
     string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
-    Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic);
+    Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic, ms->config.left_or_right_arm + "_hand", ms->config.left_or_right_arm + "_hand_camera");
     ms->config.cameras.push_back(c);
     ms->config.focused_camera = 0;
   }
-  Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color");
-  //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color");
+  Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color", ms->config.left_or_right_arm + "_hand", "k2rgb_tf_link");
+  //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color", ms->config.left_or_right_arm + "_hand", "kinect2_link");
   ms->config.cameras.push_back(k2rgb);
 
-  Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir");
+  Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
   ms->config.cameras.push_back(k2ir);
 
-  Camera * k2depth = new Camera(ms, "left_kinect2_depth", "/kinect2/sd/image_depth");
+  Camera * k2depth = new Camera(ms, "left_kinect2_depth", "/kinect2/sd/image_depth", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
   ms->config.cameras.push_back(k2depth);
 
 

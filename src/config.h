@@ -734,8 +734,6 @@ class EinConfig {
   eePose trueEEPoseEEPose;
   eePose lastHandEEPose;
 
-  eePose trueCameraPose;
-  eePose trueCameraPoseStatic;
   eePose trueRangePose;
 
   std::string forthCommand;
@@ -1078,7 +1076,6 @@ class EinConfig {
   //hand   0.33396; 0.75551; 0.082641
   double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
   eePose handEndEffectorOffset = {0,0,0.028838, 0,0,0,1};
-  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
   eePose handRangeOffset = {0.03192,-0.02046,0.028838, 0,0,0,1};
   eePose handToRethinkEndPointTransform = {0,0,0, 0,0,0,1};
   eePose handFromEndEffectorTransform = {0,0,0, 0,0,0,1};

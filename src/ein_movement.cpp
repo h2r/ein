@@ -368,19 +368,12 @@ REGISTER_WORD(TruePose)
 
 WORD(TrueCameraPose)
 virtual void execute(MachineState * ms) {
-  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueCameraPose);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(camera->truePose);
   ms->pushWord(word);
 }
 END_WORD
 REGISTER_WORD(TrueCameraPose)
-
-WORD(TrueCameraPoseStatic)
-virtual void execute(MachineState * ms) {
-  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueCameraPose);
-  ms->pushWord(word);
-}
-END_WORD
-REGISTER_WORD(TrueCameraPoseStatic)
 
 
 

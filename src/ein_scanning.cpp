@@ -2635,6 +2635,18 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SaveGripperMask)
 
+
+WORD(SetDefaultHandCameraOffset)
+virtual string description() {
+  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setDefaultHandCameraOffset();
+}
+END_WORD
+REGISTER_WORD(SetDefaultHandCameraOffset)
+
 WORD(CalibrateRGBCameraIntrinsicsPoint)
 virtual string description() {
   return "Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.";

@@ -5324,6 +5324,7 @@ virtual void execute(MachineState * ms) {
   Mat gripperMask = camera->gripperMask;
   if (isSketchyMat(gripperMask)) {
     CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
   }
 
   //#pragma omp parallel for
