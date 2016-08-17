@@ -31,10 +31,10 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
 
   double width = min(observed.cols / 2, observed.rows / 2);
 
-  Rect rect(width / 2, width / 2, width, width);
+  /* Rect rect(width / 2, width / 2, width, width); */
   Point2f reconstructed_center(reconstructed.cols/2.0F, reconstructed.rows/2.0F);
   Mat roi_observed;
-  roi_observed = observed(rect);
+  roi_observed = observed;
   Mat max_rot;
 
 #pragma omp parallel for
@@ -62,10 +62,10 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
   }
 
   vector<double> to_return(5);
-  to_return.insert(to_return.begin(), rot_max_loc.x - width + rect.x);
-  to_return.insert(to_return.begin() + 1, rot_max_loc.x + width + rect.x);
-  to_return.insert(to_return.begin() + 2, rot_max_loc.y - width + rect.y);
-  to_return.insert(to_return.begin() + 3, rot_max_loc.y + width + rect.y);
+  to_return.insert(to_return.begin(), rot_max_loc.x - width);
+  to_return.insert(to_return.begin() + 1, rot_max_loc.x + width);
+  to_return.insert(to_return.begin() + 2, rot_max_loc.y - width);
+  to_return.insert(to_return.begin() + 3, rot_max_loc.y + width);
   to_return.insert(to_return.begin() + 4, rot_max_rot);
 
   return to_return;
@@ -92,7 +92,7 @@ namespace ein_words {
 
     Rect crop = Rect(300, 250, 400, 400);
 
-    vector<double> estimated = estimate_pos(observed(crop), background(crop));
+    vector<double> estimated = estimate_pos(observed(crop), background);
 
     cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
 
@@ -106,7 +106,7 @@ namespace ein_words {
     /* } */
 
     double x_pos = (estimated[0] + estimated[1]) / 2 - 500;
-    double y_pos = (estimated[2] + estimated[3]) / 2 - 450;
+    double y_pos = (estimated[2] + estimated[3]) / 2 - 500;
 
     double x_global = 0.0;
     double y_global = 0.0;
