@@ -37,7 +37,7 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
   roi_observed = observed(rect);
   Mat max_rot;
 
-  #pragma omp parallel for
+#pragma omp parallel for
   for(int angle = 0; angle < 360; angle += 1) {
     Mat rot_reconstructed;
     Mat result;
@@ -90,23 +90,28 @@ namespace ein_words {
     ms->config.scene->observed_map.get()->rgbMuToMat(observed);
     cvtColor(observed, observed, CV_YCrCb2BGR);
 
-    Rect crop = Rect(200, 200, 600, 600);
+    Rect crop = Rect(300, 250, 400, 400);
 
     vector<double> estimated = estimate_pos(observed(crop), background(crop));
 
-    double x_pos = (estimated[0] + estimated[1]) / 2 - 300;
-    double y_pos = (estimated[2] + estimated[3]) / 2 - 300;
-    double z_global = ms->config.trueEEPoseEEPose.pz;
+    cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
+
+    estimated[0] += crop.x;
+    estimated[1] += crop.x;
+    estimated[2] += crop.y;
+    estimated[3] += crop.y;
+
+    /* for(int i = 0; i < 4; i++) { */
+    /*   estimated[i] += 300; */
+    /* } */
+
+    double x_pos = (estimated[0] + estimated[1]) / 2 - 500;
+    double y_pos = (estimated[2] + estimated[3]) / 2 - 450;
 
     double x_global = 0.0;
     double y_global = 0.0;
 
-    ms->config.scene->background_map.get()->cellToMeters(int(x_pos) + 500, int(y_pos) + 500, &x_global, &y_global);
-
-    estimated[0] += crop.y;
-    estimated[1] += crop.y;
-    estimated[2] += crop.x;
-    estimated[3] += crop.x;
+    ms->config.scene->observed_map.get()->cellToMeters(x_pos + 500, y_pos + 500, &x_global, &y_global);
 
     cout << x_pos << ", " << y_pos << ", " << estimated[4] << endl;
     cout << x_global << ", " << y_global << ", " << estimated[4] << endl;
@@ -140,8 +145,8 @@ namespace ein_words {
       copyMakeBorder(rot_reconstructed, rot_reconstructed, border[0], border[1], border[2], border[3], BORDER_CONSTANT, Scalar(0));
     }
 
-    /* imshow("background", background(crop)); */
     /* imshow("observed", observed(crop)); */
+    /* imshow("background", background(crop)); */
     /* waitKey(0); */
 
     cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
@@ -151,7 +156,7 @@ namespace ein_words {
     Mat re_rot_mat = getRotationMatrix2D(center, -estimated[4], 1.0);
     warpAffine(rot_reconstructed, background, re_rot_mat, rot_reconstructed.size());
 
-    /* imshow("observed", observed); */
+    imshow("observed", observed(crop));
     imshow("background", background);
     waitKey(0);
   }
