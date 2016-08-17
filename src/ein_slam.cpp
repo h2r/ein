@@ -162,4 +162,10 @@ namespace ein_words {
   }
   END_WORD
   REGISTER_WORD(runSlam)
+
+  WORD(slamWriteToLogFile)
+    virtual void execute(MachineState * ms) {
+    }
+  END_WORD
+  REGISTER_WORD(slamWriteToLogFile)
 }

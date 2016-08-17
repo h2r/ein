@@ -1,0 +1,5 @@
+(
+  goHome
+  tableTakeScene
+  initSlam
+) "testSlam" store
