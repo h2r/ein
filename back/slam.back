@@ -2,4 +2,15 @@
   goHome
   tableTakeScene
   initSlam
+  runSlam
+  (
+    0.05 setGridSize
+    xDown
+    tableTakeScene
+    runSlam
+    0.05 setGridSize
+    yDown
+    tableTakeScene
+    runSlam
+  ) 5 replicateWord
 ) "testSlam" store
