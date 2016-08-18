@@ -2834,6 +2834,87 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Eval)
 
+WORD(FileOpenOutput)
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+
+  shared_ptr<OutputFileWord> word = make_shared<OutputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenOutput)
+
+
+
+WORD(FileOpenInput)
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  shared_ptr<InputFileWord> word = make_shared<InputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenInput)
+
+
+WORD(FileReadLine)
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readline();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadLine)
+
+
+WORD(FileReadAll)
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readfile();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(line);
+
+}
+END_WORD
+REGISTER_WORD(FileReadAll)
+
+
+WORD(FileWriteString)
+virtual void execute(MachineState * ms) {
+  string stuff;
+  GET_STRING_ARG(ms, stuff);
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+
+}
+END_WORD
+REGISTER_WORD(FileWriteString)
+
+
+WORD(FileClose)
+virtual void execute(MachineState * ms) {
+  shared_ptr<FileWord> fileWord;
+  GET_WORD_ARG(ms, FileWord, fileWord);
+  fileWord->close();
+}
+END_WORD
+REGISTER_WORD(FileClose)
+
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)

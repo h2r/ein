@@ -631,3 +631,78 @@ std::shared_ptr<IntegerWord> IntegerWord::parse(string token) {
     return std::make_shared<IntegerWord>(i);
   }
 }
+
+InputFileWord::InputFileWord()
+{
+}
+
+
+
+
+bool InputFileWord::open(MachineState * ms, string _fname)
+{
+  fname = _fname;
+  fstream.open(_fname);
+  if (! fstream.is_open()) {
+    CONSOLE_ERROR(ms, "Could not open '" << fname << "': " << strerror(errno));
+    return false;
+  } else {
+    return true;
+  }
+}
+
+string InputFileWord::readline() 
+{
+  string line;
+  getline(fstream, line);
+  return line;
+}
+
+
+string InputFileWord::readfile() 
+{
+
+  std::stringstream buffer;
+  buffer << fstream.rdbuf();
+  return buffer.str();
+}
+
+bool InputFileWord::close()
+{
+  fstream.close();
+}
+
+
+
+OutputFileWord::OutputFileWord()
+{
+}
+
+
+
+
+bool OutputFileWord::open(MachineState * ms, string _fname)
+{
+  fname = _fname;
+  fstream.open(fname);
+  if (! fstream.is_open()) {
+    CONSOLE_ERROR(ms, "Could not open '" << fname << "': " << strerror(errno));
+    return false;
+  } else {
+    return true;
+  }
+}
+
+bool OutputFileWord::write(string s) 
+{
+  fstream << s;
+  return fstream.good();
+}
+
+
+
+
+bool OutputFileWord::close()
+{
+  fstream.close();
+}
