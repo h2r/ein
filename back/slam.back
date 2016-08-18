@@ -6,11 +6,42 @@
   (
     0.05 setGridSize
     xDown
+    slfgRebase
+    clearStreamBuffers
     tableTakeScene
     runSlam
     0.05 setGridSize
     yDown
+    slfgRebase
+    clearStreamBuffers
     tableTakeScene
     runSlam
   ) 5 replicateWord
-) "testSlam" store
+) "quickTestSlam" store
+
+(
+  goHome
+  tableTakeScene
+  initSlam
+  runSlam
+  (
+    (
+      0.05 setGridSize
+      xDown
+      slfgRebase
+      clearStreamBuffers
+      tableTakeScene
+      runSlam
+    ) 5 replicateWord
+    0.05 setGridSize
+    yDown
+    slfgRebase
+    clearStreamBuffers
+    tableTakeScene
+    runSlam
+    0.05 setGridSize
+    (
+      xUp
+    ) 5 replicateWord
+  ) 5 replicateWord
+) "fullTestSlam" store

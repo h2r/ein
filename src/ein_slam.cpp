@@ -77,8 +77,8 @@ namespace ein_words {
       Mat observed;
       ms->config.scene->observed_map.get()->rgbMuToMat(observed);
       cvtColor(observed, ms->config.reconstructed, CV_YCrCb2BGR);
-      imshow("init", ms->config.reconstructed);
-      waitKey(0);
+      imwrite("init.jpg", ms->config.reconstructed);
+      /* waitKey(0); */
     }
   END_WORD
   REGISTER_WORD(initSlam)
@@ -96,10 +96,15 @@ namespace ein_words {
 
     cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
 
-    estimated[0] += crop.x;
-    estimated[1] += crop.x;
-    estimated[2] += crop.y;
-    estimated[3] += crop.y;
+    /* estimated[0] += crop.x; */
+    /* estimated[1] += crop.x; */
+    /* estimated[2] += crop.y; */
+    /* estimated[3] += crop.y; */
+
+    estimated[0] += 200;
+    estimated[1] += 200;
+    estimated[2] += 200;
+    estimated[3] += 200;
 
     /* for(int i = 0; i < 4; i++) { */
     /*   estimated[i] += 300; */
@@ -156,9 +161,11 @@ namespace ein_words {
     Mat re_rot_mat = getRotationMatrix2D(center, -estimated[4], 1.0);
     warpAffine(rot_reconstructed, background, re_rot_mat, rot_reconstructed.size());
 
-    imshow("observed", observed(crop));
-    imshow("background", background);
-    waitKey(0);
+    imwrite("observed_" + std::to_string(ms->config.slamNumber) + ".jpg", observed(crop));
+    imwrite("background_" + std::to_string(ms->config.slamNumber) + ".jpg", background);
+    ms->config.slamNumber++;
+    /* imshow("background", background); */
+    /* waitKey(0); */
   }
   END_WORD
   REGISTER_WORD(runSlam)
