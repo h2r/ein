@@ -30,13 +30,13 @@ screen session.
 
 ![Ein Main Window](../assets/einmainwindow_screenshot.jpg)
 
-Verify you can see the wrist view image in the console, and that it is
-updating as the arm moves.  The middle pane (Object Map View) shows a
-map of the robot's IK workspace for the arm in crane pose at a
+Verify you can see the wrist view image in the main window, and that
+it is updating as the arm moves.  The middle pane (Object Map View)
+shows a map of the robot's IK workspace for the arm in crane pose at a
 particular height.  Attainable poses are marked in green and yellow;
 unattainable poses are marked in red.  The robot's body and end
 effector position are marked with circles and a line indicating
-orientation. 
+orientation.
 
 
 ### Teleoperation
@@ -48,10 +48,12 @@ arm.  You should see a view like this:
 ![Ein Console Screenshot](../assets/console_screenshot.jpg)
 
 The console is the main way to interact with Ein and control the
-robot.  Type commands at the prompt.  You can view the robot's
-status in the upper left window.  The middle two windows show the
-stack (but don't worry about that now; for more information see the [Back page](../language)).  The right window shows Ein's
-console output as you run commands.
+robot.  Type commands at the prompt.  You can view the robot's status
+in the upper left window.  The middle two windows show the stack (but
+don't worry about that now; for more information see the [Back
+page](../language)).  The right window shows Ein's console output as
+you run commands.  Make sure that the console window you are using
+matches the arm (left or right) as described above.
 
 First, go home.  The home position is set toward the side of the robot
 near the center of its IK workspace in the crane position.

@@ -1,0 +1,24 @@
+"test" fileOpenOutput  "outputFile" store
+outputFile "test 1234" fileWrite
+outputFile fileClose
+
+"test" fileOpenInput "inputFile" store
+inputFile fileReadAll
+
+"test 1234" = assert
+inputFile fileClose
+
+"test" fileOpenOutput  "outputFile" store
+outputFile currentPose fileWriteLine 
+outputFile currentPose fileWriteLine 
+outputFile currentPose fileWriteLine
+outputFile fileClose
+
+
+"test" fileOpenInput fileReadAll eval /* evalaute the file and put it on the stack. */
+currentPose = assert
+currentPose = assert
+currentPose = assert
+
+
+

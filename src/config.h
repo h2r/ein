@@ -84,6 +84,7 @@ typedef enum {
   DISCREPANCY_POINT = 0,
   DISCREPANCY_DOT = 1,
   DISCREPANCY_NOISY_OR = 2,
+  DISCREPANCY_NOISY_AND = 3,
 } discrepancyModeState;
 
 typedef enum {
@@ -737,6 +738,8 @@ class EinConfig {
   string other_arm = "left";
   string robot_serial;
   string robot_description;
+  string robot_software_version;
+  string ein_software_version;
 
 
   geometry_msgs::Pose trueEEPose;
@@ -1326,10 +1329,10 @@ class EinConfig {
 
 
 
-  std::string data_directory = "unspecified_dd";
-  std::string vocab_file = "unspecified_vf";
-  std::string knn_file = "unspecified_kf";
-  std::string label_file = "unspecified_lf";
+  std::string data_directory;
+  std::string vocab_file = "vocab.yml";
+  std::string knn_file = "knn.yml";
+  std::string label_file = "labels.yml";
   std::string config_directory = "/config/";
 
   std::string run_prefix = "";

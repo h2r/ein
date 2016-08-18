@@ -183,8 +183,12 @@ void MachineState::execute(shared_ptr<Word> word) {
     checkAndStreamWord(ms, word->name(), "execute");
     try {
       word->execute(this);
+    } catch(const std::exception & e) {
+      CONSOLE_ERROR(ms, "std::exception in word: " << word->name());
+      CONSOLE_ERROR(ms, "Exception was" << e.what());
+      throw e;
     } catch( ... ) {
-      CONSOLE_ERROR(ms, "Exception in word: " << word->name());
+      CONSOLE_ERROR(ms, "Unknown exception in word: " << word->name());
       std::exception_ptr p = std::current_exception();
       rethrow_exception(p);
     }
@@ -612,7 +616,7 @@ std::shared_ptr<DoubleWord> DoubleWord::parse(string token) {
     double r = stod(token.c_str(), &idx); 
 
     if (idx != token.size()) {
-      throw 7;
+      throw domain_error("did not parse the whole double: " + token);
     } else {
       return std::make_shared<DoubleWord>(r);
     }
@@ -622,8 +626,83 @@ std::shared_ptr<IntegerWord> IntegerWord::parse(string token) {
   size_t idx;
   int i = stoi(token, &idx);
   if (idx != token.size()) {
-    throw 7;
+    throw domain_error("did not parse the whole int: " + token);
   } else {
     return std::make_shared<IntegerWord>(i);
   }
+}
+
+InputFileWord::InputFileWord()
+{
+}
+
+
+
+
+bool InputFileWord::open(MachineState * ms, string _fname)
+{
+  fname = _fname;
+  fstream.open(_fname);
+  if (! fstream.is_open()) {
+    CONSOLE_ERROR(ms, "Could not open '" << fname << "': " << strerror(errno));
+    return false;
+  } else {
+    return true;
+  }
+}
+
+string InputFileWord::readline() 
+{
+  string line;
+  getline(fstream, line);
+  return line;
+}
+
+
+string InputFileWord::readfile() 
+{
+
+  std::stringstream buffer;
+  buffer << fstream.rdbuf();
+  return buffer.str();
+}
+
+bool InputFileWord::close()
+{
+  fstream.close();
+}
+
+
+
+OutputFileWord::OutputFileWord()
+{
+}
+
+
+
+
+bool OutputFileWord::open(MachineState * ms, string _fname)
+{
+  fname = _fname;
+  fstream.open(fname);
+  if (! fstream.is_open()) {
+    CONSOLE_ERROR(ms, "Could not open '" << fname << "': " << strerror(errno));
+    return false;
+  } else {
+    return true;
+  }
+}
+
+bool OutputFileWord::write(string s) 
+{
+  fstream << s;
+  return fstream.good();
+}
+
+
+
+
+bool OutputFileWord::close()
+{
+  fstream.close();
 }

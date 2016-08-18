@@ -1,0 +1,22 @@
+First create a new release branch from develop:
+$ git checkout -b release develop
+
+Then run:
+./bump-version.sh and choose the new version number.  This program will git commit, tag, and push the release.
+
+Finally run:
+git checkout master
+git merge --no-ff release
+
+and push. 
+
+Ein is now released. 
+
+The VERSION in develop is always the last version number we branched off of for the new official release. 
+
+
+Copy the docs directory to the gh-pages branch to update the live website. 
+
+When you go back to develop, make sure you git merge master, to pull down the version numbering changes, and anything you did on the release branch. 
+
+

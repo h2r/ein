@@ -93,9 +93,11 @@ rosrun baxter_tools  enable_robot.py -s
 
 Commands such as `rostopic echo`, `rostopic list` and the like should
 all work.  If these do not work, you may have network problems or ROS
-configuration problems preventing you from connecting to Baxter.  See
-the [Rethink SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for
-more information.
+configuration problems preventing you from connecting to Baxter.  A
+common problem is that the version of the SDK is a different version
+from the run running on your robot.  See the [Rethink
+SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for more
+information.
 
 
 Some other stuff you might need to do when installing fresh:
