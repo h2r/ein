@@ -9858,7 +9858,6 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
 
 
   cache->dx = camera->handCameraOffset.py/camera->m_x;
-  cout << "Computed dx: " << camera->handCameraOffset.py  << " mx: " << camera->m_x << endl;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
   cache->b42x = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*cache->cx)/(cache->x4-cache->x2);
   cache->b31x = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*cache->cx)/(cache->x3-cache->x1);
