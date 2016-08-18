@@ -1669,6 +1669,7 @@ class EinConfig {
 
   // SLAM Stuff
   Mat reconstructed;
+  int slamNumber = 0;
 
 }; // config end
 
