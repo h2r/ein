@@ -2868,6 +2868,134 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Eval)
 
+WORD(FileOpenOutput)
+virtual string description() {
+  return "Open an output file for writing; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+
+  shared_ptr<OutputFileWord> word = make_shared<OutputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenOutput)
+
+
+
+WORD(FileOpenInput)
+virtual string description() {
+  return "Open an input file for reading; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  shared_ptr<InputFileWord> word = make_shared<InputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenInput)
+
+
+WORD(FileReadLine)
+virtual string description() {
+  return "Read one line from the file into a string and leave it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readline();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadLine)
+
+
+WORD(FileReadAll)
+virtual string description() {
+  return "Read the contents of the file into a string and push it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readfile();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadAll)
+
+
+WORD(FileWrite)
+virtual string description() {
+  return "Write a string to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  std::shared_ptr<Word> word = ms->popData();
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);
+  string stuff;
+  if (s != NULL) {
+    stuff = s->value();
+  } else if (word != NULL) {
+    stuff = word->repr();
+  } else {
+    stuff = "";
+  }
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+
+}
+END_WORD
+REGISTER_WORD(FileWrite)
+
+WORD(FileWriteLine)
+virtual string description() {
+  return "Write a line to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  string stuff;
+  GET_WORD_AS_STRING(ms, stuff);
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+  result = fileWord->write("\n");
+
+}
+END_WORD
+REGISTER_WORD(FileWriteLine)
+
+
+
+WORD(FileClose)
+virtual string description() {
+  return "Close the file.  If you forget to do this, it will be closed automatically when the word is deallocated.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<FileWord> fileWord;
+  GET_WORD_ARG(ms, FileWord, fileWord);
+  fileWord->close();
+}
+END_WORD
+REGISTER_WORD(FileClose)
+
+
 
 WORD(SaveConfig)
 virtual void execute(MachineState * ms) {

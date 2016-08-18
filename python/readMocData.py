@@ -121,6 +121,9 @@ def readMatFromYaml(fs):
     return array
 
 def main():
+    """
+    Stand-alone python program to read MOC SLFG data from yml files and render it using opencv.
+    """
 
     for fname in glob("left/*/*/ein/sceneModel/model.yml"):
         print fname

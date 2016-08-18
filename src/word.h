@@ -357,13 +357,6 @@ public:
   virtual bool is_static() {
     return false;
   }
-  static bool isInteger(string token) {
-    if (token.substr(0,5) == "eePose") {
-      return true;
-    } else {
-      return false;
-    }
-  }
   
   EePoseWord(eePose _pose) {
     pose = _pose;
@@ -550,6 +543,80 @@ public:
 };
 
 
+
+#include <iostream>
+#include <fstream>
+
+class FileWord: public Word
+{
+public:
+  virtual bool close()=0;
+  virtual bool open(MachineState * ms, string _fname)=0;
+
+  virtual bool is_value() {
+    return true;
+  }
+
+  virtual bool is_static() {
+    return false;
+  }
+
+  bool equals(shared_ptr<Word> word) {
+    return word.get() == this;
+  }
+
+};
+
+class InputFileWord: public FileWord
+{
+private:
+  std::ifstream fstream;
+  string fname;
+
+public:
+  InputFileWord();
+  virtual bool open(MachineState * ms, string _fname);
+  string name() {
+    stringstream ss;
+    ss << "\"" << fname << "\"" << " openInputFile";
+    return ss.str();
+  }
+
+  string to_string() {
+    return name();
+  }
+
+  string readline();
+  string readfile();
+  virtual bool close();
+
+  
+  
+};
+
+class OutputFileWord: public FileWord
+{
+private:
+  std::ofstream fstream;
+  string fname;
+
+public:
+  OutputFileWord();
+  virtual bool open(MachineState * ms, string _fname);
+  string name() {
+    stringstream ss;
+    ss << "\"" << fname << "\"" << " openOutputFile";
+    return ss.str();
+  }
+
+  string to_string() {
+    return name();
+  }
+
+  bool write(string s);
+  virtual bool close();
+
+};
 
 
 
