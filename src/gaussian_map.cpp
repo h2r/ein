@@ -3739,7 +3739,8 @@ virtual void execute(MachineState * ms) {
       pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
 
       if (std::isnan(x) || std::isnan(y)) {
-        CONSOLE_ERROR(ms, "Nan in pixel to global; check your calibration! " << x << ", " << y);
+        CONSOLE_ERROR(ms, "Nan in pixel to global; check your calibration! " << x << ", " << y << " from " << px << ", " << py);
+        CONSOLE_ERROR(ms, "Pixel to global cache: " << pixelToGlobalCacheToString(data));
         return;
       }
 
@@ -3749,7 +3750,6 @@ virtual void execute(MachineState * ms) {
       ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
       GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
       if (cell != NULL) {
-        cout << "adding pixel." << endl;
         Vec3b pixel = camera->cam_ycrcb_img.at<Vec3b>(py, px);
         cell->newObservation(pixel);
       }

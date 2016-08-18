@@ -350,6 +350,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
 void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ);
+string pixelToGlobalCacheToString(const pixelToGlobalCache &cache);
 
 void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
 void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);

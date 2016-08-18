@@ -9632,6 +9632,64 @@ eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
   return result;
 }
 
+string pixelToGlobalCacheToString(const pixelToGlobalCache &cache)
+{
+  stringstream buf;
+
+  buf << "givenEEPose: " << cache.givenEEPose << endl;
+  buf << "gZ: " << cache.gZ << endl;
+  buf << "x1: " << cache.x1 << endl; 
+  buf << "x2: " << cache.x2 << endl;
+  buf << "x3: " << cache.x3 << endl;
+  buf << "x4: " << cache.x4 << endl;
+
+  buf << "y1: " << cache.y1 << endl;
+  buf << "y2: " << cache.y2 << endl;
+  buf << "y3: " << cache.y3 << endl;
+  buf << "y4: " << cache.y4 << endl;
+
+  buf << "z1: " << cache.z1 << endl;
+  buf << "z2: " << cache.z2 << endl;
+  buf << "z3: " << cache.z3 << endl;
+  buf << "z4: " << cache.z4 << endl;
+
+  buf << "reticlePixelX: " << cache.reticlePixelX << endl;
+  buf << "reticlePixelY: " << cache.reticlePixelY << endl;
+  buf << "reticlePixelXOffset: " << cache.reticlePixelXOffset << endl;
+  buf << "reticlePixelYOffset: " << cache.reticlePixelYOffset << endl;
+
+  buf << "x_thisZ: " << cache.x_thisZ << endl;
+  buf << "y_thisZ: " << cache.y_thisZ << endl;
+
+  buf << "gXFactor: " << cache.gXFactor << endl;
+  buf << "gYFactor: " << cache.gYFactor << endl;
+  buf << "finalXOffset: " << cache.finalXOffset << endl;
+  buf << "finalYOffset: " << cache.finalYOffset << endl;
+
+  buf << "un_rot_mat: " << cache.un_rot_mat << endl;
+
+  buf << "rotx[3]: " << cache.rotx[0] << ", " << cache.rotx[1] << ", " << cache.rotx[2] << endl;
+  buf << "roty[3]: " << cache.roty[0] << ", " << cache.roty[1] << ", " << cache.roty[2] << endl;
+
+
+  buf << "dx: " << cache.dx << endl;
+  buf << "cx: " << cache.cx << endl;
+  buf << "b42x: " << cache.b42x << endl;
+  buf << "b31x: " << cache.b31x << endl;
+  buf << "bDiffx: " << cache.bDiffx << endl;
+  buf << "bx: " << cache.bx << endl;
+
+
+  buf << "dy: " << cache.dy << endl;
+  buf << "cy: " << cache.cy << endl;
+  buf << "b42y: " << cache.b42y << endl;
+  buf << "b31y: " << cache.b31y << endl;
+  buf << "bDiffy: " << cache.bDiffy << endl;
+  buf << "by: " << cache.by << endl;
+  return buf.str();
+
+}
+
 void interpolateM_xAndM_yFromZ(MachineState * ms, double dZ, double * m_x, double * m_y) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
@@ -9800,6 +9858,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
 
 
   cache->dx = camera->handCameraOffset.py/camera->m_x;
+  cout << "Computed dx: " << camera->handCameraOffset.py  << " mx: " << camera->m_x << endl;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
   cache->b42x = (cache->z4*cache->x4-cache->z2*cache->x2+(cache->z2-cache->z4)*cache->cx)/(cache->x4-cache->x2);
   cache->b31x = (cache->z3*cache->x3-cache->z1*cache->x1+(cache->z1-cache->z3)*cache->cx)/(cache->x3-cache->x1);
