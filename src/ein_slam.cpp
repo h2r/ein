@@ -166,6 +166,8 @@ namespace ein_words {
     ms->config.slamNumber++;
     /* imshow("background", background); */
     /* waitKey(0); */
+
+    ms->pushWord("\"" + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + "\"");
   }
   END_WORD
   REGISTER_WORD(runSlam)

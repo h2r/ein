@@ -2,28 +2,43 @@
   goHome
   tableTakeScene
   initSlam
+  "log.txt" fileOpenOutput  "outputFile" store
+  outputFile currentPose fileWrite
+  outputFile
   runSlam
+  fileWrite
   (
     0.05 setGridSize
     xDown
     slfgRebase
     clearStreamBuffers
     tableTakeScene
+    outputFile currentPose fileWrite
+    outputFile
     runSlam
+    fileWrite
     0.05 setGridSize
     yDown
     slfgRebase
     clearStreamBuffers
     tableTakeScene
+    outputFile currentPose fileWrite
+    outputFile
     runSlam
+    fileWrite
   ) 5 replicateWord
+  outputFile fileClose
 ) "quickTestSlam" store
 
 (
   goHome
   tableTakeScene
   initSlam
+  "log.txt" fileOpenOutput  "outputFile" store
+  outputFile currentPose fileWrite
+  outputFile
   runSlam
+  fileWrite
   (
     (
       0.05 setGridSize
@@ -31,14 +46,20 @@
       slfgRebase
       clearStreamBuffers
       tableTakeScene
+      outputFile currentPose fileWrite
+      outputFile
       runSlam
+      fileWrite
     ) 5 replicateWord
     0.05 setGridSize
     yDown
     slfgRebase
     clearStreamBuffers
     tableTakeScene
+    outputFile currentPose fileWrite
+    outputFile
     runSlam
+    fileWrite
     0.05 setGridSize
     (
       xUp
