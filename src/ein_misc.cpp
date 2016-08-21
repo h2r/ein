@@ -3108,6 +3108,8 @@ CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
 
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 
+CONFIG_GETTER_INT(CurrentSceneFixationMode, ms->config.currentSceneFixationMode)
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 
 

@@ -1110,7 +1110,7 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 
   if (tspb.size() < 2) {
     // 2 guards for the for loop that searches down, plus we only want to look it up if its between 2 measurements
-    cout << "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size() << endl;
+    CONSOLE_ERROR(ms, "getStreamPoseAtTime:  tried to get stream pose but the buffer is too small: " << tspb.size());
     return 0;
   }
 
@@ -1130,9 +1130,8 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
-          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
+          CONSOLE_ERROR(ms, "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh);
 	  return 0;
-	} else {
 	}
 	double totalWeight = w1 + w2;
 	w1 = w1 / totalWeight;
@@ -1144,6 +1143,12 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	return 1;
       }
     }
+    CONSOLE_ERROR(ms, "getStreamPoseAtTime: didn't return from for loop, tin > tspb[thisIdx].time.  tin: " << tin << " tspb[thisIdx].time: "  << tspb[thisIdx].time);
+    CONSOLE_ERROR(ms, "tspb size: " << tspb.size());
+    CONSOLE_ERROR(ms, "greater than: " << (tin > tspb[thisIdx].time));
+    CONSOLE_ERROR(ms, "equals than: " << (tin == tspb[thisIdx].time));
+    return 0;
+
   } else { // tin < tspb[thisIdx].time
     // checking between
     for (int j = thisIdx-1; j > -1; j--) {
@@ -1151,7 +1156,7 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	double w1 = tin - tspb[j].time;
 	double w2 = tspb[j+1].time - tin;
 	if ( (w1 > p_rejectThresh) || (w2 > p_rejectThresh) ) {
-          cout << "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh << endl;
+          CONSOLE_ERROR(ms, "getStreamPoseAtTime:  w1 or w2 > p_rejectThresh.  w1: " << w1 << " w2: " << w2 << " p_rejectThresh: " << p_rejectThresh);
 	  return 0;
 	}
 	double totalWeight = w1 + w2;
@@ -1164,9 +1169,11 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
 	return 1;
       }
     }
-    cout << "bottomed out of the if." << endl;
+    CONSOLE_ERROR(ms, "getStreamPoseAtTime: returned out of the else.");
     return 0;
   }
+
+  assert(0);
 }
 
 int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase) {
