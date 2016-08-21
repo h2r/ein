@@ -10091,14 +10091,28 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   Point center = Point(reticlePixelX, reticlePixelY);
 
   Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
+  double rotx[3];
+  double roty[3];
+  rotx[0] = un_rot_mat.at<double>(0, 0);
+  rotx[1] = un_rot_mat.at<double>(0, 1);
+  rotx[2] = un_rot_mat.at<double>(0, 2);
+  roty[0] = un_rot_mat.at<double>(1, 0);
+  roty[1] = un_rot_mat.at<double>(1, 1);
+  roty[2] = un_rot_mat.at<double>(1, 2);
 
-  Mat toUn(3,1,CV_64F);
+  
+  /*  Mat toUn(3,1,CV_64F);
   toUn.at<double>(0,0)=*pX;
   toUn.at<double>(1,0)=*pY;
   toUn.at<double>(2,0)=1.0;
   Mat didUn = un_rot_mat*toUn;
   *pX = didUn.at<double>(0,0);
-  *pY = didUn.at<double>(1,0);
+  *pY = didUn.at<double>(1,0);*/
+
+  double rotatedPX = rotx[0] * *pX + rotx[1] * *pY + rotx[2];
+  double rotatedPY = roty[0] * *pX + roty[1] * *pY + roty[2];
+  *pX = rotatedPX;
+  *pY = rotatedPY;
 
   double oldPx = *pX;
   double oldPy = *pY;
