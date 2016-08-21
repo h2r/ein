@@ -3013,6 +3013,44 @@ END_WORD
 REGISTER_WORD(LoadConfig)
 
 
+WORD(CameraSetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> argsWord;
+  GET_WORD_ARG(ms, CompoundWord, argsWord);
+
+  if (argsWord->size() != 4) {
+    CONSOLE_ERROR(ms, "Must pass a four word compound word to set the matrix.");
+  }
+
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < argsWord->size(); i++) {
+    shared_ptr<Word> w = argsWord->getWord(i);
+    camera->transform_matrix[i] = w->to_double();
+  }
+}
+END_WORD
+REGISTER_WORD(CameraSetTransformMatrix)
+
+WORD(CameraGetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> body = make_shared<CompoundWord>();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < 4; i++) {
+    body->pushWord(make_shared<DoubleWord>(camera->transform_matrix[i]));
+  }
+
+  ms->pushData(body);
+
+}
+END_WORD
+REGISTER_WORD(CameraGetTransformMatrix)
+
+
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -3111,6 +3149,7 @@ CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 CONFIG_GETTER_INT(CurrentSceneFixationMode, ms->config.currentSceneFixationMode)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 

@@ -88,6 +88,8 @@ class Camera {
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
 
+  double transform_matrix[4] = {1, 0, 0, 1};
+
   Eigen::Quaternionf gear0offset;
 
   ros::Time lastCameraLogTime;
