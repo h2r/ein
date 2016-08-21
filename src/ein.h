@@ -348,7 +348,6 @@ void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * 
 void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
-void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ);
 string pixelToGlobalCacheToString(const pixelToGlobalCache &cache);
 

@@ -9863,6 +9863,17 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
   cache->roty[1] = cache->un_rot_mat.at<double>(1, 1);
   cache->roty[2] = cache->un_rot_mat.at<double>(1, 2);
 
+  double tmp[4];
+
+  tmp[0] = cache->rotx[0] * camera->transform_matrix[0] + cache->rotx[1]*camera->transform_matrix[2];
+  tmp[1] = cache->rotx[0] * camera->transform_matrix[1] + cache->rotx[1]*camera->transform_matrix[3];
+  tmp[2] = cache->roty[0] * camera->transform_matrix[0] + cache->roty[1]*camera->transform_matrix[2];
+  tmp[3] = cache->roty[0] * camera->transform_matrix[1] + cache->roty[1]*camera->transform_matrix[3];
+  cache->rotx[0] = tmp[0];
+  cache->rotx[1] = tmp[1];
+  cache->roty[0] = tmp[2];
+  cache->roty[1] = tmp[3];
+
 
   cache->dx = camera->handCameraOffset.py/camera->m_x;
   cache->cx = ((cache->z4*cache->x4-cache->z2*cache->x2)*(cache->x3-cache->x1)-(cache->z3*cache->x3-cache->z1*cache->x1)*(cache->x4-cache->x2))/((cache->z1-cache->z3)*(cache->x4-cache->x2)-(cache->z2-cache->z4)*(cache->x3-cache->x1));
@@ -9971,257 +9982,9 @@ void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * 
 
 }
 
-void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
 
-  int x1 = camera->heightReticles[0].px;
-  int x2 = camera->heightReticles[1].px;
-  int x3 = camera->heightReticles[2].px;
-  int x4 = camera->heightReticles[3].px;
-
-  int y1 = camera->heightReticles[0].py;
-  int y2 = camera->heightReticles[1].py;
-  int y3 = camera->heightReticles[2].py;
-  int y4 = camera->heightReticles[3].py;
-
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
-
-  double reticlePixelX = 0.0;
-  double reticlePixelY = 0.0;
-  {
-    //double d = camera->handCameraOffset.py;
-    double d = camera->handCameraOffset.py/camera->m_x;
-    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
-
-    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
-    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
-
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
-
-    double zFraction = (gZ); // (gZ-b)
-    // taking out other singularity
-    double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
-    //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
-    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
-    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( camera->m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
-    *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
-    // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
-    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
-    // removed the above correction
-    reticlePixelX = x_thisZ;
-
-/*
-    cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << camera->m_x << " " << endl;
-    cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-*/
-  }
-  {
-    //double d = -camera->handCameraOffset.px;
-    double d = -camera->handCameraOffset.px/camera->m_y;
-    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
-
-    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
-    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
-
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
-
-    double zFraction = (gZ); // (gZ-b)
-    // taking out other singularity
-    double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
-    //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
-    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
-    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( camera->m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
-    *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
-    // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
-    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
-    // XXX removed the above correction still need to check
-    reticlePixelY = y_thisZ;
-
-/*
-    cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << camera->m_y << " " << endl;
-*/
-  }
-
-  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
-
-  // account for rotation of the end effector 
-  Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-  Quaternionf crane2Orient(0, 1, 0, 0);
-  Quaternionf rel = eeqform * crane2Orient.inverse();
-  Quaternionf ex(0,1,0,0);
-  Quaternionf zee(0,0,0,1);
-	
-  Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
-  double aY = result.y();
-  double aX = result.x();
-
-  // ATTN 22
-  //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
-  angle = angle;
-  double scale = 1.0;
-  Point center = Point(reticlePixelX, reticlePixelY);
-
-  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
-
-  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=*pX;
-  toUn.at<double>(1,0)=*pY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
-  *pX = didUn.at<double>(0,0);
-  *pY = didUn.at<double>(1,0);
-
-  double oldPx = *pX;
-  double oldPy = *pY;
-  //*pX = reticlePixelX + m_y*(oldPy - reticlePixelY) + ms->config.offX;
-  //*pY = reticlePixelY + m_x*(oldPx - reticlePixelX) + ms->config.offY;
-  *pX = reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX;
-  *pY = reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY;
-}
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
-
-  int x1 = camera->heightReticles[0].px;
-  int x2 = camera->heightReticles[1].px;
-  int x3 = camera->heightReticles[2].px;
-  int x4 = camera->heightReticles[3].px;
-
-  int y1 = camera->heightReticles[0].py;
-  int y2 = camera->heightReticles[1].py;
-  int y3 = camera->heightReticles[2].py;
-  int y4 = camera->heightReticles[3].py;
-
-  double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
-  double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
-  double z3 = convertHeightIdxToGlobalZ(ms, 2) + ms->config.currentTableZ;
-  double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
-
-  double reticlePixelX = 0.0;
-  double reticlePixelY = 0.0;
-  {
-    //double d = camera->handCameraOffset.py;
-    double d = camera->handCameraOffset.py/camera->m_x;
-    double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
-
-    double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
-    double b31 = (z3*x3-z1*x1+(z1-z3)*c)/(x3-x1);
-
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
-
-    double zFraction = (gZ); // (gZ-b)
-    // taking out other singularity
-    double x_thisZ = c + ( (x1-c)*(z1) )/zFraction;
-    //int x_thisZ = c + ( (x1-c)*(z1-b) )/zFraction;
-    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
-    //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( camera->m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
-    *pX = c + ( (gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
-    // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/zFraction;
-    //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
-    // removed the above correction
-    reticlePixelX = x_thisZ;
-  }
-  {
-    //double d = -camera->handCameraOffset.px;
-    double d = -camera->handCameraOffset.px/camera->m_y;
-    double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
-
-    double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
-    double b31 = (z3*y3-z1*y1+(z1-z3)*c)/(y3-y1);
-
-    double bDiff = b42-b31;
-    //cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
-    //cout << "y1 y2 y3 y4: " << y1 << " " << y2 << " " << y3 << " " << y4 << endl;
-    //cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
-    //cout << "bDiff = " << bDiff << ", c = " << c << " b42, b31: " << b42 << " " << b31 << " " << endl;
-    double b = (b42+b31)/2.0;
-
-    double zFraction = (gZ); // (gZ-b)
-    // taking out other singularity
-    double y_thisZ = c + ( (y1-c)*(z1) )/zFraction;
-    //int y_thisZ = c + ( (y1-c)*(z1-b) )/zFraction;
-    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
-    //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( camera->m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
-    *pY = c + ( (gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
-    // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/zFraction;
-    //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
-    // removed the above correction
-    reticlePixelY = y_thisZ;
-  }
-
-  //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
-
-  // account for rotation of the end effector 
-  Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-  Quaternionf crane2Orient(0, 1, 0, 0);
-  Quaternionf rel = eeqform * crane2Orient.inverse();
-  Quaternionf ex(0,1,0,0);
-  Quaternionf zee(0,0,0,1);
-	
-  Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
-  double aY = result.y();
-  double aX = result.x();
-
-  // ATTN 22
-  //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
-  angle = angle;
-  double scale = 1.0;
-  Point center = Point(reticlePixelX, reticlePixelY);
-
-  Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
-
-  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=*pX;
-  toUn.at<double>(1,0)=*pY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
-  *pX = didUn.at<double>(0,0);
-  *pY = didUn.at<double>(1,0);
-
-  double oldPx = *pX;
-  double oldPy = *pY;
-  //*pX = reticlePixelX + camera->m_y*(oldPy - reticlePixelY) + ms->config.offX;
-  //*pY = reticlePixelY + camera->m_x*(oldPx - reticlePixelX) + ms->config.offY;
-  *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
-  *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
+  globalToPixel(ms, pX, pY, gZ, gX, gY, ms->config.trueEEPoseEEPose);
 }
 
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {

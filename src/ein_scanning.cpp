@@ -1743,17 +1743,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetHeightReticles)
 
-WORD(PrintGlobalToPixel)
-virtual void execute(MachineState * ms) {
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-  }
-}
-END_WORD
-REGISTER_WORD(PrintGlobalToPixel)
 
 WORD(SetHeightReticlesA)
 virtual void execute(MachineState * ms) {
@@ -2222,7 +2211,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2299,7 +2288,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
