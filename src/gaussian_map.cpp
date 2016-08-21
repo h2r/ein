@@ -5435,13 +5435,13 @@ virtual void execute(MachineState * ms) {
       
       
       if (success != 1) {
-        CONSOLE_ERROR(ms, "Couldn't get stream pose: " << success << " time: " << tsi->time);
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
         continue;
       }
       
       eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
       if (fabs(transformed.qz) > 0.01) {
-        CONSOLE_ERROR(ms, "  Not doing update because arm not vertical.");
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
         continue;
       }
       pixelToGlobalCache data;      
