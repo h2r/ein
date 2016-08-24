@@ -1,5 +1,7 @@
 (
   goHome
+  0.05 setGridSize
+  ( xUp ) 4 replicateWord
   tableTakeScene
   initSlam
   "log.txt" fileOpenOutput  "outputFile" store
@@ -32,6 +34,8 @@
 
 (
   goHome
+  0.05 setGridSize
+  ( xUp ) 4 replicateWord
   tableTakeScene
   initSlam
   "log.txt" fileOpenOutput  "outputFile" store
@@ -50,7 +54,7 @@
       outputFile
       runSlam
       fileWrite
-    ) 5 replicateWord
+    ) 9 replicateWord
     0.05 setGridSize
     yDown
     slfgRebase
@@ -63,6 +67,7 @@
     0.05 setGridSize
     (
       xUp
-    ) 5 replicateWord
-  ) 5 replicateWord
+    ) 9 replicateWord
+  ) 2 replicateWord
+  outputFile fileClose
 ) "fullTestSlam" store

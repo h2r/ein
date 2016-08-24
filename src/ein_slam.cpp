@@ -126,30 +126,6 @@ namespace ein_words {
     Mat rot_reconstructed;
     warpAffine(background, rot_reconstructed, rot_mat, background.size());
 
-    bool needs_expansion = false;
-    int border[] = {0, 0, 0, 0};
-
-    if (estimated[0] < 0) {
-      border[0] = abs(estimated[0]);
-      needs_expansion = true;
-    }
-    if (estimated[2] < 0) {
-      border[2] = abs(estimated[0]);
-      needs_expansion = true;
-    }
-    if (estimated[1] > rot_reconstructed.cols) {
-      border[1] = estimated[1];
-      needs_expansion = true;
-    }
-    if (estimated[3] > rot_reconstructed.rows) {
-      border[3] = estimated[3];
-      needs_expansion = true;
-    }
-
-    if (needs_expansion) {
-      copyMakeBorder(rot_reconstructed, rot_reconstructed, border[0], border[1], border[2], border[3], BORDER_CONSTANT, Scalar(0));
-    }
-
     /* imshow("observed", observed(crop)); */
     /* imshow("background", background(crop)); */
     /* waitKey(0); */
@@ -166,6 +142,40 @@ namespace ein_words {
     ms->config.slamNumber++;
     /* imshow("background", background); */
     /* waitKey(0); */
+
+    bool needs_expansion = false;
+    int border[] = {0, 0, 0, 0};
+
+    if (y_pos < 400) {
+      border[0] = 200;
+      needs_expansion = true;
+    }
+    if (x_pos < 200) {
+      border[2] = 200;
+      needs_expansion = true;
+    }
+    if (y_pos > rot_reconstructed.cols - 400) {
+      border[1] = 200;
+      needs_expansion = true;
+    }
+    if (x_pos > rot_reconstructed.rows - 400) {
+      border[3] = 200;
+      needs_expansion = true;
+    }
+
+    cout << "###########################################################################################################################" << endl;
+    ROS_INFO_STREAM(needs_expansion);
+    ROS_INFO_STREAM(false);
+    ROS_INFO_STREAM(true);
+    cout << "###########################################################################################################################" << endl;
+
+    if (needs_expansion) {
+      /* imshow("before", background); */
+      /* waitKey(0); */
+      copyMakeBorder(background, ms->config.reconstructed, border[0], border[1], border[2], border[3], BORDER_CONSTANT, Scalar(0));
+      /* imshow("after", ms->config.reconstructed); */
+      /* waitKey(0); */
+    }
 
     ms->pushWord("\"" + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + "\"");
   }
