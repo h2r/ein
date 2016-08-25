@@ -57,17 +57,10 @@
     ) 9 replicateWord
     0.05 setGridSize
     yDown
-    slfgRebase
-    clearStreamBuffers
-    tableTakeScene
-    outputFile currentPose fileWrite
-    outputFile
-    runSlam
-    fileWrite
     0.05 setGridSize
     (
       xUp
     ) 9 replicateWord
-  ) 2 replicateWord
+  ) 5 replicateWord
   outputFile fileClose
 ) "fullTestSlam" store

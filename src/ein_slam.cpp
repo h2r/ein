@@ -144,40 +144,18 @@ namespace ein_words {
     /* waitKey(0); */
 
     bool needs_expansion = false;
-    int border[] = {0, 0, 0, 0};
+    int border = 0;
 
-    if (y_pos < 400) {
-      border[0] = 200;
+    if (y_pos < 100 | x_pos < 100 | y_pos > rot_reconstructed.cols - 100 | x_pos > rot_reconstructed.rows - 100) {
+      border = 100;
       needs_expansion = true;
     }
-    if (x_pos < 200) {
-      border[2] = 200;
-      needs_expansion = true;
-    }
-    if (y_pos > rot_reconstructed.cols - 400) {
-      border[1] = 200;
-      needs_expansion = true;
-    }
-    if (x_pos > rot_reconstructed.rows - 400) {
-      border[3] = 200;
-      needs_expansion = true;
-    }
-
-    cout << "###########################################################################################################################" << endl;
-    ROS_INFO_STREAM(needs_expansion);
-    ROS_INFO_STREAM(false);
-    ROS_INFO_STREAM(true);
-    cout << "###########################################################################################################################" << endl;
 
     if (needs_expansion) {
-      /* imshow("before", background); */
-      /* waitKey(0); */
-      copyMakeBorder(background, ms->config.reconstructed, border[0], border[1], border[2], border[3], BORDER_CONSTANT, Scalar(0));
-      /* imshow("after", ms->config.reconstructed); */
-      /* waitKey(0); */
+      copyMakeBorder(background, ms->config.reconstructed, border, border, border, border, BORDER_CONSTANT, Scalar(0));
     }
 
-    ms->pushWord("\"" + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + "\"");
+    ms->pushWord("\", " + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + "\n\"");
   }
   END_WORD
   REGISTER_WORD(runSlam)
