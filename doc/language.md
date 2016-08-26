@@ -174,3 +174,14 @@ program in it and run `"hello" import`.  Then write a new word that
 prints "hello" and also causes the robot to wave its arm (use the
 `truePose` variable to read the arm's position and `moveEeToPoseWord`
 to move to a predefined pose) and nod its head (`nod`).
+
+
+### File Input and Output
+
+Files can be created with `fileOpenInput` and `fileOpenOutput`.
+`fileReadLine`, `fileReadAll` take a file on the stack and leave a
+string.  `fileWrite` and `fileWriteLine` take a file and another word
+and write that word to the file; if the word is a string, the string
+is written; otherwise `repr` is used to convert the word to a string.
+If you do this, the result can be evaluated with `eval` to recreate
+the contents of the file on the stack.  Examples are in fileio.back.

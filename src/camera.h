@@ -14,7 +14,9 @@ class MachineState;
 
 class Camera {
  public:
-  std::string image_topic = "/camera/rgb/image_raw"; 
+  string image_topic = "/camera/rgb/image_raw"; 
+  string tf_ee_link;
+  string tf_camera_link;
   shared_ptr<image_transport::ImageTransport> it;
   image_transport::Subscriber image_sub;
 
@@ -30,6 +32,10 @@ class Camera {
   int imRingBufferStart = 0;
   int imRingBufferEnd = 0;
   std::vector<streamImage> streamImageBuffer;
+
+  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
+  eePose truePose;
+
 
   Mat gripperMaskFirstContrast;
   Mat gripperMaskSecondContrast;
@@ -82,6 +88,8 @@ class Camera {
   double m_XQ[3] = {0,0,0};
   double m_YQ[3] = {0,0,0};
 
+  double transform_matrix[4] = {1, 0, 0, 1};
+
   Eigen::Quaternionf gear0offset;
 
   ros::Time lastCameraLogTime;
@@ -109,7 +117,7 @@ class Camera {
   void deactivateSensorStreaming();
   void activateSensorStreaming();
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
-  Camera(MachineState * ms, string name, string topic);
+  Camera(MachineState * ms, string name, string topic, string tf_ee_link, string tf_camera_link);
 
 
   int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
@@ -139,6 +147,12 @@ class Camera {
   void loadGripperMask();
   void saveGripperMask(string outFileName);
   void saveGripperMask();
+
+  void setHandCameraOffsetFromTf(ros::Time time);
+  void setDefaultHandCameraOffset();
+
+  void updateTrueCameraPoseFromTf(ros::Time time);
+  void updateTrueCameraPoseWithHandCameraOffset(ros::Time time);
 
 
 

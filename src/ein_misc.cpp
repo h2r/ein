@@ -1513,8 +1513,8 @@ virtual void execute(MachineState * ms)
   double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/camera->m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -1545,8 +1545,8 @@ virtual void execute(MachineState * ms)
 */
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/camera->m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -2892,6 +2892,134 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Eval)
 
+WORD(FileOpenOutput)
+virtual string description() {
+  return "Open an output file for writing; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+
+  shared_ptr<OutputFileWord> word = make_shared<OutputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenOutput)
+
+
+
+WORD(FileOpenInput)
+virtual string description() {
+  return "Open an input file for reading; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  shared_ptr<InputFileWord> word = make_shared<InputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenInput)
+
+
+WORD(FileReadLine)
+virtual string description() {
+  return "Read one line from the file into a string and leave it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readline();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadLine)
+
+
+WORD(FileReadAll)
+virtual string description() {
+  return "Read the contents of the file into a string and push it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readfile();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadAll)
+
+
+WORD(FileWrite)
+virtual string description() {
+  return "Write a string to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  std::shared_ptr<Word> word = ms->popData();
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);
+  string stuff;
+  if (s != NULL) {
+    stuff = s->value();
+  } else if (word != NULL) {
+    stuff = word->repr();
+  } else {
+    stuff = "";
+  }
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+
+}
+END_WORD
+REGISTER_WORD(FileWrite)
+
+WORD(FileWriteLine)
+virtual string description() {
+  return "Write a line to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  string stuff;
+  GET_WORD_AS_STRING(ms, stuff);
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+  result = fileWord->write("\n");
+
+}
+END_WORD
+REGISTER_WORD(FileWriteLine)
+
+
+
+WORD(FileClose)
+virtual string description() {
+  return "Close the file.  If you forget to do this, it will be closed automatically when the word is deallocated.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<FileWord> fileWord;
+  GET_WORD_ARG(ms, FileWord, fileWord);
+  fileWord->close();
+}
+END_WORD
+REGISTER_WORD(FileClose)
+
+
 
 WORD(SaveConfig)
 virtual void execute(MachineState * ms) {
@@ -2907,6 +3035,44 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(LoadConfig)
+
+
+WORD(CameraSetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> argsWord;
+  GET_WORD_ARG(ms, CompoundWord, argsWord);
+
+  if (argsWord->size() != 4) {
+    CONSOLE_ERROR(ms, "Must pass a four word compound word to set the matrix.");
+  }
+
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < argsWord->size(); i++) {
+    shared_ptr<Word> w = argsWord->getWord(i);
+    camera->transform_matrix[i] = w->to_double();
+  }
+}
+END_WORD
+REGISTER_WORD(CameraSetTransformMatrix)
+
+WORD(CameraGetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> body = make_shared<CompoundWord>();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < 4; i++) {
+    body->pushWord(make_shared<DoubleWord>(camera->transform_matrix[i]));
+  }
+
+  ms->pushData(body);
+
+}
+END_WORD
+REGISTER_WORD(CameraGetTransformMatrix)
+
 
 
 
@@ -3004,7 +3170,10 @@ CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
 
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 
+CONFIG_GETTER_INT(CurrentSceneFixationMode, ms->config.currentSceneFixationMode)
+
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 
