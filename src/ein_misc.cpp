@@ -1135,7 +1135,6 @@ virtual void execute(MachineState * ms)
 
   if ( cameraA >= ms->config.cameras.size() || cameraB >= ms->config.cameras.size() ) {
     cout << "Invalid cameras, exiting." << endl;
-    break;
   } else {
     cout << "Camera indeces valid, proceeding." << endl;
   }
