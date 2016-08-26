@@ -1125,6 +1125,30 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Fetch)
 
+WORD(CalibrateCameraAToB)
+virtual void execute(MachineState * ms)
+{
+  int cameraA = 0;
+  int cameraB = 0;
+  GET_NUMERIC_ARG(ms, cameraA);
+  GET_NUMERIC_ARG(ms, cameraB);
+
+  if ( cameraA >= ms->config.cameras.size() || cameraB >= ms->config.cameras.size() ) {
+    cout << "Invalid cameras, exiting." << endl;
+    break;
+  } else {
+    cout << "Camera indeces valid, proceeding." << endl;
+  }
+
+  // scan once
+  // scan again
+  // calculate relative pose
+  // update pose of cameraA
+}
+END_WORD
+REGISTER_WORD(CalibrateCameraAToB)
+
+
 
 WORD(IncrementCamera)
 virtual void execute(MachineState * ms)

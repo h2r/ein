@@ -2005,6 +2005,230 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
   }
 }
 
+void Scene::findBestAffineScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i) {
+// XXX not done yet
+  REQUIRE_VALID_CLASS(ms,class_idx);
+  guardSceneModels(ms);
+
+  vector<Mat> rotated_object_imgs;
+  int numScales = 1;//11;
+  int numOrientations = num_orientations;
+  //numOrientations = numOrientations * 2;
+  double scaleStepSize = 1.02;
+  int etaS = 0;
+
+  rotated_object_imgs.resize(numScales*numOrientations);
+  double startScale = pow(scaleStepSize, -(numScales-1)/2);  
+  double thisScale = startScale * pow(scaleStepSize, etaS);
+
+  double p_scene_sigma = 2.0;
+
+
+  Mat prepared_discrepancy;
+  {
+    prepared_discrepancy = discrepancy_density.clone();
+    //GaussianBlur(prepared_discrepancy, prepared_discrepancy, cv::Size(0,0), p_scene_sigma);
+    //normalizeForCrossCorrelation(ms, prepared_discrepancy, prepared_discrepancy);
+  }
+  Mat object_to_prepare = ms->config.class_scene_models[class_idx]->discrepancy_density.clone();
+
+  double max_dim = max(object_to_prepare.rows, object_to_prepare.cols);
+
+  Mat prepared_object = object_to_prepare;
+
+  double p_discrepancy_thresh = ms->config.scene_score_thresh;
+
+  double overlap_thresh = 0.0001; // 0.01 // 0.0001;
+
+
+
+
+  
+  //double po_l1norm = prepared_object.dot(Mat::ones(prepared_object.rows, prepared_object.cols, prepared_object.type()));
+  double po_l2norm = prepared_object.dot(prepared_object);
+  // cout << "  po_l2norm: " << po_l2norm << endl;
+
+  Size toBecome(max_dim, max_dim);
+
+  //double globalMax = 0.0;
+  int max_x = -1;
+  int max_y = -1;
+  int max_orient = -1;
+  double max_score = -DBL_MAX;
+  Mat max_image = prepared_object.clone();
+
+
+  vector<SceneObjectScore> local_scores;
+  local_scores.reserve(1e5);
+  int pushed = 0;
+
+  //cout << "orientations: " << numOrientations << endl;
+  // how many radians do we search over?
+  double phiSearchDelta = 0.02;
+  double phiAlphaSearchHalfWidth = 0.2;
+  double phiBetaSearchHalfWidth = 0.2;
+
+  for (double thisPhiAlpha = -phiAlphaSearchHalfWidth; thisPhiAlpha <= phiAlphaSearchHalfWidth; thisPhiAlpha += phiSearchDelta) {
+    for (double thisPhiBeta = -phiBetaSearchHalfWidth; thisPhiBeta <= phiBetaSearchHalfWidth; thisPhiBeta += phiSearchDelta) {
+      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
+
+	Point center = Point(prepared_object.cols/2.0, prepared_object.rows/2.0);
+	double angle = thisOrient*360.0/numOrientations;
+	
+	//double scale = 1.0;
+	double scale = thisScale;
+	
+	// Get the rotation matrix with the specifications above
+	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+
+	// also translate it a bit, because we are making a square output,
+	// and we want it to be in the center of the square.
+	rot_mat.at<double>(0,2) += ((max_dim - prepared_object.cols)/2.0);
+	rot_mat.at<double>(1,2) += ((max_dim - prepared_object.rows)/2.0);
+
+	// XXX add affine transformations here
+
+	warpAffine(prepared_object, rotated_object_imgs[thisOrient + etaS*numOrientations], rot_mat, toBecome);
+	//cout << "angle: " << angle << endl;
+	//imshow("rotated object image", rotated_object_imgs[thisOrient + etaS*numOrientations]);
+	//imshow("prepared discrepancy", prepared_discrepancy);
+
+
+	Mat output = prepared_discrepancy.clone(); 
+	filter2D(prepared_discrepancy, output, -1, rotated_object_imgs[thisOrient + etaS*numOrientations], Point(-1,-1), 0, BORDER_CONSTANT);
+
+
+	double theta_r = thisOrient* 2.0 * M_PI / numOrientations;
+
+	for (int x = 0; x < output.rows; x++) {
+	  for (int y = 0; y < output.cols; y++) {
+	    double model_score = 0.0;
+
+	    if (output.at<double>(x,y) > overlap_thresh * po_l2norm) {
+	      SceneObjectScore to_push;
+	      to_push.x_c = x;
+	      to_push.y_c = y;
+	      cellToMeters(to_push.x_c, to_push.y_c, &(to_push.x_m), &(to_push.y_m));
+	      to_push.orient_i = thisOrient;
+	      to_push.theta_r = theta_r;
+
+	      to_push.discrepancy_valid = true;
+	      to_push.discrepancy_score = output.at<double>(x,y);
+
+	      if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+		to_push.loglikelihood_valid = false;
+		to_push.loglikelihood_score = 0.0;
+	      } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+		to_push.loglikelihood_valid = true;
+		to_push.loglikelihood_score = to_push.discrepancy_score;
+	      } else {
+		assert(0);
+	      }
+
+	      local_scores.push_back(to_push);
+	    }
+      
+	    //if (model_score > max_score) 
+	    if (output.at<double>(x,y) > max_score) 
+	    {
+	      //max_score = model_score;
+	      max_score = output.at<double>(x,y);
+	      max_x = x;
+	      max_y = y;
+	      max_orient = thisOrient;
+	      // max_image = rotated_object_imgs[thisOrient + etaS*numOrientations].clone();
+	    }
+	  }
+	}
+	// Mat bestMatch = prepared_discrepancy.clone();
+	// Point c = Point(max_y, max_x);
+	// cv::Scalar color = cv::Scalar(255, 255, 255);
+	// circle(bestMatch, c, 10, color);
+
+	// for (int x1 = 0; x1 < max_image.rows; x1++) {
+	//   for (int y1 = 0; y1 < max_image.cols; y1++) {
+	//     int bx1 = max_x - max_image.rows * 0.5 + x1;
+	//     int by1 = max_y - max_image.cols * 0.5 + y1;
+
+	//     bestMatch.at<double>(bx1,by1) = max(max_image.at<double>(x1, y1),
+	//                                         prepared_discrepancy.at<double>(bx1, by1));
+	//   }
+	// }
+	//imshow("best match for this angle", bestMatch);
+
+	//output = output / max_score;
+	//imshow("output", output);
+	//cout << "max: " << max_x << ", " << max_y <<  " at " << max_score << endl;
+	//waitKey(0);    
+      }
+    }
+  }
+  cout << "max_theta: " << max_orient << endl;
+
+
+  //cout << prepared_discrepancy << prepared_object ;
+  double max_theta = -max_orient * 2.0 * M_PI / numOrientations;
+  double max_x_meters, max_y_meters;
+  cellToMeters(max_x, max_y, &max_x_meters, &max_y_meters);
+  {
+    cout << "  local_scores size:  " << local_scores.size() << endl;
+    cout << "  discrepancy says: " << endl;
+    cout << "max x: " << max_x << " max_y: " << max_y << " max_orient: " << max_orient << " max x (meters): " << max_x_meters << " max y (meters): " << max_y_meters << " max theta: " << max_theta << endl << "max_score: " << max_score << endl;
+    cout << "  currentSceneClassificationMode: " << ms->config.currentSceneClassificationMode << endl;
+  }
+
+
+  *l_max_x = -1;
+  *l_max_y = -1;
+  //*l_max_score = -DBL_MAX;
+  *l_max_orient = -1;
+  *l_max_i = -1;
+
+  if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_THEN_LOGLIKELIHOOD) {
+    std::sort(local_scores.begin(), local_scores.end(), compareDiscrepancyDescending);
+    int to_check = min( int(ms->config.sceneDiscrepancySearchDepth), int(local_scores.size()) );
+    int numThreads = 8;
+    #pragma omp parallel for
+    for (int thr = 0; thr < numThreads; thr++) {
+      for (int i = 0; i < to_check; i++) {
+	if ( i % numThreads == thr ) {
+	  if ( ! local_scores[i].loglikelihood_valid ) {
+	    // score should return the delta of including vs not including
+	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_valid = true;
+	    if (i % 10000 == 0) {
+	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
+	    }
+	  }
+	}
+      }
+    }
+  } else if (ms->config.currentSceneClassificationMode == SC_DISCREPANCY_ONLY) {
+    // don't sort because all are searched below
+  } else {
+    assert(0);
+  }
+
+
+  for (int i = 0; i < local_scores.size(); i++) {
+    if ( (local_scores[i].loglikelihood_valid) && (local_scores[i].loglikelihood_score > *l_max_score) ) {
+      cout << " score " << local_scores[i].loglikelihood_score << " old l_max_score " << *l_max_score << endl;
+      *l_max_score = local_scores[i].loglikelihood_score;
+      *l_max_x = local_scores[i].x_c;
+      *l_max_y = local_scores[i].y_c;
+      *l_max_orient = local_scores[i].orient_i;
+      *l_max_theta = local_scores[i].theta_r;
+      *l_max_i = i;
+    }
+  }
+  if (*l_max_i >= ms->config.sceneDiscrepancySearchDepth - 25) {
+    CONSOLE_ERROR(ms, "Take note that the best one was near our search limit; maybe you need to increase the search depth.  l_max_i: " << *l_max_i << " search depth: " << ms->config.sceneDiscrepancySearchDepth);
+  }
+  {
+    cout << "  local_scores size:  " << local_scores.size() << endl;
+  }
+}
+
 void Scene::tryToAddObjectToScene(int class_idx) {
   REQUIRE_VALID_CLASS(ms,class_idx);
   guardSceneModels(ms);
