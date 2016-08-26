@@ -154,7 +154,10 @@ class Camera {
   void updateTrueCameraPoseFromTf(ros::Time time);
   void updateTrueCameraPoseWithHandCameraOffset(ros::Time time);
 
-
+  double mu_x;
+  double mu_y;
+  double kappa_x;
+  double kappa_y;
 
 };
 

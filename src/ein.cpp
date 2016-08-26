@@ -9629,6 +9629,49 @@ int isThisGraspMaxedOut(MachineState * ms, int i) {
   return toReturn;
 }
 
+void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+}
+
+void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, pixelToGlobalCache * cache) {
+}
+
+void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  Size sz = camera->gripperMask.size();
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int centerX = imW / 2;
+  int centerY = imH / 2;
+
+  // the old calibration solved for the principle point, but for now we are  
+  // making the assumption that it is at the center of the image 
+  cache->cx = centerX - camera->cropUpperLeftCorner.px;
+  cache->cy = centerY - camera->cropUpperLeftCorner.py;
+
+  // one magnification and one distortion coefficient per axis
+  // XXX once depth is in line we can calibrate this over a range of depths.
+  // XXX we might need to calibrate the depth camera's return range using the IR sensor.
+
+  // construct the axis permutation matrix and its inverse
+
+  // construct the current camera pose affine matrix and its inverse
+
+  // construct the pixel to global matrix origin matrix
+  Eigen::Matrix4f p2g;
+
+  // construt the global to pixel matrix origin matrix
+  Eigen::Matrix4f g2p;
+
+
+
+  // construct the overall pixel to global matrix
+
+  // construct the overall global to pixel matrix
+
+}
+
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
