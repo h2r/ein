@@ -9641,8 +9641,9 @@ void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, 
 
   Eigen::Vector4f globalVector;
   globalVector = cache->p2gComposedZNotBuilt * pixelVector;
-  //*gX = globalVector(0);
-  //*gY = globalVector(1);
+
+  *gX = globalVector(0);
+  *gY = globalVector(1);
 }
 
 void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache) {
@@ -9665,6 +9666,9 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
 
   double correctedX = uncorrectedX;
   double correctedY = uncorrectedY;
+
+  double reuncorrectedX = uncorrectedX;
+  double reuncorrectedY = uncorrectedY;
   
   /* 
   */
@@ -9679,20 +9683,27 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
     double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
 
     correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
-    correctedY = uncorrectedY * ( 1.0 + lambdaX * uncorrectedY * uncorrectedY);
+    correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
+
+    reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
+    reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
 
     cout << "iteration " << i << endl 
-	  << "  corrected x: " << correctedX << "   y: " <<   correctedY << endl
-	  << "uncorrected x: " << uncorrectedX << " y: " << uncorrectedY << endl;
+	  << "    corrected x: " << correctedX << "   y: " <<   correctedY << endl
+	  << "  uncorrected x: " << uncorrectedX << " y: " << uncorrectedY << endl
+	  << "reuncorrected x: " << reuncorrectedX << " y: " << reuncorrectedY << endl;
 
     uncorrectedX = correctedX;
     uncorrectedY = correctedY;
   }
   
   cout << "final values" << endl
-	  << "  corrected  x: " << correctedX << "    y: " <<   correctedY << endl
-	  << "uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl;
+	  << "    corrected  x: " << correctedX << "    y: " <<   correctedY << endl
+	  << "  uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl
+	  << "reuncorrected  x: " << reuncorrectedX << "  y: " << reuncorrectedY << endl;
 
+  *pX = correctedX;
+  *pY = correctedY;
 //  float centralizedX = pX - cache->cx;
 //  float centralizedY = pY - cache->cy;
 //  pixelVector <<
