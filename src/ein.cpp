@@ -9629,10 +9629,77 @@ int isThisGraspMaxedOut(MachineState * ms, int i) {
   return toReturn;
 }
 
-void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, float z) {
+  Eigen::Vector4f pixelVector;
+  float centralizedX = pX - cache->cx;
+  float centralizedY = pY - cache->cy;
+  pixelVector <<
+    z * centralizedX * (1.0 + cache->kappa_x * centralizedX * centralizedX),
+    z * centralizedY * (1.0 + cache->kappa_y * centralizedY * centralizedY),
+    z,
+    1.0;
+
+  Eigen::Vector4f globalVector;
+  globalVector = cache->p2gComposedZNotBuilt * pixelVector;
+  //*gX = globalVector(0);
+  //*gY = globalVector(1);
 }
 
-void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, pixelToGlobalCache * cache) {
+void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache) {
+  Eigen::Vector4f globalVector;
+  globalVector <<
+    gX,
+    gY,
+    gZ,
+    1.0 ;
+
+  Eigen::Vector4f pixelVector;
+  pixelVector = cache->g2pComposedZNotBuilt * globalVector;
+
+  // divide by z
+  // 
+  double uncorrectedX = pixelVector(0) / gZ;
+  double uncorrectedY = pixelVector(1) / gZ;
+  double uncorrectedX0 = uncorrectedX;
+  double uncorrectedY0 = uncorrectedY;
+
+  double correctedX = uncorrectedX;
+  double correctedY = uncorrectedY;
+  
+  /* 
+  */
+  int p_g2p_cubic_max = 5;
+  for (int i = 0; i < p_g2p_cubic_max; i++) {
+    double skx = sqrt(cache->kappa_x);
+    double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
+    double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+
+    double sky = sqrt(cache->kappa_y);
+    double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
+    double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+
+    correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
+    correctedY = uncorrectedY * ( 1.0 + lambdaX * uncorrectedY * uncorrectedY);
+
+    cout << "iteration " << i << endl 
+	  << "  corrected x: " << correctedX << "   y: " <<   correctedY << endl
+	  << "uncorrected x: " << uncorrectedX << " y: " << uncorrectedY << endl;
+
+    uncorrectedX = correctedX;
+    uncorrectedY = correctedY;
+  }
+  
+  cout << "final values" << endl
+	  << "  corrected  x: " << correctedX << "    y: " <<   correctedY << endl
+	  << "uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl;
+
+//  float centralizedX = pX - cache->cx;
+//  float centralizedY = pY - cache->cy;
+//  pixelVector <<
+//    z * centralizedX * (1.0 + cache->kappa_x * centralizedX * centralizedX),
+//    z * centralizedY * (1.0 + cache->kappa_y * centralizedY * centralizedY),
+//    z,
+//    1.0;
 }
 
 void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
@@ -9655,21 +9722,75 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
   // XXX we might need to calibrate the depth camera's return range using the IR sensor.
 
   // construct the axis permutation matrix and its inverse
+  Eigen::Matrix4f ap;
+  ap.setIdentity();
+  Eigen::Matrix4f apInv = ap.inverse();
 
   // construct the current camera pose affine matrix and its inverse
+  Eigen::Quaternionf quat(camera->truePose.qw, camera->truePose.qx, camera->truePose.qy, camera->truePose.qz);
+  Eigen::Matrix3f rot3matrix = quat.toRotationMatrix();
+  Eigen::Matrix4f ccp;
+  ccp << 
+    rot3matrix(0,0) , rot3matrix(0,1) , rot3matrix(0,2) , camera->truePose.px , 
+    rot3matrix(1,0) , rot3matrix(1,1) , rot3matrix(1,2) , camera->truePose.py , 
+    rot3matrix(2,0) , rot3matrix(2,1) , rot3matrix(2,2) , camera->truePose.pz , 
+    0.0 , 0.0 , 0.0 , 1.0 ;
+  Eigen::Matrix4f ccpInv = ccp.inverse();
 
-  // construct the pixel to global matrix origin matrix
-  Eigen::Matrix4f p2g;
+  {
+    // construct the pixel to global matrix origin matrix
+    // note that we multiply by z during the vector construction 
+    //  so that this one matrix applies to many z values.
+    Eigen::Matrix4f p2gOriginZNotBuilt;
+    p2gOriginZNotBuilt << 
+      cache->mu_x , 0 , 0 , 0 ,
+      0 , cache->mu_y , 0 , 0 ,
+      0 , 0 , 1, 0 , 
+      0 , 0 , 0, 1 ;
 
-  // construt the global to pixel matrix origin matrix
-  Eigen::Matrix4f g2p;
+    // construt the global to pixel matrix origin matrix
+    // note that we multiply by z during the vector construction 
+    //  so that this one matrix applies to many z values.
+    Eigen::Matrix4f g2pOriginZNotBuilt;
+    g2pOriginZNotBuilt <<
+      1.0/(cache->mu_x) , 0 , 0 , 0 ,
+      0 , 1.0/(cache->mu_y) , 0 , 0 ,
+      0 , 0 , 1, 0 , 
+      0 , 0 , 0, 1 ;
 
+    // construct the composed pixel to global matrix
+    cache->p2gComposedZNotBuilt = ccp * ap * p2gOriginZNotBuilt;
 
+    // construct the composed global to pixel matrix
+    cache->g2pComposedZNotBuilt = g2pOriginZNotBuilt * apInv * ccpInv;
+  }
+  {
+    // construct the pixel to global matrix origin matrix
+    // note that we will NOT mulitply by z during the vector construction 
+    //  so that this one matrix applies to one z, and is thus faster for such batches.
+    Eigen::Matrix4f p2gOriginZBuilt;
+    p2gOriginZBuilt << 
+      gZ * cache->mu_x , 0 , 0 , 0 ,
+      0 , gZ * cache->mu_y , 0 , 0 ,
+      0 , 0 , gZ, 0 , 
+      0 , 0 , 0, 1 ;
 
-  // construct the overall pixel to global matrix
+    // construt the global to pixel matrix origin matrix
+    // note that we multiply by z during the vector construction 
+    //  so that this one matrix applies to many z values.
+    Eigen::Matrix4f g2pOriginZBuilt;
+    g2pOriginZBuilt <<
+      1.0/(gZ*cache->mu_x) , 0 , 0 , 0 ,
+      0 , 1.0/(gZ*cache->mu_y) , 0 , 0 ,
+      0 , 0 , 1, 0 , 
+      0 , 0 , 0, 1 ;
 
-  // construct the overall global to pixel matrix
+    // construct the composed pixel to global matrix
+    cache->p2gComposedZBuilt = ccp * ap * p2gOriginZBuilt;
 
+    // construct the composed global to pixel matrix
+    cache->g2pComposedZBuilt = g2pOriginZBuilt * apInv * ccpInv;
+  }
 }
 
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {

@@ -413,6 +413,15 @@ typedef struct pixelToGlobalCache {
   double bDiffy;
   double by;
 
+  Eigen::Matrix4f p2gComposedZBuilt;
+  Eigen::Matrix4f g2pComposedZBuilt;
+  Eigen::Matrix4f p2gComposedZNotBuilt;
+  Eigen::Matrix4f g2pComposedZNotBuilt;
+
+  double mu_x;
+  double mu_y;
+  double kappa_x;
+  double kappa_y;
 } pixelToGlobalCache;
 
 

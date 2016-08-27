@@ -354,8 +354,8 @@ string pixelToGlobalCacheToString(const pixelToGlobalCache &cache);
 void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
 void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);
 
-void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
-void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, pixelToGlobalCache * cache);
+void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z);
+void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache);
 void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 
 void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
