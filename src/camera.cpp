@@ -34,6 +34,16 @@ Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link,
   gripperMaskFilename = calibrationDirectory + "/gripperMask.bmp";
   loadCalibration();
   loadGripperMask();
+
+  mu_x = 0.004;
+  mu_y = 0.004;
+  kappa_x = 0.001;
+  kappa_y = 0.001;
+
+  r_00 = 1;
+  r_01 = 0;
+  r_10 = 0;
+  r_11 = 1;
 }
 
 

@@ -9629,7 +9629,7 @@ int isThisGraspMaxedOut(MachineState * ms, int i) {
   return toReturn;
 }
 
-void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, float z) {
+void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, float z) {
   Eigen::Vector4f pixelVector;
   float centralizedX = pX - cache->cx;
   float centralizedY = pY - cache->cy;
@@ -9641,6 +9641,23 @@ void pixelToGlobalFullFromCache(MachineState * ms, int pX, int pY, double * gX, 
 
   Eigen::Vector4f globalVector;
   globalVector = cache->p2gComposedZNotBuilt * pixelVector;
+
+  *gX = globalVector(0);
+  *gY = globalVector(1);
+}
+
+void pixelToGlobalFullFromCacheZBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+  Eigen::Vector4f pixelVector;
+  float centralizedX = pX - cache->cx;
+  float centralizedY = pY - cache->cy;
+  pixelVector <<
+     centralizedX * (1.0 + cache->kappa_x * centralizedX * centralizedX),
+     centralizedY * (1.0 + cache->kappa_y * centralizedY * centralizedY),
+    1.0,
+    1.0;
+
+  Eigen::Vector4f globalVector;
+  globalVector = cache->p2gComposedZBuilt * pixelVector;
 
   *gX = globalVector(0);
   *gY = globalVector(1);
@@ -9713,8 +9730,14 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
 //    1.0;
 }
 
+// the givenEEPose is the end effector pose and so we have to obtain the camera pose relative to that
 void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  cache->mu_x = camera->mu_x;
+  cache->mu_y = camera->mu_y;
+  cache->kappa_x = camera->kappa_x;
+  cache->kappa_y = camera->kappa_y;
 
   Size sz = camera->gripperMask.size();
   int imW = sz.width;
@@ -9734,17 +9757,26 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
 
   // construct the axis permutation matrix and its inverse
   Eigen::Matrix4f ap;
-  ap.setIdentity();
+  ap <<
+    camera->r_00, camera->r_01,   0,	0,
+    camera->r_10, camera->r_11,   0,	0,
+	       0,	     0, 1.0,	0,
+	       0,	     0,	  0,  1.0 ;
   Eigen::Matrix4f apInv = ap.inverse();
 
   // construct the current camera pose affine matrix and its inverse
-  Eigen::Quaternionf quat(camera->truePose.qw, camera->truePose.qx, camera->truePose.qy, camera->truePose.qz);
+  eePose thisCameraPose;
+
+  // fill out thisCameraPose
+  thisCameraPose = camera->handCameraOffset.applyAsRelativePoseTo(givenEEPose);
+
+  Eigen::Quaternionf quat(thisCameraPose.qw, thisCameraPose.qx, thisCameraPose.qy, thisCameraPose.qz);
   Eigen::Matrix3f rot3matrix = quat.toRotationMatrix();
   Eigen::Matrix4f ccp;
   ccp << 
-    rot3matrix(0,0) , rot3matrix(0,1) , rot3matrix(0,2) , camera->truePose.px , 
-    rot3matrix(1,0) , rot3matrix(1,1) , rot3matrix(1,2) , camera->truePose.py , 
-    rot3matrix(2,0) , rot3matrix(2,1) , rot3matrix(2,2) , camera->truePose.pz , 
+    rot3matrix(0,0) , rot3matrix(0,1) , rot3matrix(0,2) , thisCameraPose.px , 
+    rot3matrix(1,0) , rot3matrix(1,1) , rot3matrix(1,2) , thisCameraPose.py , 
+    rot3matrix(2,0) , rot3matrix(2,1) , rot3matrix(2,2) , thisCameraPose.pz , 
     0.0 , 0.0 , 0.0 , 1.0 ;
   Eigen::Matrix4f ccpInv = ccp.inverse();
 
@@ -9948,6 +9980,8 @@ void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, 
 }
 
 void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache) {
+  computePixelToGlobalFullCache(ms, gZ, givenEEPose, cache);
+/*
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
@@ -10080,6 +10114,7 @@ void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose,
 
   cache->finalXOffset = cache->givenEEPose.px - cache->dx - cache->cx*cache->gXFactor;
   cache->finalYOffset = cache->givenEEPose.py - cache->dy - cache->cy*cache->gYFactor;
+*/
 }
 
 
@@ -10091,6 +10126,9 @@ void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, do
 
 void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
 
+  pixelToGlobalFullFromCacheZBuilt(ms, pX, pY, gX, gY, cache);
+
+/*
   double rotatedPX = (cache->rotx[0] * pX +
                       cache->rotx[1] * pY +
                       cache->rotx[2]);
@@ -10102,13 +10140,11 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
   pX = cache->reticlePixelXOffset + rotatedPY;
   pY = cache->reticlePixelYOffset + rotatedPX;
 
-/*
-  double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
-  *gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
+  //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ-cache->bx);
+  //*gX = cache->givenEEPose.px - cache->dx + ( (pX-cache->cx)*(cache->dx) )/( (x_thisZ-cache->cx) ) ;
 
-  double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
-  *gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
-*/
+  //double y_thisZ = cache->cy + ( (cache->y1-cache->cy)*(cache->z1-cache->by) )/(cache->gZ-cache->by);
+  //*gY = cache->givenEEPose.py - cache->dy + ( (pY-cache->cy)*(cache->dy) )/( (y_thisZ-cache->cy) ) ;
   // taking out other singularity
 
   //double x_thisZ = cache->cx + ( (cache->x1-cache->cx)*(cache->z1-cache->bx) )/(cache->gZ);
@@ -10121,10 +10157,11 @@ void pixelToGlobalFromCache(MachineState * ms, int pX, int pY, double * gX, doub
   //*gY = cache->givenEEPose.py - cache->dy + (pY-cache->cy)*cache->gYFactor;
   *gY = cache->finalYOffset + pY * cache->gYFactor;
 
+*/
 }
 
 void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
-
+// XXX TODO adapt to matrix framework
   double rotatedPX = (cache->rotx[0] * pX +
                       cache->rotx[1] * pY +
                       cache->rotx[2]);
@@ -10163,6 +10200,11 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
 }
 
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose) {
+
+  pixelToGlobalCache cache;
+  computePixelToGlobalFullCache(ms, gZ, givenEEPose, &cache);
+  globalToPixelFullFromCache(ms, pX, pY, gX, gY, gZ, &cache);
+/*
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   interpolateM_xAndM_yFromZ(ms, gZ, &camera->m_x, &camera->m_y);
 
@@ -10276,13 +10318,13 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   roty[2] = un_rot_mat.at<double>(1, 2);
 
   
-  /*  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=*pX;
-  toUn.at<double>(1,0)=*pY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
-  *pX = didUn.at<double>(0,0);
-  *pY = didUn.at<double>(1,0);*/
+//  Mat toUn(3,1,CV_64F);
+//  toUn.at<double>(0,0)=*pX;
+//  toUn.at<double>(1,0)=*pY;
+//  toUn.at<double>(2,0)=1.0;
+//  Mat didUn = un_rot_mat*toUn;
+//  *pX = didUn.at<double>(0,0);
+//  *pY = didUn.at<double>(1,0);
 
   double rotatedPX = rotx[0] * *pX + rotx[1] * *pY + rotx[2];
   double rotatedPY = roty[0] * *pX + roty[1] * *pY + roty[2];
@@ -10295,6 +10337,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   //*pY = reticlePixelY + camera->m_x*(oldPx - reticlePixelX) + ms->config.offY;
   *pX = round(reticlePixelX + (oldPy - reticlePixelY) + ms->config.offX);
   *pY = round(reticlePixelY + (oldPx - reticlePixelX) + ms->config.offY);
+*/
 }
 
 void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor) {
