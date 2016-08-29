@@ -9661,6 +9661,8 @@ void pixelToGlobalFullFromCacheZBuilt(MachineState * ms, int pX, int pY, double 
 
   *gX = globalVector(0);
   *gY = globalVector(1);
+
+//cout << "pX pY gX gY: " << pX << " " << pY << " " << *gX << " " << *gY << endl;
 }
 
 void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache) {
@@ -9686,9 +9688,19 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
 
   double reuncorrectedX = uncorrectedX;
   double reuncorrectedY = uncorrectedY;
+
+cout << "gX gY gZ uncX uncY: " << gX << " " << gY << " " << gZ << " " << uncorrectedX << " " << uncorrectedY << endl;
+cout << cache->apInv << endl << cache->g2pComposedZNotBuilt << endl << "pV: " << endl << pixelVector << endl << "gV: " << endl << globalVector << endl;
+cout << "cx cy: " << cache->cx << " " << cache->cy << endl;
+
+cout <<
+cache->ccpRot << endl <<
+cache->ccpRotInv << endl <<
+cache->ccpTrans << endl <<
+cache->ccpTransInv << endl <<
+endl;
   
   /* 
-  */
   int p_g2p_cubic_max = 5;
   for (int i = 0; i < p_g2p_cubic_max; i++) {
     double skx = sqrt(cache->kappa_x);
@@ -9718,9 +9730,12 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
 	  << "    corrected  x: " << correctedX << "    y: " <<   correctedY << endl
 	  << "  uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl
 	  << "reuncorrected  x: " << reuncorrectedX << "  y: " << reuncorrectedY << endl;
+  */
 
-  *pX = correctedX;
-  *pY = correctedY;
+  *pX = correctedX + cache->cx;
+  *pY = correctedY + cache->cy;
+
+cout << "pX pY: " << *pX << " " << *pY << endl;
 //  float centralizedX = pX - cache->cx;
 //  float centralizedY = pY - cache->cy;
 //  pixelVector <<
@@ -9739,46 +9754,49 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
   cache->kappa_x = camera->kappa_x;
   cache->kappa_y = camera->kappa_y;
 
-  Size sz = camera->gripperMask.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  int centerX = imW / 2;
-  int centerY = imH / 2;
-
   // the old calibration solved for the principle point, but for now we are  
   // making the assumption that it is at the center of the image 
-  cache->cx = centerX - camera->cropUpperLeftCorner.px;
-  cache->cy = centerY - camera->cropUpperLeftCorner.py;
+  cache->cx = camera->centerX - camera->cropUpperLeftCorner.px;
+  cache->cy = camera->centerY - camera->cropUpperLeftCorner.py;
 
   // one magnification and one distortion coefficient per axis
   // XXX once depth is in line we can calibrate this over a range of depths.
   // XXX we might need to calibrate the depth camera's return range using the IR sensor.
 
   // construct the axis permutation matrix and its inverse
-  Eigen::Matrix4f ap;
-  ap <<
+  cache->ap <<
     camera->r_00, camera->r_01,   0,	0,
     camera->r_10, camera->r_11,   0,	0,
 	       0,	     0, 1.0,	0,
 	       0,	     0,	  0,  1.0 ;
-  Eigen::Matrix4f apInv = ap.inverse();
+  cache->apInv = cache->ap.inverse();
 
   // construct the current camera pose affine matrix and its inverse
   eePose thisCameraPose;
 
   // fill out thisCameraPose
   thisCameraPose = camera->handCameraOffset.applyAsRelativePoseTo(givenEEPose);
+cout << "cache: " << 
+givenEEPose << endl <<
+camera->handCameraOffset << endl <<
+thisCameraPose << endl <<
+endl;
+
 
   Eigen::Quaternionf quat(thisCameraPose.qw, thisCameraPose.qx, thisCameraPose.qy, thisCameraPose.qz);
   Eigen::Matrix3f rot3matrix = quat.toRotationMatrix();
-  Eigen::Matrix4f ccp;
-  ccp << 
-    rot3matrix(0,0) , rot3matrix(0,1) , rot3matrix(0,2) , thisCameraPose.px , 
-    rot3matrix(1,0) , rot3matrix(1,1) , rot3matrix(1,2) , thisCameraPose.py , 
-    rot3matrix(2,0) , rot3matrix(2,1) , rot3matrix(2,2) , thisCameraPose.pz , 
+  cache->ccpRot << 
+    rot3matrix(0,0) , rot3matrix(0,1) , rot3matrix(0,2) , 0.0 , 
+    rot3matrix(1,0) , rot3matrix(1,1) , rot3matrix(1,2) , 0.0 , 
+    rot3matrix(2,0) , rot3matrix(2,1) , rot3matrix(2,2) , 0.0 , 
     0.0 , 0.0 , 0.0 , 1.0 ;
-  Eigen::Matrix4f ccpInv = ccp.inverse();
+  cache->ccpRotInv = cache->ccpRot.inverse();
+  cache->ccpTrans << 
+    1.0 , 0.0 , 0.0 , thisCameraPose.px , 
+    0.0 , 1.0 , 0.0 , thisCameraPose.py , 
+    0.0 , 0.0 , 1.0 , thisCameraPose.pz , 
+    0.0 , 0.0 , 0.0 , 1.0 ;
+  cache->ccpTransInv = cache->ccpTrans.inverse();
 
   {
     // construct the pixel to global matrix origin matrix
@@ -9802,10 +9820,10 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
       0 , 0 , 0, 1 ;
 
     // construct the composed pixel to global matrix
-    cache->p2gComposedZNotBuilt = ccp * ap * p2gOriginZNotBuilt;
+    cache->p2gComposedZNotBuilt = cache->ccpTrans * cache->ccpRot * cache->ap * p2gOriginZNotBuilt;
 
     // construct the composed global to pixel matrix
-    cache->g2pComposedZNotBuilt = g2pOriginZNotBuilt * apInv * ccpInv;
+    cache->g2pComposedZNotBuilt = g2pOriginZNotBuilt * cache->apInv * cache->ccpRotInv * cache->ccpTransInv;
   }
   {
     // construct the pixel to global matrix origin matrix
@@ -9829,10 +9847,10 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
       0 , 0 , 0, 1 ;
 
     // construct the composed pixel to global matrix
-    cache->p2gComposedZBuilt = ccp * ap * p2gOriginZBuilt;
+    cache->p2gComposedZBuilt = cache->ccpTrans * cache->ccpRot * cache->ap * p2gOriginZBuilt;
 
     // construct the composed global to pixel matrix
-    cache->g2pComposedZBuilt = g2pOriginZBuilt * apInv * ccpInv;
+    cache->g2pComposedZBuilt = g2pOriginZBuilt * cache->apInv * cache->ccpRotInv * cache->ccpTransInv;
   }
 }
 

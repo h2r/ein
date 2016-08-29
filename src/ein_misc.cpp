@@ -3148,25 +3148,25 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_
 
 
 
-CONFIG_GETTER_INT(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
-CONFIG_GETTER_INT(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
-CONFIG_GETTER_INT(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
-CONFIG_GETTER_INT(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
+CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
+CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
+CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
 
-CONFIG_GETTER_INT(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
-CONFIG_GETTER_INT(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
-CONFIG_GETTER_INT(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
-CONFIG_GETTER_INT(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
+CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
+CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
+CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
 
-CONFIG_SETTER_INT(SetCameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
-CONFIG_SETTER_INT(SetCameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
-CONFIG_SETTER_INT(SetCameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
-CONFIG_SETTER_INT(SetCameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+CONFIG_SETTER_DOUBLE(SetCameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
+CONFIG_SETTER_DOUBLE(SetCameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
+CONFIG_SETTER_DOUBLE(SetCameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
+CONFIG_SETTER_DOUBLE(SetCameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
 
-CONFIG_SETTER_INT(SetCameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
-CONFIG_SETTER_INT(SetCameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
-CONFIG_SETTER_INT(SetCameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
-CONFIG_SETTER_INT(SetCameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+CONFIG_SETTER_DOUBLE(SetCameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
+CONFIG_SETTER_DOUBLE(SetCameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
+CONFIG_SETTER_DOUBLE(SetCameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
+CONFIG_SETTER_DOUBLE(SetCameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
 
 CONFIG_GETTER_INT(SceneCellCountThreshold, ms->config.sceneCellCountThreshold)
 CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold)

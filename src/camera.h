@@ -163,6 +163,13 @@ class Camera {
   double r_01;
   double r_10;
   double r_11;
+  
+  // the center of the total camera image. in the wrist view, the total camera
+  // image is the 1280x800 image of which the 640x400 we use is the center
+  // crop, so the center is 640x400 because it represents the principle point
+  // of the lens. For K2 it is imW/2 and imH/2
+  int centerX;
+  int centerY;
 };
 
 

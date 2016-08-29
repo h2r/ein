@@ -418,6 +418,13 @@ typedef struct pixelToGlobalCache {
   Eigen::Matrix4f p2gComposedZNotBuilt;
   Eigen::Matrix4f g2pComposedZNotBuilt;
 
+  Eigen::Matrix4f ap;
+  Eigen::Matrix4f apInv;
+  Eigen::Matrix4f ccpRot;
+  Eigen::Matrix4f ccpRotInv;
+  Eigen::Matrix4f ccpTrans;
+  Eigen::Matrix4f ccpTransInv;
+
   double mu_x;
   double mu_y;
   double kappa_x;
