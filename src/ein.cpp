@@ -9689,6 +9689,7 @@ void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX
   double reuncorrectedX = uncorrectedX;
   double reuncorrectedY = uncorrectedY;
 
+/*
 cout << "gX gY gZ uncX uncY: " << gX << " " << gY << " " << gZ << " " << uncorrectedX << " " << uncorrectedY << endl;
 cout << cache->apInv << endl << cache->g2pComposedZNotBuilt << endl << "pV: " << endl << pixelVector << endl << "gV: " << endl << globalVector << endl;
 cout << "cx cy: " << cache->cx << " " << cache->cy << endl;
@@ -9699,17 +9700,32 @@ cache->ccpRotInv << endl <<
 cache->ccpTrans << endl <<
 cache->ccpTransInv << endl <<
 endl;
+*/
   
-  /* 
+  // the point of this procedure is to find a distortion lambda which undoes
+  // kappa. This is impossible in principle and so lambda becomes both a
+  // function of x, the undistorted (and sought) point, and y, the known
+  // distorted point. Fortunately we can substitute our best approximation of x
+  // (in the beginning, y) to obtain an approximate lambda to obtain an
+  // approximate x which can be fed back into the formula.  convergence is
+  // rapid for values of kappa close to what we are likely to encounter and
+  // lenses with larger values will likely require more firepower to
+  // approximate accurately.
   int p_g2p_cubic_max = 5;
   for (int i = 0; i < p_g2p_cubic_max; i++) {
     double skx = sqrt(cache->kappa_x);
-    double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
+    //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
+    //double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+    double sub_term_x = (1.0/skx + skx * correctedX * correctedX);
     double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+    //double lambdaX = -cache->kappa_x;
 
     double sky = sqrt(cache->kappa_y);
-    double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
+    //double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
+    //double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+    double sub_term_y = (1.0/sky + sky * correctedY * correctedY);
     double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+    //double lambdaY = -cache->kappa_y;
 
     correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
     correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
@@ -9717,25 +9733,31 @@ endl;
     reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
     reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
 
+/*
     cout << "iteration " << i << endl 
 	  << "    corrected x: " << correctedX << "   y: " <<   correctedY << endl
 	  << "  uncorrected x: " << uncorrectedX << " y: " << uncorrectedY << endl
 	  << "reuncorrected x: " << reuncorrectedX << " y: " << reuncorrectedY << endl;
+*/
 
-    uncorrectedX = correctedX;
-    uncorrectedY = correctedY;
+    //uncorrectedX = correctedX;
+    //uncorrectedY = correctedY;
   }
   
+/*
   cout << "final values" << endl
 	  << "    corrected  x: " << correctedX << "    y: " <<   correctedY << endl
 	  << "  uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl
 	  << "reuncorrected  x: " << reuncorrectedX << "  y: " << reuncorrectedY << endl;
-  */
+*/
 
   *pX = correctedX + cache->cx;
   *pY = correctedY + cache->cy;
 
+/*
 cout << "pX pY: " << *pX << " " << *pY << endl;
+*/
+
 //  float centralizedX = pX - cache->cx;
 //  float centralizedY = pY - cache->cy;
 //  pixelVector <<
@@ -9776,11 +9798,13 @@ void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEP
 
   // fill out thisCameraPose
   thisCameraPose = camera->handCameraOffset.applyAsRelativePoseTo(givenEEPose);
+/*
 cout << "cache: " << 
 givenEEPose << endl <<
 camera->handCameraOffset << endl <<
 thisCameraPose << endl <<
 endl;
+*/
 
 
   Eigen::Quaternionf quat(thisCameraPose.qw, thisCameraPose.qx, thisCameraPose.qy, thisCameraPose.qz);
