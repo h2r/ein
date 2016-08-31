@@ -3146,7 +3146,11 @@ CONFIG_GETTER_INT(CameraWhiteBalanceRed, ms->config.cameras[ms->config.focused_c
 CONFIG_GETTER_INT(CameraWhiteBalanceGreen, ms->config.cameras[ms->config.focused_camera]->cameraWhiteBalanceGreen)
 CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_camera]->cameraWhiteBalanceBlue)
 
+CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
+CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
 
+CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
+CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 
 CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
 CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
@@ -3167,6 +3171,17 @@ CONFIG_SETTER_DOUBLE(SetCameraR00, ms->config.cameras[ms->config.focused_camera]
 CONFIG_SETTER_DOUBLE(SetCameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
 CONFIG_SETTER_DOUBLE(SetCameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
 CONFIG_SETTER_DOUBLE(SetCameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+
+
+CONFIG_GETTER_INT(CameraCenterX, ms->config.cameras[ms->config.focused_camera]->centerX)
+CONFIG_GETTER_INT(CameraCenterY, ms->config.cameras[ms->config.focused_camera]->centerY)
+CONFIG_SETTER_INT(SetCameraCenterX, ms->config.cameras[ms->config.focused_camera]->centerX)
+CONFIG_SETTER_INT(SetCameraCenterY, ms->config.cameras[ms->config.focused_camera]->centerY)
+
+CONFIG_GETTER_INT(CameraCropUpperLeftCornerX, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.px)
+CONFIG_GETTER_INT(CameraCropUpperLeftCornerY, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.py)
+CONFIG_SETTER_INT(SetCameraCropUpperLeftCornerX, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.px)
+CONFIG_SETTER_INT(SetCameraCropUpperLeftCornerY, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.py)
 
 CONFIG_GETTER_INT(SceneCellCountThreshold, ms->config.sceneCellCountThreshold)
 CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold)

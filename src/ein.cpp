@@ -9633,55 +9633,9 @@ void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, doub
   Eigen::Vector4f pixelVector;
   float centralizedX = pX - cache->cx;
   float centralizedY = pY - cache->cy;
-  pixelVector <<
-    z * centralizedX * (1.0 + cache->kappa_x * centralizedX * centralizedX),
-    z * centralizedY * (1.0 + cache->kappa_y * centralizedY * centralizedY),
-    z,
-    1.0;
 
-  Eigen::Vector4f globalVector;
-  globalVector = cache->p2gComposedZNotBuilt * pixelVector;
-
-  *gX = globalVector(0);
-  *gY = globalVector(1);
-}
-
-void pixelToGlobalFullFromCacheZBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
-  Eigen::Vector4f pixelVector;
-  float centralizedX = pX - cache->cx;
-  float centralizedY = pY - cache->cy;
-  pixelVector <<
-     centralizedX * (1.0 + cache->kappa_x * centralizedX * centralizedX),
-     centralizedY * (1.0 + cache->kappa_y * centralizedY * centralizedY),
-    1.0,
-    1.0;
-
-  Eigen::Vector4f globalVector;
-  globalVector = cache->p2gComposedZBuilt * pixelVector;
-
-  *gX = globalVector(0);
-  *gY = globalVector(1);
-
-//cout << "pX pY gX gY: " << pX << " " << pY << " " << *gX << " " << *gY << endl;
-}
-
-void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache) {
-  Eigen::Vector4f globalVector;
-  globalVector <<
-    gX,
-    gY,
-    gZ,
-    1.0 ;
-
-  Eigen::Vector4f pixelVector;
-  pixelVector = cache->g2pComposedZNotBuilt * globalVector;
-
-  // divide by z
-  // 
-  double uncorrectedX = pixelVector(0) / gZ;
-  double uncorrectedY = pixelVector(1) / gZ;
-  double uncorrectedX0 = uncorrectedX;
-  double uncorrectedY0 = uncorrectedY;
+  double uncorrectedX = centralizedX;
+  double uncorrectedY = centralizedY;
 
   double correctedX = uncorrectedX;
   double correctedY = uncorrectedY;
@@ -9711,27 +9665,31 @@ endl;
   // rapid for values of kappa close to what we are likely to encounter and
   // lenses with larger values will likely require more firepower to
   // approximate accurately.
-  int p_g2p_cubic_max = 5;
+  int p_g2p_cubic_max = 3;
+  double skx = sqrt(cache->kappa_x);
+  double sky = sqrt(cache->kappa_y);
   for (int i = 0; i < p_g2p_cubic_max; i++) {
-    double skx = sqrt(cache->kappa_x);
-    //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
-    //double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
-    double sub_term_x = (1.0/skx + skx * correctedX * correctedX);
-    double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
-    //double lambdaX = -cache->kappa_x;
 
-    double sky = sqrt(cache->kappa_y);
-    //double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
-    //double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
-    double sub_term_y = (1.0/sky + sky * correctedY * correctedY);
-    double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
-    //double lambdaY = -cache->kappa_y;
+    if (cache->kappa_x != 0.0) {
+      //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
+      //double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+      double sub_term_x = (1.0/skx + skx * correctedX * correctedX);
+      double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+      //double lambdaX = -cache->kappa_x;
+      correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
+    }
 
-    correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
-    correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
+    if (cache->kappa_y != 0.0) {
+      //double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
+      //double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+      double sub_term_y = (1.0/sky + sky * correctedY * correctedY);
+      double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+      //double lambdaY = -cache->kappa_y;
+      correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
+    }
 
-    reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
-    reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
+    //reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
+    //reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
 
 /*
     cout << "iteration " << i << endl 
@@ -9750,6 +9708,136 @@ endl;
 	  << "  uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl
 	  << "reuncorrected  x: " << reuncorrectedX << "  y: " << reuncorrectedY << endl;
 */
+
+
+  pixelVector <<
+     correctedX,
+     correctedY,
+    1.0,
+    1.0;
+
+  Eigen::Vector4f globalVector;
+  globalVector = cache->p2gComposedZNotBuilt * pixelVector;
+
+  *gX = globalVector(0);
+  *gY = globalVector(1);
+}
+
+void pixelToGlobalFullFromCacheZBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+  Eigen::Vector4f pixelVector;
+  float centralizedX = pX - cache->cx;
+  float centralizedY = pY - cache->cy;
+
+  double uncorrectedX = centralizedX;
+  double uncorrectedY = centralizedY;
+
+  double correctedX = uncorrectedX;
+  double correctedY = uncorrectedY;
+
+  double reuncorrectedX = uncorrectedX;
+  double reuncorrectedY = uncorrectedY;
+
+/*
+cout << "gX gY gZ uncX uncY: " << gX << " " << gY << " " << gZ << " " << uncorrectedX << " " << uncorrectedY << endl;
+cout << cache->apInv << endl << cache->g2pComposedZNotBuilt << endl << "pV: " << endl << pixelVector << endl << "gV: " << endl << globalVector << endl;
+cout << "cx cy: " << cache->cx << " " << cache->cy << endl;
+
+cout <<
+cache->ccpRot << endl <<
+cache->ccpRotInv << endl <<
+cache->ccpTrans << endl <<
+cache->ccpTransInv << endl <<
+endl;
+*/
+  
+  // the point of this procedure is to find a distortion lambda which undoes
+  // kappa. This is impossible in principle and so lambda becomes both a
+  // function of x, the undistorted (and sought) point, and y, the known
+  // distorted point. Fortunately we can substitute our best approximation of x
+  // (in the beginning, y) to obtain an approximate lambda to obtain an
+  // approximate x which can be fed back into the formula.  convergence is
+  // rapid for values of kappa close to what we are likely to encounter and
+  // lenses with larger values will likely require more firepower to
+  // approximate accurately.
+  int p_g2p_cubic_max = 3;
+  double skx = sqrt(cache->kappa_x);
+  double sky = sqrt(cache->kappa_y);
+  for (int i = 0; i < p_g2p_cubic_max; i++) {
+
+    if (cache->kappa_x != 0.0) {
+      //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
+      //double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+      double sub_term_x = (1.0/skx + skx * correctedX * correctedX);
+      double lambdaX = -1.0 / ( sub_term_x * sub_term_x + uncorrectedX * uncorrectedX );
+      //double lambdaX = -cache->kappa_x;
+      correctedX = uncorrectedX * ( 1.0 + lambdaX * uncorrectedX * uncorrectedX);
+    }
+
+    if (cache->kappa_y != 0.0) {
+      //double sub_term_y = (1.0/sky + sky * uncorrectedY * uncorrectedY);
+      //double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+      double sub_term_y = (1.0/sky + sky * correctedY * correctedY);
+      double lambdaY = -1.0 / ( sub_term_y * sub_term_y + uncorrectedY * uncorrectedY );
+      //double lambdaY = -cache->kappa_y;
+      correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
+    }
+
+
+    //reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
+    //reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
+
+/*
+    cout << "iteration " << i << endl 
+	  << "    corrected x: " << correctedX << "   y: " <<   correctedY << endl
+	  << "  uncorrected x: " << uncorrectedX << " y: " << uncorrectedY << endl
+	  << "reuncorrected x: " << reuncorrectedX << " y: " << reuncorrectedY << endl;
+*/
+
+    //uncorrectedX = correctedX;
+    //uncorrectedY = correctedY;
+  }
+  
+/*
+  cout << "final values" << endl
+	  << "    corrected  x: " << correctedX << "    y: " <<   correctedY << endl
+	  << "  uncorrected x0: " << uncorrectedX0 << " y0: " << uncorrectedY0 << endl
+	  << "reuncorrected  x: " << reuncorrectedX << "  y: " << reuncorrectedY << endl;
+*/
+
+
+  pixelVector <<
+     correctedX,
+     correctedY,
+    1.0,
+    1.0;
+
+  Eigen::Vector4f globalVector;
+  globalVector = cache->p2gComposedZBuilt * pixelVector;
+
+  *gX = globalVector(0);
+  *gY = globalVector(1);
+
+//cout << "pX pY gX gY: " << pX << " " << pY << " " << *gX << " " << *gY << endl;
+}
+
+void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache) {
+  Eigen::Vector4f globalVector;
+  globalVector <<
+    gX,
+    gY,
+    gZ,
+    1.0 ;
+
+  Eigen::Vector4f pixelVector;
+  pixelVector = cache->g2pComposedZNotBuilt * globalVector;
+
+  // divide by z
+  // 
+  double uncorrectedX = pixelVector(0) / gZ;
+  double uncorrectedY = pixelVector(1) / gZ;
+
+  double correctedX = uncorrectedX * (1.0 + cache->kappa_x * uncorrectedX * uncorrectedX);
+  double correctedY = uncorrectedY * (1.0 + cache->kappa_y * uncorrectedY * uncorrectedY);
 
   *pX = correctedX + cache->cx;
   *pY = correctedY + cache->cy;

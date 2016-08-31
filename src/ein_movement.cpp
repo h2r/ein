@@ -358,15 +358,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(CurrentPose)
 
-CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
-CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
-
-CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
-CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
-
-
-
-
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
 virtual void execute(MachineState * ms) {

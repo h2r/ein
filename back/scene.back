@@ -1463,7 +1463,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 0.00 "tableReconstructWithZTotalZDefault" store
 tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 0.01 "tableReconstructWithZDeltaZ" store
-500000 "tableReconstructStreamTakeSceneSamples" store
+200000 "tableReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -2918,7 +2918,6 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableReconstructMaxLikelihoodFromStackCore 
   0.3898 0.9999999 sceneTrimDepthWithDiscrepancy sceneRenderZ
 ) "tableReconstructMaxSegmentedByMarginalsFromStack" store
-
 
 
 

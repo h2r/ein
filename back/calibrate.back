@@ -539,3 +539,122 @@
 "When you are confident with calibrateRGBCameraIntrinsics, this is a good all-in-one." 
 "calibrateDeluxe" define
 
+
+
+
+
+
+(
+  0.0022 "magCalBase" store
+  28 "magCalSteps" store
+  0.00005 "magCalDelta" store
+
+  magCalBase setCameraMuX 
+  magCalBase setCameraMuY
+
+  1 changeToHeight
+  magCalBase cameraSetIdxMagX 
+
+  0 cameraSetCalibrationMode
+
+  100 "tableReconstructStreamTakeSceneSamples" store
+  1 "tableChrStartHeight" store
+  1 "tableChrEndHeight" store
+  0.0 "tableChrExtraZ" store
+
+  ( cameraMuX ) "magCalGetter" store
+  ( setCameraMuX ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+  ( cameraMuY ) "magCalGetter" store
+  ( setCameraMuY ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+) 
+"Find magnification for new calibration."
+"calibrateFullMus" define
+
+(
+  0.0000008 "magCalBase" store
+  16 "magCalSteps" store
+  0.0000001 "magCalDelta" store
+
+  magCalBase setCameraKappaX 
+  magCalBase setCameraKappaY
+
+  1 changeToHeight
+  magCalBase cameraSetIdxMagX 
+
+  0 cameraSetCalibrationMode
+
+  100 "tableReconstructStreamTakeSceneSamples" store
+  1 "tableChrStartHeight" store
+  1 "tableChrEndHeight" store
+  0.0 "tableChrExtraZ" store
+
+/*
+  ( cameraKappaX ) "magCalGetter" store
+  ( setCameraKappaX ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+*/
+
+  ( cameraKappaY ) "magCalGetter" store
+  ( setCameraKappaY ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+) 
+"Find distortion for new calibration."
+"calibrateFullKappas" define
+
+(
+  /*
+
+  make a map with the first camera
+  set block filter size appropriately
+  * add a detection in the middle of the workspace
+	* push pose of cblock in this, the first map 
+  create a temporary calibrator block (cblock) class
+  grab the most certainly discrepant cblock region as the model
+  switch to the second camera
+  make a (the) second map and localize the cblock
+	* push pose of cblock in second map
+      obtain relative transformation between the two cblock poses
+      push the second camera offset
+    apply the relative transformation to the pushed camera offset
+  set the camera offset to the transformed value
+
+  */
+    
+  
+
+) 
+"Find the offset of the next (second) camera from the current (first) camera and use this to set the offset of the next camera." 
+"calibrateNextCameraOffset" define
+
+(
+  0 setCameraR00 1 setCameraR01 -1 setCameraR10 0 setCameraR11
+  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0024 setCameraMuX 0.00245 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  640 setCameraCenterX
+  400 setCameraCenterY
+  320 setCameraCropUpperLeftCornerX 
+  200 setCameraCropUpperLeftCornerY 
+) "cameraWristConfig" store
+
+(
+  1 setCameraR00 0 setCameraR01 0 setCameraR10 1 setCameraR11
+  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0019 setCameraMuX 0.00195 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  480 setCameraCenterX
+  270 setCameraCenterY
+  0 setCameraCropUpperLeftCornerX 
+  0 setCameraCropUpperLeftCornerY 
+/*
+960
+540
+*/
+) "cameraK2Config" store
+
+
