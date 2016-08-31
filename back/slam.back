@@ -35,7 +35,6 @@
 (
   goHome
   0.05 setGridSize
-  ( xUp ) 4 replicateWord
   tableTakeScene
   initSlam
   "log.txt" fileOpenOutput  "outputFile" store
@@ -61,6 +60,6 @@
     (
       xUp
     ) 9 replicateWord
-  ) 5 replicateWord
+  ) 3 replicateWord
   outputFile fileClose
 ) "fullTestSlam" store

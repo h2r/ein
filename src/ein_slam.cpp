@@ -29,7 +29,7 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
   double rot_max_rot = 0;
   Point rot_max_loc;
 
-  double width = min(observed.cols / 2, observed.rows / 2);
+  /* double width = min(observed.cols / 2, observed.rows / 2); */
 
   /* Rect rect(width / 2, width / 2, width, width); */
   Point2f reconstructed_center(reconstructed.cols/2.0F, reconstructed.rows/2.0F);
@@ -62,10 +62,10 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
   }
 
   vector<double> to_return(5);
-  to_return.insert(to_return.begin(), rot_max_loc.x - width);
-  to_return.insert(to_return.begin() + 1, rot_max_loc.x + width);
-  to_return.insert(to_return.begin() + 2, rot_max_loc.y - width);
-  to_return.insert(to_return.begin() + 3, rot_max_loc.y + width);
+  to_return.insert(to_return.begin(), rot_max_loc.x - observed.cols / 2);
+  to_return.insert(to_return.begin() + 1, rot_max_loc.x + observed.cols / 2);
+  to_return.insert(to_return.begin() + 2, rot_max_loc.y - observed.rows / 2);
+  to_return.insert(to_return.begin() + 3, rot_max_loc.y + observed.rows / 2);
   to_return.insert(to_return.begin() + 4, rot_max_rot);
 
   return to_return;
@@ -74,8 +74,11 @@ vector<double> estimate_pos(Mat observed, Mat reconstructed) {
 namespace ein_words {
   WORD(initSlam)
     virtual void execute(MachineState * ms) {
+      Rect crop = Rect(300, 250, 400, 400);
       Mat observed;
       ms->config.scene->observed_map.get()->rgbMuToMat(observed);
+      observed = observed(crop);
+      copyMakeBorder(observed, observed, 300, 300, 300, 300, BORDER_CONSTANT, Scalar(0));
       cvtColor(observed, ms->config.reconstructed, CV_YCrCb2BGR);
       imwrite("init.jpg", ms->config.reconstructed);
       /* waitKey(0); */
@@ -94,8 +97,6 @@ namespace ein_words {
 
     vector<double> estimated = estimate_pos(observed(crop), background);
 
-    cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
-
     /* estimated[0] += crop.x; */
     /* estimated[1] += crop.x; */
     /* estimated[2] += crop.y; */
@@ -110,16 +111,15 @@ namespace ein_words {
     /*   estimated[i] += 300; */
     /* } */
 
-    double x_pos = (estimated[0] + estimated[1]) / 2 - 500;
-    double y_pos = (estimated[2] + estimated[3]) / 2 - 500;
+    double x_pos = (estimated[0] + estimated[1]) / 2;
+    double y_pos = (estimated[2] + estimated[3]) / 2;
 
     double x_global = 0.0;
     double y_global = 0.0;
 
-    ms->config.scene->observed_map.get()->cellToMeters(x_pos + 500, y_pos + 500, &x_global, &y_global);
+    ms->config.scene->observed_map.get()->cellToMeters(x_pos - ((background.cols - 1000) / 2), y_pos - ((background.rows - 1000) / 2), &x_global, &y_global);
 
     cout << x_pos << ", " << y_pos << ", " << estimated[4] << endl;
-    cout << x_global << ", " << y_global << ", " << estimated[4] << endl;
 
     Point2f center(background.cols/2.0F, background.rows/2.0F);
     Mat rot_mat = getRotationMatrix2D(center, estimated[4], 1.0);
@@ -130,9 +130,15 @@ namespace ein_words {
     /* imshow("background", background(crop)); */
     /* waitKey(0); */
 
-    cout << estimated[0] << ", " << estimated[1] << ", " << estimated[2] << ", " << estimated[3] << ", " << estimated[4] << endl;
+    /* observed(crop).copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1])); */
 
-    observed(crop).copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1]));
+    Rect place_to_copy = Rect(estimated[0], estimated[2], estimated[1] - estimated[0], estimated[3] - estimated[2]);
+
+    Mat blended;
+    double alpha = 0.5;
+    addWeighted(rot_reconstructed(place_to_copy), alpha, observed(crop), 1 - alpha, 0.0, blended);
+
+    blended.copyTo(rot_reconstructed.rowRange(estimated[2], estimated[3]).colRange(estimated[0], estimated[1]));
 
     Mat re_rot_mat = getRotationMatrix2D(center, -estimated[4], 1.0);
     warpAffine(rot_reconstructed, background, re_rot_mat, rot_reconstructed.size());
@@ -146,8 +152,8 @@ namespace ein_words {
     bool needs_expansion = false;
     int border = 0;
 
-    if (y_pos < 100 | x_pos < 100 | y_pos > rot_reconstructed.cols - 100 | x_pos > rot_reconstructed.rows - 100) {
-      border = 100;
+    if (y_pos < 300 | x_pos < 300 | y_pos > rot_reconstructed.cols - 300 | x_pos > rot_reconstructed.rows - 300) {
+      border = 300;
       needs_expansion = true;
     }
 
@@ -155,7 +161,7 @@ namespace ein_words {
       copyMakeBorder(background, ms->config.reconstructed, border, border, border, border, BORDER_CONSTANT, Scalar(0));
     }
 
-    ms->pushWord("\", " + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + "\n\"");
+    ms->pushWord("\", " + std::to_string(x_global) + ", " + std::to_string(y_global) + ", " + std::to_string(x_pos) + ", " + std::to_string(y_pos) + ", " + std::to_string(estimated[4]) + ", " + std::to_string((background.cols - 1000) / 2) + ", " + std::to_string((background.rows - 1000) / 2) + "\n\"");
   }
   END_WORD
   REGISTER_WORD(runSlam)
