@@ -4491,34 +4491,6 @@ END_WORD
 REGISTER_WORD(SceneZeroBox)
 
 
-WORD(EePoseGetPoseRelativeTo)
-virtual void execute(MachineState * ms) {
-/* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
-  eePose to_apply;
-  GET_ARG(ms, EePoseWord, to_apply);
-
-  eePose base_pose;
-  GET_ARG(ms, EePoseWord, base_pose);
-
-  ms->pushWord(make_shared<EePoseWord>(base_pose.getPoseRelativeTo(to_apply)));
-}
-END_WORD
-REGISTER_WORD(EePoseGetPoseRelativeTo)
-
-WORD(EePoseApplyRelativePoseTo)
-virtual void execute(MachineState * ms) {
-/* call with "to_apply base_pose EePoseApplyRelativePoseTo" */
-  eePose base_pose;
-  GET_ARG(ms, EePoseWord, base_pose);
-
-  eePose to_apply;
-  GET_ARG(ms, EePoseWord, to_apply);
-
-  ms->pushWord(make_shared<EePoseWord>(to_apply.applyAsRelativePoseTo(base_pose)));
-}
-END_WORD
-REGISTER_WORD(EePoseApplyRelativePoseTo)
-
 CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
 
 WORD(SceneSetDiscrepancyModeDot)

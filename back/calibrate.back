@@ -625,8 +625,41 @@
 
   */
     
-  
+  cameraWristConfig
+  tableReconstructStreamTakeScene
 
+  0.010 "tableBlockMaxGraspThickness" store
+  0.0 "tableBlockGripperThrow" store
+  0.010 "tableBlockTargetContactWidth" store
+  tableSwapToBlocks
+  
+  sceneClearPredictedObjects
+  0 0 0 sceneAddPredictedFocusedObject 
+    0 scenePushSceneObjectPose
+  "ccOffPredition1" store
+
+  0.01 "sceneGrabDiscrepantCropAsClassDefaultThresh" store
+  sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass
+
+  incrementCamera
+  cameraK2QHDConfig
+
+  0.0 sceneSetScoreThresh
+  10000000 sceneSetDiscrepancySearchDepth 
+
+  sceneClearPredictedObjects
+  scenePredictBestObject tableUpdateMaps
+    0 scenePushSceneObjectPose
+  "ccOffPredition2" store
+  tableReconstructStreamTakeScene
+
+    ccOffPredition1 ccOffPredition2 eePoseGetPoseRelativeTo
+  "ccOffRelativeTransform" store
+
+    handCameraOffset ccOffRelativeTransform eePoseApplyRelativePoseTo
+  "ccOffNewCameraPose" store
+
+  ccOffNewCameraPose setHandCameraOffset
 ) 
 "Find the offset of the next (second) camera from the current (first) camera and use this to set the offset of the next camera." 
 "calibrateNextCameraOffset" define
@@ -655,6 +688,21 @@
 960
 540
 */
-) "cameraK2Config" store
+) "cameraK2QHDConfig" store
+
+(
+  1 setCameraR00 0 setCameraR01 0 setCameraR10 1 setCameraR11
+  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0019 setCameraMuX 0.00195 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  250 setCameraCenterX
+  250 setCameraCenterY
+  0 setCameraCropUpperLeftCornerX 
+  0 setCameraCropUpperLeftCornerY 
+/*
+960
+540
+*/
+) "cameraK2IRConfig" store
 
 
