@@ -2595,6 +2595,33 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
+
+
+  // XXX
+  // right now we record the position of the hand and then switch current and
+  // true pose to refer to where the gripper actually is, which is a minor
+  // inconsistency
+  setRingPoseAtTime(ms, hand_pose.header.stamp, hand_pose.pose);
+  geometry_msgs::Pose thisPose;
+  int weHavePoseData = getRingPoseAtTime(ms, hand_pose.header.stamp, thisPose);
+
+  int cfClass = ms->config.focusedClass;
+  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
+    double thisNow = hand_pose.header.stamp.toSec();
+    eePose tempPose;
+    {
+      tempPose.px = hand_pose.pose.position.x;
+      tempPose.py = hand_pose.pose.position.y;
+      tempPose.pz = hand_pose.pose.position.z;
+      tempPose.qx = hand_pose.pose.orientation.x;
+      tempPose.qy = hand_pose.pose.orientation.y;
+      tempPose.qz = hand_pose.pose.orientation.z;
+      tempPose.qw = hand_pose.pose.orientation.w;
+    }
+    streamPoseAsClass(ms, tempPose, cfClass, thisNow); 
+  } 
+  // XXX 
+
   eePose handEEPose;
   {
     handEEPose.px = hand_pose.pose.position.x;
@@ -2692,6 +2719,8 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     ms->config.trueRangePose.qw = transformed_pose.pose.orientation.w;
   }
 
+// XXX TODO get a better convention for controlling gripper position, maybe
+// this should be done by grasp calculators
   ms->config.trueEEPose = eps.pose;
   {
     ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
@@ -2703,21 +2732,10 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
   }
   ms->config.handFromEndEffectorTransform = handEEPose.getPoseRelativeTo(ms->config.trueEEPoseEEPose);
+// XXX
 
 
-  //cout << "Setting true pose: " << ms->config.trueEEPoseEEPose << endl;
 
-  int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
-    double thisNow = eps.header.stamp.toSec();
-    streamPoseAsClass(ms, ms->config.trueEEPoseEEPose, cfClass, thisNow); 
-  } else {
-  } // do nothing
-
-
-  setRingPoseAtTime(ms, eps.header.stamp, eps.pose);
-  geometry_msgs::Pose thisPose;
-  int weHavePoseData = getRingPoseAtTime(ms, eps.header.stamp, thisPose);
 
   {
     double distance = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
@@ -9669,6 +9687,7 @@ endl;
   double skx = sqrt(cache->kappa_x);
   double sky = sqrt(cache->kappa_y);
   for (int i = 0; i < p_g2p_cubic_max; i++) {
+  // XXX sqrt can be removed... why is it here?
 
     if (cache->kappa_x != 0.0) {
       //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
@@ -9711,9 +9730,9 @@ endl;
 
 
   pixelVector <<
-     correctedX,
-     correctedY,
-    1.0,
+     z * correctedX,
+     z * correctedY,
+     z,
     1.0;
 
   Eigen::Vector4f globalVector;
@@ -9964,6 +9983,10 @@ endl;
     // construct the composed global to pixel matrix
     cache->g2pComposedZBuilt = g2pOriginZBuilt * cache->apInv * cache->ccpRotInv * cache->ccpTransInv;
   }
+}
+
+void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose cameraEEPose, eePose otherPlane, pixelToGlobalCache * cache) {
+
 }
 
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
@@ -14599,9 +14622,9 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
     ms->config.cameras.push_back(c);
     ms->config.focused_camera = 0;
   }
-  Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color", ms->config.left_or_right_arm + "_hand", "k2rgb_tf_link");
+  //Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color", ms->config.left_or_right_arm + "_hand", "k2rgb_tf_link");
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color", ms->config.left_or_right_arm + "_hand", "kinect2_link");
-  ms->config.cameras.push_back(k2rgb);
+  //ms->config.cameras.push_back(k2rgb);
 
   //Camera * k2ir = new Camera(ms, "left_kinect2_ir", "/kinect2/sd/image_ir", ms->config.left_or_right_arm + "_hand", "k2ir_tf_link");
   //ms->config.cameras.push_back(k2ir);

@@ -545,9 +545,13 @@
 
 
 (
-  0.0022 "magCalBase" store
-  28 "magCalSteps" store
-  0.00005 "magCalDelta" store
+
+  0.00025 "tableReconstructWithZGridMultiplier" store
+
+
+  0.002425 "magCalBase" store
+  32 "magCalSteps" store
+  0.00000625 "magCalDelta" store
 
   magCalBase setCameraMuX 
   magCalBase setCameraMuY
@@ -557,7 +561,9 @@
 
   0 cameraSetCalibrationMode
 
-  100 "tableReconstructStreamTakeSceneSamples" store
+  2000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructStreamTakeSceneSamples "tableSpiralStreamTakeSceneSamples" store
+
   1 "tableChrStartHeight" store
   1 "tableChrEndHeight" store
   0.0 "tableChrExtraZ" store
@@ -626,12 +632,11 @@
   */
     
   cameraWristConfig
-  tableReconstructStreamTakeScene
+/*
+  tableTakeScene
+*/
 
-  0.010 "tableBlockMaxGraspThickness" store
-  0.0 "tableBlockGripperThrow" store
-  0.010 "tableBlockTargetContactWidth" store
-  tableSwapToBlocks
+  0.10 "tableBlockMaxGraspThickness" store 0.0 "tableBlockGripperThrow" store 0.10 "tableBlockTargetContactWidth" store tableSwapToBlocks
   
   sceneClearPredictedObjects
   0 0 0 sceneAddPredictedFocusedObject 
@@ -641,6 +646,7 @@
   0.01 "sceneGrabDiscrepantCropAsClassDefaultThresh" store
   sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass
 
+/*
   incrementCamera
   cameraK2QHDConfig
 
@@ -651,7 +657,7 @@
   scenePredictBestObject tableUpdateMaps
     0 scenePushSceneObjectPose
   "ccOffPredition2" store
-  tableReconstructStreamTakeScene
+  tableTakeScene
 
     ccOffPredition1 ccOffPredition2 eePoseGetPoseRelativeTo
   "ccOffRelativeTransform" store
@@ -660,6 +666,7 @@
   "ccOffNewCameraPose" store
 
   ccOffNewCameraPose setHandCameraOffset
+*/
 ) 
 "Find the offset of the next (second) camera from the current (first) camera and use this to set the offset of the next camera." 
 "calibrateNextCameraOffset" define
@@ -704,5 +711,52 @@
 540
 */
 ) "cameraK2IRConfig" store
+
+(
+    -0.02 0.02 0.03515 0 0 0.7071 0.7071 createEEPose setHandEndEffectorOffset
+  cameraWristConfig
+) "gauntletCrystalConfig" store
+
+(
+  4.0 sceneSetBackgroundStdDevY
+  400.0 "calibrateFromZScale" store
+
+  bg "noGlassBase" + sceneLoadObservedMap
+  calibrateFromZScale sceneSetObservedRGBFromZ sceneRenderObservedMap
+
+  bg "noGlassBase" "scaled" + + sceneSaveObservedMap
+  bg "noGlassBase" "scaled" + + sceneLoadBackgroundMap
+
+  bg "yesGlassBase" + sceneLoadObservedMap
+  calibrateFromZScale sceneSetObservedRGBFromZ sceneRenderObservedMap
+
+  tableUpdateMaps
+
+) "calibrateFromZDiscrepancy" store
+
+(
+
+/* Take a scene, add some glass, take another scene, look at discrepant cells, average color, 
+store. Then use this to segment specular highlight, which is another channel for discrepancy and
+a means by which to infer 3D structure. */
+
+  "Make sure the background is clear of objects and unpause." print
+  pauseStackExecution
+
+  tableTakeSceneNoReconstruct
+  tableReconstructLightSlabWithoutZ
+  bg "calibrateLM_background" + sceneSaveObservedMap
+  bg "calibrateLM_background" + sceneLoadBackgroundMap
+  
+  "Add a sheet of transparent material and unpause." print
+  pauseStackExecution
+  tableTakeSceneNoReconstruct
+  tableReconstructLightSlabWithoutZ
+  bg "calibrateLM_background" + sceneSaveObservedMap
+
+  0.5 sceneSetLightModelFromDiscrepancy
+) 
+"learn a one color lighting model with the lens array."
+"calibrateSetLightingModel" define
 
 

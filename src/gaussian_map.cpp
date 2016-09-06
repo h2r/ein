@@ -119,8 +119,10 @@ void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & cha
 
 void _GaussianMapChannel::multS(double scalar) {
   counts *= scalar;
-  squaredcounts *= scalar;
+  //squaredcounts *= scalar;
+  squaredcounts *= scalar * scalar;
   mu *= scalar;
+  // not correct to scale variance...
   sigmasquared *= scalar;
   samples *= scalar;
 }  
@@ -4255,10 +4257,6 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneRenderZ)
 virtual void execute(MachineState * ms) {
-  Mat image;
-  ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
-  ms->config.discrepancyWindow->updateImage(image);
-
   Mat toShow;
   ms->config.scene->observed_map->zMuToMat(toShow);
 
@@ -4529,6 +4527,52 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetDiscrepancyDensityFromZ)
+
+WORD(SceneSetObservedRGBFromZ)
+virtual void execute(MachineState * ms) {
+  double viewScale = 1000.0;
+  GET_NUMERIC_ARG(ms, viewScale);
+
+  Mat toShow;
+  ms->config.scene->observed_map->zMuToMat(toShow);
+
+  double positiveMin = DBL_MAX;
+  double positiveMax = 0.0;
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
+	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
+      }
+    }
+  }
+  
+  cout << "sceneSetObservedFromZ, viewScale positiveMin positiveMax: " << viewScale << " " << positiveMin << " " << positiveMax << endl;
+
+  double p_zSetSamples = 100.0;
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	GaussianMapCell * toSet = (ms->config.scene->observed_map->refAtCell(x,y));
+
+	double val = (positiveMax - toShow.at<double>(x,y)) * viewScale;
+
+	toSet->red.counts = 128 * p_zSetSamples;
+	toSet->green.counts = 128 * p_zSetSamples;
+	toSet->blue.counts = val * p_zSetSamples;
+	toSet->red.squaredcounts = 128 * 128 * p_zSetSamples;
+	toSet->green.squaredcounts = 128 * 128 * p_zSetSamples;
+	toSet->blue.squaredcounts = val * val * p_zSetSamples;
+	toSet->red.samples = p_zSetSamples;
+	toSet->green.samples = p_zSetSamples;
+	toSet->blue.samples = p_zSetSamples;
+	toSet->recalculateMusAndSigmas(ms);
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetObservedRGBFromZ)
 
 
 WORD(SceneSetPredictedClassNameToFocusedClass)
@@ -7855,10 +7899,13 @@ void sceneMinIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin
 
 }
 
-void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin) {
+void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMap> toMin, Mat weights) {
 
 // XXX 
 // XXX  NOT DONE TODO
+// XXX need to divide by the total probability so that z is correctly scaled. now more certain regions are brighter in z
+// XXX partially addressed
+// XXX 
   int t_height = toMin->height;
   int t_width = toMin->width;
 
@@ -7920,7 +7967,9 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 	  //  actually the map is smoother and more consistent when the sample information is kept
 
 	  this_observed_sigma_squared = max(this_observed_sigma_squared, 1.0);
-	  toAdd.multS(rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI));
+	  double thisweight = rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI);
+	  weights.at<double>(x,y) += thisweight;
+	  toAdd.multS(thisweight);
 	  ms->config.gaussian_map_register->refAtCell(x,y)->addC(&toAdd);
 
 	  if ( ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples < 1.1 ) &&
@@ -7928,7 +7977,8 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 	    //ms->config.gaussian_map_register->refAtCell(x,y)->multS( 1.0 / ms->config.gaussian_map_register->refAtCell(x,y)->red.samples ); 
 	  } else {}
 
-	  ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
+	  // do this outside
+	  //ms->config.gaussian_map_register->refAtCell(x,y)->recalculateMusAndSigmas(ms);
       } else {
       }
     }
@@ -7992,6 +8042,31 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
+
+WORD(SceneSetLightModelFromDiscrepancy)
+virtual void execute(MachineState * ms) {
+  double thresh = 0.0;
+  GET_NUMERIC_ARG(ms, thresh);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+  lm->zero();
+
+  int t_height = ms->config.scene->observed_map->height;
+  int t_width = ms->config.scene->observed_map->width;
+  for (int y = 0; y < t_height; y++) {
+    for (int x = 0; x < t_width; x++) {
+      if (ms->config.scene->discrepancy_density.at<double>(x,y) > thresh) {
+	GaussianMapCell * mm = ms->config.scene->observed_map->refAtCell(x,y);
+	lm->newObservation( Vec3b(mm->blue.mu,mm->green.mu,mm->red.mu) );
+      } else {
+      }
+    }
+  }
+
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+}
+END_WORD
+REGISTER_WORD(SceneSetLightModelFromDiscrepancy)
 
 WORD(SceneSmoothSquaredCountsAndSamplesXY)
 virtual void execute(MachineState * ms) {
@@ -8104,9 +8179,54 @@ virtual void execute(MachineState * ms) {
 
   int tns = ms->config.depth_maps.size();
 
+  Mat totalMarginalWeight;
+  if (tns > 0) {
+    totalMarginalWeight = Mat(ms->config.depth_maps[0]->width, ms->config.depth_maps[0]->height, CV_64F);
+    //for (int y = 0; y < height; y++) 
+    //  for (int x = 0; x < width; x++) 
+    for (int y = 0; y < totalMarginalWeight.cols; y++) {
+      for (int x = 0; x < totalMarginalWeight.rows; x++) {
+	totalMarginalWeight.at<double>(x,y) = 0.0;
+      }
+    }
+  }
+
   for (int i = 0; i < tns; i++) {
     cout << "  marginalizing" << i << " with max " << tns << endl;
-    sceneMarginalizeIntoRegisterHelper(ms, ms->config.depth_maps[i]);
+    sceneMarginalizeIntoRegisterHelper(ms, ms->config.depth_maps[i], totalMarginalWeight);
+  }
+
+  double p_marginalize_scale = 100.0;
+  if (tns > 0) {
+    for (int y = 0; y < totalMarginalWeight.cols; y++) {
+      for (int x = 0; x < totalMarginalWeight.rows; x++) {
+
+	int numMapsPresented = 0;
+	for (int i = 0; i < tns; i++) {
+	  GaussianMapCell * toCount = (ms->config.depth_maps[i]->refAtCell(x,y));
+
+	  if ( toCount->red.samples > ms->config.sceneCellCountThreshold)  {
+	    numMapsPresented++;
+	  } else {
+	    break;
+	  }
+	}
+
+	GaussianMapCell * toScale = (ms->config.gaussian_map_register->refAtCell(x,y));
+	// trim the cells that were not present at all depths
+	if (numMapsPresented < tns) {
+	  toScale->zero();
+	  continue;
+	}
+	
+	double denom = 1.0;
+	if ( fabs(totalMarginalWeight.at<double>(x,y)) > 0.0 ) {
+	  denom = totalMarginalWeight.at<double>(x,y);
+	}
+	toScale->multS(p_marginalize_scale/denom);
+	toScale->recalculateMusAndSigmas(ms);
+      }
+    }
   }
 }
 END_WORD
@@ -8376,7 +8496,15 @@ virtual void execute(MachineState * ms) {
 	shared_ptr<Scene> this_scene = Scene::createFromFile(ms, thisFullFileName);
 	shared_ptr<GaussianMap> this_map = this_scene->observed_map;
 
-	sceneMarginalizeIntoRegisterHelper(ms, this_map);
+	Mat totalMarginalWeight;
+	totalMarginalWeight = Mat(this_map->width, this_map->height, CV_64F);
+	for (int y = 0; y < totalMarginalWeight.cols; y++) {
+	  for (int x = 0; x < totalMarginalWeight.rows; x++) {
+	    totalMarginalWeight.at<double>(x,y) = 0.0;
+	  }
+	}
+
+	sceneMarginalizeIntoRegisterHelper(ms, this_map, totalMarginalWeight);
       }
     }
   } else {

@@ -3180,6 +3180,9 @@ CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]
 CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 
+CONFIG_GETTER_POSE(HandEndEffectorOffset, ms->config.handEndEffectorOffset);
+CONFIG_SETTER_POSE(SetHandEndEffectorOffset, ms->config.handEndEffectorOffset);
+
 CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
 CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
 CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)

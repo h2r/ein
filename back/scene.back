@@ -40,14 +40,18 @@ bg sceneInitDefaultBackgroundMap
 0.1 "tableDefaultScoreThresh" store
 ( 
   sceneSetDiscrepancyModeNoisyOr
-
   tableDefaultScoreThresh sceneSetScoreThresh
-  "tableInit RUNNING" print
-  bg sceneLoadBackgroundMap 
-  5 sceneSetCellCountThreshold 
-  tableRegularizeBackground
-
+  50 sceneSetCellCountThreshold 
   sceneClearObservedMap sceneClearPredictedObjects 
+) "Initialize scene parameters, no background map reload." "tableInitNoBackground" define
+
+( 
+  "tableInit RUNNING" print
+
+  tableInitNoBackground
+
+  bg sceneLoadBackgroundMap 
+  tableRegularizeBackground
 ) "Initialize scene parameters." "tableInit" define
 
 0.5 "scenePredictedMapThreshDefault" store
@@ -57,10 +61,12 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 ) "tableUpdateMaps" store
 
 (
+  /* this is not consistent with tableReconstruct routines */
   sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tableUpdateMaps
 ) "tableShortTakeScene" store
 
 (
+  /* this is not consistent with tableReconstruct routines */
   sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 5 replicateWord tableUpdateMaps
 ) "tableLongTakeScene" store
 
@@ -757,11 +763,19 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableShortServoToFocusedSceneObject" store
 
 (
-  tableSpiralTakeScene tableServoToBestSceneObject
+  /*
+  tableSpiralTakeScene 
+  */
+  tableTakeScene
+  tableServoToBestSceneObject
 ) "tableSpiralServoToBestSceneObject" store
 
 (
-  tableSpiralTakeScene tableServoToFocusedSceneObject
+  /*
+  tableSpiralTakeScene 
+  */
+  tableTakeScene
+  tableServoToFocusedSceneObject
 ) "tableSpiralServoToFocusedSceneObject" store
 
 /* internal */
@@ -941,6 +955,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 /*  ( tableRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
 
   sceneClearObservedMap sceneClearPredictedObjects 
+/* XXX can this save go? */
   bg sceneSaveBackgroundMap
 
   tableUpdateSpiral
@@ -1232,6 +1247,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
 
 (
+  /* entering tableMapFocusedClass */
   ( tableSpiralServoToFocusedSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord
 
   0 sceneMapSceneObject
@@ -1243,9 +1259,6 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
 (
   /* entering tableMapBestClass */
-
-  /* ( tableShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord */
-
    ( tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 1 replicateWord 
 
   0 sceneMapSceneObject
@@ -1425,8 +1438,10 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   -0.16 "lensArrayGap" store
 */
 
-  32.00 "lensArrayStrength" store
+  16.00 "lensArrayStrength" store
   -0.32 "lensArrayGap" store
+
+  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
 
 ) "tableArrayAutoFocus" store
 
@@ -1460,10 +1475,10 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 */
 
 0.3883 "tableReconstructWithZTopZ" store 
-0.00 "tableReconstructWithZTotalZDefault" store
+0.08 "tableReconstructWithZTotalZDefault" store
 tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
-0.01 "tableReconstructWithZDeltaZ" store
-200000 "tableReconstructStreamTakeSceneSamples" store
+0.08 "tableReconstructWithZDeltaZ" store
+1000 "tableReconstructStreamTakeSceneSamples" store
 
 (
 
@@ -1476,11 +1491,11 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
   151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
-  51 sceneSetAngularApertureRows 51 sceneSetAngularApertureCols
 
   85 sceneSetAngularApertureRows 85 sceneSetAngularApertureCols
   0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
-  */
+  151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+ */
 
 
       streamPushImageStreamSize 
@@ -1488,8 +1503,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     min
   "tableRSTSSMax" store
 
-
-  0.001 "tableReconstructWithZGridMultiplier" store
+  "XXX: " tableReconstructStreamTakeSceneSamples + print
 
   tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
   /* sceneInitRegisterZero */
@@ -1526,7 +1540,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 	" " 
       + + + + + print
 
+    /*
     tableReconstructWithZThisZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    */
+
+    tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
@@ -1585,9 +1604,6 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     scenePushOntoDepthStack
 
 
-/*
-    sceneMinIntoRegister
-*/
 
     tableReconstructWithZThisZ tableReconstructWithZDeltaZ - "tableReconstructWithZThisZ" store
   ) while
@@ -1595,10 +1611,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
-/*
-  sceneMarginalizeDepthStackIntoRegister
-*/
   sceneMinDepthStackIntoRegister  sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
+
+  tableReconstructMarginalsFromStack
+  400.0 sceneSetObservedRGBFromZ sceneRenderObservedMap
 ) "tableReconstructWithZ" store
 
 
@@ -1653,9 +1669,102 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 
 
-*/
 
     lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+
+    ( 
+      incrementImageStreamBufferNoLoadNoKick 
+    ) tableSpiralStreamTakeSceneStride replicateWord 
+*/
+
+    /*
+    endStackCollapseNoop 
+    */
+  ) tableRSTSSMax replicateWord
+
+
+/*
+*/
+    tableSpiralStreamTakeSceneStride 
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
+
+  /* 
+    tableSpiralStreamTakeSceneStride 
+    viewSynthApertureWidth
+    viewSynthAperturePlane
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll 
+  */
+
+  /* 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthBeamAll
+  */
+
+  sceneRecalculateObservedMusAndSigmas
+  sceneRenderObservedMap
+  sceneRenderZ 
+
+  sceneStoreObservedInRegister
+) "tableReconstructWithoutZ" store
+
+(
+  tableArrayAutoFocus
+
+      streamPushImageStreamSize 
+      tableReconstructStreamTakeSceneSamples  
+    min
+  "tableRSTSSMax" store
+
+  /* sceneInitRegisterZero */
+  sceneInitRegisterMax 
+
+  /* find the right stride */
+      streamPushImageStreamSize tableRSTSSMax divide 
+    ceil
+  "tableSpiralStreamTakeSceneStride" store
+
+  /* don't try to use more images than you have */
+      streamPushImageStreamSize tableSpiralStreamTakeSceneStride divide 
+    floor
+  "tableRSTSSMax" store
+  
+  streamPushImageStreamSize print
+  tableRSTSSMax print
+  tableSpiralStreamTakeSceneStride print
+
+  tableReconstructWithZTopZ "tableReconstructWithZThisZ" store
+  tableReconstructWithZTopZ "tableReconstructWithZBottomZ" store
+
+      tableReconstructWithZBottomZ 
+    " " 
+    tableReconstructWithZThisZ	
+    " " 
+    tableReconstructWithZTopZ 
+    " " 
+  + + + + + print
+
+/*
+  tableReconstructWithZThisZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+*/
+
+  sceneClearObservedMap
+  rewindImageStreamBufferNLNK 
+
+  ( 
+/*
+    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+
+
+    phasedArrayGain phasedArrayPhase phasedArrayWavelength phasedArrayGap tableReconstructArrayZ sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray
+      tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+
+    lensArrayStrengthX lensArraySpacingX lensArrayPhaseX lensArrayStrengthY lensArraySpacingY lensArrayPhaseY lensArrayGap tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray
+
+*/
+
+    lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+
 
     ( 
       incrementImageStreamBufferNoLoadNoKick 
@@ -1690,7 +1799,150 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   sceneRenderZ 
 
   sceneStoreObservedInRegister
-) "tableReconstructWithoutZ" store
+) "tableReconstructLightSlabWithoutZ" store
+
+(
+  tableArrayAutoFocus
+
+  /*
+  171 sceneSetAngularBaffleRows 171 sceneSetAngularBaffleCols
+
+  100 sceneSetAngularApertureRows 100 sceneSetAngularApertureCols
+  0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
+
+  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
+  151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+
+  85 sceneSetAngularApertureRows 85 sceneSetAngularApertureCols
+  0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
+  151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+ */
+
+
+      streamPushImageStreamSize 
+      tableReconstructStreamTakeSceneSamples  
+    min
+  "tableRSTSSMax" store
+
+  "XXX: " tableReconstructStreamTakeSceneSamples + print
+
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  /* sceneInitRegisterZero */
+  sceneInitRegisterMax 
+
+  /* find the right stride */
+      streamPushImageStreamSize tableRSTSSMax divide 
+    ceil
+  "tableSpiralStreamTakeSceneStride" store
+
+  /* don't try to use more images than you have */
+      streamPushImageStreamSize tableSpiralStreamTakeSceneStride divide 
+    floor
+  "tableRSTSSMax" store
+  
+  streamPushImageStreamSize print
+  tableRSTSSMax print
+  tableSpiralStreamTakeSceneStride print
+
+  tableReconstructWithZTopZ "tableReconstructWithZThisZ" store
+  tableReconstructWithZTopZ tableReconstructWithZTotalZ - "tableReconstructWithZBottomZ" store
+
+  sceneClearDepthStack
+
+  ( tableReconstructWithZThisZ tableReconstructWithZBottomZ = 
+    tableReconstructWithZThisZ tableReconstructWithZBottomZ > or ) 
+  (
+  
+	  tableReconstructWithZBottomZ 
+	" " 
+	tableReconstructWithZThisZ	
+	" " 
+	tableReconstructWithZTopZ 
+	" " 
+      + + + + + print
+
+    /*
+    tableReconstructWithZThisZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    */
+    tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+
+    sceneClearObservedMap
+    rewindImageStreamBufferNLNK 
+
+
+/*
+      sceneRecalculateObservedMusAndSigmas
+      sceneRenderObservedMap
+*/
+
+    ( 
+      /*
+      tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalc 
+      */
+
+      lensArrayGap lensArrayStrength lensArraySize tableReconstructWithZThisZ sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray
+
+      ( 
+	incrementImageStreamBufferNoLoadNoKick 
+      ) tableSpiralStreamTakeSceneStride replicateWord 
+
+    ) tableRSTSSMax replicateWord
+
+    
+    /*
+      tableSpiralStreamTakeSceneStride 
+      tableReconstructWithZThisZ 
+    sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
+    */
+
+    sceneRecalculateObservedMusAndSigmas
+    sceneRenderObservedMap
+  
+  
+/*
+    pauseStackExecution
+    sceneSmoothSquaredCountsAndSamplesXY
+    0.1 sceneTrimDepthWithDiscrepancy
+*/
+
+/*
+      "zFigure_" tableReconstructWithZThisZ +
+    sceneSaveScene
+
+      "high_zoom_figure_" tableReconstructWithZThisZ + 
+    sceneSaveScene
+
+      "slfg_giraffe_back_right_" tableReconstructWithZThisZ + 
+    sceneSaveScene
+
+      "/home/oberlin/dev/catkin_ws_ursula/src/ein/default/objects/aaaRSSRoomSceneHiRes/depthvideo/frame_" tableReconstructWithZThisZ ".png" + +
+    sceneSaveObservedMapImage
+*/
+
+
+
+/*
+*/
+    scenePushOntoDepthStack
+
+
+/*
+    sceneMinIntoRegister
+*/
+
+    tableReconstructWithZThisZ tableReconstructWithZDeltaZ - "tableReconstructWithZThisZ" store
+  ) while
+
+
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+
+/*
+  sceneMarginalizeDepthStackIntoRegister
+*/
+  sceneMinDepthStackIntoRegister  sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
+
+  tableReconstructMarginalsFromStack
+) "tableReconstructLightSlabWithZ" store
 
 (
   tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
@@ -1743,41 +1995,14 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   quarterImpulse
   waitUntilAtCurrentPosition
-
-  /*
-  0.001 setW1GoThresh
-  0.020 "tableSpiralGridSize" store
-  */
   0.01 setW1GoThresh
-  /*
-  0.0325 "tableSpiralGridSize" store
-  */
-
-
-
-
-
-
-  /* 
-  10 "tableReconstructStreamTakeSceneSamples" store
-  playWorkspace moveEeToPoseWord 
-
-  0.04 "tableSpiralMoveSpeed" store
-  12 "tableUpdateSpiralN" store
-  currentPose "tableUpdateSpiralPos" store
-
-  24 "tableUpdateSpiralN" store
-  currentPose "tableUpdateSpiralPos" store
-  0.015 "tableSpiralMoveSpeed" store
-  */
-
 
     0.01625 
-    1.0 divide
   /* XXX no commit */
+    1.0 divide
   "tableSpiralGridSize" store
 
-  0.05 "tableSpiralMoveSpeed" store
+  0.04 "tableSpiralMoveSpeed" store
 
   14 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
@@ -1804,16 +2029,16 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   quarterImpulse
   tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
+) "tableTakeSceneNoReconstruct" store
 
+(
+  tableTakeSceneNoReconstruct
 
   /* integrate results */
   /* this actually needs to happen after movement so position is still correct for FIXATION calibrators */
-  /*
-  tableUpdateSpiralCoreIntegrate
-  */
+
   tableReconstructFromStream
   tableUpdateMaps
-
 ) "tableTakeScene" store
 
 (
@@ -1888,7 +2113,11 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   */
 ) "tableReconstructPhrases" store
 
-0.01 "tableDefaultMapGridFactor" store
+
+/*
+0.00025 "tableReconstructWithZGridMultiplier" store
+*/
+0.00075 "tableReconstructWithZGridMultiplier" store
 (
 	currentPose
       eePosePZ
@@ -1896,7 +2125,13 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     +
   "tableReconstructWithZTopZ" store 
 
-  tableReconstructWithZTopZ 0.388 divide tableDefaultMapGridFactor times  "slfgRebaseCellWidth" store slfgRebaseTable
+/*
+  0.01 "tableDefaultMapGridFactor" store
+  tableDefaultMapGridFactor "tableMapGridFactor" store
+  tableReconstructWithZTopZ 0.388 divide tableMapGridFactor times  "slfgRebaseCellWidth" store slfgRebaseTable
+  "USE tableReconstructWithZGridMultiplier" instead 
+*/
+
   tableReconstructWithZ 
 
   /* 
@@ -2192,6 +2427,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   slfgRebaseCellWidth currentPose sceneInitFromEePoseScale 
   tableInit
 ) "slfgRebase" store
+(
+  slfgRebaseCellWidth currentPose sceneInitFromEePoseScale 
+  tableInitNoBackground
+) "slfgRebaseNoBackground" store
 
 ( 
     slfgRebaseCellWidth 
@@ -2383,15 +2622,14 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableUpdateMagicEyeCoreNoClean" store
 
 (
-  /* turn streaming on, no disk streaming */ 
+  tableTakeScene
+  /*
   shutdownToSensorsAndMovement
   disableDiskStreaming
 
-    /* Pose Range Image Joints Word Label */
     1 0 1 0 0 0 
   setSisFlags
 
-  /* spiral scan pattern */
   0.02 setSpeed
 
   0.02 setGridSize
@@ -2414,10 +2652,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ( yDown ) 6 replicateWord
   waitUntilAtCurrentPosition
 
-
-  /* turn streaming off */
   deactivateSensorStreaming
   bringUpAllNonessentialSystems
+  */
+
 ) "tableUpdateMagCoreNoClean" store
 
 

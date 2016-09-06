@@ -187,6 +187,7 @@ class Scene {
 
   vector< shared_ptr<GaussianMap> > depth_stack;
   eePose anchor_pose;
+  GaussianMapCell light_model;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
   Mat predicted_segmentation;
