@@ -119,10 +119,9 @@ void computeInnerProduct(GaussianMapChannel & channel1, GaussianMapChannel & cha
 
 void _GaussianMapChannel::multS(double scalar) {
   counts *= scalar;
-  //squaredcounts *= scalar;
-  squaredcounts *= scalar * scalar;
+  squaredcounts *= scalar;
   mu *= scalar;
-  // not correct to scale variance...
+  // not correct to scale variance... recalc must take care of it.
   sigmasquared *= scalar;
   samples *= scalar;
 }  
@@ -368,9 +367,9 @@ void _GaussianMapCell::readFromFileNode(FileNode& it) {
   red.sigmasquared   =  (double)(it)["rsigmasquared"];               
   green.sigmasquared   =  (double)(it)["gsigmasquared"];               
   blue.sigmasquared   =  (double)(it)["bsigmasquared"];               
-  red.samples      =  (double)(it)["rgbsamples"];
-  green.samples      =  (double)(it)["rgbsamples"];            
-  blue.samples      =  (double)(it)["rgbsamples"];            
+  red.samples      =  (double)(it)["rsamples"];
+  green.samples      =  (double)(it)["gsamples"];            
+  blue.samples      =  (double)(it)["bsamples"];            
   z.counts         =  (double)(it)["zcounts"];         
   z.squaredcounts  =  (double)(it)["zsquaredcounts"];                
   z.mu             =  (double)(it)["zmu"];     
@@ -3845,6 +3844,27 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetBackgroundFromObserved)
 
+WORD(SceneSetLightingModelStdDevY)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  ms->config.scene->light_model.blue.sigmasquared = pow(stddev, 2);
+}
+END_WORD
+REGISTER_WORD(SceneSetLightingModelStdDevY)
+
+WORD(SceneSetLightingModelStdDevColor)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  ms->config.scene->light_model.red.sigmasquared = pow(stddev, 2);
+  ms->config.scene->light_model.green.sigmasquared = pow(stddev, 2);
+}
+END_WORD
+REGISTER_WORD(SceneSetLightingModelStdDevColor)
+
 WORD(SceneSetBackgroundStdDevY)
 virtual void execute(MachineState * ms) {
   double stddev = 0;
@@ -4530,6 +4550,7 @@ REGISTER_WORD(SceneSetDiscrepancyDensityFromZ)
 
 WORD(SceneSetObservedRGBFromZ)
 virtual void execute(MachineState * ms) {
+// XXX this might need controls to bias it
   double viewScale = 1000.0;
   GET_NUMERIC_ARG(ms, viewScale);
 
@@ -4573,6 +4594,54 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetObservedRGBFromZ)
+
+WORD(SceneSetObservedRGBFromVariance)
+virtual void execute(MachineState * ms) {
+// XXX this might need controls to bias it
+  double viewScale = 1.0;
+  GET_NUMERIC_ARG(ms, viewScale);
+
+  Mat toShow;
+  ms->config.scene->observed_map->rgbSigmaToMat(toShow);
+
+  double positiveMin = DBL_MAX;
+  double positiveMax = 0.0;
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
+	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
+      }
+    }
+  }
+  
+  cout << "sceneSetObservedFromZ, viewScale positiveMin positiveMax: " << viewScale << " " << positiveMin << " " << positiveMax << endl;
+
+  double p_zSetSamples = 100.0;
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	GaussianMapCell * toSet = (ms->config.scene->observed_map->refAtCell(x,y));
+
+	double val = (positiveMax - toShow.at<double>(x,y)) * viewScale;
+
+	toSet->red.counts = 128 * p_zSetSamples;
+	toSet->green.counts = 128 * p_zSetSamples;
+	toSet->blue.counts = val * p_zSetSamples;
+	toSet->red.squaredcounts = 128 * 128 * p_zSetSamples;
+	toSet->green.squaredcounts = 128 * 128 * p_zSetSamples;
+	toSet->blue.squaredcounts = val * val * p_zSetSamples;
+	toSet->red.samples = p_zSetSamples;
+	toSet->green.samples = p_zSetSamples;
+	toSet->blue.samples = p_zSetSamples;
+	toSet->recalculateMusAndSigmas(ms);
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetObservedRGBFromVariance)
+
 
 
 WORD(SceneSetPredictedClassNameToFocusedClass)
@@ -5750,6 +5819,458 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  > color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  > bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  < color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  < bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare)
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll)
 virtual void execute(MachineState * ms) {
@@ -8043,6 +8564,96 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneTrimDepthWithDiscrepancy)
 
+WORD(SceneLoadLightingModelFromGaussianMapFile)
+virtual void execute(MachineState * ms) {
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+  shared_ptr<GaussianMap> toLoad = std::make_shared<GaussianMap>(ms, 1, 1, 1.0, eePose::identity());
+
+// XXX NOT TESTED
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  toLoad->loadFromFile(ss.str());
+  *(lm) = *(toLoad->refAtCell(0,0));
+
+  
+  cout << "sceneLoadLightingModelFromGaussianMapFile: loaded rmu gmu bmu, " << 
+    lm->red.mu << " " <<
+    lm->green.mu << " " <<
+    lm->blue.mu << " " <<
+      endl;
+}
+END_WORD
+REGISTER_WORD(SceneLoadLightingModelFromGaussianMapFile)
+
+WORD(SceneSaveLightingModelToGaussianMapFile)
+virtual void execute(MachineState * ms) {
+// XXX NOT TESTED
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+  shared_ptr<GaussianMap> toSave= std::make_shared<GaussianMap>(ms, 1, 1, 1.0, eePose::identity());
+  *(toSave->refAtCell(0,0)) = *(lm);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream ss;
+  ss << ms->config.data_directory + "/maps/" + message + ".yml";
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/maps/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  toSave->saveToFile(ss.str());
+
+  cout << "sceneSaveLightingModelFromGaussianMapFile: saving rmu gmu bmu, " << 
+    lm->red.mu << " " <<
+    lm->green.mu << " " <<
+    lm->blue.mu << " " <<
+      endl;
+}
+END_WORD
+REGISTER_WORD(SceneSaveLightingModelToGaussianMapFile)
+
+WORD(SceneSetLightingModelFromStack)
+virtual void execute(MachineState * ms) {
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  GET_NUMERIC_ARG(ms, lm->blue.mu);
+  GET_NUMERIC_ARG(ms, lm->green.mu);
+  GET_NUMERIC_ARG(ms, lm->red.mu);
+
+  cout << "sceneSetLightModelFromStack: pushing rmu gmu bmu, " << 
+    lm->red.mu << " " <<
+    lm->green.mu << " " <<
+    lm->blue.mu << " " <<
+      endl;
+}
+END_WORD
+REGISTER_WORD(SceneSetLightingModelFromStack)
+
+WORD(ScenePushLightingModel)
+virtual void execute(MachineState * ms) {
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+  cout << "scenePushLightingModel: pushing rmu gmu bmu, " << 
+    lm->red.mu << " " <<
+    lm->green.mu << " " <<
+    lm->blue.mu << " " <<
+      endl;
+
+  ms->pushData( make_shared<DoubleWord>(lm->red.mu) );
+  ms->pushData( make_shared<DoubleWord>(lm->green.mu) );
+  ms->pushData( make_shared<DoubleWord>(lm->blue.mu) );
+}
+END_WORD
+REGISTER_WORD(ScenePushLightingModel)
+
 WORD(SceneSetLightModelFromDiscrepancy)
 virtual void execute(MachineState * ms) {
   double thresh = 0.0;
@@ -8058,12 +8669,16 @@ virtual void execute(MachineState * ms) {
       if (ms->config.scene->discrepancy_density.at<double>(x,y) > thresh) {
 	GaussianMapCell * mm = ms->config.scene->observed_map->refAtCell(x,y);
 	lm->newObservation( Vec3b(mm->blue.mu,mm->green.mu,mm->red.mu) );
+	// maybe should be weighting this by the discrepancy
       } else {
+	ms->config.scene->discrepancy_density.at<double>(x,y) = 0.0;
       }
     }
   }
 
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  lm->recalculateMusAndSigmas(ms);
+  
+  CONSOLE(ms, "lighting model r g b:" << lm->red.mu << " " << lm->green.mu << " " << lm->blue.mu << endl);
 }
 END_WORD
 REGISTER_WORD(SceneSetLightModelFromDiscrepancy)
@@ -8224,6 +8839,8 @@ virtual void execute(MachineState * ms) {
 	  denom = totalMarginalWeight.at<double>(x,y);
 	}
 	toScale->multS(p_marginalize_scale/denom);
+
+	// recalculating here is necessary because of how the help function works
 	toScale->recalculateMusAndSigmas(ms);
       }
     }

@@ -1438,9 +1438,10 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   -0.16 "lensArrayGap" store
 */
 
-  16.00 "lensArrayStrength" store
+  64.00 "lensArrayStrength" store
   -0.32 "lensArrayGap" store
 
+  0.3583 "tableReconstructWithZTopZ" store 
   351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
 
 ) "tableArrayAutoFocus" store
@@ -1451,6 +1452,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
   10 "lensArraySize" store
 
+  0.3683 "tableReconstructWithZTopZ" store 
   256.00 "lensArrayStrength" store
   0.3800 "lensArrayGap" store
 
@@ -1475,15 +1477,14 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 */
 
 0.3883 "tableReconstructWithZTopZ" store 
-0.08 "tableReconstructWithZTotalZDefault" store
+0.12 "tableReconstructWithZTotalZDefault" store
 tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
-0.08 "tableReconstructWithZDeltaZ" store
+0.12 "tableReconstructWithZDeltaZ" store
 1000 "tableReconstructStreamTakeSceneSamples" store
 
 (
 
   /*
-  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
   171 sceneSetAngularBaffleRows 171 sceneSetAngularBaffleCols
 
   100 sceneSetAngularApertureRows 100 sceneSetAngularApertureCols
@@ -1495,7 +1496,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   85 sceneSetAngularApertureRows 85 sceneSetAngularApertureCols
   0 sceneSetAngularBaffleRows 0 sceneSetAngularBaffleCols
   151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+  151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
  */
+  351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
 
 
       streamPushImageStreamSize 
@@ -1571,9 +1574,42 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 */
 
     
+    /*
+
+
+
+      tableSpiralStreamTakeSceneStride 
+      tableReconstructWithZThisZ 
+      0.5
+      0.5
+    sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare
+
+    128.0 sceneSetLightingModelStdDevY
+    128.0 sceneSetLightingModelStdDevColor
+
+      tableSpiralStreamTakeSceneStride 
+      tableReconstructWithZThisZ 
+      0.1
+      0.1
+    sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly
+
       tableSpiralStreamTakeSceneStride 
       tableReconstructWithZThisZ 
     sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
+
+    */
+
+    "lm" sceneLoadLightingModelFromGaussianMapFile
+
+    4.0 sceneSetLightingModelStdDevColor
+
+      tableSpiralStreamTakeSceneStride 
+      tableReconstructWithZThisZ 
+      0.25
+      0.25
+    sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly
+
+
 
     sceneRecalculateObservedMusAndSigmas
     sceneRenderObservedMap
@@ -1611,10 +1647,15 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
+/*
   sceneMinDepthStackIntoRegister  sceneRecallFromRegister sceneRenderZ sceneRenderObservedMap
+*/
 
+/*
   tableReconstructMarginalsFromStack
   400.0 sceneSetObservedRGBFromZ sceneRenderObservedMap
+*/
+  tableReconstructMaxLikelihoodFromStack
 ) "tableReconstructWithZ" store
 
 
@@ -1684,10 +1725,22 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 
 /*
-*/
+ Console: lighting model r g b: 127.531 123.959 71.7755
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly
+
     tableSpiralStreamTakeSceneStride 
     tableReconstructWithZThisZ 
   sceneUpdateObservedFromStreamBufferAtZNoRecalcAll
+
+*/
+
+
+    tableSpiralStreamTakeSceneStride 
+    tableReconstructWithZThisZ 
+    0.5
+    0.5
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare
+
 
   /* 
     tableSpiralStreamTakeSceneStride 
