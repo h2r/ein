@@ -1575,11 +1575,15 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableReconstructGCLightAllFromNone" store
 
 (
+  1250 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
   "gcTempNone" sceneSaveObservedMap
-  "gcTempNone" sceneLoadBackgroundMap
+  250 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCSelfFromNone
   "gcTempSelf" sceneSaveObservedMap
+  
+  "gcTempNone" sceneLoadBackgroundMap
+  tableUpdateMaps
 ) "tableReconstructGCAll" store
 
 (
