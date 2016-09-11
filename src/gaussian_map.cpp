@@ -6272,6 +6272,940 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare)
 
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnlyRising)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  > color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  > bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  int ri, rj;
+	  ms->config.gaussian_map_register->metersToCell(x, y, &ri, &rj);
+	  GaussianMapCell * register_cell = ms->config.gaussian_map_register->refAtCell(ri, rj);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  
+	  if (z_to_use > register_cell->z.mu) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnlyRising)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlareRising)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  < color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  < bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  int ri, rj;
+	  ms->config.gaussian_map_register->metersToCell(x, y, &ri, &rj);
+	  GaussianMapCell * register_cell = ms->config.gaussian_map_register->refAtCell(ri, rj);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  
+	  if (z_to_use > register_cell->z.mu) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlareRising)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderGlareOnly)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  int ri, rj;
+	  ms->config.gaussian_map_register->metersToCell(x, y, &ri, &rj);
+	  GaussianMapCell * register_cell = ms->config.gaussian_map_register->refAtCell(ri, rj);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+
+	  if (z_to_use > register_cell->z.mu) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+	  // use the cell this will hit as the lighting model
+	  GaussianMapCell * lm = register_cell;
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  > color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  > bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderGlareOnly)
+
+WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderWithoutGlare)
+virtual void execute(MachineState * ms) {
+  double bright_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, bright_cast_thresh);
+
+  double color_cast_thresh = 0.0;
+  GET_NUMERIC_ARG(ms, color_cast_thresh);
+
+  double z_to_use = 0.0;
+  GET_NUMERIC_ARG(ms, z_to_use);
+
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  GaussianMapCell * lm = &(ms->config.scene->light_model);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = z_to_use;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+      
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+
+	  // measure discrepancy with lighting model and throw out this pixel if it
+	  // is too much like the overhead light.
+	  int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+	  // single sample update
+	  int i, j;
+	  maps[thread]->metersToCell(x, y, &i, &j);
+	  GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+	  int ri, rj;
+	  ms->config.gaussian_map_register->metersToCell(x, y, &ri, &rj);
+	  GaussianMapCell * register_cell = ms->config.gaussian_map_register->refAtCell(ri, rj);
+	  //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+	  //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+	  
+	  if (z_to_use > register_cell->z.mu) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+
+	  // use the cell this will hit as the lighting model
+	  GaussianMapCell * lm = register_cell;
+	  double total_discrepancy = 0.0;
+	  double color_discrepancy = 0.0;
+	  double bright_discrepancy = 0.0;
+	  double p_ray_samples = 100.0;
+	  {
+	    GaussianMapCell rayCell;
+	    rayCell.red.samples = p_ray_samples;
+	    rayCell.green.samples = p_ray_samples;
+	    rayCell.blue.samples = p_ray_samples;
+	    rayCell.red.mu = input[base_idx + 2]; 
+	    rayCell.green.mu = input[base_idx + 1]; 
+	    rayCell.blue.mu = input[base_idx + 0];
+	    rayCell.red.sigmasquared = 0;
+	    rayCell.green.sigmasquared = 0;
+	    rayCell.blue.sigmasquared = 0;
+
+	    double rmu_diff = 0.0;
+	    double gmu_diff = 0.0;
+	    double bmu_diff = 0.0;
+
+	    double discrepancy_value;
+	    if (ms->config.discrepancyMode == DISCREPANCY_POINT) {
+	      discrepancy_value = lm->pointDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_DOT) {
+	      discrepancy_value = lm->innerProduct(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_OR) {
+	      discrepancy_value = lm->noisyOrDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else if (ms->config.discrepancyMode == DISCREPANCY_NOISY_AND) {
+	      discrepancy_value = lm->noisyAndDiscrepancy(&rayCell, &rmu_diff, &gmu_diff, &bmu_diff);
+	    } else {
+	      cout << "Invalid discrepancy mode: " << ms->config.discrepancyMode << endl;
+	      assert(0);
+	    }
+      
+	    total_discrepancy = 1.0 - discrepancy_value;
+	  } 
+	  bright_discrepancy = total_discrepancy;
+	  color_discrepancy = total_discrepancy;
+
+	  /*
+	  {
+	    color_discrepancy = 
+	      ( (input[base_idx + 2] - lm->red.mu)*(input[base_idx + 2] - lm->red.mu) +
+	      (input[base_idx + 1] - lm->green.mu)*(input[base_idx + 1] - lm->green.mu) ) / 2.0
+	    ;
+	    bright_discrepancy = 
+	      (input[base_idx + 0] - lm->blue.mu)*(input[base_idx + 0] - lm->blue.mu)
+	    ;
+	  }
+	  */
+
+	  if (color_discrepancy  > color_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  if (bright_discrepancy  > bright_cast_thresh) {
+	    //cout << "SK: " << color_discrepancy << " " ;
+	    continue;
+	  }
+	  
+	  
+	  if (cell != NULL) {
+	    cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+	    numPixels++;
+	  }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderWithoutGlare)
+
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll)
 virtual void execute(MachineState * ms) {
 // XXX not really started yet

@@ -715,6 +715,7 @@
 (
     -0.02 0.02 0.03515 0 0 0.7071 0.7071 createEEPose setHandEndEffectorOffset
   cameraWristConfig
+  80 5 1124 1024 2048 fixCameraLighting
 ) "gauntletCrystalConfig" store
 
 (
