@@ -41,7 +41,7 @@ bg sceneInitDefaultBackgroundMap
 ( 
   sceneSetDiscrepancyModeNoisyOr
   tableDefaultScoreThresh sceneSetScoreThresh
-  50 sceneSetCellCountThreshold 
+  1 sceneSetCellCountThreshold 
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "Initialize scene parameters, no background map reload." "tableInitNoBackground" define
 
@@ -955,10 +955,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 /*  ( tableRecaptureServo waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord */
 
   sceneClearObservedMap sceneClearPredictedObjects 
-/* XXX can this save go? */
-  bg sceneSaveBackgroundMap
 
+  /*
   tableUpdateSpiral
+  */
+
+  tableTakeScene
   tableCaptureCore
 
   /* no additional scan */
@@ -1449,17 +1451,29 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableArrayAutoFocus" store
 
 (
-  0.0083 "tableReconstructWithZTopZ" store 
-  tableReconstructWithZTopZ 0.388 divide 0.0003 times  "slfgRebaseCellWidth" store slfgRebase
-
-  10 "lensArraySize" store
-
-  0.3683 "tableReconstructWithZTopZ" store 
-  256.00 "lensArrayStrength" store
-  0.3800 "lensArrayGap" store
-
+  0.02 "viewSynthApertureWidth" store
+  0.01 "viewSynthAperturePlane" store
 ) "tableArrayViewSynthesisAutoFocus" store
 
+
+/* caster pointers */
+(
+    tableSpiralStreamTakeSceneStride 
+    viewSynthApertureWidth
+    viewSynthAperturePlane
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll 
+) "tableReconstructCpViewSynthNoGC" store
+
+(
+  "lm" sceneLoadLightingModelFromGaussianMapFile
+
+    tableSpiralStreamTakeSceneStride 
+    viewSynthApertureWidth
+    viewSynthAperturePlane
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderWithoutGlare
+) "tableReconstructCpViewSynthLightModelGC" store
 
 (
     tableSpiralStreamTakeSceneStride 
@@ -1549,6 +1563,56 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableReconstructGCNone" store
 
 (
+  ( 
+    tableArrayViewSynthesisAutoFocus
+    tableReconstructCpViewSynthNoGC 
+  ) "tableReconstructWithZCaster" store
+  ( 
+    sceneInitRegisterMax
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+    351 sceneSetAngularApertureRows 551 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+  
+  tableReconstructWithZCore
+) "tableReconstructGCViewSynthNone" store
+
+(
+  ( 
+    tableArrayViewSynthesisAutoFocus
+    tableReconstructCpViewSynthLightModelGC
+  ) "tableReconstructWithZCaster" store
+  ( 
+    sceneInitRegisterMax
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+    351 sceneSetAngularApertureRows 551 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+  
+  tableReconstructWithZCore
+) "tableReconstructGCViewSynthLightModel" store
+
+0.01 "viewSynthApertureDilateDelta" store
+(
+  ( 
+	viewSynthApertureWidth
+	viewSynthApertureDilateDelta
+      +
+    "viewSynthApertureWidth" store
+
+    tableReconstructCpViewSynthLightModelGC
+  ) "tableReconstructWithZCaster" store
+  ( 
+    sceneInitRegisterMax
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+    351 sceneSetAngularApertureRows 551 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+  
+  tableReconstructWithZCore
+) "tableReconstructGCViewSynthLightModelDilate" store
+
+(
   (
     tableReconstructCpSelfGC 
   ) "tableReconstructWithZCaster" store
@@ -1575,16 +1639,79 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableReconstructGCLightAllFromNone" store
 
 (
-  1250 "tableReconstructStreamTakeSceneSamples" store
+  (
+    tableReconstructCpLightModelRisingGC
+  ) "tableReconstructWithZCaster" store
+  ( 
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+    351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+
+  tableReconstructWithZCore
+) "tableReconstructGCLightRisingFromNone" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  4000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
   "gcTempNone" sceneSaveObservedMap
-  250 "tableReconstructStreamTakeSceneSamples" store
+/*
+    "/home/oberlin/Desktop/slfgRays/icra2016/glareRemoval/icraAsset0/icraAsset0_351_4000_height_" tableReconstructWithZThisZ ".png" + +
+  sceneSaveObservedMapImage
+*/
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCSelfFromNone
   "gcTempSelf" sceneSaveObservedMap
   
   "gcTempNone" sceneLoadBackgroundMap
   tableUpdateMaps
+  0.050 sceneSetLightModelFromDiscrepancy
+  scenePushLightingModel
+  pop
+  255.0
+  sceneSetLightingModelFromStack
+  "lm" sceneSaveLightingModelToGaussianMapFile 
+
+  "gcTempNone" sceneLoadObservedMap
+  tableReconstructGCLightRisingFromNone
+  "gcTempOwn" sceneSaveObservedMap
+
+  "gcTempNone" sceneLoadObservedMap
+  tableReconstructGCLightAllFromNone
+  "gcTempAll" sceneSaveObservedMap
+
+  "gcTempSelf" sceneLoadObservedMap
+  tableReconstructGCLightRisingFromNone
+  "gcTempSelfThenRising" sceneSaveObservedMap
+
+
+  0.0 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.3283 "tableReconstructWithZTopZ" store 
+  4000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+  "gcTempSingle" sceneSaveObservedMap
+
 ) "tableReconstructGCAll" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.00 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
+
+  tableReconstructGCViewSynthLightModelDilate
+  "gcTempWristNone" sceneSaveObservedMap
+
+) "tableReconstructGCWrist" store
 
 (
   /*
@@ -1607,8 +1734,6 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableReconstructWithZApertureSetter" store
 
 
-0.03 "viewSynthApertureWidth" store
-0.201 "viewSynthAperturePlane" store
 
 /* 
 0.3883 "tableReconstructWithZTopZ" store 
@@ -1726,8 +1851,14 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
       "/home/oberlin/dev/catkin_ws_ursula/src/ein/default/objects/aaaRSSRoomSceneHiRes/depthvideo/frame_" tableReconstructWithZThisZ ".png" + +
     sceneSaveObservedMapImage
-*/
 
+      "icraAsset0_351_4000_height_" tableReconstructWithZThisZ + 
+    sceneSaveScene
+
+      "/home/oberlin/Desktop/slfgRays/icra2016/glareRemoval/icraAsset0/icraAsset0_351_4000_height_" tableReconstructWithZThisZ ".png" + +
+    sceneSaveObservedMapImage
+
+*/
 
 
 /*
@@ -1760,7 +1891,16 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructWithZCore" store
 
 (
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
+
+  250 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCSelfFromNone
 ) "tableReconstructWithZ" store
 
 (
@@ -2163,9 +2303,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     1.0 divide
   "tableSpiralGridSize" store
 
-  0.04 "tableSpiralMoveSpeed" store
+  0.08 "tableSpiralMoveSpeed" store
 
-  18 "tableUpdateSpiralN" store
+  20 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -2278,7 +2418,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 /*
 0.00025 "tableReconstructWithZGridMultiplier" store
 */
-0.00075 "tableReconstructWithZGridMultiplier" store
+0.001 "tableReconstructWithZGridMultiplier" store
 (
 	currentPose
       eePosePZ
