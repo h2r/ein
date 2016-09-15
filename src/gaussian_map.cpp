@@ -1087,6 +1087,9 @@ bool Scene::isDiscrepantMetersBilin(double threshold, double x, double y) {
 
 void Scene::initializePredictedMapWithBackground() {
 
+  predicted_map = observed_map->copy();
+  predicted_map->zero();
+
   eePose predicted_anchor = predicted_map->anchor_pose;
   eePose background_anchor = background_map->anchor_pose;
   
@@ -1153,6 +1156,35 @@ void Scene::initializePredictedMapWithBackground() {
   double diffy_x = bx2 - bx0;
   double diffy_y = by2 - by0;
 
+cout << "AAA: diffx_x diffx_y diffy_x diffy_y: " << diffx_x << " " << diffx_y << " " << diffy_x << " " << diffy_y << " " << endl;
+
+  double normx = sqrt(diffx_x * diffx_x + diffx_y * diffx_y);
+  double normy = sqrt(diffy_x * diffy_x + diffy_y * diffy_y);
+
+/*
+  diffx_x *= predicted_map->cell_width / (background_map->cell_width * normx);
+  diffx_y *= predicted_map->cell_width / (background_map->cell_width * normx);
+	    
+  diffy_x *= predicted_map->cell_width / (background_map->cell_width * normy);
+  diffy_y *= predicted_map->cell_width / (background_map->cell_width * normy);
+*/
+
+cout << "BBB: diffx_x diffx_y diffy_x diffy_y: " << diffx_x << " " << diffx_y << " " << diffy_x << " " << diffy_y << " " << endl;
+
+  normx = sqrt(diffx_x * diffx_x + diffx_y * diffx_y);
+  normy = sqrt(diffy_x * diffy_x + diffy_y * diffy_y);
+
+/*
+  diffx_x *=  1.0 / normx;
+  diffx_y *=  1.0 / normx;
+	    
+  diffy_x *=  1.0 / normy;
+  diffy_y *=  1.0 / normy;
+*/
+
+cout << "CCC: diffx_x diffx_y diffy_x diffy_y: " << diffx_x << " " << diffx_y << " " << diffy_x << " " << diffy_y << " " << endl;
+cout << "DDD: normx normy : " << normx << " " << normy << " " << predicted_map->cell_width << " " << background_map->cell_width << endl;
+  
 
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
@@ -4602,15 +4634,16 @@ virtual void execute(MachineState * ms) {
   GET_NUMERIC_ARG(ms, viewScale);
 
   Mat toShow;
-  ms->config.scene->observed_map->rgbSigmaToMat(toShow);
+  ms->config.scene->observed_map->rgbSigmaSquaredToMat(toShow);
 
   double positiveMin = DBL_MAX;
   double positiveMax = 0.0;
   for (int x = 0; x < ms->config.scene->width; x++) {
     for (int y = 0; y < ms->config.scene->height; y++) {
       if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
-	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
+	double valnot = toShow.at<Vec3d>(x,y)[0] + toShow.at<Vec3d>(x,y)[1] + toShow.at<Vec3d>(x,y)[2];
+	positiveMin = std::min(positiveMin, valnot);
+	positiveMax = std::max(positiveMax, valnot);
       }
     }
   }
@@ -4623,7 +4656,8 @@ virtual void execute(MachineState * ms) {
       if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
 	GaussianMapCell * toSet = (ms->config.scene->observed_map->refAtCell(x,y));
 
-	double val = (positiveMax - toShow.at<double>(x,y)) * viewScale;
+	double valnot = toShow.at<Vec3d>(x,y)[0] + toShow.at<Vec3d>(x,y)[1] + toShow.at<Vec3d>(x,y)[2];
+	double val = valnot * viewScale;
 
 	toSet->red.counts = 128 * p_zSetSamples;
 	toSet->green.counts = 128 * p_zSetSamples;

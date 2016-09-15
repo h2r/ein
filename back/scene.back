@@ -39,9 +39,10 @@ bg sceneInitDefaultBackgroundMap
 
 0.1 "tableDefaultScoreThresh" store
 ( 
+  "init NO BACK" print
   sceneSetDiscrepancyModeNoisyOr
   tableDefaultScoreThresh sceneSetScoreThresh
-  1 sceneSetCellCountThreshold 
+  75 sceneSetCellCountThreshold 
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "Initialize scene parameters, no background map reload." "tableInitNoBackground" define
 
@@ -1231,13 +1232,14 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tablePickWithAddedGrasp" store
 
 
-/* consider deprecating or using */
 (
   lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
+
   /*
   tableReconstructServoToBestSceneObject
   */
   tableSpiralServoToFocusedSceneObject
+
   waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
   currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
 
@@ -1247,6 +1249,23 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   "If it was, you can add 3d grasps." print
 ) "Localize the focused object and prepare to annotate a 3D grasp."  "tableLock3dGrasp" define
 
+(
+  lock3dGraspBase c3dPoseBase eePosePZ "tableScanBasePZ" store
+
+  /* predicts and moves, doesn't scan */
+  tableServoToFocusedSceneObject
+
+  waitUntilAtCurrentPosition setMovementStateToMoving comeToStop
+  currentPose tableScanBasePZ setEEPosePZ "tableScanBase" store
+
+  tableScanBase setC3dPoseBase
+
+  "Ok, check the predicted map and make sure the object was added correctly." print
+  "If it was, you can add 3d grasps." print
+) 
+  "Localize the focused object and prepare to annotate a 3D grasp after an observed map already exists."  
+  "tableLock3dGraspInPlace" 
+define
 
 (
   /* entering tableMapFocusedClass */
@@ -1556,7 +1575,8 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     sceneInitRegisterMax
   ) "tableReconstructWithZRegisterInitializer" store
   (
-    151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+  /* XXX undo to 151 */
+    351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
   ) "tableReconstructWithZApertureSetter" store
   
   tableReconstructWithZCore
@@ -1896,11 +1916,91 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
+  4000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCSelfFromNone
+) "tableReconstructWithZTableGlare" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  2000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  500 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCSelfFromNone
+
+    0.10
+  sceneSetObservedRGBFromVariance
+  sceneRenderObservedMap
+
+) "tableReconstructWithZUnderWater" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+
+  tableReconstructMarginalsFromStack
+
+    0.025
+  sceneSetObservedRGBFromVariance
+  sceneRenderObservedMap
+
+) "tableReconstructWithZUnderWaterMarginals" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.00 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  1000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+) "tableReconstructWithZTable" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
   1000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
 
   250 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCSelfFromNone
+) "tableReconstructWithZTableGlareShort" store
+
+(
+  0.3883 "tableReconstructWithZTopZ" store 
+  0.12 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.02 "tableReconstructWithZDeltaZ" store
+
+  500 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+
+  250 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCSelfFromNone
+) "tableReconstructWithZTableGlareShort" store
+
+(
+  tableReconstructWithZTableGlareShort
 ) "tableReconstructWithZ" store
 
 (
@@ -2305,7 +2405,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   0.08 "tableSpiralMoveSpeed" store
 
-  20 "tableUpdateSpiralN" store
+  18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -3459,6 +3559,17 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructMaxSegmentedByMarginalsFromStack" store
 
 
+(
+  tableReconstructMaxLikelihoodFromStack 0.03 sceneSetObservedRGBFromVariance sceneRenderObservedMap tableUpdateMaps
+  25.0 sceneSmoothDiscrepancyDensity sceneRenderDiscrepancy
+
+  "foreground200" sceneSaveObservedMap
+  tableReconstructMaxLikelihoodFromStack 0.03 sceneSetObservedRGBFromVariance sceneRenderObservedMap tableUpdateMaps
+  25.0 sceneSmoothDiscrepancyDensity sceneRenderDiscrepancy
+  "foreground200" sceneLoadObservedMap
+
+
+) "trickyCaptureWords" store
 
 
 
