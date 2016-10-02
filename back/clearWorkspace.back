@@ -24,6 +24,7 @@
   cw_viewIsClear
 ) "cw_workspaceIsClear" store
 
+/* 0.3 and 500 */
 0.3 "cw_viewIsClear_discrepancyThresh" store
 500 "cw_viewIsClear_numCellThresh" store
 ( 
@@ -157,7 +158,9 @@
   tableSwapToBlocks
   catScan5LoadPlayBg
 
+  /*
   1 setCurrentIKBoundaryMode
+  */
   ">>>> clearing workspace scene <<<<" print
 
   0 "cw_clearWorkspace_counter" store

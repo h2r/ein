@@ -5089,9 +5089,6 @@ virtual void execute(MachineState * ms) {
 	ms->pushWord("comeToStop");
 	ms->pushWord("waitUntilAtCurrentPosition");
 
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.05");
-
 	ms->pushWord("setGridSizeCoarse");
       } else {
 	ms->pushWord("comeToStop"); 
@@ -5103,6 +5100,7 @@ virtual void execute(MachineState * ms) {
       }
 
       ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("quarterImpulse");
       return;
     } else {
       feasible_indeces[tc] = 0;

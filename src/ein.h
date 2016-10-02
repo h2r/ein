@@ -454,6 +454,7 @@ double computeSimilarity(MachineState * ms, Mat im1, Mat im2);
 void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
 void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
+void mapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void publishConsoleMessage(MachineState * ms, string msg);
 

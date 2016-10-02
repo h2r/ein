@@ -5383,6 +5383,38 @@ void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   }
 }
 
+void mapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
+  MachineState * ms = ((MachineState *) userdata);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  //if (!ms->config.shouldIMiscCallback) {
+    //return;
+  //}
+
+  if ( event == EIN_EVENT_LBUTTONDOWN ) {
+    cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+
+    eePose clickPoseInLocal = eePose::identity();
+    ms->config.scene->cellToMeters(y, x, &clickPoseInLocal.px, &clickPoseInLocal.py);
+    eePose clickPoseInBase = clickPoseInLocal.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
+
+    eePose clickPoseToPush = clickPoseInBase;
+    clickPoseToPush.copyQ(ms->config.currentEEPose);
+    clickPoseToPush.pz = ms->config.currentEEPose.pz;
+
+    ms->pushData(make_shared<EePoseWord>(clickPoseToPush));
+
+    ms->pushWord("assumePose");
+    ms->execute_stack = 1;
+  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
+    cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
+    cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
+    cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+  }
+}
+
 void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata) {
   vector<MachineState * > machineStates = *((vector<MachineState * > *) userdata);
   for(int i = 0; i < machineStates.size(); i++) {
@@ -14993,6 +15025,7 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.observedWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.observedWindow);
   ms->config.observedWindow->setVisible(true);
+  ms->config.observedWindow->setMouseCallBack(mapCallbackFunc, ms);
 
   ms->config.observedStdDevWindow = new EinWindow(NULL, ms);
   ms->config.observedStdDevWindow->setWindowTitle("Gaussian Map Observed Std Dev View " + ms->config.left_or_right_arm);

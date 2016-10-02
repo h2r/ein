@@ -42,7 +42,8 @@ bg sceneInitDefaultBackgroundMap
   "init NO BACK" print
   sceneSetDiscrepancyModeNoisyOr
   tableDefaultScoreThresh sceneSetScoreThresh
-  75 sceneSetCellCountThreshold 
+  /* 75 */
+  50 sceneSetCellCountThreshold 
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "Initialize scene parameters, no background map reload." "tableInitNoBackground" define
 
@@ -734,9 +735,9 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   scenePushNumSceneObjects 0 = 
   ( pop "tableMoveToSceneObject: no scene objects." print ) 
   ( 
-    scenePushSceneObjectPose 
-    currentPose 
-      eePosePZ  
+	scenePushSceneObjectPose 
+	  currentPose 
+	eePosePZ  
       setEEPosePZ 
       0 0 0 0 1.0 0 0 createEEPose 
       swap
@@ -1576,7 +1577,7 @@ define
   ) "tableReconstructWithZRegisterInitializer" store
   (
   /* XXX undo to 151 */
-    351 sceneSetAngularApertureRows 351 sceneSetAngularApertureCols
+    151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
   ) "tableReconstructWithZApertureSetter" store
   
   tableReconstructWithZCore
@@ -1769,7 +1770,7 @@ define
 */
 
 0.3883 "tableReconstructWithZTopZ" store 
-0.12 "tableReconstructWithZTotalZDefault" store
+0.0 "tableReconstructWithZTotalZDefault" store
 tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 0.01 "tableReconstructWithZDeltaZ" store
 1000 "tableReconstructStreamTakeSceneSamples" store
@@ -1964,12 +1965,22 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructWithZUnderWaterMarginals" store
 
 (
-  0.3883 "tableReconstructWithZTopZ" store 
+  0.4183 "tableReconstructWithZTopZ" store 
   0.00 "tableReconstructWithZTotalZDefault" store
   tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
-  1000 "tableReconstructStreamTakeSceneSamples" store
+  10000000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+) "tableReconstructWithZTableOne" store
+
+(
+  0.4183 "tableReconstructWithZTopZ" store 
+  0.20 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.01 "tableReconstructWithZDeltaZ" store
+
+  10000000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
 ) "tableReconstructWithZTable" store
 
@@ -1977,22 +1988,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.3883 "tableReconstructWithZTopZ" store 
   0.12 "tableReconstructWithZTotalZDefault" store
   tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
-  0.01 "tableReconstructWithZDeltaZ" store
-
-  1000 "tableReconstructStreamTakeSceneSamples" store
-  tableReconstructGCNone
-
-  250 "tableReconstructStreamTakeSceneSamples" store
-  tableReconstructGCSelfFromNone
-) "tableReconstructWithZTableGlareShort" store
-
-(
-  0.3883 "tableReconstructWithZTopZ" store 
-  0.12 "tableReconstructWithZTotalZDefault" store
-  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.02 "tableReconstructWithZDeltaZ" store
 
-  500 "tableReconstructStreamTakeSceneSamples" store
+  350 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
 
   250 "tableReconstructStreamTakeSceneSamples" store
@@ -2000,7 +1998,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructWithZTableGlareShort" store
 
 (
-  tableReconstructWithZTableGlareShort
+  tableReconstructWithZTableOne
 ) "tableReconstructWithZ" store
 
 (
@@ -2343,7 +2341,11 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructLightSlabWithZ" store
 
 (
+/*
   tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+*/
+
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
   tableReconstructMarginalsFromStackCore
 )  "tableReconstructMarginalsFromStack" store
 
@@ -2358,7 +2360,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 )  "tableReconstructMarginalsFromStackCore" store
 
 (
+/*
   tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
+*/
+
+  tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+
   tableReconstructMaxLikelihoodFromStackCore
 )  "tableReconstructMaxLikelihoodFromStack" store
 
@@ -2396,15 +2403,18 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   quarterImpulse
   waitUntilAtCurrentPosition
-  0.01 setW1GoThresh
+  /* 0.01 */
+  0.02 setW1GoThresh
 
     0.01625 
   /* XXX no commit */
     1.0 divide
   "tableSpiralGridSize" store
 
-  0.08 "tableSpiralMoveSpeed" store
+/* 0.08 */ 
+  0.1 "tableSpiralMoveSpeed" store
 
+/* 18 */ 
   18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 

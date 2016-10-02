@@ -10738,6 +10738,7 @@ void sceneMarginalizeIntoRegisterHelper(MachineState * ms, shared_ptr<GaussianMa
 	  double thisweight = rescalar/sqrt(this_observed_sigma_squared * 2.0 * M_PI);
 	  weights.at<double>(x,y) += thisweight;
 	  toAdd.multS(thisweight);
+	  // XXX seems like this should perform a cell to meter meter to cell like the min function.
 	  ms->config.gaussian_map_register->refAtCell(x,y)->addC(&toAdd);
 
 	  if ( ( ms->config.gaussian_map_register->refAtCell(x,y)->red.samples < 1.1 ) &&
@@ -11693,6 +11694,12 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(ScenePushAverageCrCbSigmaSquared)
 
+WORD(ScenePushAnchorPose)
+virtual void execute(MachineState * ms) {
+  ms->pushData(make_shared<EePoseWord>(ms->config.scene->anchor_pose));
+}
+END_WORD
+REGISTER_WORD(ScenePushAnchorPose)
 
 /*
 

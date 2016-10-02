@@ -673,7 +673,8 @@
 
 (
   0 setCameraR00 1 setCameraR01 -1 setCameraR10 0 setCameraR11
-  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+/* 0.03815 0.01144 0.01589 */
+  0.027 0.012 0.01589 0 0 0 1 createEEPose setHandCameraOffset
   0.0024 setCameraMuX 0.00245 setCameraMuY
   0.0 setCameraKappaX 0.0000002 setCameraKappaY
   640 setCameraCenterX
@@ -713,7 +714,14 @@
 ) "cameraK2IRConfig" store
 
 (
+/*
     -0.02 0.02 0.03515 0 0 0.7071 0.7071 createEEPose setHandEndEffectorOffset
+    0.0 0.0 0.0 0 0 0 1.0 createEEPose setHandEndEffectorOffset
+*/
+    0.0 0.0 0.0 0 0 0 1.0 createEEPose setHandEndEffectorOffset
+) "gauntletCrystalConfigOffset" store
+
+(
   cameraWristConfig
   80 10 1124 1024 2048 fixCameraLighting
 /*
