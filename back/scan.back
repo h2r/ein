@@ -1,7 +1,7 @@
 8 "scan_IRheight" store
 /* 10 "catScan_dropHeight" store */
 10 "catScan_dropHeight" store 
-2 "pileSwitchThreshold" store
+5 "pileSwitchThreshold" store
 
 1 "scan_catScanLimit" store
 0 "scan_catPickLimit" store
@@ -657,6 +657,13 @@ dateString "catScan5VarianceTrialThisTime" store
     catScan5 uses bandits over 3d grasps to select the best grasp, perform
     redundant servoing and collect data for localization and classification studies
   */
+
+  /* save a thumbnail of the last component in the object directory */
+
+  sceneLoadFocusedObjectModel
+    dataDirectory "/objects/" focusedClassLabel "/rgb.png" + + + 
+  sceneSaveObservedMapImage
+
 ) "catScan5" store
 
 (

@@ -1075,6 +1075,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     tableRecaptureServoInPlace
 
     /* */
+/* 
       currentPose 
 
       waitGetCurrentWaitMode
@@ -1083,8 +1084,9 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     waitSetCurrentWaitMode
 
     moveEeToPoseWord waitUntilAtCurrentPosition 
+*/
+
     writeFocusedClass
-    /* */
 
     createCachedClassifierFromClassLabels
     trainAndWriteFocusedClassKnn
@@ -1146,12 +1148,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.040 "tableBlockMaxGraspThickness" store
+0.030 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 */
-0.025 "tableBlockGripperThrow" store
+0.02 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 0.055 "tableBlockTargetContactWidth" store
 0.02 "tableBlockCollarWidth" store
@@ -1983,6 +1985,18 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   10000000 "tableReconstructStreamTakeSceneSamples" store
   tableReconstructGCNone
 ) "tableReconstructWithZTable" store
+
+(
+  0.4183 "tableReconstructWithZTopZ" store 
+  0.05 "tableReconstructWithZTotalZDefault" store
+  tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
+  0.05 "tableReconstructWithZDeltaZ" store
+
+  10000000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructGCNone
+	
+  tableReconstructMarginalsFromStack
+) "tableReconstructWithZTableShortMarginals" store
 
 (
   0.3883 "tableReconstructWithZTopZ" store 
