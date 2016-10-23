@@ -62,16 +62,6 @@ wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/bax
 wstool update
 ```
 
-Edit baxter.sh to set your ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI
-following the instructions in that file.  Then enter the Baxter ROS
-workspace by running the baxter.sh file:
-
-```
-cd ~/catkin_ws
-cp ~/catkin_ws/src/ein/baxter.sh ./
-./baxter.sh
-```
-
 Next build for the first time:
 
 ```
@@ -79,6 +69,16 @@ cd ..
 source /opt/ros/indigo/setup.bash
 catkin_make
 ```
+
+Copy and edit baxter.sh from the Rethink directories to set your
+ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI following the instructions
+in that file.   (Or you can copy the one from ein, which has some nice environment variables.)  
+
+```
+cd ~/catkin_ws
+./baxter.sh
+```
+
 
 Sometimes we have to run catkin_make multiple times in a row to build
 dependencies.  After building, you should rerun `./baxter.sh` so that
