@@ -667,8 +667,6 @@ dateString "catScan5VarianceTrialThisTime" store
 
   playWorkspace cw_clearWorkspace
   
-  /* regardless of the outcome of the scan, replace the play workspace */
-
   openGripper waitUntilGripperNotMoving
   ">>>> entering pickFromInputPile2 <<<<" print
 

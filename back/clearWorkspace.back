@@ -198,10 +198,18 @@
   ) while
 
 
+  /* 
+
   cw_clearWorkspace_rescan (
     "Sadly, we timed out and the workspace is not clear. Updating the play workspace background map." print
     catScan5UpdatePlayBg
   ) ift
+
+  */
+
+  /* regardless of the outcome of the scan, replace the play workspace */
+
+  "catScan5PlayBg" "_" leftOrRightArm + + sceneSaveObservedMap
   
   tableRestoreFromBlocks
 
