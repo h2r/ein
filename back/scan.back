@@ -883,9 +883,14 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5PlayTakeScene" store
 
 (
+  halfImpulse
+
   catScan5InputPileTakeScene 
   bg "_green_back" + sceneSaveObservedMap 
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveObservedMap 
+
+  halfImpulse
+  assumeCrane1
 
   catScan5OutputPileTakeScene 
   bg "_green_front" + sceneSaveObservedMap 
