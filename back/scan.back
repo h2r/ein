@@ -395,6 +395,8 @@ workspace4 "outputPileWorkspace" store
   sceneSetDiscrepancyModePoint
   initializeAndFocusOnTempClass
 
+  catScan5UpdatePlayBg
+
   ( 1 )
   (
     pickFromInputPile2
@@ -662,8 +664,11 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   quarterImpulse
   playWorkspace moveEeToPoseWord 
-  catScan5UpdatePlayBg
+
   playWorkspace cw_clearWorkspace
+  
+  /* regardless of the outcome of the scan, replace the play workspace */
+
   openGripper waitUntilGripperNotMoving
   ">>>> entering pickFromInputPile2 <<<<" print
 
@@ -800,8 +805,10 @@ dateString "catScan5VarianceTrialThisTime" store
     openGripper 
   ) ifte
 
+  /* don't think this is necessary
   "moveToOutputPile2 clearing workspace so it will be clean for the input scan." print
   playWorkspace cw_clearWorkspace
+  */
 ) "moveToOutputPile2" store
 
 (
