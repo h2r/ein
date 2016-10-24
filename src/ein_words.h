@@ -188,6 +188,7 @@ public: \
   }\
 }\
 
+
 #define CONFIG_GETTER_INT(backName, configName)	\
 WORD(backName) \
 virtual void execute(MachineState * ms) { \

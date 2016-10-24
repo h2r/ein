@@ -4,6 +4,7 @@
 #include "eePose.h"
 #include "ein_util.h"
 
+
 class MachineState;
 class Word;
 
@@ -298,5 +299,9 @@ class TransitionTable {
   void saveToFile(string filename);
   void loadFromFile(string filename);
 };
+
+
+
+
 
 #endif /* _EIN_SCENE_H_ */
