@@ -1148,12 +1148,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.030 "tableBlockMaxGraspThickness" store
+0.040 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 */
-0.02 "tableBlockGripperThrow" store
+0.025 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 0.055 "tableBlockTargetContactWidth" store
 0.02 "tableBlockCollarWidth" store
@@ -2426,7 +2426,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   "tableSpiralGridSize" store
 
 /* 0.08 */ 
-  0.1 "tableSpiralMoveSpeed" store
+  0.3 "tableSpiralMoveSpeed" store
 
 /* 18 */ 
   18 "tableUpdateSpiralN" store
