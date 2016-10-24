@@ -74,6 +74,7 @@ Mat readMatFromYaml(FileNode & fsvO);
 void writeMatToYaml(Mat m, FileStorage & fsvO);
 
 string sceneModelFile(MachineState * ms, string label);
+string streamDirectory(MachineState * ms, int classIdx);
 
 string xmlEncode(const string data);
 

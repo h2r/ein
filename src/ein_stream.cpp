@@ -106,6 +106,32 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(DeactivateSensorStreaming)
 
+WORD(StreamWriteBuffersToDisk)
+virtual string description() {
+  return "Write what is in the stream buffer to disk.";
+}
+virtual void execute(MachineState * ms)
+{
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  CONSOLE(ms, "Writing to " << streamDirectory(ms, tfc));
+
+  writeRangeBatchAsClass(ms, tfc);	
+  writePoseBatchAsClass(ms, tfc);	
+  writeJointsBatchAsClass(ms, tfc);	
+  writeWordBatchAsClass(ms, tfc);	
+  writeLabelBatchAsClass(ms, tfc);
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->writeImageBatchAsClass(tfc);
+  }
+
+}
+END_WORD
+REGISTER_WORD(StreamWriteBuffersToDisk)
+
+
+
+
 WORD(SetSisFlags)
 virtual string description() {
   return "Set whether we should save different sensor streams. <pose> <range> <image> <joints> <word> <label> setSisFlags";
@@ -160,6 +186,9 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StreamDisableAllSisFlags)
 
+
+CONFIG_GETTER_INT(StreamDiskStreaming, ms->config.diskStreamingEnabled)
+CONFIG_SETTER_INT(StreamSetDiskStreaming, ms->config.diskStreamingEnabled)
 
 WORD(DisableDiskStreaming)
 virtual void execute(MachineState * ms)

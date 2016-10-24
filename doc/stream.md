@@ -14,10 +14,7 @@ a buffer of the original calibrated images.  This page describes how
 to interact and use the lower-level stream buffer.
 
 
-
-### Stream Buffer
-
-`populateStreamBuffer` populates them from focused class.  `clearStreamBuffers` empties the stream buffer.  
+### Collecting Data in the Stream Buffer
 
 `activateSensorStreaming` activates sensor streaming, causing the
 in-memory buffers to begin filling up with data.
@@ -46,13 +43,14 @@ you have shut things down.
 
 After deactivating streaming, `streamImageBufferSize` will contain the
 number of images saved, while `streamPoseBufferSize` will contain the
-number of poses.
+number of poses.  `clearStreamBuffers` empties the stream buffer.  
 
 #### Exercise:  Stream some images and poses.
 
 Activate sensor streaming to populate the image and pose stream
 buffers.  Inspect the size of the two buffers.  Which one is larger?
-Why might that be?
+Why might that be?  Now run `clearStreamBuffers` and observe that the
+sizes are back to zero.
 
 Answer (select to see):
 
@@ -64,3 +62,14 @@ time period than poses.  This is useful because you can find an
 accurate pose for each image.
 {: style="color:white;" }
 
+
+### Saving Data
+
+Stream data is saved in the focused class.  Stream data itself
+consists of the raw data that is saved about an object, most often
+pose-annotated images.  To save the stream buffers to disk, use
+`streamWriteBuffersToDisk`.  Alternatively, you can
+`enableDiskStreaming` to stream as data is loaded into the buffer.
+
+
+`populateStreamBuffer` populates the stream buffer with data saved from the  focused class.  

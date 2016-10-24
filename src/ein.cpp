@@ -1378,8 +1378,7 @@ void populateStreamWordBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_word_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/word/";
+  string this_word_path = streamDirectory(ms, classToStreamIdx) + "/word/";
   dpdf = opendir(this_word_path.c_str());
   cout << "Populating stream word buffer from " << this_word_path << endl;
   if (dpdf != NULL) {
@@ -1545,6 +1544,7 @@ void streamWordAsClass(MachineState * ms, string wordIn, string commandIn, int c
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamWordBuffer.size() >= ms->config.streamWordBatchSize) {
       writeWordBatchAsClass(ms, classToStreamIdx);	
+      ms->config.streamWordBuffer.resize(0);
     } else {
     } // do nothing
   } else {
@@ -1569,8 +1569,7 @@ void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx) {
     return;
   }
 
-  string thisWordName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisWordName + "/raw/word/";
+  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/word/";
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
@@ -1605,7 +1604,6 @@ void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx) {
     fsvO << "]";
   }
   fsvO << "}";
-  ms->config.streamWordBuffer.resize(0);
 }
 
 
@@ -1617,8 +1615,8 @@ void populateStreamLabelBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_label_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/label/";
+
+  string this_label_path = streamDirectory(ms, classToStreamIdx) + "/label/";
   dpdf = opendir(this_label_path.c_str());
   cout << "Populating stream label buffer from " << this_label_path << endl;
   if (dpdf != NULL) {
@@ -1721,6 +1719,7 @@ void streamLabelAsClass(MachineState * ms, string labelIn, int classToStreamIdx,
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamLabelBuffer.size() >= ms->config.streamLabelBatchSize) {
       writeLabelBatchAsClass(ms, classToStreamIdx);	
+      ms->config.streamLabelBuffer.resize(0);
     } else {
     } // do nothing
   } else {
@@ -1746,8 +1745,7 @@ void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx) {
     return;
   }
 
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/label/";
+  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/label/";
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
@@ -1781,7 +1779,6 @@ void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx) {
     fsvO << "]";
   }
   fsvO << "}";
-  ms->config.streamLabelBuffer.resize(0);
 }
 
 
@@ -1794,8 +1791,7 @@ void populateStreamRangeBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_range_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/range/";
+  string this_range_path = streamDirectory(ms, classToStreamIdx) + "/range/";
   dpdf = opendir(this_range_path.c_str());
   cout << "Populating stream range buffer from " << this_range_path << endl;
   if (dpdf != NULL) {
@@ -1881,8 +1877,7 @@ void populateStreamPoseBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_pose_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/pose/";
+  string this_pose_path = streamDirectory(ms, classToStreamIdx) + "/pose/";
   dpdf = opendir(this_pose_path.c_str());
   cout << "Populating stream pose buffer from " << this_pose_path << endl;
   if (dpdf != NULL) {
@@ -1968,13 +1963,14 @@ void activateSensorStreaming(MachineState * ms) {
   int cfClass = ms->config.focusedClass;
   if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
     string this_label_name = ms->config.classLabels[cfClass]; 
-    string this_raw_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/";
-    string this_image_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/images/";
-    string this_pose_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/pose/";
-    string this_range_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/range/";
-    string this_joints_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/joints/";
-    string this_word_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/word/";
-    string this_label_path = ms->config.data_directory + "/objects/" + this_label_name + "/raw/label/";
+
+    string this_raw_path = streamDirectory(ms, cfClass);
+    string this_image_path = this_raw_path + "/images/";
+    string this_pose_path = this_raw_path + "/pose/";
+    string this_range_path = this_raw_path +  "/range/";
+    string this_joints_path = this_raw_path +  "/joints/";
+    string this_word_path = this_raw_path + "/word/";
+    string this_label_path = this_raw_path + "/label/";
     string this_calibration_path = ms->config.data_directory + "/objects/" + this_label_name + "/ein/calibration/";
     mkdir(this_raw_path.c_str(), 0777);
     mkdir(this_image_path.c_str(), 0777);
@@ -2024,6 +2020,14 @@ void deactivateSensorStreaming(MachineState * ms) {
       writeJointsBatchAsClass(ms, cfClass);	
       writeWordBatchAsClass(ms, cfClass);	
       writeLabelBatchAsClass(ms, cfClass);	
+
+      ms->config.streamPoseBuffer.resize(0);
+      ms->config.streamRangeBuffer.resize(0);
+      ms->config.streamJointsBuffer.resize(0);
+      ms->config.streamWordBuffer.resize(0);
+      ms->config.streamLabelBuffer.resize(0);
+      
+
       cout << "Wrote batches." << endl;
     } else {
       cout << "Did not write batches, invalid focused class." << endl;
@@ -2071,6 +2075,7 @@ void streamRangeAsClass(MachineState * ms, double rangeIn, int classToStreamIdx,
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamRangeBuffer.size() >= ms->config.streamRangeBatchSize) {
       writeRangeBatchAsClass(ms, classToStreamIdx);	
+      ms->config.streamRangeBuffer.resize(0);
     } else {
     } // do nothing
   } else {
@@ -2104,6 +2109,7 @@ void streamPoseAsClass(MachineState * ms, eePose poseIn, int classToStreamIdx, d
   if (ms->config.diskStreamingEnabled) {
     if (ms->config.streamPoseBuffer.size() >= ms->config.streamPoseBatchSize) {
 	writePoseBatchAsClass(ms, classToStreamIdx);	
+      ms->config.streamPoseBuffer.resize(0);
     } else {
     } // do nothing
   } else {
@@ -2127,9 +2133,7 @@ void writeRangeBatchAsClass(MachineState * ms, int classToStreamIdx) {
     cout << "writeRangeBatchAsClass: invalid class, not writing." << endl;
     return;
   }
-
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/range/";
+  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/range/";
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
@@ -2163,7 +2167,6 @@ void writeRangeBatchAsClass(MachineState * ms, int classToStreamIdx) {
     fsvO << "]";
   }
   fsvO << "}";
-  ms->config.streamRangeBuffer.resize(0);
 }
 
 void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx) {
@@ -2179,9 +2182,7 @@ void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx) {
     cout << "writePoseBatchAsClass: invalid class, not writing." << endl;
     return;
   }
-
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/pose/";
+  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/pose/";
   ros::Time thisNow = ros::Time::now();
   char buf[1024];
   sprintf(buf, "%s%f", this_image_path.c_str(), thisNow.toSec());
@@ -2217,8 +2218,6 @@ void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx) {
     fsvO << "]";
   }
   fsvO << "}";
-  ms->config.streamPoseBuffer.resize(0);
-
   fsvO.release();
 }
 
@@ -3665,7 +3664,6 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
     Mat hCRIT;
     cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
     ms->config.hiColorRangemapWindow->updateImage(ms->config.hiColorRangemapImage);
-
 
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
 
