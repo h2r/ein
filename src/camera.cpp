@@ -610,6 +610,22 @@ void Camera::loadCalibration(string inFileName) {
     cropUpperLeftCorner.py = *(it++);
   }
 
+
+  {
+    FileNode anode = fsvI["mu"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    mu_x = *(it++);
+    mu_y = *(it++);
+  }
+
+  {
+    FileNode anode = fsvI["kappa"];
+    FileNodeIterator it = anode.begin(), it_end = anode.end();
+    kappa_x = *(it++);
+    kappa_y = *(it++);
+  }
+
+
   {
     FileNode anode = fsvI["vanishingPointReticle"];
     FileNodeIterator it = anode.begin(), it_end = anode.end();
@@ -740,6 +756,16 @@ void Camera::saveCalibration(string outFileName) {
   fsvO << "cropUpperLeftCorner" << "[" 
     << cropUpperLeftCorner.px 
     << cropUpperLeftCorner.py 
+  << "]";
+
+  fsvO << "mu" << "[" 
+    << mu_x 
+    << mu_y 
+  << "]";
+
+  fsvO << "kappa" << "[" 
+    << kappa_x 
+    << kappa_y 
   << "]";
 
   fsvO << "vanishingPointReticle" << "[" 

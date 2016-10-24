@@ -1993,17 +1993,19 @@ void activateSensorStreaming(MachineState * ms) {
     for (int i = 0; i < ms->config.cameras.size(); i++) {
       ms->config.cameras[i]->activateSensorStreaming();
     }
-    cout << "Activating sensor stream." << endl;
+    CONSOLE(ms, "Activating sensor streaming.");
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
   } else {
-    cout << "Cannot activate sensor stream: invalid focused class." << endl;
+    CONSOLE_ERROR(ms, "Cannot activate sensor stream: invalid focused class.");
   } 
 }
 
 void deactivateSensorStreaming(MachineState * ms) {
   cout << "deactivateSensorStreaming: Making node handle." << endl;
   ros::NodeHandle n("~");
+  CONSOLE(ms, "Deactivating sensor streaming.");
+
   cout << "deactivateSensorStreaming: Making image transport." << endl;
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
@@ -10017,8 +10019,24 @@ endl;
   }
 }
 
-void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose cameraEEPose, eePose otherPlane, pixelToGlobalCache * cache) {
+void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
 
+// determine z using cache->target_plane
+// cast with pixelToGlobalFullFromCacheZNotBuilt
+
+}
+
+void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose givenEEPose, eePose otherPlane, pixelToGlobalCache * cache) {
+  // other plane is the target photographic plane, usually the scene's anchor pose
+  computePixelToPlaneCache(ms, gZ, givenEEPose, otherPlane, cache);
+
+  // the plane is facing towards the arm
+  eePose tempZUnit = eePose(0,0,1,0,0,0,1);
+  eePose tempPlaneNormal = tempZUnit.applyAsRelativePoseTo(otherPlane);
+  cache->target_plane[0] = tempPlaneNormal.px;
+  cache->target_plane[1] = tempPlaneNormal.py;
+  cache->target_plane[2] = tempPlaneNormal.pz;
+  cache->target_plane[3] = -gZ;
 }
 
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {

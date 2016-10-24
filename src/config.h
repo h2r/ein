@@ -429,6 +429,8 @@ typedef struct pixelToGlobalCache {
   double mu_y;
   double kappa_x;
   double kappa_y;
+
+  Vec4d target_plane;
 } pixelToGlobalCache;
 
 
