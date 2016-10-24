@@ -1734,8 +1734,7 @@ void streamLabelAsClass(MachineState * ms, string labelIn, int classToStreamIdx,
 void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx) {
 // XXX TODO
 
-  if (ms->config.streamLabelBuffer.size() > 0) {
-  } else {
+  if (ms->config.streamLabelBuffer.size() <= 0) {
     cout << "writeLabelBatchAsClass: buffer empty, returning." << endl;
     return;
   }
@@ -2321,6 +2320,10 @@ void writeSceneModel(MachineState * ms, int idx, string this_scene_path) {
   }
 
   ms->config.class_scene_models[idx]->saveToFile(this_scene_path);
+}
+
+void initStreamFolders(MachineState * ms, string folderName) {
+  
 }
 
 void initClassFolders(MachineState * ms, string folderName) {
