@@ -325,6 +325,11 @@ string sceneModelFile(MachineState * ms, string label) {
   return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
 }
 
+string streamDirectory(MachineState * ms, int classIdx) {
+  string thisLabelName = ms->config.classLabels[classIdx];
+  return ms->config.data_directory + "/objects/" + thisLabelName + "/raw";
+}
+
 
 
 string xmlEncode(const string data) {

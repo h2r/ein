@@ -2,7 +2,7 @@
 <tr><td>aboutFace</td><td>Rotate the gripper in oZ by 180 degrees.</td></tr>
 <tr><td>accumulate</td><td>Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -&gt; 3.</td></tr>
 <tr><td>accumulatedDensity</td><td></td></tr>
-<tr><td>activateSensorStreaming</td><td></td></tr>
+<tr><td>activateSensorStreaming</td><td>Start streaming data; you might want to set the SiS (&quot;Should I Stream?&quot;) first using setSisFlags or streamSetSis.</td></tr>
 <tr><td>add3dGrasp</td><td></td></tr>
 <tr><td>add3dGraspPoseWord</td><td></td></tr>
 <tr><td>addPlaceOverPoint</td><td></td></tr>
@@ -132,7 +132,7 @@
 <tr><td>blink_swoopT</td><td></td></tr>
 <tr><td>blink_times</td><td></td></tr>
 <tr><td>blur</td><td></td></tr>
-<tr><td>bringUpAllNonessentialSystems</td><td></td></tr>
+<tr><td>bringUpAllNonessentialSystems</td><td>Bring up systems that are not important for streaming data.</td></tr>
 <tr><td>buildClassSimilarityMatrix</td><td>Builds the matrix of gradients of the current class labels.</td></tr>
 <tr><td>buildClassSimilarityMatrixFromDensity</td><td>Builds the matrix of gradients of the current class labels.</td></tr>
 <tr><td>c3dPoseBase</td><td></td></tr>
@@ -304,7 +304,7 @@
 <tr><td>darkServoB</td><td></td></tr>
 <tr><td>dataDirectory</td><td></td></tr>
 <tr><td>dateString</td><td></td></tr>
-<tr><td>deactivateSensorStreaming</td><td></td></tr>
+<tr><td>deactivateSensorStreaming</td><td>Stop streaming data.</td></tr>
 <tr><td>decMx</td><td></td></tr>
 <tr><td>decMy</td><td></td></tr>
 <tr><td>decrementCamera</td><td></td></tr>
@@ -921,7 +921,7 @@
 <tr><td>incrementCamera</td><td></td></tr>
 <tr><td>incrementCurrentCornellTable</td><td></td></tr>
 <tr><td>incrementGraspGear</td><td></td></tr>
-<tr><td>incrementImageStreamBuffer</td><td></td></tr>
+<tr><td>incrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.</td></tr>
 <tr><td>incrementImageStreamBufferNoLoad</td><td></td></tr>
 <tr><td>incrementImageStreamBufferNoLoadNoKick</td><td></td></tr>
 <tr><td>incrementTargetClass</td><td></td></tr>
@@ -1661,7 +1661,7 @@
 <tr><td>shiftIntoGraspGear3</td><td></td></tr>
 <tr><td>shiftIntoGraspGear4</td><td></td></tr>
 <tr><td>shoreUp</td><td></td></tr>
-<tr><td>shutdownAllNonessentialSystems</td><td></td></tr>
+<tr><td>shutdownAllNonessentialSystems</td><td>Shut down all systems that are not important for streaming data, to maximize the framerate we stream.</td></tr>
 <tr><td>shutdownToSensorsAndMovement</td><td></td></tr>
 <tr><td>silenceSonar</td><td></td></tr>
 <tr><td>sin</td><td></td></tr>
@@ -1703,16 +1703,19 @@
 <tr><td>streamCenterCropAsFocusedClass</td><td></td></tr>
 <tr><td>streamCropsAsFocusedClass</td><td></td></tr>
 <tr><td>streamDisableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
+<tr><td>streamDiskStreaming</td><td></td></tr>
 <tr><td>streamEnableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
+<tr><td>streamEnableSisImageAndPoses</td><td>Configure Ein to stream images and poses only.</td></tr>
 <tr><td>streamGraspResult</td><td></td></tr>
 <tr><td>streamImageBufferSize</td><td></td></tr>
 <tr><td>streamImageSpeed</td><td></td></tr>
+<tr><td>streamJointBufferSize</td><td></td></tr>
 <tr><td>streamLabel</td><td></td></tr>
+<tr><td>streamLabelBufferSize</td><td></td></tr>
 <tr><td>streamPoseBufferSize</td><td></td></tr>
-<tr><td>streamPushImageStreamIndex</td><td></td></tr>
-<tr><td>streamPushImageStreamSize</td><td></td></tr>
 <tr><td>streamRangeBufferSize</td><td></td></tr>
 <tr><td>streamScanCentered</td><td></td></tr>
+<tr><td>streamSetDiskStreaming</td><td></td></tr>
 <tr><td>streamSetSisImage</td><td></td></tr>
 <tr><td>streamSetSisJoints</td><td></td></tr>
 <tr><td>streamSetSisLabel</td><td></td></tr>
@@ -1726,6 +1729,8 @@
 <tr><td>streamSisRange</td><td></td></tr>
 <tr><td>streamSisWord</td><td></td></tr>
 <tr><td>streamSpin</td><td></td></tr>
+<tr><td>streamWordBufferSize</td><td></td></tr>
+<tr><td>streamWriteBuffersToDisk</td><td>Write what is in the stream buffer to disk.</td></tr>
 <tr><td>streamedAccumulatedDensity</td><td></td></tr>
 <tr><td>streamedDensity</td><td></td></tr>
 <tr><td>subscribeCameraParameterTrackerToRosOut</td><td></td></tr>

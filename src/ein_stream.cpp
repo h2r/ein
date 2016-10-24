@@ -86,7 +86,7 @@ REGISTER_WORD(BringUpAllNonessentialSystems)
 
 WORD(ActivateSensorStreaming)
 virtual string description() {
-  return "Start streaming data; you might want to set the SiS (\"Should I Stream?\") first.";
+  return "Start streaming data; you might want to set the SiS (\"Should I Stream?\") first using setSisFlags or streamSetSis.";
 }
 virtual void execute(MachineState * ms)
 {
@@ -105,6 +105,32 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(DeactivateSensorStreaming)
+
+WORD(StreamWriteBuffersToDisk)
+virtual string description() {
+  return "Write what is in the stream buffer to disk.";
+}
+virtual void execute(MachineState * ms)
+{
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  CONSOLE(ms, "Writing to " << streamDirectory(ms, tfc));
+
+  writeRangeBatchAsClass(ms, tfc);	
+  writePoseBatchAsClass(ms, tfc);	
+  writeJointsBatchAsClass(ms, tfc);	
+  writeWordBatchAsClass(ms, tfc);	
+  writeLabelBatchAsClass(ms, tfc);
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->writeImageBatchAsClass(tfc);
+  }
+
+}
+END_WORD
+REGISTER_WORD(StreamWriteBuffersToDisk)
+
+
+
 
 WORD(SetSisFlags)
 virtual string description() {
@@ -160,6 +186,9 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StreamDisableAllSisFlags)
 
+
+CONFIG_GETTER_INT(StreamDiskStreaming, ms->config.diskStreamingEnabled)
+CONFIG_SETTER_INT(StreamSetDiskStreaming, ms->config.diskStreamingEnabled)
 
 WORD(DisableDiskStreaming)
 virtual void execute(MachineState * ms)
@@ -276,24 +305,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(IntegrateRangeStreamBuffer)
 
-WORD(StreamPushImageStreamIndex)
-virtual void execute(MachineState * ms)
-{
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  ms->pushWord( make_shared<DoubleWord>(camera->sibCurIdx) );
-}
-END_WORD
-REGISTER_WORD(StreamPushImageStreamIndex)
-
-WORD(StreamPushImageStreamSize)
-virtual void execute(MachineState * ms)
-{
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  ms->pushWord( make_shared<DoubleWord>(camera->streamImageBuffer.size()) );
-}
-END_WORD
-REGISTER_WORD(StreamPushImageStreamSize)
 
 WORD(RewindImageStreamBuffer)
 virtual void execute(MachineState * ms)
@@ -414,6 +425,9 @@ END_WORD
 REGISTER_WORD(SetExpectedCropsToStream)
 
 WORD(IncrementImageStreamBuffer)
+virtual string description() {
+  return "Increments the current location in the image stream buffer.";
+}
 virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -994,7 +1008,7 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StreamImageBufferSize)
 
-WORD(StreamSetSisImageAndPoses)
+WORD(StreamEnableSisImageAndPoses)
 virtual string description() {
   return "Configure Ein to stream images and poses only.";
 }
@@ -1003,12 +1017,17 @@ virtual void execute(MachineState * ms)
   ms->evaluateProgram("streamDisableAllSisFlags 1 streamSetSisPose 1 streamSetSisImage");
 }
 END_WORD
-REGISTER_WORD(StreamSetSisImageAndPoses)
+REGISTER_WORD(StreamEnableSisImageAndPoses)
 
 
 
 CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())
 CONFIG_GETTER_INT(StreamPoseBufferSize, ms->config.streamPoseBuffer.size())
+CONFIG_GETTER_INT(StreamJointBufferSize, ms->config.streamJointsBuffer.size())
+CONFIG_GETTER_INT(StreamWordBufferSize, ms->config.streamWordBuffer.size())
+CONFIG_GETTER_INT(StreamLabelBufferSize, ms->config.streamLabelBuffer.size())
+
+
 
 
 CONFIG_GETTER_INT(StreamSisLabel, ms->config.sisLabel)

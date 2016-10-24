@@ -541,17 +541,9 @@ void Camera::clearStreamBuffer() {
 }
 
 
+void Camera::writeImage(Mat im, int classToStreamIdx, double now) {
+    string this_image_path = streamDirectory(ms, classToStreamIdx) + "/images/";
 
-void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
-
-  if (didSensorStreamTimeout(ms)) {
-    return;
-  } else {
-  }
-
-  if (ms->config.diskStreamingEnabled) {
-    string thisLabelName = ms->config.classLabels[classToStreamIdx];
-    string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
     char buf[1024];
     sprintf(buf, "%s%f", this_image_path.c_str(), now);
     string root_path(buf); 
@@ -574,6 +566,35 @@ void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
 
     fsvO << "time" <<  now;
     fsvO.release();
+}
+
+void Camera::writeImageBatchAsClass(int classToStreamIdx) {
+  int tng = streamImageBuffer.size();
+  for (int i = 0; i < tng; i++) {
+    streamImage &tsi = streamImageBuffer[i];
+    if (tsi.image.data == NULL) {
+      tsi.image = imread(tsi.filename);
+      if (tsi.image.data == NULL) {
+        cout << " Failed to load " << tsi.filename << endl;
+        tsi.loaded = 0;
+        return;
+      } else {
+        tsi.loaded = 1;
+      }
+    }
+    writeImage(tsi.image, classToStreamIdx, tsi.time);
+  }
+}
+
+void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
+
+  if (didSensorStreamTimeout(ms)) {
+    return;
+  } else {
+  }
+
+  if (ms->config.diskStreamingEnabled) {
+    writeImage(im, classToStreamIdx, now);
   } else {
     streamImage toAdd;
     toAdd.image = im.clone();
