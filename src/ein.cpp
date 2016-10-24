@@ -1993,17 +1993,19 @@ void activateSensorStreaming(MachineState * ms) {
     for (int i = 0; i < ms->config.cameras.size(); i++) {
       ms->config.cameras[i]->activateSensorStreaming();
     }
-    cout << "Activating sensor stream." << endl;
+    CONSOLE(ms, "Activating sensor streaming.");
     ros::Time thisTime = ros::Time::now();
     ms->config.sensorStreamLastActivated = thisTime.toSec();
   } else {
-    cout << "Cannot activate sensor stream: invalid focused class." << endl;
+    CONSOLE_ERROR(ms, "Cannot activate sensor stream: invalid focused class.");
   } 
 }
 
 void deactivateSensorStreaming(MachineState * ms) {
   cout << "deactivateSensorStreaming: Making node handle." << endl;
   ros::NodeHandle n("~");
+  CONSOLE(ms, "Deactivating sensor streaming.");
+
   cout << "deactivateSensorStreaming: Making image transport." << endl;
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.

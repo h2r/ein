@@ -462,6 +462,9 @@ REGISTER_WORD(Plus)
 
 
 WORD(Sum)
+virtual string description() {
+  return "Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -> 3.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -475,6 +478,10 @@ END_WORD
 REGISTER_WORD(Sum)
 
 WORD(Prod)
+virtual string description() {
+  return "Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -> 1.";
+}
+
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram(" ( * ) accumulate");
 }
@@ -1269,7 +1276,7 @@ WORD(ExportDoc)
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.html";
-  cout << "Writing words to " << wordFileName << endl;
+  CONSOLE(ms, "Writing words to " << wordFileName);
   ofstream wordFile;
   wordFile.open(wordFileName);
   wordFile << "<table><tr><th>Word</th><th>Description</th></tr>" << endl;
@@ -1900,7 +1907,7 @@ virtual void execute(MachineState * ms)
 {
   shared_ptr<Word> word;
   GET_WORD_ARG(ms, Word, word);
-  shared_ptr<StringWord> outword = std::make_shared<StringWord>(word->description());
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>("Word " + word->name() + ": " + word->description());
   ms->pushWord(outword);
 }
 END_WORD
@@ -1908,11 +1915,11 @@ REGISTER_WORD(PushHelp)
 
 WORD(Help)
 virtual string description() {
-  return "Return help text for a word, dereferencing the symbol if necessary.  Usage:   ' < word >   help.";
+  return "Return help text for a word.  Takes a compound word as an argument with a single word inside.  Usage:  ( word ) help.";
 }
 virtual void execute(MachineState * ms)
 {
-  ms->evaluateProgram("derefToTruth pushHelp print");
+  ms->evaluateProgram("car pushHelp print");
 }
 END_WORD
 REGISTER_WORD(Help)
@@ -1997,6 +2004,9 @@ REGISTER_WORD(Map)
 
 
 WORD(Accumulate)
+virtual string description() {
+  return "Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -> 3.";
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> lambdaWord;

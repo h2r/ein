@@ -1877,6 +1877,9 @@ END_WORD
 REGISTER_WORD(MeasureTimeA)
 
 WORD(AboutFace)
+virtual string description() {
+  return "Rotate the gripper in oZ by 180 degrees.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.currentEEDeltaRPY.pz = ( M_PI );
   endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );

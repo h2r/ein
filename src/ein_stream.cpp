@@ -46,12 +46,15 @@ virtual void execute(MachineState * ms)
   ms->config.shouldIImageCallback = 0;
   ms->config.shouldIRangeCallback = 0;
   ms->config.shouldIMiscCallback = 0;
-  cout << "Shutting down to sensors and movement." << endl;
+  CONSOLE(ms, "Shutting down to sensors and movement.");
 }
 END_WORD
 REGISTER_WORD(ShutdownToSensorsAndMovement)
 
 WORD(ShutdownAllNonessentialSystems)
+virtual string description() {
+  return "Shut down all systems that are not important for streaming data, to maximize the framerate we stream.";
+}
 virtual void execute(MachineState * ms)
 {
   ms->config.shouldIRender = 0;
@@ -59,12 +62,15 @@ virtual void execute(MachineState * ms)
   ms->config.shouldIImageCallback = 0;
   ms->config.shouldIRangeCallback = 0;
   ms->config.shouldIMiscCallback = 0;
-  cout << "Shutting down all non-essential systems." << endl;
+  CONSOLE_ERROR(ms, "Shutting down all non-essential systems.");
 }
 END_WORD
 REGISTER_WORD(ShutdownAllNonessentialSystems)
 
 WORD(BringUpAllNonessentialSystems)
+virtual string description() {
+  return "Bring up systems that are not important for streaming data.";
+}
 virtual void execute(MachineState * ms)
 {
   ms->config.shouldIRender = 1;
@@ -73,12 +79,15 @@ virtual void execute(MachineState * ms)
   ms->config.shouldIImageCallback = 1;
   ms->config.shouldIRangeCallback = 1;
   ms->config.shouldIMiscCallback = 1;
-  cout << "Bringing up all non-essential systems." << endl;
+  CONSOLE_ERROR(ms, "Bringing up all non-essential systems.");
 }
 END_WORD
 REGISTER_WORD(BringUpAllNonessentialSystems)
 
 WORD(ActivateSensorStreaming)
+virtual string description() {
+  return "Start streaming data; you might want to set the SiS (\"Should I Stream?\") first.";
+}
 virtual void execute(MachineState * ms)
 {
   activateSensorStreaming(ms);
@@ -87,6 +96,9 @@ END_WORD
 REGISTER_WORD(ActivateSensorStreaming)
 
 WORD(DeactivateSensorStreaming)
+virtual string description() {
+  return "Stop streaming data.";
+}
 virtual void execute(MachineState * ms)
 {
   deactivateSensorStreaming(ms);
@@ -95,6 +107,9 @@ END_WORD
 REGISTER_WORD(DeactivateSensorStreaming)
 
 WORD(SetSisFlags)
+virtual string description() {
+  return "Set whether we should save different sensor streams. <pose> <range> <image> <joints> <word> <label> setSisFlags";
+}
 virtual void execute(MachineState * ms)
 {
   cout << "Setting should I stream flags...";
@@ -121,6 +136,30 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(SetSisFlags)
+
+
+WORD(StreamEnableAllSisFlags)
+virtual string description() {
+  return "Enable all SIS flags.";
+}
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("1 1 1 1 1 1 setSisFlags");
+}
+END_WORD
+REGISTER_WORD(StreamEnableAllSisFlags)
+
+WORD(StreamDisableAllSisFlags)
+virtual string description() {
+  return "Enable all SIS flags.";
+}
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("0 0 0 0 0 0 setSisFlags");
+}
+END_WORD
+REGISTER_WORD(StreamDisableAllSisFlags)
+
 
 WORD(DisableDiskStreaming)
 virtual void execute(MachineState * ms)
@@ -944,5 +983,47 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(StreamGraspResult)
+
+
+WORD(StreamImageBufferSize)
+virtual void execute(MachineState * ms)
+{
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  ms->pushData(std::make_shared<IntegerWord>(camera->streamImageBuffer.size()));
+}
+END_WORD
+REGISTER_WORD(StreamImageBufferSize)
+
+WORD(StreamSetSisImageAndPoses)
+virtual string description() {
+  return "Configure Ein to stream images and poses only.";
+}
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("streamDisableAllSisFlags 1 streamSetSisPose 1 streamSetSisImage");
+}
+END_WORD
+REGISTER_WORD(StreamSetSisImageAndPoses)
+
+
+
+CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())
+CONFIG_GETTER_INT(StreamPoseBufferSize, ms->config.streamPoseBuffer.size())
+
+
+CONFIG_GETTER_INT(StreamSisLabel, ms->config.sisLabel)
+CONFIG_GETTER_INT(StreamSisWord, ms->config.sisWord)
+CONFIG_GETTER_INT(StreamSisJoints, ms->config.sisJoints)
+CONFIG_GETTER_INT(StreamSisImage, ms->config.sisImage)
+CONFIG_GETTER_INT(StreamSisRange, ms->config.sisRange)
+CONFIG_GETTER_INT(StreamSisPose, ms->config.sisPose)
+
+CONFIG_SETTER_INT(StreamSetSisLabel, ms->config.sisLabel)
+CONFIG_SETTER_INT(StreamSetSisWord, ms->config.sisWord)
+CONFIG_SETTER_INT(StreamSetSisJoints, ms->config.sisJoints)
+CONFIG_SETTER_INT(StreamSetSisImage, ms->config.sisImage)
+CONFIG_SETTER_INT(StreamSetSisRange, ms->config.sisRange)
+CONFIG_SETTER_INT(StreamSetSisPose, ms->config.sisPose)
+
 
 }

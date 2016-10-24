@@ -1,3 +1,6 @@
+It's a good idea to run exportDoc to creaet a new version of the words
+table for the documentation page.
+
 First create a new release branch from develop:
 $ git checkout -b release develop
 
