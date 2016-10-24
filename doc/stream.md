@@ -43,7 +43,9 @@ you have shut things down.
 
 After deactivating streaming, `streamImageBufferSize` will contain the
 number of images saved, while `streamPoseBufferSize` will contain the
-number of poses.  `clearStreamBuffers` empties the stream buffer.  
+number of poses.  `clearStreamBuffers` empties the stream buffer.
+Streaming is cumulative, so activiting and deactivating streaming will
+append to the stream buffer.
 
 #### Exercise:  Stream some images and poses.
 
