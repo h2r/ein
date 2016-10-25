@@ -34,6 +34,16 @@ shared_ptr<Scene> Scene::createFromFile(MachineState * ms, string filename) {
   return scene;
 }
 
+shared_ptr<GaussianMap> GaussianMap::createEmptyMap(MachineState * ms) {
+  return make_shared<GaussianMap>(ms, 1, 1, 0.02, eePose::identity());
+}
+
+shared_ptr<GaussianMap> GaussianMap::createFromFile(MachineState * ms, string filename) {
+  shared_ptr<GaussianMap> map = createEmptyMap(ms);
+  map->loadFromFile(filename);
+  return map;
+}
+
 void _GaussianMapCell::zero() {
   red.zero();
   green.zero();
@@ -2981,7 +2991,7 @@ void TransitionTable::loadFromFile(string filename) {
 
 namespace ein_words {
 
- WORD(SceneScoreObjectAtPose)
+WORD(SceneScoreObjectAtPose)
 virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);

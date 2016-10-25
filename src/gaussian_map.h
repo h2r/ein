@@ -121,6 +121,9 @@ class GaussianMap {
 
   shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
   shared_ptr<GaussianMap> copy();
+  static shared_ptr<GaussianMap> createFromFile(MachineState * ms, string filename);
+  static shared_ptr<GaussianMap> createEmptyMap(MachineState * ms);
+
 };
 
 typedef enum {

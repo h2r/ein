@@ -24,4 +24,25 @@ public:
   }
 };
 
+
+class SceneWord: public Word
+{
+  //private:
+
+
+public:
+
+  shared_ptr<Scene> scene;
+  SceneWord(shared_ptr<Scene> scene);
+  string name() {
+    stringstream ss;
+    ss << "Scene";
+    return ss.str();
+  }
+
+  string to_string() {
+    return name();
+  }
+};
+
 #endif /* _GAUSSIAN_MAP_WORDS_H_ */
