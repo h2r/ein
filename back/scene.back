@@ -1,5 +1,6 @@
 [ robotSerial "_bg_" leftOrRightArm ] join "bg" store
 bg sceneInitDefaultBackgroundMap
+currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
@@ -52,7 +53,11 @@ bg sceneInitDefaultBackgroundMap
 
   tableInitNoBackground
 
+  /*
   bg sceneLoadBackgroundMap 
+  */
+  currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
+
   tableRegularizeBackground
 ) "Initialize scene parameters." "tableInit" define
 
@@ -942,7 +947,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 (
   shoreUp
   tableTakeScene
+
+  /*
   bg sceneSaveObservedMap 
+  */
+  currentObservedMap sceneCopyGaussianMap "bgRAM" store 
+
   tableInit
 ) "tableUpdateBg" store
 
@@ -2417,19 +2427,19 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   quarterImpulse
   waitUntilAtCurrentPosition
-  /* 0.01 */
-  0.02 setW1GoThresh
+
 
     0.01625 
   /* XXX no commit */
     1.0 divide
   "tableSpiralGridSize" store
 
-/* 0.08 */ 
-  0.3 "tableSpiralMoveSpeed" store
+  0.2 "tableSpiralMoveSpeed" store
 
-/* 18 */ 
-  18 "tableUpdateSpiralN" store
+/* 18 0.02 */ 
+
+  0.04 setW1GoThresh
+  22 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -3354,7 +3364,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   ikModeIkFast
   halfImpulse
-  setMovementStateToMoving comeToStop
+  setMovementStateToMoving waitUntilAtCurrentPosition 
   ikModeService
 ) "shoreUp" store
 
