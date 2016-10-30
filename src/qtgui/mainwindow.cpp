@@ -66,6 +66,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 
 
 
-void MainWindow::addWindow(EinWindow * window) {
+void MainWindow::addWindow(QMainWindow * window) {
 windowManager.addWindow(window);
 }

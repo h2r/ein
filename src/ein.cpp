@@ -22,6 +22,7 @@
 
 #include "qtgui/mainwindow.h"
 #include "qtgui/einwindow.h"
+#include "qtgui/gaussianmapwindow.h"
 #include <QApplication>
 #include <QTimer>
 
@@ -15038,6 +15039,11 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.backgroundWindow);
   ms->config.backgroundWindow->setVisible(true);
+
+  ms->config.backgroundMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.backgroundMapWindow);
+  ms->config.backgroundMapWindow->setVisible(true);
 
 
   ms->config.observedWindow = new EinWindow(NULL, ms);
