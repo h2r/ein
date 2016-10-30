@@ -758,6 +758,17 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Next)
 
+WORD(ClearConsole)
+virtual string description() {
+  return "Prints a lot of newlines to the console to clear it.";
+}
+virtual void execute(MachineState * ms) {
+  CONSOLE(ms, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+}
+END_WORD
+REGISTER_WORD(ClearConsole)
+
+
 WORD(Print)
 virtual string description() {
   return "Pop a word from the stack and print it to the Ein console.";
