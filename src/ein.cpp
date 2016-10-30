@@ -2637,7 +2637,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     handEEPose.qw = hand_pose.pose.orientation.w;
   }
 
-  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
+  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
     //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
     ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
