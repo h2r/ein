@@ -426,7 +426,7 @@ REGISTER_WORD(SetExpectedCropsToStream)
 
 WORD(IncrementImageStreamBuffer)
 virtual string description() {
-  return "Increments the current location in the image stream buffer.";
+  return "Increments the current location in the image stream buffer.  Loads it into memory and kicks it out when done.";
 }
 virtual void execute(MachineState * ms)
 {
@@ -447,6 +447,9 @@ END_WORD
 REGISTER_WORD(IncrementImageStreamBuffer)
 
 WORD(IncrementImageStreamBufferNoLoadNoKick)
+virtual string description() {
+  return "Increments the current location in the image stream buffer.  Does not load the image into memory or kick it out when done.";
+}
 virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -466,6 +469,9 @@ END_WORD
 REGISTER_WORD(IncrementImageStreamBufferNoLoadNoKick)
 
 WORD(IncrementImageStreamBufferNoLoad)
+virtual string description() {
+  return "Increments the current location in the image stream buffer.  Does not load the image into memory, but kicks it out when done.";
+}
 virtual void execute(MachineState * ms)
 {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -483,6 +489,30 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(IncrementImageStreamBufferNoLoad)
+
+
+WORD(StreamIncrementImageStreamBuffer)
+virtual string description() {
+  return "Increments the current location in the image stream buffer.  The new default word, which does no load and no kick.";
+}
+virtual void execute(MachineState * ms)
+{
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  int nextIdx = camera->sibCurIdx + 1;
+  //cout << "incrementImageStreamBufferNoLoadNoKick: Incrementing to " << nextIdx << endl;
+  if ( (nextIdx > -1) && (nextIdx < camera->streamImageBuffer.size()) ) {
+    streamImage * result = camera->setIsbIdxNoLoadNoKick(nextIdx);  
+    if (result == NULL) {
+      cout << "increment failed :(" << endl;
+    } else {
+    }
+  } else {
+  }
+}
+END_WORD
+REGISTER_WORD(StreamIncrementImageStreamBuffer)
+
 
 WORD(ImageStreamBufferLoadCurrent)
 virtual void execute(MachineState * ms)
@@ -999,15 +1029,6 @@ END_WORD
 REGISTER_WORD(StreamGraspResult)
 
 
-WORD(StreamImageBufferSize)
-virtual void execute(MachineState * ms)
-{
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  ms->pushData(std::make_shared<IntegerWord>(camera->streamImageBuffer.size()));
-}
-END_WORD
-REGISTER_WORD(StreamImageBufferSize)
-
 WORD(StreamEnableSisImageAndPoses)
 virtual string description() {
   return "Configure Ein to stream images and poses only.";
@@ -1021,11 +1042,17 @@ REGISTER_WORD(StreamEnableSisImageAndPoses)
 
 
 
+
+
+
 CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())
 CONFIG_GETTER_INT(StreamPoseBufferSize, ms->config.streamPoseBuffer.size())
 CONFIG_GETTER_INT(StreamJointBufferSize, ms->config.streamJointsBuffer.size())
 CONFIG_GETTER_INT(StreamWordBufferSize, ms->config.streamWordBuffer.size())
 CONFIG_GETTER_INT(StreamLabelBufferSize, ms->config.streamLabelBuffer.size())
+CONFIG_GETTER_INT(StreamImageBufferSize, ms->config.cameras[ms->config.focused_camera]->streamImageBuffer.size())
+
+CONFIG_GETTER_INT(StreamImageBufferCurrentIdx, ms->config.cameras[ms->config.focused_camera]->sibCurIdx)
 
 
 
