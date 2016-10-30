@@ -169,6 +169,8 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(MachineState * ms) {
+  ms->execute_stack = 1;
+
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
   ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
@@ -208,7 +210,6 @@ void initializeMachine(MachineState * ms) {
     ms->pushWord("loadConfig"); 
     ms->pushWord("initializeConfig");
   }
-  ms->execute_stack = 1;
 
   
 }
