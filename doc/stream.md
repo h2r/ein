@@ -65,7 +65,7 @@ accurate pose for each image.
 {: style="color:white;" }
 
 
-### Saving Data
+### Saving and Loading Data
 
 Stream data is saved in the focused class.  Stream data itself
 consists of the raw data that is saved about an object, most often
@@ -74,4 +74,13 @@ pose-annotated images.  To save the stream buffers to disk, use
 `enableDiskStreaming` to stream as data is loaded into the buffer.
 
 
-`populateStreamBuffer` populates the stream buffer with data saved from the  focused class.  
+`populateStreamBuffer` populates the stream buffer with data saved
+from the focused class.  `initializeAndFocusOnANewClass` creates a new
+class for saving stream buffer data.  
+
+
+### Incrementing and Viewing Data
+
+You can access the current stream buffer index with
+`streamImageBufferCurrentIdx` and set it with
+`streamSetImageBufferCurrentIdx`.

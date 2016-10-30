@@ -1053,6 +1053,7 @@ CONFIG_GETTER_INT(StreamLabelBufferSize, ms->config.streamLabelBuffer.size())
 CONFIG_GETTER_INT(StreamImageBufferSize, ms->config.cameras[ms->config.focused_camera]->streamImageBuffer.size())
 
 CONFIG_GETTER_INT(StreamImageBufferCurrentIdx, ms->config.cameras[ms->config.focused_camera]->sibCurIdx)
+CONFIG_SETTER_INT(StreamSetImageBufferCurrentIdx, ms->config.cameras[ms->config.focused_camera]->sibCurIdx)
 
 
 
