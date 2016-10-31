@@ -701,6 +701,8 @@ class EinConfig {
   EinWindow * predictedStdDevWindow;
 
   GaussianMapWindow * backgroundMapWindow;
+  GaussianMapWindow * observedMapWindow;
+  GaussianMapWindow * predictedMapWindow;
 
   ArmWidget * armWidget;
 

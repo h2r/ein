@@ -1379,6 +1379,9 @@ void populateStreamWordBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_word_path = streamDirectory(ms, classToStreamIdx) + "/word/";
   dpdf = opendir(this_word_path.c_str());
   cout << "Populating stream word buffer from " << this_word_path << endl;
@@ -1616,7 +1619,9 @@ void populateStreamLabelBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_label_path = streamDirectory(ms, classToStreamIdx) + "/label/";
   dpdf = opendir(this_label_path.c_str());
   cout << "Populating stream label buffer from " << this_label_path << endl;
@@ -1792,6 +1797,9 @@ void populateStreamRangeBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_range_path = streamDirectory(ms, classToStreamIdx) + "/range/";
   dpdf = opendir(this_range_path.c_str());
   cout << "Populating stream range buffer from " << this_range_path << endl;
@@ -1878,6 +1886,9 @@ void populateStreamPoseBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_pose_path = streamDirectory(ms, classToStreamIdx) + "/pose/";
   dpdf = opendir(this_pose_path.c_str());
   cout << "Populating stream pose buffer from " << this_pose_path << endl;
@@ -15041,7 +15052,7 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.backgroundWindow->setVisible(true);
 
   ms->config.backgroundMapWindow = new GaussianMapWindow(NULL, ms);
-  ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
+  ms->config.backgroundMapWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.backgroundMapWindow);
   ms->config.backgroundMapWindow->setVisible(true);
 
@@ -15057,6 +15068,12 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.observedStdDevWindow);
   ms->config.observedStdDevWindow->setVisible(true);
 
+  ms->config.observedMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.observedMapWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.observedMapWindow);
+  ms->config.observedMapWindow->setVisible(true);
+
+
 
 
   ms->config.predictedWindow = new EinWindow(NULL, ms);
@@ -15068,6 +15085,12 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.predictedStdDevWindow->setWindowTitle("Gaussian Map Predicted Std Dev View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.predictedStdDevWindow);
   ms->config.predictedStdDevWindow->setVisible(false);
+
+  ms->config.predictedMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.predictedMapWindow->setWindowTitle("Gaussian Map Predicted View " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.predictedMapWindow);
+  ms->config.predictedMapWindow->setVisible(true);
+
 
 
   ms->config.discrepancyWindow = new EinWindow(NULL, ms);

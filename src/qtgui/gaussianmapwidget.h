@@ -17,15 +17,19 @@ class GaussianMapWidget : public QWidget
 public: 
   GaussianMapWidget(QWidget * parent, MachineState * ms);
 
+  void updateMap(shared_ptr<GaussianMap> map);
+  Mat selectedImage();
+
 private:
     Ui::GaussianMapWidget *ui;
     MachineState * ms;
-    shared_ptr<GaussianMap> myMap;
     DefaultEinViewPort meanView;
     DefaultEinViewPort stdDevView;
     DefaultEinViewPort heightView;
 
-
+    Mat meanImage;
+    Mat stdDevImage;
+    Mat heightImage;
 };
 
 

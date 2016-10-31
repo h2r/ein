@@ -23,6 +23,14 @@ public:
     explicit GaussianMapWindow(QWidget *parent, MachineState * _ms);
     ~GaussianMapWindow();
 
+    void setWindowTitle(string s) {
+      QMainWindow::setWindowTitle(QString::fromStdString(s));
+    }
+    void updateMap(shared_ptr<GaussianMap> map);
+public slots:
+    void saveImage();
+
+
 private:
     Ui::GaussianMapWindow *ui;
     MachineState * ms;

@@ -5,6 +5,7 @@
 #include <QTest>
 #include <boost/algorithm/string.hpp>
 
+#include "einwindow.h"
 
 GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),
@@ -14,6 +15,10 @@ GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :
     ms = _ms;
     widget = new GaussianMapWidget(this, ms);
     ui->frame->layout()->addWidget(widget);
+    ui->menubar->setVisible(true);
+    connect(ui->actionSaveImage, SIGNAL(triggered()), this, SLOT(saveImage()));
+
+
 }
 
 
@@ -25,3 +30,12 @@ GaussianMapWindow::~GaussianMapWindow()
 
 
 
+void GaussianMapWindow::updateMap(shared_ptr<GaussianMap> map) 
+{
+  widget->updateMap(map);
+}
+
+
+void GaussianMapWindow::saveImage() {
+  doSaveImage(this, widget->selectedImage());
+}

@@ -181,6 +181,7 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
+  ms->pushWord("guiCustom1"); 
 
   if (ms->config.currentRobotMode != PHYSICAL) {
     return;
@@ -189,7 +190,6 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("zeroGOff"); 
   ms->pushWord("waitUntilEndpointCallbackReceived"); 
 
-  ms->pushWord("guiCustom1"); 
   ms->pushCopies("zUp", 15);
   int devInit = 1;
   if (devInit) {

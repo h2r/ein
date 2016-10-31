@@ -11,6 +11,34 @@ GaussianMapWidget::GaussianMapWidget(QWidget * parent, MachineState * _ms) : QWi
 {
     ui->setupUi(this);
     ui->tabs->widget(0)->layout()->addWidget(meanView.getWidget());
+    ui->tabs->widget(1)->layout()->addWidget(stdDevView.getWidget());
+    ui->tabs->widget(2)->layout()->addWidget(heightView.getWidget());
+    ui->tabs->setCurrentIndex(0);
 }
 
+Mat GaussianMapWidget::selectedImage() {
+  if (ui->tabs->currentIndex() == 0) {
+    return meanImage;
+  } else if (ui->tabs->currentIndex() == 1) {
+    return stdDevImage;
+  } else if (ui->tabs->currentIndex() == 2) {
+    return heightImage;
+  } else {
+    cout << "Bad index: " << ui->tabs->currentIndex() << endl;
+    assert(0);
+  }
+     
+}
+void GaussianMapWidget::updateMap(shared_ptr<GaussianMap> _map) 
+{
 
+  _map->rgbMuToBgrMat(meanImage);
+  meanView.updateImage(meanImage);
+
+  _map->rgbSigmaToMat(stdDevImage);
+  stdDevView.updateImage(stdDevImage);
+
+
+  _map->zMuToScaledMat(heightImage);
+  heightView.updateImage(heightImage);
+}
