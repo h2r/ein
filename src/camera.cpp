@@ -467,6 +467,9 @@ void Camera::populateStreamImageBuffer() {
   string dotpng(".png");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string thisLabelName = ms->config.classLabels[classToStreamIdx];
   string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
   dpdf = opendir(this_image_path.c_str());
