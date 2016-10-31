@@ -181,36 +181,32 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
-  ms->pushWord("guiCustom1"); 
 
-  if (ms->config.currentRobotMode != PHYSICAL) {
-    return;
-  }
+  if (ms->config.currentRobotMode == PHYSICAL) {
 
-  ms->pushWord("zeroGOff"); 
-  ms->pushWord("waitUntilEndpointCallbackReceived"); 
-
-  ms->pushCopies("zUp", 15);
-  int devInit = 1;
-  if (devInit) {
+    ms->pushWord("zeroGOff"); 
+    ms->pushWord("waitUntilEndpointCallbackReceived"); 
+    
+    ms->pushCopies("zUp", 15);
     ms->pushWord("incrementTargetClass"); 
     ms->pushWord("synchronicServoTakeClosest");
-  }
-  ms->pushWord("silenceSonar");
-  ms->pushWord("exportWords");
-  ms->pushWord("openGripper");
-  ms->pushWord("calibrateGripper");
-  ms->pushWord("shiftIntoGraspGear1"); 
 
-  {
+    ms->pushWord("silenceSonar");
+    ms->pushWord("exportWords");
+    ms->pushWord("openGripper");
+    ms->pushWord("calibrateGripper");
+    ms->pushWord("shiftIntoGraspGear1"); 
+    
     ms->pushWord("fillClearanceMap"); 
-    ms->pushWord("loadCalibration"); 
-    ms->pushWord("loadIkMap"); 
-    ms->pushWord("loadGripperMask"); 
-    ms->pushWord("loadConfig"); 
-    ms->pushWord("initializeConfig");
   }
 
+
+  ms->pushWord("loadCalibration"); 
+  ms->pushWord("loadIkMap"); 
+  ms->pushWord("loadGripperMask"); 
+  ms->pushWord("loadConfig"); 
+  ms->pushWord("initializeConfig");
+  ms->pushWord("guiCustom1"); 
   
 }
 
