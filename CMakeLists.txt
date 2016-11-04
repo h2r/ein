@@ -85,13 +85,17 @@ find_package (Qt5Widgets)
 
 set (EinQtLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp 
 ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.cpp
-${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
+${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp  
+${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.cpp  
+${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
 )
 set (EinQtLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h  ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.h   ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.h
-${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.h
+${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.h  ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.h 
+${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.h
+${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.h
 ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.h)
 set (EinQtLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.ui
-                  ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.ui   ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.ui)
+                  ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.ui   ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.ui)
 
 qt5_wrap_cpp(EinQtLib_hdr_moc ${EinQtLib_hdr})
 qt5_wrap_ui (EinQtLib_ui_moc  ${EinQtLib_ui})

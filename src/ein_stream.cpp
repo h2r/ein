@@ -533,6 +533,8 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(ImageStreamBufferLoadCurrent)
 
+
+
 WORD(StreamCropsAsFocusedClass)
 virtual void execute(MachineState * ms)       {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -1043,6 +1045,28 @@ REGISTER_WORD(StreamEnableSisImageAndPoses)
 
 
 
+WORD(StreamPoseForCurrentImage)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  streamImage * tsi = camera->currentImage();
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  ms->pushWord(make_shared<EePoseWord>(tArmP));
+}
+END_WORD
+REGISTER_WORD(StreamPoseForCurrentImage)
+
+
+WORD(StreamBasePoseForCurrentImage)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  streamImage * tsi = camera->currentImage();
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  ms->pushWord(make_shared<EePoseWord>(tBaseP));
+}
+END_WORD
+REGISTER_WORD(StreamBasePoseForCurrentImage)
 
 
 CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())

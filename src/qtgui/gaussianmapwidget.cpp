@@ -10,10 +10,10 @@ GaussianMapWidget::GaussianMapWidget(QWidget * parent, MachineState * _ms) : QWi
                                                                            heightView(parent, EIN_WINDOW_KEEPRATIO)
 {
     ui->setupUi(this);
+    //ui->meanImage->layout()->addWidget(meanView.getWidget());
     ui->tabs->widget(0)->layout()->addWidget(meanView.getWidget());
     ui->tabs->widget(1)->layout()->addWidget(stdDevView.getWidget());
     ui->tabs->widget(2)->layout()->addWidget(heightView.getWidget());
-    ui->tabs->setCurrentIndex(0);
 }
 
 Mat GaussianMapWidget::selectedImage() {
