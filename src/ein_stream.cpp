@@ -2,6 +2,25 @@
 #include "ein.h"
 #include "camera.h"
 
+
+int loadStreamImage(MachineState * ms, streamImage * tsi) {
+  if (tsi == NULL) {
+    return -1;
+  }
+  if (tsi->image.data == NULL) {
+    tsi->image = imread(tsi->filename);
+    if (tsi->image.data == NULL) {
+      CONSOLE_ERROR(ms, " Failed to load " << tsi->filename);
+      tsi->loaded = 0;
+      return -1;
+    } else {
+      tsi->loaded = 1;
+      return 0;
+    }
+  }
+}
+
+
 namespace ein_words {
 
 WORD(StreamLabel)

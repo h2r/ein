@@ -35,10 +35,17 @@ void StreamViewerWindow::update()
   //widget->updateMap(map);
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
+  loadStreamImage(ms, tsi);
+
+  cout << "Current stream image: " << tsi << endl;
   if (tsi != NULL) {
     eePose tArmP, tBaseP;
     int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-    streamImageView.updateImage(tsi->image);
+    cout << "Got pose: " << success << endl;
+    if (!isSketchyMat(tsi->image)) {
+      cout << "rendering image: " << tsi->image << endl;
+      streamImageView.updateImage(tsi->image);
+    }
   }
   
 }

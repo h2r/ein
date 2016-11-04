@@ -4109,16 +4109,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -5581,16 +5572,8 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
+
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9081,16 +9064,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9302,16 +9276,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9499,16 +9464,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9963,16 +9919,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10157,16 +10104,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10311,16 +10249,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -11986,16 +11915,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
