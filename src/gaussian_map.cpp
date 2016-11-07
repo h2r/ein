@@ -3,7 +3,6 @@
 #include "ein.h"
 #include "qtgui/einwindow.h"
 #include "qtgui/gaussianmapwindow.h"
-#include "qtgui/streamviewerwindow.h"
 #include "qtgui/discrepancywindow.h"
 #include "camera.h"
 #include <boost/filesystem.hpp>
@@ -3109,8 +3108,7 @@ REGISTER_WORD(SceneSaveScene)
 
 WORD(SceneRenderScene)
 virtual void execute(MachineState * ms) {
-  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
-  ms->config.streamViewerWindow->update();
+  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy streamRenderStreamWindow");
 }
 END_WORD
 REGISTER_WORD(SceneRenderScene)

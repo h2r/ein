@@ -1,6 +1,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "camera.h"
+#include "qtgui/streamviewerwindow.h"
 
 
 int loadStreamImage(MachineState * ms, streamImage * tsi) {
@@ -1061,7 +1062,15 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StreamEnableSisImageAndPoses)
 
-
+WORD(StreamRenderStreamWindow)
+virtual string description() {
+  return "Render the stream buffer window.";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.streamViewerWindow->update();
+}
+END_WORD
+REGISTER_WORD(StreamRenderStreamWindow)
 
 
 WORD(StreamPoseForCurrentImage)
