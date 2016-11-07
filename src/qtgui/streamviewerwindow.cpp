@@ -33,6 +33,9 @@ void StreamViewerWindow::timeValueChanged(int v)
   int value = ui->timeSlider->sliderPosition();
   double fraction = value / 100.0;
   int targetIdx = (int) (camera->streamImageBuffer.size() * fraction);
+  if (targetIdx >= camera->streamImageBuffer.size()) {
+    targetIdx = camera->streamImageBuffer.size() - 1;
+  }
   camera->setIsbIdxNoLoadNoKick(targetIdx);
   //ms->evaluateProgram("streamRenderStreamWindow");
   update();
@@ -53,7 +56,7 @@ void StreamViewerWindow::update()
   streamImage * tsi = camera->currentImage();
   loadStreamImage(ms, tsi);
   stringstream txt;
-  txt << "Image: " << camera->sibCurIdx << " of " << camera->streamImageBuffer.size() << endl;
+  txt << "Image: " << camera->sibCurIdx + 1 << " of " << camera->streamImageBuffer.size() << endl;
 
   double fraction = (double) camera->sibCurIdx / camera->streamImageBuffer.size();
   int value = (int) (fraction * 100);
@@ -73,7 +76,12 @@ void StreamViewerWindow::update()
     tsi->time;
     double length = end->time - start->time;
     double secondOffset = tsi->time - start->time;
-    txt << secondOffset << " of " << length << " seconds";
+    txt << secondOffset << " of " << length << " seconds" << endl;
+
+    if (success) {
+      shared_ptr<EePoseWord> w = make_shared<EePoseWord>(tArmP);
+      txt << w->repr() << endl;
+    }
   }
 
   ui->imageLabel->setText(QString::fromStdString(txt.str()));
