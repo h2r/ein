@@ -19,7 +19,23 @@ StreamViewerWindow::StreamViewerWindow(QWidget *parent, MachineState * _ms) :
     ui->menubar->setVisible(true);
     connect(ui->actionSaveImage, SIGNAL(triggered()), this, SLOT(saveImage()));
     ui->streamFrame->layout()->addWidget(streamImageView.getWidget());
+
+    //connect(ui->timeSlider, SIGNAL(valueChanged(int)), this, SLOT(timeValueChanged(int)));
+    connect(ui->timeSlider, SIGNAL(actionTriggered(int)), this, SLOT(timeValueChanged(int)));
+
     
+}
+
+void StreamViewerWindow::timeValueChanged(int v) 
+{
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  int value = ui->timeSlider->sliderPosition();
+  double fraction = value / 100.0;
+  int targetIdx = (int) (camera->streamImageBuffer.size() * fraction);
+  camera->setIsbIdxNoLoadNoKick(targetIdx);
+  //ms->evaluateProgram("streamRenderStreamWindow");
+  update();
 }
 
 
@@ -39,13 +55,16 @@ void StreamViewerWindow::update()
   stringstream txt;
   txt << "Image: " << camera->sibCurIdx << " of " << camera->streamImageBuffer.size() << endl;
 
+  double fraction = (double) camera->sibCurIdx / camera->streamImageBuffer.size();
+  int value = (int) (fraction * 100);
+  ui->timeSlider->setValue(value);
 
 
 
   if (tsi != NULL) {
     eePose tArmP, tBaseP;
     int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-    cout << "Got pose: " << success << endl;
+
     if (!isSketchyMat(tsi->image)) {
       streamImageView.updateImage(tsi->image);
     }

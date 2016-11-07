@@ -15,15 +15,15 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="2" column="0">
-     <widget class="QSlider" name="horizontalSlider">
+    <item row="1" column="0">
+     <widget class="QSlider" name="timeSlider">
+      <property name="maximum">
+       <number>100</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QDateTimeEdit" name="dateTimeEdit"/>
     </item>
     <item row="0" column="0">
      <widget class="QFrame" name="streamFrame">

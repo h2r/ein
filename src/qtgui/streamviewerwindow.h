@@ -28,7 +28,7 @@ public:
     void update();
 public slots:
     void saveImage();
-
+    void timeValueChanged(int value);
 
 private:
     Ui::StreamViewerWindow *ui;
