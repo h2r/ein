@@ -3596,4 +3596,11 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "trickyCaptureWords" store
 
 
+/*
+( streamIncrementImageStreamBuffer streamRenderStreamWindow 0.01 waitForSeconds ) streamImageBufferSize replicateWord
+*/
 
+
+(
+ sceneClearObservedMap 10 0.38  sceneUpdateObservedFromStreamBufferAtZNoRecalcAll sceneRecalculateObservedMusAndSigmas sceneRenderScene
+) "Render the stream buffer into the observed map." "tableStreamBufferTakeScene"  define

@@ -101,4 +101,16 @@ Select to see our solution, or also see the word
 
 ### Rendering Synthetic Photographs
 
-To render synthetic photographs from th
+To render synthetic photographs from the stream buffer, see
+`tableStreamBufferTakeScene`.  This word will render the stream buffer
+into the observed map.  Note that in general rendering synthetic
+photographs is quite complicated and might involve writing custom
+words in C++ for maximum speed.  There is a very large number of such
+words defined for such tasks as glare removal, 3D reconstruction, and
+the like, defined in gaussian_map.cpp.  The lower-level word
+`sceneUpdateObservedFromStreamBufferAtZNoRecalcAll` updates the
+observed map from the stream buffer, using the entire buffer.  It
+takes two arguments: the stride, and the height z at which to use.
+You can compute this height using the table height or else hard-code
+to a particular value (or perform a focus sweep by rendering at a
+range of values).
