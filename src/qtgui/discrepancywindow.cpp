@@ -56,3 +56,13 @@ void DiscrepancyWindow::saveImage() {
 
 
 }
+
+
+void DiscrepancyWindow::toggleVisible(bool show) {
+  setVisible(show);
+}
+
+void DiscrepancyWindow::setVisible(bool show) {
+  QMainWindow::setVisible(show);
+  emit visibleChanged(show);
+}

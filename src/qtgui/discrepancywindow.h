@@ -26,8 +26,14 @@ public:
       QMainWindow::setWindowTitle(QString::fromStdString(s));
     }
     void update(Mat & discrepancyImage, Mat & densityImage);
+    void setVisible(bool);
+
 public slots:
     void saveImage();
+    void toggleVisible(bool show);
+
+signals: 
+  void visibleChanged(bool visible);
 
 
 private:

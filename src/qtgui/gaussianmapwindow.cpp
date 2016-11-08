@@ -40,3 +40,11 @@ void GaussianMapWindow::updateMap(shared_ptr<GaussianMap> map)
 }
 
 
+void GaussianMapWindow::toggleVisible(bool show) {
+  setVisible(show);
+}
+
+void GaussianMapWindow::setVisible(bool show) {
+  QMainWindow::setVisible(show);
+  emit visibleChanged(show);
+}

@@ -26,9 +26,16 @@ public:
       QMainWindow::setWindowTitle(QString::fromStdString(s));
     }
     void update();
+    void setVisible(bool);
+
 public slots:
     void saveImage();
     void timeValueChanged(int value);
+    void toggleVisible(bool show);
+
+signals: 
+  void visibleChanged(bool visible);
+
 
 private:
     Ui::StreamViewerWindow *ui;

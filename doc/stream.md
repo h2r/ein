@@ -83,4 +83,22 @@ class for saving stream buffer data.
 
 You can access the current stream buffer index with
 `streamImageBufferCurrentIdx` and set it with
-`streamSetImageBufferCurrentIdx`.
+`streamSetImageBufferCurrentIdx`.  The "Stream Viewer" window displays
+the contents of the stream buffer.  You can run
+`streamRenderStreamWindow` to render the current contents of the
+buffer.
+
+#### Exercise:  Write a word to play back the stream buffer.
+
+Stream some images and poses.  You will want to use `replicateWord`
+and `streamImageBufferSize` to reproduce the rendering command.
+Select to see our solution, or also see the word
+`streamPlayStreamBuffer`.
+
+( streamIncrementImageStreamBuffer streamRenderStreamWindow 0.01 waitForSeconds ) streamImageBufferSize replicateWord
+{: style="color:white;" }
+
+
+### Rendering Synthetic Photographs
+
+To render synthetic photographs from th

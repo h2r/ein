@@ -27,8 +27,15 @@ public:
       QMainWindow::setWindowTitle(QString::fromStdString(s));
     }
     void updateMap(shared_ptr<GaussianMap> map);
+    void setVisible(bool);
+
+
 public slots:
     void saveImage();
+    void toggleVisible(bool show);
+
+signals: 
+  void visibleChanged(bool visible);
 
 
 private:

@@ -1074,6 +1074,9 @@ REGISTER_WORD(StreamRenderStreamWindow)
 
 
 WORD(StreamPoseForCurrentImage)
+virtual string description() {
+  return "Push the pose for the current image in the stream buffer.";
+}
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
@@ -1086,6 +1089,9 @@ REGISTER_WORD(StreamPoseForCurrentImage)
 
 
 WORD(StreamBasePoseForCurrentImage)
+virtual string description() {
+  return "Push the arm pose for the current image in the stream buffer.";
+}
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
@@ -1095,6 +1101,17 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(StreamBasePoseForCurrentImage)
+
+
+WORD(StreamPlayStreamBuffer)
+virtual string description() {
+  return "Play back the stream buffer.  Plays back at a constant rate; is not careful to wait the 'correct' amount of time between frames.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("( streamIncrementImageStreamBuffer streamRenderStreamWindow 0.01 waitForSeconds ) streamImageBufferSize replicateWord");
+}
+END_WORD
+REGISTER_WORD(StreamPlayStreamBuffer)
 
 
 CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())

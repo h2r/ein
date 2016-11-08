@@ -5768,6 +5768,8 @@ virtual void execute(MachineState * ms) {
       if (tsi == NULL) {
         CONSOLE_ERROR(ms, "Stream image null.");
       }
+      loadStreamImage(ms, tsi);
+
       eePose tArmP, tBaseP;
       
       int success = 0;

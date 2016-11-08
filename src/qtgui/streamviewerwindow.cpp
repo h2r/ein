@@ -91,3 +91,12 @@ void StreamViewerWindow::update()
 void StreamViewerWindow::saveImage() {
   //doSaveImage(this, widget->selectedImage());
 }
+
+void StreamViewerWindow::toggleVisible(bool show) {
+  setVisible(show);
+}
+
+void StreamViewerWindow::setVisible(bool show) {
+  QMainWindow::setVisible(show);
+  emit visibleChanged(show);
+}
