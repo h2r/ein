@@ -2596,6 +2596,8 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
         //ROS_ERROR("%s", ex.what());
         //throw;
       }
+    } else {
+      pose = ms->config.currentEEPose;
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
@@ -2637,8 +2639,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     handEEPose.qw = hand_pose.pose.orientation.w;
   }
 
-  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
-    //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
+  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
     ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
