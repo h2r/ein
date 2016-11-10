@@ -232,7 +232,7 @@ virtual void execute(MachineState * ms)
   ms->config.heightMemorySampleWindow->setVisible(false);
   ms->config.hiRangemapWindow->setVisible(false);
   ms->config.hiColorRangemapWindow->setVisible(false);
-  ms->config.objectViewerWindow->setVisible(true);
+  ms->config.objectViewerWindow->setVisible(false);
   ms->config.objectMapViewerWindow->setVisible(false);
   ms->config.densityViewerWindow->setVisible(false);
   ms->config.gradientViewerWindow->setVisible(false);
@@ -248,6 +248,14 @@ virtual void execute(MachineState * ms)
   //ms->config.gripperMaskMeanWindow->setVisible(true);
   //ms->config.gripperMaskSquaresWindow->setVisible(true);
 
+  ms->config.observedWindow->setVisible(false);
+  ms->config.observedStdDevWindow->setVisible(false);
+  ms->config.zWindow->setVisible(false);
+
+  ms->config.predictedWindow->setVisible(false);
+  ms->config.predictedStdDevWindow->setVisible(false);
+  ms->config.backgroundWindow->setVisible(false);
+  ms->config.backgroundWindow->setVisible(false);
 
   
 }

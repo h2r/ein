@@ -2,8 +2,11 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "qtgui/gaussianmapwindow.h"
+#include "qtgui/discrepancywindow.h"
 #include "camera.h"
 #include <boost/filesystem.hpp>
+
 using namespace boost::filesystem;
 
 
@@ -764,6 +767,13 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   out = big;
 }
 
+void GaussianMap::rgbMuToBgrMat(Mat& out) {
+  Mat newImage;
+  rgbMuToMat(newImage);
+  out = newImage.clone();  
+  cvtColor(newImage, out, CV_YCrCb2BGR);
+}
+
 void GaussianMap::rgbDiscrepancyMuToMat(MachineState * ms, Mat& out) {
   out = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
@@ -841,6 +851,41 @@ void GaussianMap::zMuToMat(Mat& out) {
       out.at<double>(x,y) = refAtCell(x,y)->z.mu;
     }
   }
+}
+void GaussianMap::zMuToScaledMat(Mat& out) {
+  Mat toShow;
+  zMuToMat(toShow);
+
+  double positiveMin = DBL_MAX;
+  double positiveMax = 0.0;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ( (refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
+	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
+      } else {
+	//toShow.at<double>(x,y) = 0;
+      }
+    }
+  }
+
+  double maxVal, minVal;
+  minMaxLoc(toShow, &minVal, &maxVal);
+  //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
+  //double denom = max(1e-6, maxVal-minVal);
+  double denom = max(1e-6, positiveMax-positiveMin);
+  cout << "sceneRenderZ min max denom positiveMin positiveMax: " << minVal << " " << maxVal << " " << denom << " " << positiveMin << " " << positiveMax << endl;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ( (refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
+	toShow.at<double>(x,y) = (positiveMax - toShow.at<double>(x,y)) / denom;
+      } else {
+	//toShow.at<double>(x,y) = 0;
+      }
+    }
+  }
+  out = toShow;
 }
 
 void GaussianMap::zSigmaSquaredToMat(Mat& out) {
@@ -3063,7 +3108,7 @@ REGISTER_WORD(SceneSaveScene)
 
 WORD(SceneRenderScene)
 virtual void execute(MachineState * ms) {
-  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
+  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy streamRenderStreamWindow");
 }
 END_WORD
 REGISTER_WORD(SceneRenderScene)
@@ -3193,11 +3238,9 @@ REGISTER_WORD(SceneInitDefaultBackgroundMap)
 WORD(SceneRenderBackgroundMap)
 virtual void execute(MachineState * ms) {
   Mat backgroundImage;
-  ms->config.scene->background_map->rgbMuToMat(backgroundImage);
-  Mat rgb = backgroundImage.clone();  
-  cvtColor(backgroundImage, rgb, CV_YCrCb2BGR);
-  ms->config.backgroundWindow->updateImage(rgb);
-
+  ms->config.scene->background_map->rgbMuToBgrMat(backgroundImage);
+  ms->config.backgroundWindow->updateImage(backgroundImage);
+  ms->config.backgroundMapWindow->updateMap(ms->config.scene->background_map);
 }
 END_WORD
 REGISTER_WORD(SceneRenderBackgroundMap)
@@ -4064,16 +4107,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -4213,12 +4247,8 @@ WORD(SceneRenderObservedMap)
 virtual void execute(MachineState * ms) {
   {
     Mat image;
-    ms->config.scene->observed_map->rgbMuToMat(image);
-    Mat rgb = image.clone();  
-
-    cvtColor(image, rgb, CV_YCrCb2BGR);
-
-    ms->config.observedWindow->updateImage(rgb);
+    ms->config.scene->observed_map->rgbMuToBgrMat(image);
+    ms->config.observedWindow->updateImage(image);
   }
 
   {
@@ -4228,6 +4258,7 @@ virtual void execute(MachineState * ms) {
     //cvtColor(image, rgb, CV_YCrCb2BGR);
     ms->config.observedStdDevWindow->updateImage(rgb);
   }
+  ms->config.observedMapWindow->updateMap(ms->config.scene->observed_map);
 }
 END_WORD
 REGISTER_WORD(SceneRenderObservedMap)
@@ -4267,6 +4298,9 @@ virtual void execute(MachineState * ms) {
     //cvtColor(image, rgb, CV_YCrCb2BGR);
     ms->config.predictedStdDevWindow->updateImage(rgb);
   }
+
+  ms->config.predictedMapWindow->updateMap(ms->config.scene->predicted_map);
+
 }
 END_WORD
 REGISTER_WORD(SceneRenderPredictedMap)
@@ -4311,6 +4345,7 @@ virtual void execute(MachineState * ms) {
   //cout << "scene: " << ms->config.scene.get() << endl;
   //cout << "discrepancy_density: " << ms->config.scene->discrepancy_density << endl;
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
+  ms->config.discrepancyViewerWindow->update(image, densityImage);
   // XXX considered changing this because it looked wrong
   //ms->config.discrepancyDensityWindow->updateImage(densityImage);
 }
@@ -4320,38 +4355,7 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 WORD(SceneRenderZ)
 virtual void execute(MachineState * ms) {
   Mat toShow;
-  ms->config.scene->observed_map->zMuToMat(toShow);
-
-  double positiveMin = DBL_MAX;
-  double positiveMax = 0.0;
-  for (int x = 0; x < ms->config.scene->width; x++) {
-    for (int y = 0; y < ms->config.scene->height; y++) {
-      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
-	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
-      } else {
-	//toShow.at<double>(x,y) = 0;
-      }
-    }
-  }
-
-  double maxVal, minVal;
-  minMaxLoc(toShow, &minVal, &maxVal);
-  //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
-  //double denom = max(1e-6, maxVal-minVal);
-  double denom = max(1e-6, positiveMax-positiveMin);
-  cout << "sceneRenderZ min max denom positiveMin positiveMax: " << minVal << " " << maxVal << " " << denom << " " << positiveMin << " " << positiveMax << endl;
-  for (int x = 0; x < ms->config.scene->width; x++) {
-    for (int y = 0; y < ms->config.scene->height; y++) {
-      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
-	toShow.at<double>(x,y) = (positiveMax - toShow.at<double>(x,y)) / denom;
-      } else {
-	//toShow.at<double>(x,y) = 0;
-      }
-    }
-  }
-  
+  ms->config.scene->observed_map->zMuToScaledMat(toShow);
   ms->config.zWindow->updateImage(toShow);
 }
 END_WORD
@@ -5566,16 +5570,8 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
+
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -5772,6 +5768,8 @@ virtual void execute(MachineState * ms) {
       if (tsi == NULL) {
         CONSOLE_ERROR(ms, "Stream image null.");
       }
+      loadStreamImage(ms, tsi);
+
       eePose tArmP, tBaseP;
       
       int success = 0;
@@ -9066,16 +9064,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9287,16 +9276,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9484,16 +9464,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9948,16 +9919,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10142,16 +10104,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10296,16 +10249,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -11971,16 +11915,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {

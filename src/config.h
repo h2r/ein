@@ -74,6 +74,9 @@ class Camera;
 
 class EinWindow;
 class ArmWidget;
+class GaussianMapWindow;
+class StreamViewerWindow;
+class DiscrepancyWindow;
 
 typedef enum {
   IK_GOOD = 0,
@@ -698,6 +701,15 @@ class EinConfig {
   EinWindow * observedStdDevWindow;
   EinWindow * predictedWindow;
   EinWindow * predictedStdDevWindow;
+
+  GaussianMapWindow * backgroundMapWindow;
+  GaussianMapWindow * observedMapWindow;
+  GaussianMapWindow * predictedMapWindow;
+
+  StreamViewerWindow * streamViewerWindow;
+
+  DiscrepancyWindow * discrepancyViewerWindow;
+
   ArmWidget * armWidget;
 
   int last_key;

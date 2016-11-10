@@ -9,7 +9,7 @@ void WindowManager::setMenu(QMenu * _menu) {
 
 }
 
-void WindowManager::addWindow(EinWindow * window) {
+void WindowManager::addWindow(QMainWindow * window) {
   windows.push_back(window);
   QAction * windowAction  = new QAction(menu);
   windowAction->setText(window->windowTitle());

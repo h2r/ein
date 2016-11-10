@@ -65,7 +65,7 @@ accurate pose for each image.
 {: style="color:white;" }
 
 
-### Saving Data
+### Saving and Loading Data
 
 Stream data is saved in the focused class.  Stream data itself
 consists of the raw data that is saved about an object, most often
@@ -74,4 +74,43 @@ pose-annotated images.  To save the stream buffers to disk, use
 `enableDiskStreaming` to stream as data is loaded into the buffer.
 
 
-`populateStreamBuffer` populates the stream buffer with data saved from the  focused class.  
+`populateStreamBuffer` populates the stream buffer with data saved
+from the focused class.  `initializeAndFocusOnANewClass` creates a new
+class for saving stream buffer data.  
+
+
+### Incrementing and Viewing Data
+
+You can access the current stream buffer index with
+`streamImageBufferCurrentIdx` and set it with
+`streamSetImageBufferCurrentIdx`.  The "Stream Viewer" window displays
+the contents of the stream buffer.  You can run
+`streamRenderStreamWindow` to render the current contents of the
+buffer.
+
+#### Exercise:  Write a word to play back the stream buffer.
+
+Stream some images and poses.  You will want to use `replicateWord`
+and `streamImageBufferSize` to reproduce the rendering command.
+Select to see our solution, or also see the word
+`streamPlayStreamBuffer`.
+
+( streamIncrementImageStreamBuffer streamRenderStreamWindow 0.01 waitForSeconds ) streamImageBufferSize replicateWord
+{: style="color:white;" }
+
+
+### Rendering Synthetic Photographs
+
+To render synthetic photographs from the stream buffer, see
+`tableStreamBufferTakeScene`.  This word will render the stream buffer
+into the observed map.  Note that in general rendering synthetic
+photographs is quite complicated and might involve writing custom
+words in C++ for maximum speed.  There is a very large number of such
+words defined for such tasks as glare removal, 3D reconstruction, and
+the like, defined in gaussian_map.cpp.  The lower-level word
+`sceneUpdateObservedFromStreamBufferAtZNoRecalcAll` updates the
+observed map from the stream buffer, using the entire buffer.  It
+takes two arguments: the stride, and the height z at which to use.
+You can compute this height using the table height or else hard-code
+to a particular value (or perform a focus sweep by rendering at a
+range of values).

@@ -27,7 +27,7 @@ public:
     void setWristViewMouseCallBack(EinMouseCallback m, void* param);
     void setObjectMapViewMouseCallBack(EinMouseCallback m, void* param);
     void keyPressEvent(QKeyEvent *evnt);
-    void addWindow(EinWindow * window);
+    void addWindow(QMainWindow * window);
     void update();
 
 private:
