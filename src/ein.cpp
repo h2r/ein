@@ -2611,7 +2611,7 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
         //throw;
       }
     } else {
-      pose = ms->config.currentEEPose;
+      //pose = ms->config.currentEEPose;
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
