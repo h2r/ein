@@ -140,6 +140,7 @@ class Camera {
   void streamImageAsClass(Mat im, int classToStreamIdx, double now);
   void writeImage(Mat im, int classToStreamIdx, double now);
   void writeImageBatchAsClass(int classToStreamIdx);
+  string createStreamImagePath(int classToStreamIdx);
 
   void loadCalibration(string inFileName);
   void loadCalibration();

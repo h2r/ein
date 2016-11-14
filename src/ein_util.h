@@ -78,4 +78,6 @@ string streamDirectory(MachineState * ms, int classIdx);
 
 string xmlEncode(const string data);
 
+vector<string> glob(const string& pat);
+
 #endif /* _EIN_UTIL_H_ */
