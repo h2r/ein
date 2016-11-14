@@ -3124,6 +3124,35 @@ REGISTER_WORD(CameraGetTransformMatrix)
 
 
 
+WORD(CameraCreate)
+virtual string description() {
+  return "Creates a new camera, usage in kinect2.back";
+}
+virtual void execute(MachineState * ms)
+{
+
+  string link;
+  GET_STRING_ARG(ms, link);
+
+  string ee_link;
+  GET_STRING_ARG(ms, ee_link);
+
+
+  string topic;
+  GET_STRING_ARG(ms, topic);
+
+  string name;
+  GET_STRING_ARG(ms, name);
+
+  Camera * camera  = new Camera(ms, name, topic, ee_link, link);
+  ms->config.cameras.push_back(camera);
+
+
+}
+END_WORD
+REGISTER_WORD(CameraCreate)
+
+
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 
@@ -3197,6 +3226,10 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_
 
 CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
 CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
+
+CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name);
+
+
 
 CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
