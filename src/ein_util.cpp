@@ -223,7 +223,7 @@ string formatTime(ros::Time time) {
   boost::posix_time::ptime p =  local_adj::utc_to_local(old);
 
   boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
-  facet->format("%Y-%m-%d_%H:%M:%S%f %Z");
+  facet->format("%Y-%m-%d_%H:%M:%s %Z%f");
 
   buf.imbue(std::locale(std::cout.getloc(), facet));
   buf << p;

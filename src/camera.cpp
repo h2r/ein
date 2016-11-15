@@ -561,7 +561,15 @@ void Camera::writeImageBatchAsClass(int classToStreamIdx) {
 
   FileStorage fsvO;
   string root_path = createStreamImagePath(classToStreamIdx);
-  string formattedTime = formatTime(ros::Time::now());
+
+  ros::Time time;
+  if (streamImageBuffer.size() != 0) {
+    time = ros::Time(streamImageBuffer[0].time);
+  } else {
+    time = ros::Time::now();
+  }
+
+  string formattedTime = formatTime(time);
   root_path += "_" + formattedTime + "_batch";
   string yaml_path = root_path + ".yml";
 
@@ -572,7 +580,7 @@ void Camera::writeImageBatchAsClass(int classToStreamIdx) {
   fsvO << "camera_camera_link"  << tf_camera_link;
   fsvO.release();
 
-
+  saveCalibration(root_path + "_calibration.yml");
 
 
   int tng = streamImageBuffer.size();
