@@ -63,7 +63,8 @@ Answer (select to see):
 When publishCommandsMode is on, the rethink program and Ein will
 "fight" and Ein will return the end effector to the true pose.  When
 it is off, you can use the joint position program to move the end
-effector and it will stay there.  {: style="color:white;" }
+effector and it will stay there.  
+{: style="color:white;" }
 
 
 
