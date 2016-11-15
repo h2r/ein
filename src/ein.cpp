@@ -4095,31 +4095,31 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   } else {
     assert(0);
   }
-
-  std_msgs::Float64 speedCommand;
-  speedCommand.data = ms->config.currentEESpeedRatio;
-  int param_resend_times = 1;
-  for (int r = 0; r < param_resend_times; r++) {
-    ms->config.joint_mover.publish(myCommand);
-    ms->config.moveSpeedPub.publish(speedCommand);
-
-    {
-      std_msgs::UInt16 thisCommand;
-      thisCommand.data = ms->config.sonar_led_state;
-      ms->config.sonar_pub.publish(thisCommand);
-    }
-    if (ms->config.repeat_halo) {
+  if (ms->config.publish_commands_mode) {
+    std_msgs::Float64 speedCommand;
+    speedCommand.data = ms->config.currentEESpeedRatio;
+    int param_resend_times = 1;
+    for (int r = 0; r < param_resend_times; r++) {
+      ms->config.joint_mover.publish(myCommand);
+      ms->config.moveSpeedPub.publish(speedCommand);
+      
       {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.red_halo_state;
-	ms->config.red_halo_pub.publish(thisCommand);
+        std_msgs::UInt16 thisCommand;
+        thisCommand.data = ms->config.sonar_led_state;
+        ms->config.sonar_pub.publish(thisCommand);
       }
-      {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.green_halo_state;
-	ms->config.green_halo_pub.publish(thisCommand);
+      if (ms->config.repeat_halo) {
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.red_halo_state;
+          ms->config.red_halo_pub.publish(thisCommand);
+        }
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.green_halo_state;
+          ms->config.green_halo_pub.publish(thisCommand);
+        }
       }
-    } else {
     }
   }
 

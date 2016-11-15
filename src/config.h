@@ -495,6 +495,7 @@ class EinConfig {
   int repeat_halo = 1;
 
   int zero_g_toggle = 1;
+  int publish_commands_mode = 1;
 
 
   const int epRingBufferSize = 10000;

@@ -25,6 +25,50 @@ Otherwise, if the arm is moved, it will move back to the current pose.
 You can toggle zero gravity with `zeroGOff` and `zeroGOn` or pressing
 the circular grey button on the arm (the "OK" button).
 
+Additionally, Ein can be configured to stop publishing movement
+commands.  Call `publishCommandsOff` to tell Ein not to publish
+commands to the robot, so that e.g., MoveIt can move the robot.  You
+can use `publishCommandsOn` to move the robot again.
+
+`publishCommandsOff` and `zeroGravityOn` are similar.  However
+`zeroGravityOn` means that Ein will continue to publish position
+messages; they will just be set to the true pose.
+`publishCommandsOff` means Ein will not publish any messages at all. 
+
+#### Exercise:  Play with Zero Gravity.
+
+Toggle zero gravity mode and move the robot's end effector by
+squeezing the wrist cuff.  Try to pick up objects using the buttons on
+the arm to open and close the gripper, and explore the workspace of
+the robot.  Turn off zero gravity, and observe what happens when you
+move the end effector.
+
+Answer (select to see):
+
+When zero gravity is on, Ein will stay when you move the end effector,
+because it sents the current position to the last observed position.
+When it is off, it will move the end effector to the last position it
+was at.
+{: style="color:white;" }
+
+#### Exercise:  Play with publishing commands.
+
+Turn off publishing commands and then use the joint angle control to
+move the robot.  Use: `rosrun baxter_examples
+joint_position_keyboard.py` from a bash workspace.  What happens if
+you run it with publishing commands turned on?  What if it is off?
+
+Answer (select to see):
+
+When publishCommandsMode is on, the rethink program and Ein will
+"fight" and Ein will return the end effector to the true pose.  When
+it is off, you can use the joint position program to move the end
+effector and it will stay there.  {: style="color:white;" }
+
+
+
+
+
 
 ### Stopping
 
