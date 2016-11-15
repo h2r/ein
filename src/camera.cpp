@@ -535,7 +535,6 @@ string Camera::createStreamImagePath(int classToStreamIdx) {
 void Camera::writeImage(Mat im, int classToStreamIdx, double now) {
   string root_path = createStreamImagePath(classToStreamIdx);
   string formattedTime = formatTime(ros::Time(now));
-
   root_path += "_" + formattedTime;
 
 
@@ -553,16 +552,29 @@ void Camera::writeImage(Mat im, int classToStreamIdx, double now) {
   fsvO.open(yaml_path, FileStorage::WRITE);
   
   writeSideAndSerialToFileStorage(ms, fsvO);
-  fsvO << "camera_name"  << name;
-  fsvO << "camera_topic"  << image_topic;
-  fsvO << "camera_ee_link"  << tf_ee_link;
-  fsvO << "camera_camera_link"  << tf_camera_link;
   
   fsvO << "time" <<  now;
   fsvO.release();
 }
 
 void Camera::writeImageBatchAsClass(int classToStreamIdx) {
+
+  FileStorage fsvO;
+  string root_path = createStreamImagePath(classToStreamIdx);
+  string formattedTime = formatTime(ros::Time::now());
+  root_path += "_" + formattedTime + "_batch";
+  string yaml_path = root_path + ".yml";
+
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  fsvO << "camera_name"  << name;
+  fsvO << "camera_topic"  << image_topic;
+  fsvO << "camera_ee_link"  << tf_ee_link;
+  fsvO << "camera_camera_link"  << tf_camera_link;
+  fsvO.release();
+
+
+
+
   int tng = streamImageBuffer.size();
   for (int i = 0; i < tng; i++) {
     streamImage &tsi = streamImageBuffer[i];
