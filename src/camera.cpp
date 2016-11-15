@@ -481,7 +481,7 @@ void Camera::populateStreamImageBuffer() {
   for (int i = 0; i < files.size(); i++) {
     string fname(files[i]);
     int loaded = 1;
-    string fnoextension = fname.substr(0, fname.size() - 3);
+    string fnoextension = fname.substr(0, fname.size() - 4);
 
     string imfilename(fname);
     string ymlfilename = fnoextension + ".yml";
