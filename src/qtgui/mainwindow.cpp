@@ -21,10 +21,6 @@ MainWindow::MainWindow(QWidget *parent, MachineState * _right_arm, MachineState 
   ui->leftArmFrame->layout()->addWidget(&leftArmWidget);
 
 
-
-
-  
-
   if (right_arm != NULL) {
     WordAction * rightClearStackAction  = new WordAction(ui->menuRightWords, right_arm, name_to_word["clearStack"]);
     ui->menuRightWords->addAction(rightClearStackAction);

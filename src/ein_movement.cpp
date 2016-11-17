@@ -665,7 +665,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 0.0}";
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
 }
 END_WORD
@@ -677,7 +683,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 100.0}";
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
   ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }
@@ -701,7 +713,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = argString.c_str();
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
   ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }

@@ -159,6 +159,7 @@
 <tr><td>calibrateVanishingPointReticleMultiSample</td><td></td></tr>
 <tr><td>cameraCenterX</td><td></td></tr>
 <tr><td>cameraCenterY</td><td></td></tr>
+<tr><td>cameraCreate</td><td>Creates a new camera, usage in kinect2.back</td></tr>
 <tr><td>cameraCropUpperLeftCornerX</td><td></td></tr>
 <tr><td>cameraCropUpperLeftCornerY</td><td></td></tr>
 <tr><td>cameraExposure</td><td></td></tr>
@@ -179,6 +180,7 @@
 <tr><td>cameraKappaY</td><td></td></tr>
 <tr><td>cameraMuX</td><td></td></tr>
 <tr><td>cameraMuY</td><td></td></tr>
+<tr><td>cameraName</td><td></td></tr>
 <tr><td>cameraPrintParams</td><td></td></tr>
 <tr><td>cameraR00</td><td></td></tr>
 <tr><td>cameraR01</td><td></td></tr>
@@ -249,6 +251,7 @@
 <tr><td>clearBlueBoxMemories</td><td></td></tr>
 <tr><td>clearClass3dGrasps</td><td></td></tr>
 <tr><td>clearClassLabels</td><td></td></tr>
+<tr><td>clearConsole</td><td>Prints a lot of newlines to the console to clear it.</td></tr>
 <tr><td>clearData</td><td></td></tr>
 <tr><td>clearIkMap</td><td>Reset the IK Map so that every cell is good.</td></tr>
 <tr><td>clearMapForPatrol</td><td></td></tr>
@@ -278,13 +281,17 @@
 <tr><td>createCachedClassifierFromClassLabels</td><td></td></tr>
 <tr><td>createEEPose</td><td></td></tr>
 <tr><td>cruisingSpeed</td><td></td></tr>
+<tr><td>currentBackgroundMap</td><td>Pushes the current background map on the stack.</td></tr>
 <tr><td>currentIKBoundaryMode</td><td></td></tr>
 <tr><td>currentIKFastMode</td><td></td></tr>
 <tr><td>currentIKMode</td><td></td></tr>
 <tr><td>currentIKModeString</td><td></td></tr>
 <tr><td>currentJointWord</td><td></td></tr>
+<tr><td>currentObservedMap</td><td>Pushes the current observed map on the stack.</td></tr>
 <tr><td>currentPose</td><td></td></tr>
 <tr><td>currentPoseToWord</td><td></td></tr>
+<tr><td>currentPredictedMap</td><td>Pushes the current predicted map on the stack.</td></tr>
+<tr><td>currentScene</td><td>Pushes the current scene on the stack.</td></tr>
 <tr><td>currentSceneFixationMode</td><td></td></tr>
 <tr><td>currentTableZ</td><td></td></tr>
 <tr><td>cw_clearWorkspace</td><td></td></tr>
@@ -921,9 +928,9 @@
 <tr><td>incrementCamera</td><td></td></tr>
 <tr><td>incrementCurrentCornellTable</td><td></td></tr>
 <tr><td>incrementGraspGear</td><td></td></tr>
-<tr><td>incrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.</td></tr>
-<tr><td>incrementImageStreamBufferNoLoad</td><td></td></tr>
-<tr><td>incrementImageStreamBufferNoLoadNoKick</td><td></td></tr>
+<tr><td>incrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.  Loads it into memory and kicks it out when done.</td></tr>
+<tr><td>incrementImageStreamBufferNoLoad</td><td>Increments the current location in the image stream buffer.  Does not load the image into memory, but kicks it out when done.</td></tr>
+<tr><td>incrementImageStreamBufferNoLoadNoKick</td><td>Increments the current location in the image stream buffer.  Does not load the image into memory or kick it out when done.</td></tr>
 <tr><td>incrementTargetClass</td><td></td></tr>
 <tr><td>incrementTargetInstanceSprite</td><td></td></tr>
 <tr><td>incrementTargetMasterSprite</td><td></td></tr>
@@ -1088,6 +1095,8 @@
 <tr><td>observedCameraWhiteBalanceRed</td><td></td></tr>
 <tr><td>observedCameraWindowX</td><td></td></tr>
 <tr><td>observedCameraWindowY</td><td></td></tr>
+<tr><td>openClEchoTest</td><td></td></tr>
+<tr><td>openClNbodyDemo</td><td></td></tr>
 <tr><td>openGripper</td><td></td></tr>
 <tr><td>openGripperInt</td><td></td></tr>
 <tr><td>or</td><td></td></tr>
@@ -1153,8 +1162,9 @@
 <tr><td>pressDown</td><td></td></tr>
 <tr><td>pressUntilEffort</td><td></td></tr>
 <tr><td>pressUntilEffortA</td><td></td></tr>
-<tr><td>pressUntilEffortCombo</td><td></td></tr>
-<tr><td>pressUntilEffortInit</td><td></td></tr>
+<tr><td>pressUntilEffortAllInOne</td><td>Push down until there is effort sensed; top level word that can be called all in one.</td></tr>
+<tr><td>pressUntilEffortCombo</td><td>Press down until effort is larger than a threshold.  Pushes down once more quickly with a coarse press, then does a fine-grained press (to unwined the springs), so at the end you are lightly touching the surface.</td></tr>
+<tr><td>pressUntilEffortInit</td><td>Initialize parameters for pressUntilEffort.</td></tr>
 <tr><td>pressUntilEffortOrTwist</td><td></td></tr>
 <tr><td>pressUntilEffortOrTwistA</td><td></td></tr>
 <tr><td>pressUntilEffortOrTwistInit</td><td></td></tr>
@@ -1166,6 +1176,9 @@
 <tr><td>printStacks</td><td></td></tr>
 <tr><td>printState</td><td></td></tr>
 <tr><td>prod</td><td>Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -&gt; 1.</td></tr>
+<tr><td>publishCommandsMode</td><td></td></tr>
+<tr><td>publishCommandsOff</td><td>Do not publish commands to the robot; useful if someone else (like MoveIt) is going to move the robot.</td></tr>
+<tr><td>publishCommandsOn</td><td>Turn on publishing movement commands and other changing commands (lights, sonar).</td></tr>
 <tr><td>publishImageFileToFace</td><td></td></tr>
 <tr><td>publishImageToFace</td><td></td></tr>
 <tr><td>publishRecognizedObjectArrayFromBlueBoxMemory</td><td></td></tr>
@@ -1289,6 +1302,7 @@
 <tr><td>sceneAngularApertureRows</td><td></td></tr>
 <tr><td>sceneAngularBaffleCols</td><td></td></tr>
 <tr><td>sceneAngularBaffleRows</td><td></td></tr>
+<tr><td>sceneBackgroundMap</td><td>Takes a scene on the stack and returns its background map.</td></tr>
 <tr><td>sceneCellCountThreshold</td><td></td></tr>
 <tr><td>sceneClearDepthStack</td><td></td></tr>
 <tr><td>sceneClearObservedMap</td><td></td></tr>
@@ -1298,7 +1312,9 @@
 <tr><td>sceneComposePredictedMapThreshed</td><td></td></tr>
 <tr><td>sceneComputeProbabilityOfMap</td><td></td></tr>
 <tr><td>sceneComputeScore</td><td></td></tr>
+<tr><td>sceneCopyGaussianMap</td><td>Takes a gaussian map on the stack and performs a deep copy, leaving a new gaussian map on the stack.</td></tr>
 <tr><td>sceneCopyObservedToReprojectionBuffer</td><td></td></tr>
+<tr><td>sceneCopyScene</td><td>Takes a scene on the stack and performs a deep copy, leaving a new scene on the stack.</td></tr>
 <tr><td>sceneCountDiscrepantCells</td><td></td></tr>
 <tr><td>sceneCropToDiscrepantRegion</td><td></td></tr>
 <tr><td>sceneDensityFromDiscrepancy</td><td></td></tr>
@@ -1335,6 +1351,7 @@
 <tr><td>sceneLoadDiscrepancyMap</td><td></td></tr>
 <tr><td>sceneLoadFocusedObjectModel</td><td></td></tr>
 <tr><td>sceneLoadFocusedSceneModel</td><td></td></tr>
+<tr><td>sceneLoadGaussianMap</td><td>Takes a string, loads the gaussian map and puts it on the stack.</td></tr>
 <tr><td>sceneLoadLightingModelFromGaussianMapFile</td><td></td></tr>
 <tr><td>sceneLoadMonochromeBackground</td><td></td></tr>
 <tr><td>sceneLoadObjectModel</td><td>Load the object model.  Takes an object name as argument, which must be a directory name in the objects directory.</td></tr>
@@ -1347,8 +1364,10 @@
 <tr><td>sceneMinIntoRegister</td><td></td></tr>
 <tr><td>sceneMinSigmaSquared</td><td></td></tr>
 <tr><td>sceneNumPredictedObjects</td><td></td></tr>
+<tr><td>sceneObservedMap</td><td>Takes a scene on the stack and returns its observed map.</td></tr>
 <tr><td>scenePredictBestObject</td><td></td></tr>
 <tr><td>scenePredictFocusedObject</td><td></td></tr>
+<tr><td>scenePredictedMap</td><td>Takes a scene on the stack and returns its predicted map.</td></tr>
 <tr><td>scenePredictedMapThresh</td><td></td></tr>
 <tr><td>scenePredictedMapThreshDefault</td><td></td></tr>
 <tr><td>scenePushAnchorPose</td><td></td></tr>
@@ -1381,6 +1400,7 @@
 <tr><td>sceneSaveBackgroundMap</td><td></td></tr>
 <tr><td>sceneSaveDiscrepancyMap</td><td></td></tr>
 <tr><td>sceneSaveFocusedSceneModel</td><td></td></tr>
+<tr><td>sceneSaveGaussianMap</td><td>Takes a string and saves a gaussian map to that string.</td></tr>
 <tr><td>sceneSaveLightingModelToGaussianMapFile</td><td></td></tr>
 <tr><td>sceneSaveObservedMap</td><td></td></tr>
 <tr><td>sceneSaveObservedMapImage</td><td></td></tr>
@@ -1398,10 +1418,12 @@
 <tr><td>sceneSetAnnotatedClassName</td><td></td></tr>
 <tr><td>sceneSetAnnotatedClassNameToFocusedClass</td><td></td></tr>
 <tr><td>sceneSetBackgroundFromObserved</td><td></td></tr>
+<tr><td>sceneSetBackgroundMap</td><td>Takes a scene and a background map and sets the scene with the background map. </td></tr>
 <tr><td>sceneSetBackgroundStdDevColor</td><td></td></tr>
 <tr><td>sceneSetBackgroundStdDevY</td><td></td></tr>
 <tr><td>sceneSetCellCountThreshold</td><td></td></tr>
 <tr><td>sceneSetClassificationMode</td><td></td></tr>
+<tr><td>sceneSetCurrentScene</td><td>Sets the current scene with its argument.</td></tr>
 <tr><td>sceneSetDepthPatchHalfWidth</td><td></td></tr>
 <tr><td>sceneSetDiscrepancyDensityFromZ</td><td></td></tr>
 <tr><td>sceneSetDiscrepancyModeDot</td><td></td></tr>
@@ -1445,7 +1467,7 @@
 <tr><td>sceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalc</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAll</td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAll</td><td>Updates the observed map from the stream buffer in a big for loop; fastest version without GPU.  This is the one to copy and call.</td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnlyRising</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare</td><td></td></tr>
@@ -1462,6 +1484,7 @@
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderGlareOnly</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderWithoutGlare</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthBeamAll</td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferDepthMap</td><td>Updates the observed map from the stream buffer as a depth map.  Used for the Kinect 2.</td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromWrist</td><td></td></tr>
 <tr><td>sceneZeroBox</td><td></td></tr>
@@ -1700,6 +1723,7 @@
 <tr><td>stereoPairCache2</td><td></td></tr>
 <tr><td>stereoPrep</td><td></td></tr>
 <tr><td>store</td><td>Create a new variable.  Usage  &lt;value&gt; &quot;&lt;name&gt;&quot; store.  After that you can say &lt;name&gt; and it will push its contents on the call stack.</td></tr>
+<tr><td>streamBasePoseForCurrentImage</td><td>Push the arm pose for the current image in the stream buffer.</td></tr>
 <tr><td>streamCenterCropAsFocusedClass</td><td></td></tr>
 <tr><td>streamCropsAsFocusedClass</td><td></td></tr>
 <tr><td>streamDisableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
@@ -1707,15 +1731,21 @@
 <tr><td>streamEnableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
 <tr><td>streamEnableSisImageAndPoses</td><td>Configure Ein to stream images and poses only.</td></tr>
 <tr><td>streamGraspResult</td><td></td></tr>
+<tr><td>streamImageBufferCurrentIdx</td><td></td></tr>
 <tr><td>streamImageBufferSize</td><td></td></tr>
 <tr><td>streamImageSpeed</td><td></td></tr>
+<tr><td>streamIncrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.  The new default word, which does no load and no kick.</td></tr>
 <tr><td>streamJointBufferSize</td><td></td></tr>
 <tr><td>streamLabel</td><td></td></tr>
 <tr><td>streamLabelBufferSize</td><td></td></tr>
+<tr><td>streamPlayStreamBuffer</td><td>Play back the stream buffer.  Plays back at a constant rate; is not careful to wait the &apos;correct&apos; amount of time between frames.</td></tr>
 <tr><td>streamPoseBufferSize</td><td></td></tr>
+<tr><td>streamPoseForCurrentImage</td><td>Push the pose for the current image in the stream buffer.</td></tr>
 <tr><td>streamRangeBufferSize</td><td></td></tr>
+<tr><td>streamRenderStreamWindow</td><td>Render the stream buffer window.</td></tr>
 <tr><td>streamScanCentered</td><td></td></tr>
 <tr><td>streamSetDiskStreaming</td><td></td></tr>
+<tr><td>streamSetImageBufferCurrentIdx</td><td></td></tr>
 <tr><td>streamSetSisImage</td><td></td></tr>
 <tr><td>streamSetSisJoints</td><td></td></tr>
 <tr><td>streamSetSisLabel</td><td></td></tr>
@@ -1898,6 +1928,7 @@
 <tr><td>tableSpiralStreamTakeSceneSamplesDefault</td><td></td></tr>
 <tr><td>tableSpiralTakeScene</td><td></td></tr>
 <tr><td>tableSpoofVanishingPoint</td><td></td></tr>
+<tr><td>tableStreamBufferTakeScene</td><td>Render the stream buffer into the observed map.</td></tr>
 <tr><td>tableSwapToBlocks</td><td></td></tr>
 <tr><td>tableTakeScene</td><td></td></tr>
 <tr><td>tableTakeSceneMid</td><td></td></tr>
@@ -2017,8 +2048,9 @@
 <tr><td>yUp</td><td></td></tr>
 <tr><td>zDown</td><td></td></tr>
 <tr><td>zUp</td><td></td></tr>
-<tr><td>zeroGOff</td><td></td></tr>
-<tr><td>zeroGOn</td><td></td></tr>
-<tr><td>zeroGToggle</td><td></td></tr>
+<tr><td>zeroGMode</td><td></td></tr>
+<tr><td>zeroGOff</td><td>Turns off zero gravity mode, so Ein will publish the current pose as the desired target position.</td></tr>
+<tr><td>zeroGOn</td><td>Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.</td></tr>
+<tr><td>zeroGToggle</td><td>Toggle zero gravity mode.</td></tr>
 <tr><td>zeroIROffset</td><td></td></tr>
 </table>

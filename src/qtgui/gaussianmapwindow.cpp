@@ -21,6 +21,10 @@ GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :
 
 }
 
+void GaussianMapWindow::saveImage() {
+  doSaveImage(this, widget->selectedImage());
+}
+
 
 GaussianMapWindow::~GaussianMapWindow()
 {
@@ -36,6 +40,11 @@ void GaussianMapWindow::updateMap(shared_ptr<GaussianMap> map)
 }
 
 
-void GaussianMapWindow::saveImage() {
-  doSaveImage(this, widget->selectedImage());
+void GaussianMapWindow::toggleVisible(bool show) {
+  setVisible(show);
+}
+
+void GaussianMapWindow::setVisible(bool show) {
+  QMainWindow::setVisible(show);
+  emit visibleChanged(show);
 }

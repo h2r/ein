@@ -23,6 +23,8 @@
 #include "qtgui/mainwindow.h"
 #include "qtgui/einwindow.h"
 #include "qtgui/gaussianmapwindow.h"
+#include "qtgui/streamviewerwindow.h"
+#include "qtgui/discrepancywindow.h"
 #include <QApplication>
 #include <QTimer>
 
@@ -2608,6 +2610,8 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
         //ROS_ERROR("%s", ex.what());
         //throw;
       }
+    } else {
+      //pose = ms->config.currentEEPose;
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
@@ -2651,7 +2655,6 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
 
   if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
     //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-    ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
   
@@ -4092,31 +4095,31 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   } else {
     assert(0);
   }
-
-  std_msgs::Float64 speedCommand;
-  speedCommand.data = ms->config.currentEESpeedRatio;
-  int param_resend_times = 1;
-  for (int r = 0; r < param_resend_times; r++) {
-    ms->config.joint_mover.publish(myCommand);
-    ms->config.moveSpeedPub.publish(speedCommand);
-
-    {
-      std_msgs::UInt16 thisCommand;
-      thisCommand.data = ms->config.sonar_led_state;
-      ms->config.sonar_pub.publish(thisCommand);
-    }
-    if (ms->config.repeat_halo) {
+  if (ms->config.publish_commands_mode) {
+    std_msgs::Float64 speedCommand;
+    speedCommand.data = ms->config.currentEESpeedRatio;
+    int param_resend_times = 1;
+    for (int r = 0; r < param_resend_times; r++) {
+      ms->config.joint_mover.publish(myCommand);
+      ms->config.moveSpeedPub.publish(speedCommand);
+      
       {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.red_halo_state;
-	ms->config.red_halo_pub.publish(thisCommand);
+        std_msgs::UInt16 thisCommand;
+        thisCommand.data = ms->config.sonar_led_state;
+        ms->config.sonar_pub.publish(thisCommand);
       }
-      {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.green_halo_state;
-	ms->config.green_halo_pub.publish(thisCommand);
+      if (ms->config.repeat_halo) {
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.red_halo_state;
+          ms->config.red_halo_pub.publish(thisCommand);
+        }
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.green_halo_state;
+          ms->config.green_halo_pub.publish(thisCommand);
+        }
       }
-    } else {
     }
   }
 
@@ -9694,7 +9697,7 @@ int isThisGraspMaxedOut(MachineState * ms, int i) {
   return toReturn;
 }
 
-void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, float z) {
+void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
   Eigen::Vector4f pixelVector;
   float centralizedX = pX - cache->cx;
   float centralizedY = pY - cache->cy;
@@ -9734,7 +9737,6 @@ endl;
   double skx = sqrt(cache->kappa_x);
   double sky = sqrt(cache->kappa_y);
   for (int i = 0; i < p_g2p_cubic_max; i++) {
-  // XXX sqrt can be removed... why is it here?
 
     if (cache->kappa_x != 0.0) {
       //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
@@ -9753,6 +9755,7 @@ endl;
       //double lambdaY = -cache->kappa_y;
       correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
     }
+
 
     //reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
     //reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
@@ -10032,23 +10035,44 @@ endl;
   }
 }
 
-void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
+void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+  // determine z using cache->target_plane
+  double planed_z = cache->target_plane[3] / (cache->mu_x * pX * cache->target_plane[0] + cache->mu_y * pY * cache->target_plane[1] + cache->target_plane[2]);
 
-// determine z using cache->target_plane
-// cast with pixelToGlobalFullFromCacheZNotBuilt
 
+
+  if (pX % 10 == 0 && pY % 10 == 0) {
+    cout << planed_z << " ";
+
+    cout << 
+    cache->target_plane[0] << " " <<
+    cache->target_plane[1] << " " <<
+    cache->target_plane[2] << " " <<
+    cache->target_plane[3] << " " << endl;
+  }
+
+
+  // cast with pixelToGlobalFullFromCacheZNotBuilt
+  pixelToGlobalFullFromCacheZNotBuilt(ms, pX, pY, gX, gY, cache, planed_z);
 }
 
 void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose givenEEPose, eePose otherPlane, pixelToGlobalCache * cache) {
   // other plane is the target photographic plane, usually the scene's anchor pose
+  // anchor pose tends to be the pose of the end effector upon calling
   computePixelToPlaneCache(ms, gZ, givenEEPose, otherPlane, cache);
+
+
+// XXX not verified... get the target plane as a relative plane to the end effector
+  eePose transformed_anchor = otherPlane.getPoseRelativeTo(givenEEPose);
+  //eePose transformed_anchor = givenEEPose.getPoseRelativeTo(otherPlane);
 
   // the plane is facing towards the arm
   eePose tempZUnit = eePose(0,0,1,0,0,0,1);
-  eePose tempPlaneNormal = tempZUnit.applyAsRelativePoseTo(otherPlane);
-  cache->target_plane[0] = tempPlaneNormal.px;
-  cache->target_plane[1] = tempPlaneNormal.py;
-  cache->target_plane[2] = tempPlaneNormal.pz;
+  eePose tempPlaneNormal = tempZUnit.applyAsRelativePoseTo(transformed_anchor);
+
+  cache->target_plane[0] = tempPlaneNormal.px - transformed_anchor.px;
+  cache->target_plane[1] = tempPlaneNormal.py - transformed_anchor.py;
+  cache->target_plane[2] = tempPlaneNormal.pz - transformed_anchor.pz;
   cache->target_plane[3] = -gZ;
 }
 
@@ -15047,66 +15071,81 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
 
 
   ms->config.backgroundWindow = new EinWindow(NULL, ms);
-  ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.backgroundWindow);
+  ms->config.backgroundWindow->setWindowTitle("Background Mean View " + ms->config.left_or_right_arm);
   ms->config.backgroundWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.backgroundWindow);
 
   ms->config.backgroundMapWindow = new GaussianMapWindow(NULL, ms);
-  ms->config.backgroundMapWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.backgroundMapWindow);
+  ms->config.backgroundMapWindow->setWindowTitle("Background View " + ms->config.left_or_right_arm);
   ms->config.backgroundMapWindow->setVisible(true);
-
+  einMainWindow->addWindow(ms->config.backgroundMapWindow);
 
   ms->config.observedWindow = new EinWindow(NULL, ms);
-  ms->config.observedWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.observedWindow);
-  ms->config.observedWindow->setVisible(true);
+  ms->config.observedWindow->setWindowTitle("Observed Mean View " + ms->config.left_or_right_arm);
   ms->config.observedWindow->setMouseCallBack(mapCallbackFunc, ms);
+  ms->config.observedWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedWindow);
 
   ms->config.observedStdDevWindow = new EinWindow(NULL, ms);
-  ms->config.observedStdDevWindow->setWindowTitle("Gaussian Map Observed Std Dev View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.observedStdDevWindow);
+  ms->config.observedStdDevWindow->setWindowTitle("Observed Std Dev View " + ms->config.left_or_right_arm);
   ms->config.observedStdDevWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedStdDevWindow);
+
 
   ms->config.observedMapWindow = new GaussianMapWindow(NULL, ms);
-  ms->config.observedMapWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.observedMapWindow);
+  ms->config.observedMapWindow->setWindowTitle("Observed View " + ms->config.left_or_right_arm);
   ms->config.observedMapWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedMapWindow);
+
 
 
 
 
   ms->config.predictedWindow = new EinWindow(NULL, ms);
-  ms->config.predictedWindow->setWindowTitle("Gaussian Map Predicted View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.predictedWindow);
+  ms->config.predictedWindow->setWindowTitle("Predicted Mean View " + ms->config.left_or_right_arm);
   ms->config.predictedWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.predictedWindow);
+
 
   ms->config.predictedStdDevWindow = new EinWindow(NULL, ms);
-  ms->config.predictedStdDevWindow->setWindowTitle("Gaussian Map Predicted Std Dev View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.predictedStdDevWindow);
+  ms->config.predictedStdDevWindow->setWindowTitle("Predicted Std Dev View " + ms->config.left_or_right_arm);
   ms->config.predictedStdDevWindow->setVisible(false);
+  einMainWindow->addWindow(ms->config.predictedStdDevWindow);
+
 
   ms->config.predictedMapWindow = new GaussianMapWindow(NULL, ms);
-  ms->config.predictedMapWindow->setWindowTitle("Gaussian Map Predicted View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.predictedMapWindow);
+  ms->config.predictedMapWindow->setWindowTitle("Predicted View " + ms->config.left_or_right_arm);
   ms->config.predictedMapWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.predictedMapWindow);
 
 
+  ms->config.streamViewerWindow = new StreamViewerWindow(NULL, ms);
+  ms->config.streamViewerWindow->setWindowTitle("Stream Viewer " + ms->config.left_or_right_arm);
+  ms->config.streamViewerWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.streamViewerWindow);
+
+  ms->config.discrepancyViewerWindow = new DiscrepancyWindow(NULL, ms);
+  ms->config.discrepancyViewerWindow->setWindowTitle("Discrepancy " + ms->config.left_or_right_arm);
+  ms->config.discrepancyViewerWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.discrepancyViewerWindow);
 
   ms->config.discrepancyWindow = new EinWindow(NULL, ms);
-  ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyWindow->setWindowTitle("Discrepancy RGB View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyWindow->setVisible(false);
   einMainWindow->addWindow(ms->config.discrepancyWindow);
-  ms->config.discrepancyWindow->setVisible(true);
+
 
   ms->config.discrepancyDensityWindow = new EinWindow(NULL, ms);
-  ms->config.discrepancyDensityWindow->setWindowTitle("Gaussian Map Discrepancy Density View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyDensityWindow->setWindowTitle("Discrepancy Density View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyDensityWindow->setVisible(false);
   einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
-  ms->config.discrepancyDensityWindow->setVisible(true);
+
 
   ms->config.zWindow = new EinWindow(NULL, ms);
   ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.zWindow);
   ms->config.zWindow->setVisible(false);
+  einMainWindow->addWindow(ms->config.zWindow);
+
 
 
 

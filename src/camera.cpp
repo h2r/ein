@@ -301,7 +301,10 @@ void Camera::imRingBufferAdvance() {
 }
 
 
-
+streamImage * Camera::currentImage() {
+  streamImage * tsi = &(streamImageBuffer[sibCurIdx]);
+  return tsi;
+}
 
 streamImage * Camera::setIsbIdxNoLoadNoKick(int idx) {
   if ( (idx > -1) && (idx < streamImageBuffer.size()) ) {
@@ -470,68 +473,43 @@ void Camera::populateStreamImageBuffer() {
   if (ms->config.focusedClass == -1) {
     return;
   }
-  string thisLabelName = ms->config.classLabels[classToStreamIdx];
-  string this_image_path = ms->config.data_directory + "/objects/" + thisLabelName + "/raw/images/";
-  dpdf = opendir(this_image_path.c_str());
-  cout << "Populating stream image buffer from " << this_image_path << endl;
-  if (dpdf != NULL) {
-    while (epdf = readdir(dpdf)) {
+  string root_path = createStreamImagePath(classToStreamIdx);
+  cout << "Populating stream image buffer from " << root_path << endl;
 
-      string fname(epdf->d_name);
-      string fextension;
-      string fnoextension;
-      if (fname.length() > 4) {
-	fextension = fname.substr(fname.length() - 4, 4);
-	fnoextension = fname.substr(0, fname.length() - 4);
+  vector<string> files = glob(root_path + "*.png");
+
+  for (int i = 0; i < files.size(); i++) {
+    string fname(files[i]);
+    int loaded = 1;
+    string fnoextension = fname.substr(0, fname.size() - 4);
+
+    string imfilename(fname);
+    string ymlfilename = fnoextension + ".yml";
+
+    FileStorage fsvI;
+    cout << "Streaming image from " << ymlfilename << " ...";
+    fsvI.open(ymlfilename, FileStorage::READ);
+
+    double time = 0.0;
+    {
+      FileNode anode = fsvI["time"];
+      FileNodeIterator it = anode.begin(), it_end = anode.end();
+      if (it != it_end) {
+        time = *(it++);
       } else {
-      } // do nothing
-
-      if (!dotpng.compare(fextension) && dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
-
-	int loaded = 1;
-
-        char filename[1024];
-        sprintf(filename, "%s%s", this_image_path.c_str(), epdf->d_name);
-	string imfilename(filename);
-
-	/* this is slow
-        Mat image;
-        image = imread(imfilename);
-
-	if (image.data != NULL) {
-	} else {
-	  loaded = 0;
-	}
-	*/
-
-        sprintf(filename, "%s%s.yml", this_image_path.c_str(), fnoextension.c_str());
-	string inFileName(filename);
-	FileStorage fsvI;
-	cout << "Streaming image from " << inFileName << " ...";
-	fsvI.open(inFileName, FileStorage::READ);
-
-	double time = 0.0;
-	{
-	  FileNode anode = fsvI["time"];
-	  FileNodeIterator it = anode.begin(), it_end = anode.end();
-	  if (it != it_end) {
-	    time = *(it++);
-	  } else {
-	    loaded = 0;
-	  }
-	}
-
-	if (loaded) {
-	  streamImage toAdd;
-	  toAdd.time = time;
-	  toAdd.loaded = 0;
-	  toAdd.filename = imfilename;
-	  streamImageBuffer.push_back(toAdd);
-	  cout << "done." << endl;
-	} else {
-	  cout << "failed :P" << endl;
-	}
+        loaded = 0;
       }
+    }
+
+    if (loaded) {
+      streamImage toAdd;
+      toAdd.time = time;
+      toAdd.loaded = 0;
+      toAdd.filename = imfilename;
+      streamImageBuffer.push_back(toAdd);
+      cout << "done." << endl;
+    } else {
+      cout << "failed :P" << endl;
     }
   }
 
@@ -544,34 +522,67 @@ void Camera::clearStreamBuffer() {
 }
 
 
+string Camera::createStreamImagePath(int classToStreamIdx) {
+
+  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/images/";
+
+  stringstream buf;
+  buf << this_image_path << "/";
+  buf << ms->config.robot_serial << "_" << ms->config.left_or_right_arm << "_" << name;
+  return buf.str();
+}
+
 void Camera::writeImage(Mat im, int classToStreamIdx, double now) {
-    string this_image_path = streamDirectory(ms, classToStreamIdx) + "/images/";
+  string root_path = createStreamImagePath(classToStreamIdx);
+  string formattedTime = formatTime(ros::Time(now));
+  root_path += "_" + formattedTime;
 
-    char buf[1024];
-    sprintf(buf, "%s%f", this_image_path.c_str(), now);
-    string root_path(buf); 
-	root_path = appendSideAndSerial(ms, root_path);
 
-    string png_path = root_path + ".png";
-    string yaml_path = root_path + ".yml";
-    //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, im, args);
+  string png_path = root_path + ".png";
+  string yaml_path = root_path + ".yml";
+  //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
+  // no compression!
+  std::vector<int> args;
+  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  args.push_back(ms->config.globalPngCompression);
+  imwrite(png_path, im, args);
 
-    // may want to save additional camera parameters
-    FileStorage fsvO;
-    fsvO.open(yaml_path, FileStorage::WRITE);
-
-    writeSideAndSerialToFileStorage(ms, fsvO);
-
-    fsvO << "time" <<  now;
-    fsvO.release();
+  // may want to save additional camera parameters
+  FileStorage fsvO;
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  
+  writeSideAndSerialToFileStorage(ms, fsvO);
+  
+  fsvO << "time" <<  now;
+  fsvO.release();
 }
 
 void Camera::writeImageBatchAsClass(int classToStreamIdx) {
+
+  FileStorage fsvO;
+  string root_path = createStreamImagePath(classToStreamIdx);
+
+  ros::Time time;
+  if (streamImageBuffer.size() != 0) {
+    time = ros::Time(streamImageBuffer[0].time);
+  } else {
+    time = ros::Time::now();
+  }
+
+  string formattedTime = formatTime(time);
+  root_path += "_" + formattedTime + "_batch";
+  string yaml_path = root_path + ".yml";
+
+  fsvO.open(yaml_path, FileStorage::WRITE);
+  fsvO << "camera_name"  << name;
+  fsvO << "camera_topic"  << image_topic;
+  fsvO << "camera_ee_link"  << tf_ee_link;
+  fsvO << "camera_camera_link"  << tf_camera_link;
+  fsvO.release();
+
+  saveCalibration(root_path + "_calibration.yml");
+
+
   int tng = streamImageBuffer.size();
   for (int i = 0; i < tng; i++) {
     streamImage &tsi = streamImageBuffer[i];

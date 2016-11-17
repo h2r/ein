@@ -1,6 +1,26 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "camera.h"
+#include "qtgui/streamviewerwindow.h"
+
+
+int loadStreamImage(MachineState * ms, streamImage * tsi) {
+  if (tsi == NULL) {
+    return -1;
+  }
+  if (tsi->image.data == NULL) {
+    tsi->image = imread(tsi->filename);
+    if (tsi->image.data == NULL) {
+      CONSOLE_ERROR(ms, " Failed to load " << tsi->filename);
+      tsi->loaded = 0;
+      return -1;
+    } else {
+      tsi->loaded = 1;
+      return 0;
+    }
+  }
+}
+
 
 namespace ein_words {
 
@@ -533,6 +553,8 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(ImageStreamBufferLoadCurrent)
 
+
+
 WORD(StreamCropsAsFocusedClass)
 virtual void execute(MachineState * ms)       {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -1040,9 +1062,56 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StreamEnableSisImageAndPoses)
 
+WORD(StreamRenderStreamWindow)
+virtual string description() {
+  return "Render the stream buffer window.";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.streamViewerWindow->update();
+}
+END_WORD
+REGISTER_WORD(StreamRenderStreamWindow)
 
 
+WORD(StreamPoseForCurrentImage)
+virtual string description() {
+  return "Push the pose for the current image in the stream buffer.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  streamImage * tsi = camera->currentImage();
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  ms->pushWord(make_shared<EePoseWord>(tArmP));
+}
+END_WORD
+REGISTER_WORD(StreamPoseForCurrentImage)
 
+
+WORD(StreamBasePoseForCurrentImage)
+virtual string description() {
+  return "Push the arm pose for the current image in the stream buffer.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  streamImage * tsi = camera->currentImage();
+  eePose tArmP, tBaseP;
+  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  ms->pushWord(make_shared<EePoseWord>(tBaseP));
+}
+END_WORD
+REGISTER_WORD(StreamBasePoseForCurrentImage)
+
+
+WORD(StreamPlayStreamBuffer)
+virtual string description() {
+  return "Play back the stream buffer.  Plays back at a constant rate; is not careful to wait the 'correct' amount of time between frames.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("( streamIncrementImageStreamBuffer streamRenderStreamWindow 0.01 waitForSeconds ) streamImageBufferSize replicateWord");
+}
+END_WORD
+REGISTER_WORD(StreamPlayStreamBuffer)
 
 
 CONFIG_GETTER_INT(StreamRangeBufferSize, ms->config.streamRangeBuffer.size())

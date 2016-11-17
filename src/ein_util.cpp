@@ -4,6 +4,8 @@
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/c_local_time_adjustor.hpp>
+#include <glob.h>
+
 
 #include <boost/filesystem.hpp>
 
@@ -221,7 +223,7 @@ string formatTime(ros::Time time) {
   boost::posix_time::ptime p =  local_adj::utc_to_local(old);
 
   boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
-  facet->format("%Y-%m-%d_%H:%M:%S %Z");
+  facet->format("%Y-%m-%d_%H:%M:%s %Z%f");
 
   buf.imbue(std::locale(std::cout.getloc(), facet));
   buf << p;
@@ -343,4 +345,16 @@ string xmlEncode(const string data) {
     }
   }
   return buffer;
+}
+
+std::vector<std::string> glob(const std::string& pat){
+  using namespace std;
+  glob_t glob_result;
+  glob(pat.c_str(),GLOB_TILDE,NULL,&glob_result);
+  vector<string> ret;
+  for(unsigned int i=0;i<glob_result.gl_pathc;++i){
+    ret.push_back(string(glob_result.gl_pathv[i]));
+  }
+  globfree(&glob_result);
+  return ret;
 }

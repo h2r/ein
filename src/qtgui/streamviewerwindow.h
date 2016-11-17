@@ -1,7 +1,6 @@
-#ifndef GAUSSIANMAPWINDOW_H
-#define GAUSSIANMAPWINDOW_H
+#ifndef STREAMVIEWERWINDOW_H
+#define STREAMVIEWERWINDOW_H
 
-#include "gaussianmapwidget.h"
 #include <QMainWindow>
 #include <iostream>
 #include <cv.h>
@@ -12,26 +11,26 @@
 using namespace std;
 
 namespace Ui {
-class GaussianMapWindow;
+class StreamViewerWindow;
 }
 
-class GaussianMapWindow : public QMainWindow
+class StreamViewerWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit GaussianMapWindow(QWidget *parent, MachineState * _ms);
-    ~GaussianMapWindow();
+    explicit StreamViewerWindow(QWidget *parent, MachineState * _ms);
+    ~StreamViewerWindow();
 
     void setWindowTitle(string s) {
       QMainWindow::setWindowTitle(QString::fromStdString(s));
     }
-    void updateMap(shared_ptr<GaussianMap> map);
+    void update();
     void setVisible(bool);
-
 
 public slots:
     void saveImage();
+    void timeValueChanged(int value);
     void toggleVisible(bool show);
 
 signals: 
@@ -39,9 +38,10 @@ signals:
 
 
 private:
-    Ui::GaussianMapWindow *ui;
+    Ui::StreamViewerWindow *ui;
     MachineState * ms;
-    GaussianMapWidget *widget;
+
+    DefaultEinViewPort streamImageView;
 };
 
-#endif // GAUSSIANMAPWINDOW_H
+#endif // STREAMVIEWERWINDOW_H
