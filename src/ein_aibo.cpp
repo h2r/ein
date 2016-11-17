@@ -884,7 +884,7 @@ virtual void execute(MachineState * ms) {
     }
 
     // convert YCrCb explicity to BGR
-    cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
+    //cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
 
     // for now this is done for display purposes only
     Size p_toBecome(640, 400);
