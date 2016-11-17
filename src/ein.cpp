@@ -9682,7 +9682,7 @@ int isThisGraspMaxedOut(MachineState * ms, int i) {
   return toReturn;
 }
 
-void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, float z) {
+void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
   Eigen::Vector4f pixelVector;
   float centralizedX = pX - cache->cx;
   float centralizedY = pY - cache->cy;
@@ -9722,7 +9722,6 @@ endl;
   double skx = sqrt(cache->kappa_x);
   double sky = sqrt(cache->kappa_y);
   for (int i = 0; i < p_g2p_cubic_max; i++) {
-  // XXX sqrt can be removed... why is it here?
 
     if (cache->kappa_x != 0.0) {
       //double sub_term_x = (1.0/skx + skx * uncorrectedX * uncorrectedX);
@@ -9741,6 +9740,7 @@ endl;
       //double lambdaY = -cache->kappa_y;
       correctedY = uncorrectedY * ( 1.0 + lambdaY * uncorrectedY * uncorrectedY);
     }
+
 
     //reuncorrectedX = correctedX * ( 1.0 + cache->kappa_x * correctedX * correctedX);
     //reuncorrectedY = correctedY * ( 1.0 + cache->kappa_y * correctedY * correctedY);
@@ -10020,23 +10020,44 @@ endl;
   }
 }
 
-void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
+void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
+  // determine z using cache->target_plane
+  double planed_z = cache->target_plane[3] / (cache->mu_x * pX * cache->target_plane[0] + cache->mu_y * pY * cache->target_plane[1] + cache->target_plane[2]);
 
-// determine z using cache->target_plane
-// cast with pixelToGlobalFullFromCacheZNotBuilt
 
+
+  if (pX % 10 == 0 && pY % 10 == 0) {
+    cout << planed_z << " ";
+
+    cout << 
+    cache->target_plane[0] << " " <<
+    cache->target_plane[1] << " " <<
+    cache->target_plane[2] << " " <<
+    cache->target_plane[3] << " " << endl;
+  }
+
+
+  // cast with pixelToGlobalFullFromCacheZNotBuilt
+  pixelToGlobalFullFromCacheZNotBuilt(ms, pX, pY, gX, gY, cache, planed_z);
 }
 
 void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose givenEEPose, eePose otherPlane, pixelToGlobalCache * cache) {
   // other plane is the target photographic plane, usually the scene's anchor pose
+  // anchor pose tends to be the pose of the end effector upon calling
   computePixelToPlaneCache(ms, gZ, givenEEPose, otherPlane, cache);
+
+
+// XXX not verified... get the target plane as a relative plane to the end effector
+  eePose transformed_anchor = otherPlane.getPoseRelativeTo(givenEEPose);
+  //eePose transformed_anchor = givenEEPose.getPoseRelativeTo(otherPlane);
 
   // the plane is facing towards the arm
   eePose tempZUnit = eePose(0,0,1,0,0,0,1);
-  eePose tempPlaneNormal = tempZUnit.applyAsRelativePoseTo(otherPlane);
-  cache->target_plane[0] = tempPlaneNormal.px;
-  cache->target_plane[1] = tempPlaneNormal.py;
-  cache->target_plane[2] = tempPlaneNormal.pz;
+  eePose tempPlaneNormal = tempZUnit.applyAsRelativePoseTo(transformed_anchor);
+
+  cache->target_plane[0] = tempPlaneNormal.px - transformed_anchor.px;
+  cache->target_plane[1] = tempPlaneNormal.py - transformed_anchor.py;
+  cache->target_plane[2] = tempPlaneNormal.pz - transformed_anchor.pz;
   cache->target_plane[3] = -gZ;
 }
 

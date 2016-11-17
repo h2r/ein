@@ -1158,7 +1158,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.040 "tableBlockMaxGraspThickness" store
+0.070 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
@@ -1560,10 +1560,17 @@ define
 ) "tableReconstructCpLightModelRisingGC" store
 
 (
+    tableSpiralStreamTakeSceneStride 
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP
+) "tableReconstructCpWithOOP" store
+
+(
   /*
   tableReconstructCpNoGC
   tableReconstructCpSelfGC
   tableReconstructCpLightModelGC 
+
   */
 
   tableReconstructCpNoGC
@@ -1579,6 +1586,21 @@ define
   sceneInitRegisterMax  
 
 ) "tableReconstructWithZRegisterInitializer" store
+
+(
+  ( 
+    tableReconstructCpWithOOP
+  ) "tableReconstructWithZCaster" store
+  ( 
+    sceneInitRegisterMax
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+  /* XXX undo to 151 */
+    151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+  
+  tableReconstructWithZCore
+) "tableReconstructWithOOP" store
 
 (
   ( 
@@ -1983,6 +2005,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
   10000000 "tableReconstructStreamTakeSceneSamples" store
+
+  /*
+  tableReconstructWithOOP
+  */
   tableReconstructGCNone
 ) "tableReconstructWithZTableOne" store
 
@@ -2434,12 +2460,13 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     1.0 divide
   "tableSpiralGridSize" store
 
+
+/* 0.1 18 0.02 */ 
+
   0.2 "tableSpiralMoveSpeed" store
 
-/* 18 0.02 */ 
-
-  0.04 setW1GoThresh
-  22 "tableUpdateSpiralN" store
+  0.02 setW1GoThresh
+  18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */

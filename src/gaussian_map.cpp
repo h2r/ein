@@ -5796,6 +5796,7 @@ virtual void execute(MachineState * ms) {
       if (fabs(transformed.qz) > 0.01) {
         CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
         continue;
+        //CONSOLE_ERROR(ms, "Would normally not be doing update because arm not vertical, but we are.");
       }
       pixelToGlobalCache data;      
       computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
@@ -12189,6 +12190,7 @@ virtual void execute(MachineState * ms) {
       if (fabs(transformed.qz) > 0.01) {
         CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
         continue;
+        //CONSOLE_ERROR(ms, "Would normally not be doing update because arm not vertical, but we are.");
       }
       pixelToGlobalCache data;      
       computePixelToGlobalFullOOPCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
@@ -12219,7 +12221,7 @@ virtual void execute(MachineState * ms) {
           } 
           
           double x, y;
-          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+	  pixelToGlobalFullFromCacheZOOP(ms, px, py, &x, &y, &data);
           
           if (1) {
             // single sample update
