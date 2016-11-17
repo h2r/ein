@@ -2465,7 +2465,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   0.2 "tableSpiralMoveSpeed" store
 
-  0.02 setW1GoThresh
+  0.03 setW1GoThresh
   18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 

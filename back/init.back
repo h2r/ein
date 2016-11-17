@@ -33,6 +33,6 @@ ifte
   1 changeToHeight waitUntilAtCurrentPosition 
 
   shoreUp
-) "goHome" store
+) "Go to the home position, wait until at current position, and put the joints in a good state."  "goHome" define
 
 cameraWristConfig

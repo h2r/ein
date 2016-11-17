@@ -131,14 +131,22 @@ provided a screen configuration file to make this easy.  Go to the
 root of your catkin workspace and run
 
 ``` 
-BAXTER=your_baxter screen -c src/ein/ein_baxter.screenrc
+BAXTER=<your_baxter> screen -c src/ein/ein_baxter.screenrc
 ```
 
-This command will start a screen session preloaded with useful
-windows.  The ein program for the left arm is primed in window 8; for
-the right arm is primed in window 0.  The repl is primed in window 1
-and 7.  You can switch windows by using backtick-number.  For example,
-typing `` `1`` switches to window 1.
+Replease <your_baxter> with the hostname or IP address of your Baxter;
+this will be used to set the $ROS_MASTER_URI environment variable
+required by ROS.  You may also need to adjust baxer.sh to change the
+$ROS_HOSTNAME or $ROS_IP.  If your network is set up so that the
+$HOSTNAME environment variable can be used as your $ROS_HOSTNAME, then
+you do not need to change baxter.sh; otherwise you need to adjust it.
+(If you ssh into Baxter, you should be able to ping your machine from
+the Baxeter robot.  See the ROS instructions and tutorials for more
+information.)  This command will start a screen session preloaded with
+useful windows.  The ein program for the left arm is primed in window
+8; for the right arm is primed in window 0.  The repl is primed in
+window 1 and 7.  You can switch windows by using backtick-number.  For
+example, typing `` `1`` switches to window 1.
 
 If at any time you need to quit, you can type `` ` :quit `` in the
 screen session.

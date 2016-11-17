@@ -155,10 +155,13 @@ and then move the arm somewhere else. Run
 
 ```
 currentPose print
-assumeBeeHome
+goHome
 currentPose print
 ```
-and verify the output is what you would expect.
+
+and verify the output is what you would expect.  If you would like the
+home position to be saved across different Ein restarts, you can add
+these commands to init.back.  They will then be executed at startup.
 
 
 ### Force feedback

@@ -111,8 +111,10 @@ To do this process first `goHome` and then run
 
 The gripper will move to four different heights and take a series of
 measurements at different orientations.  This process takes about 20
-minutes to complete.  If it fails you may have to run it again; in
-that case restart Ein or run `loadCalibration` to reload your old
+minutes to complete.  Because Ein is single threaded, the gui will
+periodically freeze while it is running the inference; this freezing
+does not mean it is broken.   If it fails you may have to run it again;
+in that case restart Ein or run `loadCalibration` to reload your old
 calibration (which, while not perfect, is a reasonable
 initialization).  When you obtain a good calibration (described
 below), save it by running `saveCalibration`.
