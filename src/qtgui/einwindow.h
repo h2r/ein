@@ -10,6 +10,8 @@
 
 using namespace std;
 
+void doSaveImage(QMainWindow * parent, const Mat & image);
+
 namespace Ui {
 class EinWindow;
 }

@@ -132,8 +132,33 @@ END_WORD
 REGISTER_WORD(UploadObjectToDatabase)
 
 
+WORD(PublishCommandsOn)
+virtual string description() {
+  return "Turn on publishing movement commands and other changing commands (lights, sonar).";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.publish_commands_mode = 1;
+}
+END_WORD
+REGISTER_WORD(PublishCommandsOn)
+
+
+WORD(PublishCommandsOff)
+virtual string description() {
+  return "Do not publish commands to the robot; useful if someone else (like MoveIt) is going to move the robot.";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.publish_commands_mode = 0;
+}
+END_WORD
+REGISTER_WORD(PublishCommandsOff)
+
+
 WORD(ZeroGToggle)
 CODE('z')
+virtual string description() {
+  return "Toggle zero gravity mode.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
 }
@@ -141,6 +166,9 @@ END_WORD
 REGISTER_WORD(ZeroGToggle)
 
 WORD(ZeroGOn)
+virtual string description() {
+  return "Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 1;
 }
@@ -148,6 +176,9 @@ END_WORD
 REGISTER_WORD(ZeroGOn)
 
 WORD(ZeroGOff)
+virtual string description() {
+  return "Turns off zero gravity mode, so Ein will publish the current pose as the desired target position.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 0;
 }
@@ -757,6 +788,17 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(Next)
+
+WORD(ClearConsole)
+virtual string description() {
+  return "Prints a lot of newlines to the console to clear it.";
+}
+virtual void execute(MachineState * ms) {
+  CONSOLE(ms, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+}
+END_WORD
+REGISTER_WORD(ClearConsole)
+
 
 WORD(Print)
 virtual string description() {
@@ -3113,6 +3155,35 @@ REGISTER_WORD(CameraGetTransformMatrix)
 
 
 
+WORD(CameraCreate)
+virtual string description() {
+  return "Creates a new camera, usage in kinect2.back";
+}
+virtual void execute(MachineState * ms)
+{
+
+  string link;
+  GET_STRING_ARG(ms, link);
+
+  string ee_link;
+  GET_STRING_ARG(ms, ee_link);
+
+
+  string topic;
+  GET_STRING_ARG(ms, topic);
+
+  string name;
+  GET_STRING_ARG(ms, name);
+
+  Camera * camera  = new Camera(ms, name, topic, ee_link, link);
+  ms->config.cameras.push_back(camera);
+
+
+}
+END_WORD
+REGISTER_WORD(CameraCreate)
+
+
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 
@@ -3187,6 +3258,10 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_
 CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
 CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
 
+CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name);
+
+
+
 CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
 
@@ -3247,6 +3322,9 @@ CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 
 CONFIG_GETTER_INT(CurrentSceneFixationMode, ms->config.currentSceneFixationMode)
+
+CONFIG_GETTER_INT(ZeroGMode, ms->config.zero_g_toggle)
+CONFIG_GETTER_INT(PublishCommandsMode, ms->config.publish_commands_mode)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
 

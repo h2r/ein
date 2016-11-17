@@ -208,6 +208,7 @@ void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx);
 void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx);
 void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx);
 
+int loadStreamImage(MachineState * ms, streamImage * tsi);
 void checkAndStreamWord(MachineState * ms, string wordIn, string commandIn);
 
 void writeSideAndSerialToFileStorage(MachineState * ms, FileStorage& fsvO);

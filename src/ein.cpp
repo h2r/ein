@@ -22,6 +22,9 @@
 
 #include "qtgui/mainwindow.h"
 #include "qtgui/einwindow.h"
+#include "qtgui/gaussianmapwindow.h"
+#include "qtgui/streamviewerwindow.h"
+#include "qtgui/discrepancywindow.h"
 #include <QApplication>
 #include <QTimer>
 
@@ -1378,6 +1381,9 @@ void populateStreamWordBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_word_path = streamDirectory(ms, classToStreamIdx) + "/word/";
   dpdf = opendir(this_word_path.c_str());
   cout << "Populating stream word buffer from " << this_word_path << endl;
@@ -1615,7 +1621,9 @@ void populateStreamLabelBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
-
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_label_path = streamDirectory(ms, classToStreamIdx) + "/label/";
   dpdf = opendir(this_label_path.c_str());
   cout << "Populating stream label buffer from " << this_label_path << endl;
@@ -1791,6 +1799,9 @@ void populateStreamRangeBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_range_path = streamDirectory(ms, classToStreamIdx) + "/range/";
   dpdf = opendir(this_range_path.c_str());
   cout << "Populating stream range buffer from " << this_range_path << endl;
@@ -1877,6 +1888,9 @@ void populateStreamPoseBuffer(MachineState * ms) {
   string dotyml(".yml");
 
   int classToStreamIdx = ms->config.focusedClass;
+  if (ms->config.focusedClass == -1) {
+    return;
+  }
   string this_pose_path = streamDirectory(ms, classToStreamIdx) + "/pose/";
   dpdf = opendir(this_pose_path.c_str());
   cout << "Populating stream pose buffer from " << this_pose_path << endl;
@@ -2596,6 +2610,8 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
         //ROS_ERROR("%s", ex.what());
         //throw;
       }
+    } else {
+      //pose = ms->config.currentEEPose;
     }
     //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
   }
@@ -2637,9 +2653,8 @@ void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps)
     handEEPose.qw = hand_pose.pose.orientation.w;
   }
 
-  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0) {
+  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
     //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-    ROS_WARN_STREAM("Ooops, duplicate pose from tf: " << ros::Time(0).toSec() << " " << endl << handEEPose << endl);
   }
   ms->config.lastHandEEPose = handEEPose;
   
@@ -4080,31 +4095,31 @@ void MachineState::update_baxter(ros::NodeHandle &n) {
   } else {
     assert(0);
   }
-
-  std_msgs::Float64 speedCommand;
-  speedCommand.data = ms->config.currentEESpeedRatio;
-  int param_resend_times = 1;
-  for (int r = 0; r < param_resend_times; r++) {
-    ms->config.joint_mover.publish(myCommand);
-    ms->config.moveSpeedPub.publish(speedCommand);
-
-    {
-      std_msgs::UInt16 thisCommand;
-      thisCommand.data = ms->config.sonar_led_state;
-      ms->config.sonar_pub.publish(thisCommand);
-    }
-    if (ms->config.repeat_halo) {
+  if (ms->config.publish_commands_mode) {
+    std_msgs::Float64 speedCommand;
+    speedCommand.data = ms->config.currentEESpeedRatio;
+    int param_resend_times = 1;
+    for (int r = 0; r < param_resend_times; r++) {
+      ms->config.joint_mover.publish(myCommand);
+      ms->config.moveSpeedPub.publish(speedCommand);
+      
       {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.red_halo_state;
-	ms->config.red_halo_pub.publish(thisCommand);
+        std_msgs::UInt16 thisCommand;
+        thisCommand.data = ms->config.sonar_led_state;
+        ms->config.sonar_pub.publish(thisCommand);
       }
-      {
-	std_msgs::Float32 thisCommand;
-	thisCommand.data = ms->config.green_halo_state;
-	ms->config.green_halo_pub.publish(thisCommand);
+      if (ms->config.repeat_halo) {
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.red_halo_state;
+          ms->config.red_halo_pub.publish(thisCommand);
+        }
+        {
+          std_msgs::Float32 thisCommand;
+          thisCommand.data = ms->config.green_halo_state;
+          ms->config.green_halo_pub.publish(thisCommand);
+        }
       }
-    } else {
     }
   }
 
@@ -15056,49 +15071,81 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
 
 
   ms->config.backgroundWindow = new EinWindow(NULL, ms);
-  ms->config.backgroundWindow->setWindowTitle("Gaussian Map Background View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.backgroundWindow);
+  ms->config.backgroundWindow->setWindowTitle("Background Mean View " + ms->config.left_or_right_arm);
   ms->config.backgroundWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.backgroundWindow);
 
+  ms->config.backgroundMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.backgroundMapWindow->setWindowTitle("Background View " + ms->config.left_or_right_arm);
+  ms->config.backgroundMapWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.backgroundMapWindow);
 
   ms->config.observedWindow = new EinWindow(NULL, ms);
-  ms->config.observedWindow->setWindowTitle("Gaussian Map Observed View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.observedWindow);
-  ms->config.observedWindow->setVisible(true);
+  ms->config.observedWindow->setWindowTitle("Observed Mean View " + ms->config.left_or_right_arm);
   ms->config.observedWindow->setMouseCallBack(mapCallbackFunc, ms);
+  ms->config.observedWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedWindow);
 
   ms->config.observedStdDevWindow = new EinWindow(NULL, ms);
-  ms->config.observedStdDevWindow->setWindowTitle("Gaussian Map Observed Std Dev View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.observedStdDevWindow);
+  ms->config.observedStdDevWindow->setWindowTitle("Observed Std Dev View " + ms->config.left_or_right_arm);
   ms->config.observedStdDevWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedStdDevWindow);
+
+
+  ms->config.observedMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.observedMapWindow->setWindowTitle("Observed View " + ms->config.left_or_right_arm);
+  ms->config.observedMapWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.observedMapWindow);
+
+
 
 
 
   ms->config.predictedWindow = new EinWindow(NULL, ms);
-  ms->config.predictedWindow->setWindowTitle("Gaussian Map Predicted View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.predictedWindow);
+  ms->config.predictedWindow->setWindowTitle("Predicted Mean View " + ms->config.left_or_right_arm);
   ms->config.predictedWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.predictedWindow);
+
 
   ms->config.predictedStdDevWindow = new EinWindow(NULL, ms);
-  ms->config.predictedStdDevWindow->setWindowTitle("Gaussian Map Predicted Std Dev View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.predictedStdDevWindow);
+  ms->config.predictedStdDevWindow->setWindowTitle("Predicted Std Dev View " + ms->config.left_or_right_arm);
   ms->config.predictedStdDevWindow->setVisible(false);
+  einMainWindow->addWindow(ms->config.predictedStdDevWindow);
 
+
+  ms->config.predictedMapWindow = new GaussianMapWindow(NULL, ms);
+  ms->config.predictedMapWindow->setWindowTitle("Predicted View " + ms->config.left_or_right_arm);
+  ms->config.predictedMapWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.predictedMapWindow);
+
+
+  ms->config.streamViewerWindow = new StreamViewerWindow(NULL, ms);
+  ms->config.streamViewerWindow->setWindowTitle("Stream Viewer " + ms->config.left_or_right_arm);
+  ms->config.streamViewerWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.streamViewerWindow);
+
+  ms->config.discrepancyViewerWindow = new DiscrepancyWindow(NULL, ms);
+  ms->config.discrepancyViewerWindow->setWindowTitle("Discrepancy " + ms->config.left_or_right_arm);
+  ms->config.discrepancyViewerWindow->setVisible(true);
+  einMainWindow->addWindow(ms->config.discrepancyViewerWindow);
 
   ms->config.discrepancyWindow = new EinWindow(NULL, ms);
-  ms->config.discrepancyWindow->setWindowTitle("Gaussian Map Discrepancy View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyWindow->setWindowTitle("Discrepancy RGB View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyWindow->setVisible(false);
   einMainWindow->addWindow(ms->config.discrepancyWindow);
-  ms->config.discrepancyWindow->setVisible(true);
+
 
   ms->config.discrepancyDensityWindow = new EinWindow(NULL, ms);
-  ms->config.discrepancyDensityWindow->setWindowTitle("Gaussian Map Discrepancy Density View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyDensityWindow->setWindowTitle("Discrepancy Density View " + ms->config.left_or_right_arm);
+  ms->config.discrepancyDensityWindow->setVisible(false);
   einMainWindow->addWindow(ms->config.discrepancyDensityWindow);
-  ms->config.discrepancyDensityWindow->setVisible(true);
+
 
   ms->config.zWindow = new EinWindow(NULL, ms);
   ms->config.zWindow->setWindowTitle("Gaussian Map Z View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.zWindow);
   ms->config.zWindow->setVisible(false);
+  einMainWindow->addWindow(ms->config.zWindow);
+
 
 
 

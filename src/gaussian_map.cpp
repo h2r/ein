@@ -2,8 +2,11 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
+#include "qtgui/gaussianmapwindow.h"
+#include "qtgui/discrepancywindow.h"
 #include "camera.h"
 #include <boost/filesystem.hpp>
+
 using namespace boost::filesystem;
 
 
@@ -764,6 +767,13 @@ void GaussianMap::rgbMuToMat(Mat& out) {
   out = big;
 }
 
+void GaussianMap::rgbMuToBgrMat(Mat& out) {
+  Mat newImage;
+  rgbMuToMat(newImage);
+  out = newImage.clone();  
+  cvtColor(newImage, out, CV_YCrCb2BGR);
+}
+
 void GaussianMap::rgbDiscrepancyMuToMat(MachineState * ms, Mat& out) {
   out = Mat(width, height, CV_8UC3);
   for (int y = 0; y < height; y++) {
@@ -841,6 +851,41 @@ void GaussianMap::zMuToMat(Mat& out) {
       out.at<double>(x,y) = refAtCell(x,y)->z.mu;
     }
   }
+}
+void GaussianMap::zMuToScaledMat(Mat& out) {
+  Mat toShow;
+  zMuToMat(toShow);
+
+  double positiveMin = DBL_MAX;
+  double positiveMax = 0.0;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ( (refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
+	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
+      } else {
+	//toShow.at<double>(x,y) = 0;
+      }
+    }
+  }
+
+  double maxVal, minVal;
+  minMaxLoc(toShow, &minVal, &maxVal);
+  //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
+  //double denom = max(1e-6, maxVal-minVal);
+  double denom = max(1e-6, positiveMax-positiveMin);
+  cout << "sceneRenderZ min max denom positiveMin positiveMax: " << minVal << " " << maxVal << " " << denom << " " << positiveMin << " " << positiveMax << endl;
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      if ( (refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
+	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
+	toShow.at<double>(x,y) = (positiveMax - toShow.at<double>(x,y)) / denom;
+      } else {
+	//toShow.at<double>(x,y) = 0;
+      }
+    }
+  }
+  out = toShow;
 }
 
 void GaussianMap::zSigmaSquaredToMat(Mat& out) {
@@ -3063,7 +3108,7 @@ REGISTER_WORD(SceneSaveScene)
 
 WORD(SceneRenderScene)
 virtual void execute(MachineState * ms) {
-  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy");
+  ms->evaluateProgram("sceneRenderObservedMap sceneRenderBackgroundMap sceneRenderPredictedMap sceneRenderDiscrepancy streamRenderStreamWindow");
 }
 END_WORD
 REGISTER_WORD(SceneRenderScene)
@@ -3193,11 +3238,9 @@ REGISTER_WORD(SceneInitDefaultBackgroundMap)
 WORD(SceneRenderBackgroundMap)
 virtual void execute(MachineState * ms) {
   Mat backgroundImage;
-  ms->config.scene->background_map->rgbMuToMat(backgroundImage);
-  Mat rgb = backgroundImage.clone();  
-  cvtColor(backgroundImage, rgb, CV_YCrCb2BGR);
-  ms->config.backgroundWindow->updateImage(rgb);
-
+  ms->config.scene->background_map->rgbMuToBgrMat(backgroundImage);
+  ms->config.backgroundWindow->updateImage(backgroundImage);
+  ms->config.backgroundMapWindow->updateMap(ms->config.scene->background_map);
 }
 END_WORD
 REGISTER_WORD(SceneRenderBackgroundMap)
@@ -4064,16 +4107,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -4213,12 +4247,8 @@ WORD(SceneRenderObservedMap)
 virtual void execute(MachineState * ms) {
   {
     Mat image;
-    ms->config.scene->observed_map->rgbMuToMat(image);
-    Mat rgb = image.clone();  
-
-    cvtColor(image, rgb, CV_YCrCb2BGR);
-
-    ms->config.observedWindow->updateImage(rgb);
+    ms->config.scene->observed_map->rgbMuToBgrMat(image);
+    ms->config.observedWindow->updateImage(image);
   }
 
   {
@@ -4228,6 +4258,7 @@ virtual void execute(MachineState * ms) {
     //cvtColor(image, rgb, CV_YCrCb2BGR);
     ms->config.observedStdDevWindow->updateImage(rgb);
   }
+  ms->config.observedMapWindow->updateMap(ms->config.scene->observed_map);
 }
 END_WORD
 REGISTER_WORD(SceneRenderObservedMap)
@@ -4267,6 +4298,9 @@ virtual void execute(MachineState * ms) {
     //cvtColor(image, rgb, CV_YCrCb2BGR);
     ms->config.predictedStdDevWindow->updateImage(rgb);
   }
+
+  ms->config.predictedMapWindow->updateMap(ms->config.scene->predicted_map);
+
 }
 END_WORD
 REGISTER_WORD(SceneRenderPredictedMap)
@@ -4311,6 +4345,7 @@ virtual void execute(MachineState * ms) {
   //cout << "scene: " << ms->config.scene.get() << endl;
   //cout << "discrepancy_density: " << ms->config.scene->discrepancy_density << endl;
   ms->config.discrepancyDensityWindow->updateImage(ms->config.scene->discrepancy_density);
+  ms->config.discrepancyViewerWindow->update(image, densityImage);
   // XXX considered changing this because it looked wrong
   //ms->config.discrepancyDensityWindow->updateImage(densityImage);
 }
@@ -4320,38 +4355,7 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 WORD(SceneRenderZ)
 virtual void execute(MachineState * ms) {
   Mat toShow;
-  ms->config.scene->observed_map->zMuToMat(toShow);
-
-  double positiveMin = DBL_MAX;
-  double positiveMax = 0.0;
-  for (int x = 0; x < ms->config.scene->width; x++) {
-    for (int y = 0; y < ms->config.scene->height; y++) {
-      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	positiveMin = std::min(positiveMin, toShow.at<double>(x,y));
-	positiveMax = std::max(positiveMax, toShow.at<double>(x,y));
-      } else {
-	//toShow.at<double>(x,y) = 0;
-      }
-    }
-  }
-
-  double maxVal, minVal;
-  minMaxLoc(toShow, &minVal, &maxVal);
-  //minVal = max(minVal, ms->config.currentEEPose.pz+ms->config.currentTableZ);
-  //double denom = max(1e-6, maxVal-minVal);
-  double denom = max(1e-6, positiveMax-positiveMin);
-  cout << "sceneRenderZ min max denom positiveMin positiveMax: " << minVal << " " << maxVal << " " << denom << " " << positiveMin << " " << positiveMax << endl;
-  for (int x = 0; x < ms->config.scene->width; x++) {
-    for (int y = 0; y < ms->config.scene->height; y++) {
-      if ( (ms->config.scene->observed_map->refAtCell(x,y)->red.samples > ms->config.sceneCellCountThreshold) ) {
-	//toShow.at<double>(x,y) = (toShow.at<double>(x,y) - minVal) / denom;
-	toShow.at<double>(x,y) = (positiveMax - toShow.at<double>(x,y)) / denom;
-      } else {
-	//toShow.at<double>(x,y) = 0;
-      }
-    }
-  }
-  
+  ms->config.scene->observed_map->zMuToScaledMat(toShow);
   ms->config.zWindow->updateImage(toShow);
 }
 END_WORD
@@ -5566,16 +5570,8 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
+
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -5707,6 +5703,11 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalc)
 
 
 WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAll)
+
+virtual string description() {
+  return "Updates the observed map from the stream buffer in a big for loop; fastest version without GPU.  This is the one to copy and call.";
+}
+
 virtual void execute(MachineState * ms) {
   double z_to_use = 0.0;
   GET_NUMERIC_ARG(ms, z_to_use);
@@ -5772,6 +5773,8 @@ virtual void execute(MachineState * ms) {
       if (tsi == NULL) {
         CONSOLE_ERROR(ms, "Stream image null.");
       }
+      loadStreamImage(ms, tsi);
+
       eePose tArmP, tBaseP;
       
       int success = 0;
@@ -9067,16 +9070,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9288,16 +9282,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9485,16 +9470,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -9949,16 +9925,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10143,16 +10110,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -10297,16 +10255,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -11972,16 +11921,7 @@ virtual void execute(MachineState * ms) {
   int success = 1;
   if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
     streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
+    loadStreamImage(ms, &tsi);
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
@@ -12262,6 +12202,169 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP)
 
 
 
+
+WORD(SceneUpdateObservedFromStreamBufferDepthMap)
+
+virtual string description() {
+  return "Updates the observed map from the stream buffer as a depth map.  Used for the Kinect 2.";
+}
+
+virtual void execute(MachineState * ms) {
+  int stride = 1;
+  GET_INT_ARG(ms, stride);
+
+
+
+  Size sz = ms->config.wristViewImage.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int abhr = (ms->config.angular_baffle_rows-1)/2;
+  int abhc = (ms->config.angular_baffle_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+  Mat gripperMask = camera->gripperMask;
+  if (isSketchyMat(gripperMask)) {
+    CONSOLE_ERROR(ms, "Gripper mask is messed up.");
+    return;
+  }
+
+  int numThreads = 8;
+
+
+  vector<shared_ptr<GaussianMap> > maps;
+  maps.resize(numThreads);
+
+  #pragma omp parallel for
+  for (int thread = 0; thread < numThreads; thread++) {
+    
+    maps[thread] = make_shared<GaussianMap>(ms, 
+                                            ms->config.scene->observed_map->width, 
+                                            ms->config.scene->observed_map->height, 
+                                            ms->config.scene->observed_map->cell_width,
+                                            ms->config.scene->observed_map->anchor_pose); 
+    maps[thread]->zero();
+
+    
+    int thisStart = thread * (camera->streamImageBuffer.size()  / numThreads);
+    int thisEnd = (thread + 1) * (camera->streamImageBuffer.size()  / numThreads); 
+    stringstream buf;    
+    buf << "thread: " << thread << " start: " << thisStart << " end: " << thisEnd << endl;
+    cout << buf.str();
+    for (int i = thisStart; i < thisEnd; i+=stride) {
+      streamImage * tsi = camera->setIsbIdxNoLoadNoKick(i);
+      
+      
+      
+      if (tsi == NULL) {
+        CONSOLE_ERROR(ms, "Stream image null.");
+      }
+      loadStreamImage(ms, tsi);
+
+      eePose tArmP, tBaseP;
+      
+      int success = 0;
+      double z = -0.2;
+      if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
+        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+      } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
+        success = 1;
+        tArmP = ms->config.currentEEPose;
+        z = ms->config.currentEEPose.pz + ms->config.currentTableZ;
+      } else {
+        assert(0);
+      }
+      
+      
+      if (success != 1) {
+        CONSOLE_ERROR(ms, "Couldn't get stream pose.  Return code: " << success << " time: " << tsi->time);
+        continue;
+      }
+      
+      eePose transformed = tArmP.getPoseRelativeTo(ms->config.scene->anchor_pose);
+      if (fabs(transformed.qz) > 0.01) {
+        CONSOLE_ERROR(ms, "Not doing update because arm not vertical.");
+        continue;
+      }
+      pixelToGlobalCache data;      
+      computePixelToPlaneCache(ms, z, tArmP, ms->config.scene->anchor_pose, &data);  
+      
+      // there is a faster way to stride it but i am risk averse atm
+      
+      Mat wristViewYCbCr = tsi->image.clone();
+
+      imshow("image", wristViewYCbCr);
+      cvtColor(tsi->image, wristViewYCbCr, CV_BGR2YCrCb);
+      int numPixels = 0;
+      int numNulls = 0;
+      
+      uchar *input = (uchar*) (wristViewYCbCr.data);
+      
+      for (int py = topy; py <= boty; py++) {
+        uchar* gripperMaskPixel = camera->gripperMask.ptr<uchar>(py); // point to first pixel in row
+        for (int px = topx; px <= botx; px++) {
+          if (gripperMaskPixel[px] == 0) {
+            continue;
+          }
+          
+          if ( (abhr > 0) && (abhc > 0) ) {
+            if ( (py > imHoT - abhr) && (py < imHoT + abhr) &&
+                 (px > imWoT - abhc) && (px < imWoT + abhc) ) {
+              continue;
+            } 
+          } 
+          
+          double x, y;
+          pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+          
+          if (1) {
+            // single sample update
+            int i, j;
+            maps[thread]->metersToCell(x, y, &i, &j);
+            GaussianMapCell * cell = maps[thread]->refAtCell(i, j);
+            //ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+            //GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+            
+            
+            if (cell != NULL) {
+              int base_idx = py * wristViewYCbCr.cols*3 + px * 3;
+              cell->newObservation(input[base_idx + 2], input[base_idx + 1], input[base_idx + 0], z);
+              numPixels++;
+            }
+          } else {
+            numNulls++;
+          }
+        }
+      }
+    }
+  }
+  
+  #pragma omp for
+  for (int y = 0; y < ms->config.scene->observed_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->observed_map->width; x++) {
+      for (int thread = 0; thread < numThreads; thread++) {
+        if (maps[thread]->refAtCell(x, y)->red.samples > 0) {
+          ms->config.scene->observed_map->refAtCell(x, y)->addC(maps[thread]->refAtCell(x, y));
+        }
+      }
+    }
+  }
+
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromStreamBufferDepthMap)
 }
 
 

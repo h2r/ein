@@ -74,6 +74,9 @@ class Camera;
 
 class EinWindow;
 class ArmWidget;
+class GaussianMapWindow;
+class StreamViewerWindow;
+class DiscrepancyWindow;
 
 typedef enum {
   IK_GOOD = 0,
@@ -492,6 +495,7 @@ class EinConfig {
   int repeat_halo = 1;
 
   int zero_g_toggle = 1;
+  int publish_commands_mode = 1;
 
 
   const int epRingBufferSize = 10000;
@@ -698,6 +702,15 @@ class EinConfig {
   EinWindow * observedStdDevWindow;
   EinWindow * predictedWindow;
   EinWindow * predictedStdDevWindow;
+
+  GaussianMapWindow * backgroundMapWindow;
+  GaussianMapWindow * observedMapWindow;
+  GaussianMapWindow * predictedMapWindow;
+
+  StreamViewerWindow * streamViewerWindow;
+
+  DiscrepancyWindow * discrepancyViewerWindow;
+
   ArmWidget * armWidget;
 
   int last_key;

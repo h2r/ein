@@ -109,9 +109,12 @@ class GaussianMap {
   void rgbSquaredCountsToMat(Mat& out);
   void rgbSigmaToMat(Mat& out);
 
+  void rgbMuToBgrMat(Mat & out);
+
   void zMuToMat(Mat& out);
   void zSigmaSquaredToMat(Mat& out);
   void zCountsToMat(Mat& out);
+  void zMuToScaledMat(Mat& out);
 
 
   void zeroBox(int _x1, int _y1, int _x2, int _y2);

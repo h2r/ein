@@ -9,14 +9,14 @@ class WindowManager {
 
  public:
   WindowManager();
-  void addWindow(EinWindow * window);
+  void addWindow(QMainWindow * window);
 
   void setMenu(QMenu * menu);
 
  private:
   QMenu * menu;
 
-  vector<EinWindow *> windows;
+  vector<QMainWindow *> windows;
   
 };
 
