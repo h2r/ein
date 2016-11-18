@@ -117,6 +117,7 @@
 <tr><td>beep</td><td></td></tr>
 <tr><td>beginHeightLearning</td><td></td></tr>
 <tr><td>bg</td><td></td></tr>
+<tr><td>bgRAM</td><td></td></tr>
 <tr><td>blankFace</td><td></td></tr>
 <tr><td>blink_arms</td><td></td></tr>
 <tr><td>blink_breathe_delta</td><td></td></tr>
@@ -206,10 +207,21 @@
 <tr><td>catScan5CacheBackgrounds</td><td></td></tr>
 <tr><td>catScan5InputPileTakeScene</td><td></td></tr>
 <tr><td>catScan5LoadInputBg</td><td></td></tr>
+<tr><td>catScan5LoadInputBgDisk</td><td></td></tr>
+<tr><td>catScan5LoadInputBgRAM</td><td></td></tr>
 <tr><td>catScan5LoadPlayBg</td><td></td></tr>
+<tr><td>catScan5LoadPlayBgDisk</td><td></td></tr>
+<tr><td>catScan5LoadPlayBgRAM</td><td></td></tr>
 <tr><td>catScan5NumVarianceTrials</td><td></td></tr>
 <tr><td>catScan5OutputPileTakeScene</td><td></td></tr>
 <tr><td>catScan5PlayTakeScene</td><td></td></tr>
+<tr><td>catScan5SaveInputBgDisk</td><td></td></tr>
+<tr><td>catScan5SaveInputBgRAM</td><td>saves the current observed map to the input workspace background variable.</td></tr>
+<tr><td>catScan5SavePlayBgDisk</td><td></td></tr>
+<tr><td>catScan5SavePlayBgRAM</td><td>saves the current observed map to the play workspace background variable.</td></tr>
+<tr><td>catScan5SwapInputOutput</td><td></td></tr>
+<tr><td>catScan5SwapInputOutputDisk</td><td></td></tr>
+<tr><td>catScan5SwapInputOutputRAM</td><td></td></tr>
 <tr><td>catScan5UpdateInputBg</td><td></td></tr>
 <tr><td>catScan5UpdatePlayBg</td><td></td></tr>
 <tr><td>catScan5VarianceTrial</td><td></td></tr>
@@ -872,7 +884,7 @@
 <tr><td>getSpeed</td><td></td></tr>
 <tr><td>goClassifyBlueBoxes</td><td></td></tr>
 <tr><td>goFindBlueBoxes</td><td></td></tr>
-<tr><td>goHome</td><td></td></tr>
+<tr><td>goHome</td><td>Go to the home position, wait until at current position, and put the joints in a good state.</td></tr>
 <tr><td>goToLastPickPose</td><td></td></tr>
 <tr><td>goToPrePickPose</td><td></td></tr>
 <tr><td>gradientServo</td><td></td></tr>
@@ -1095,8 +1107,6 @@
 <tr><td>observedCameraWhiteBalanceRed</td><td></td></tr>
 <tr><td>observedCameraWindowX</td><td></td></tr>
 <tr><td>observedCameraWindowY</td><td></td></tr>
-<tr><td>openClEchoTest</td><td></td></tr>
-<tr><td>openClNbodyDemo</td><td></td></tr>
 <tr><td>openGripper</td><td></td></tr>
 <tr><td>openGripperInt</td><td></td></tr>
 <tr><td>or</td><td></td></tr>
@@ -1441,6 +1451,7 @@
 <tr><td>sceneSetLightingModelStdDevColor</td><td></td></tr>
 <tr><td>sceneSetLightingModelStdDevY</td><td></td></tr>
 <tr><td>sceneSetMinSigmaSquared</td><td></td></tr>
+<tr><td>sceneSetObservedMap</td><td>Takes a scene and an observed map and sets the scene with the observed map. </td></tr>
 <tr><td>sceneSetObservedRGBFromVariance</td><td></td></tr>
 <tr><td>sceneSetObservedRGBFromZ</td><td></td></tr>
 <tr><td>sceneSetPredictedClassName</td><td></td></tr>
@@ -1858,6 +1869,7 @@
 <tr><td>tableReconstructCpSelfGlareOnly</td><td></td></tr>
 <tr><td>tableReconstructCpViewSynthLightModelGC</td><td></td></tr>
 <tr><td>tableReconstructCpViewSynthNoGC</td><td></td></tr>
+<tr><td>tableReconstructCpWithOOP</td><td></td></tr>
 <tr><td>tableReconstructFromPhasedArrayRegister</td><td></td></tr>
 <tr><td>tableReconstructFromPhasedArrayRegisterKernel</td><td></td></tr>
 <tr><td>tableReconstructFromStream</td><td></td></tr>
@@ -1881,6 +1893,7 @@
 <tr><td>tableReconstructServoToBestSceneObject</td><td></td></tr>
 <tr><td>tableReconstructServoToFocusedSceneObject</td><td></td></tr>
 <tr><td>tableReconstructStreamTakeSceneSamples</td><td></td></tr>
+<tr><td>tableReconstructWithOOP</td><td></td></tr>
 <tr><td>tableReconstructWithRebase</td><td></td></tr>
 <tr><td>tableReconstructWithRebaseTable</td><td></td></tr>
 <tr><td>tableReconstructWithZ</td><td></td></tr>
