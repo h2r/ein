@@ -36,7 +36,7 @@ sudo apt-get install libopencv-nonfree-\*
 Next install other Ein dependencies: 
 
 ```
-sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial
+sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default
 ```
 
 Create your catkin workspace:
@@ -62,27 +62,33 @@ wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/bax
 wstool update
 ```
 
-Next build for the first time:
+Next run catkin_make for the first time:
 
 ```
-cd .. 
+cd ~/catkin_ws/src 
 source /opt/ros/indigo/setup.bash
 catkin_make
 ```
 
-Copy and edit baxter.sh from the Rethink directories to set your
-ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI following the instructions
-in that file.   (Or you can copy the one from ein, which has some nice environment variables.)  
+The catkin_make command fail, but will create the devel directory so that the
+Rethink baxter.sh script will work.   
+Copy baxter.sh from the Ein directory into the top of your workspace:
+```
+cd ~/catkin_ws/src  && cp src/ein/baxter.sh . 
+```
+You can also use the one distributed by Rethink, but we have modified theirs to include some nice environment variables to set your ROS_HOSTNAME or ROS_IP and
+ROS_MASTER_URI following the instructions in that file. 
 
 ```
 cd ~/catkin_ws
 ./baxter.sh
 ```
 
+Now build again; this build should succeed:
 
-Sometimes we have to run catkin_make multiple times in a row to build
-dependencies.  After building, you should rerun `./baxter.sh` so that
-the workspace is in your `$ROS_PACKAGE_PATH`.
+```
+catkin_make
+```
 
 At this point you should be able to run Rethink's tools; for example
 to print the status of the robot:
@@ -97,23 +103,21 @@ configuration problems preventing you from connecting to Baxter.  A
 common problem is that the version of the SDK is a different version
 from the run running on your robot.  See the [Rethink
 SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for more
-information.
+information.  Another problem is that your ROS_MASTER_URI or
+ROS_HOSTNAME or ROS_IP are set incorrectly.
 
 
-Some other stuff you might need to do when installing fresh:
-
-```
-sudo apt-get install ros-indigo-object-recognition-msgs
-sudo apt-get install ros-indigo-pcl-ros
-sudo apt-get install libgsl0-dev
-sudo apt-get install qt5-default
-```
-
-Before running Ein, you should sync your workstation with your baxter:
+Before running Ein, you should sync the time on your workstation with
+your baxter:
 
 ```
 sudo ntpdate <baxter name>
 ```
+
+Note that Baxter syncs its time using ntp to pool.ntp.org, and this
+server cannot be changed (as per Rethink's instructions).  See our
+[FAQ](../faq/#i-am-getting-strage-tf-errors-about-lookup-would-require-extrapolation-into-the-past-or-lookup-would-require-extrapolation-into-the-future) entry for more information.
+
 
 To run the program, from the root of your catkin workspace, run the
 following command:
