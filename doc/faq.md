@@ -89,3 +89,33 @@ Sometimes we have needed to reboot the robot to make this go away.
 We have not been able to figure out why this happens or a reliable
 reproduce.  It happens fairly rarely for us, but it is annoying when
 it does.
+
+
+### Ein appears to be frozen, with no movement, and the gui screen darkens and freezes.
+
+Ein is a single threaded program, which means that robot callbacks,
+inferences, and gui callbacks are all serviced with a single thread.
+As a result, when computationally intensive tasks are being run, the
+gui will freeze.  This effect occurs during calibrating the height
+reticles, as well as when running `fillIkMapAtCurrentHeight`.  One way
+to see what is happening when this occurs is to run "Ctrl-C" to Ein in
+gdb and backtrace, to see what part of the code is getting stuck.  
+
+
+
+### What is the difference between `assumeBeeHome` and `goHome`?
+
+The `assumeBeeHome` word sets the target position to the home position
+but doesn't wait.  The `goHome` blocks until the arm arrives at the
+position.  `goHome` does other good stuff such as "shoring up" so the
+arm is in a nice crane pose. `goHome` is what you should use for most
+things.
+
+
+
+### How do I save a home position longer than a session? 
+
+You can put arbitrary commands in the file init.back, which will be
+executed whenever Ein starts up, after all other initialization is
+complete.
+
