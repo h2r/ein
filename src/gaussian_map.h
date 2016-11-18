@@ -4,6 +4,7 @@
 #include "eePose.h"
 #include "ein_util.h"
 
+
 class MachineState;
 class Word;
 
@@ -59,6 +60,7 @@ typedef struct _GaussianMapCell {
   double innerProduct(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double pointDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double noisyOrDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
+  double noisyAndDiscrepancy(_GaussianMapCell * other, double * rterm, double * gterm, double * bterm);
   double normalizeDiscrepancy(double rlikelihood,  double glikelihood, double blikelihood);
   void recalculateMusAndSigmas(MachineState * ms);
 } GaussianMapCell;
@@ -107,9 +109,12 @@ class GaussianMap {
   void rgbSquaredCountsToMat(Mat& out);
   void rgbSigmaToMat(Mat& out);
 
+  void rgbMuToBgrMat(Mat & out);
+
   void zMuToMat(Mat& out);
   void zSigmaSquaredToMat(Mat& out);
   void zCountsToMat(Mat& out);
+  void zMuToScaledMat(Mat& out);
 
 
   void zeroBox(int _x1, int _y1, int _x2, int _y2);
@@ -119,6 +124,9 @@ class GaussianMap {
 
   shared_ptr<GaussianMap> copyBox(int _x1, int _y1, int _x2, int _y2);
   shared_ptr<GaussianMap> copy();
+  static shared_ptr<GaussianMap> createFromFile(MachineState * ms, string filename);
+  static shared_ptr<GaussianMap> createEmptyMap(MachineState * ms);
+
 };
 
 typedef enum {
@@ -186,6 +194,7 @@ class Scene {
 
   vector< shared_ptr<GaussianMap> > depth_stack;
   eePose anchor_pose;
+  GaussianMapCell light_model;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
   Mat predicted_segmentation;
@@ -227,6 +236,7 @@ class Scene {
   void proposeObject();
 
   void findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
+  void findBestAffineScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
   void tryToAddObjectToScene(int class_idx);
   void findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
   void tryToAddBestObjectToScene();
@@ -295,5 +305,9 @@ class TransitionTable {
   void saveToFile(string filename);
   void loadFromFile(string filename);
 };
+
+
+
+
 
 #endif /* _EIN_SCENE_H_ */

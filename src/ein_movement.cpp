@@ -6,7 +6,7 @@
 
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -358,15 +358,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(CurrentPose)
 
-WORD(TruePose)
-virtual void execute(MachineState * ms) {
-  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(ms->config.trueEEPoseEEPose);
-  ms->pushWord(word);
-}
-END_WORD
-REGISTER_WORD(TruePose)
-
-
 WORD(SaveRegister1)
 CODE(65568+1) // ! 
 virtual void execute(MachineState * ms) {
@@ -674,7 +665,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 0.0}";
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
 }
 END_WORD
@@ -686,7 +683,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = "{\"position\": 100.0}";
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
   ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }
@@ -710,7 +713,13 @@ virtual void execute(MachineState * ms) {
   baxter_core_msgs::EndEffectorCommand command;
   command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
   command.args = argString.c_str();
+
+  // command id depends on model of gripper
+  // standard
   command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
   ms->config.gripperPub.publish(command);
   ms->config.lastMeasuredClosed = ms->config.gripperPosition;
 }
@@ -791,10 +800,12 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
+  //camera->reticle = heightReticles[ms->config.currentThompsonHeightIdx];
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight)
@@ -806,10 +817,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight0)
@@ -821,10 +833,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight1)
@@ -836,10 +849,11 @@ virtual void execute(MachineState * ms)  {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight2)
@@ -851,10 +865,11 @@ virtual void execute(MachineState * ms) {
   ms->config.currentThompsonHeight = convertHeightIdxToGlobalZ(ms, ms->config.currentThompsonHeightIdx);
   ms->config.currentEEPose.pz = ms->config.currentThompsonHeight;
   // ATTN 23
-  ms->config.reticle = ms->config.vanishingPointReticle;
-  //ms->config.reticle = heightReticles[ms->config.currentThompsonHeightIdx];
-  ms->config.m_x = ms->config.m_x_h[ms->config.currentThompsonHeightIdx];
-  ms->config.m_y = ms->config.m_y_h[ms->config.currentThompsonHeightIdx];
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    ms->config.cameras[i]->reticle = ms->config.cameras[i]->vanishingPointReticle;
+    ms->config.cameras[i]->m_x = ms->config.cameras[i]->m_x_h[ms->config.currentThompsonHeightIdx];
+    ms->config.cameras[i]->m_y = ms->config.cameras[i]->m_y_h[ms->config.currentThompsonHeightIdx];
+  }
 }
 END_WORD
 REGISTER_WORD(ChangeToHeight3)
@@ -1031,11 +1046,12 @@ virtual void execute(MachineState * ms) {
   if (ms->config.currentRobotMode == PHYSICAL) {
     return;
   } else if (ms->config.currentRobotMode == SIMULATED) {
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
     BoxMemory box;
-    box.bTop.x = ms->config.vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
-    box.bTop.y = ms->config.vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.x = ms->config.vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.y = ms->config.vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
+    box.bTop.x = camera->vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
+    box.bTop.y = camera->vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
+    box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
     box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
     box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
@@ -1306,6 +1322,13 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(DecrementTargetMasterSprite)
+
+CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold)
+CONFIG_SETTER_DOUBLE(SetArmedThreshold, ms->config.armedThreshold)
+CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold)
+CONFIG_SETTER_DOUBLE(SetMovingThreshold, ms->config.movingThreshold)
+CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold)
+CONFIG_SETTER_DOUBLE(SetHoverThreshold, ms->config.hoverThreshold)
 
 WORD(ComeToStop)
 virtual void execute(MachineState * ms) {
@@ -1872,6 +1895,9 @@ END_WORD
 REGISTER_WORD(MeasureTimeA)
 
 WORD(AboutFace)
+virtual string description() {
+  return "Rotate the gripper in oZ by 180 degrees.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.currentEEDeltaRPY.pz = ( M_PI );
   endEffectorAngularUpdate( &ms->config.currentEEPose, &ms->config.currentEEDeltaRPY );

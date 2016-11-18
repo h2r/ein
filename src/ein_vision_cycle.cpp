@@ -3,6 +3,7 @@
 #include "ein.h"
 #include "qtgui/einwindow.h"
 #include "opencv2/contrib/contrib.hpp"
+#include "camera.h"
 
 namespace ein_words {
 
@@ -765,6 +766,8 @@ CONFIG_SETTER_INT(SetMapFreeSpacePixelSkirt, ms->config.mapFreeSpacePixelSkirt)
 
 WORD(MapEmptySpace)
 virtual void execute(MachineState * ms) {
+  Camera * camera = ms->config.cameras[ms->config.focused_camera];
+  
   for (int px = ms->config.grayTop.x+ms->config.mapGrayBoxPixelSkirtCols; px < ms->config.grayBot.x-ms->config.mapGrayBoxPixelSkirtCols; px++) {
     for (int py = ms->config.grayTop.y+ms->config.mapGrayBoxPixelSkirtRows; py < ms->config.grayBot.y-ms->config.mapGrayBoxPixelSkirtRows; py++) {
       
@@ -802,9 +805,9 @@ virtual void execute(MachineState * ms) {
         ms->config.objectMap[i + ms->config.mapWidth * j].detectedClass = -2;
 
 //	{
-//	  ms->config.objectMap[i + ms->config.mapWidth * j].b += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[0];
-//	  ms->config.objectMap[i + ms->config.mapWidth * j].g += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[1];
-//	  ms->config.objectMap[i + ms->config.mapWidth * j].r += (int) ms->config.cam_img.at<cv::Vec3b>(py, px)[2];
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].b += (int) camera->cam_img.at<cv::Vec3b>(py, px)[0];
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].g += (int) camera->cam_img.at<cv::Vec3b>(py, px)[1];
+//	  ms->config.objectMap[i + ms->config.mapWidth * j].r += (int) camera->cam_img.at<cv::Vec3b>(py, px)[2];
 //        ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount += 1.0;
 //	}
 	//const double spaceDecay = 0.996; // 0.7 ^ 0.01
@@ -812,13 +815,13 @@ virtual void execute(MachineState * ms) {
 	{
 	  ms->config.objectMap[i + ms->config.mapWidth * j].b = 
 	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].b) + 
-		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[0]) );
+		    (1.0-spaceDecay)*double(camera->cam_img.at<cv::Vec3b>(py, px)[0]) );
 	  ms->config.objectMap[i + ms->config.mapWidth * j].g = 
 	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].g) + 
-		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[1]) );
+		    (1.0-spaceDecay)*double(camera->cam_img.at<cv::Vec3b>(py, px)[1]) );
 	  ms->config.objectMap[i + ms->config.mapWidth * j].r = 
 	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].r) + 
-		    (1.0-spaceDecay)*double(ms->config.cam_img.at<cv::Vec3b>(py, px)[2]) );
+		    (1.0-spaceDecay)*double(camera->cam_img.at<cv::Vec3b>(py, px)[2]) );
 	  ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount = 
 	    ( spaceDecay*double(ms->config.objectMap[i + ms->config.mapWidth * j].pixelCount) + 
 		    (1.0-spaceDecay)*double(1.0) );

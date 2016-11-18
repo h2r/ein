@@ -3,7 +3,7 @@
 #include "ein.h"
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
-
+#include "camera.h"
 
 namespace ein_words {
 
@@ -132,8 +132,33 @@ END_WORD
 REGISTER_WORD(UploadObjectToDatabase)
 
 
+WORD(PublishCommandsOn)
+virtual string description() {
+  return "Turn on publishing movement commands and other changing commands (lights, sonar).";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.publish_commands_mode = 1;
+}
+END_WORD
+REGISTER_WORD(PublishCommandsOn)
+
+
+WORD(PublishCommandsOff)
+virtual string description() {
+  return "Do not publish commands to the robot; useful if someone else (like MoveIt) is going to move the robot.";
+}
+virtual void execute(MachineState * ms) {
+  ms->config.publish_commands_mode = 0;
+}
+END_WORD
+REGISTER_WORD(PublishCommandsOff)
+
+
 WORD(ZeroGToggle)
 CODE('z')
+virtual string description() {
+  return "Toggle zero gravity mode.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = !ms->config.zero_g_toggle;
 }
@@ -141,6 +166,9 @@ END_WORD
 REGISTER_WORD(ZeroGToggle)
 
 WORD(ZeroGOn)
+virtual string description() {
+  return "Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 1;
 }
@@ -148,6 +176,9 @@ END_WORD
 REGISTER_WORD(ZeroGOn)
 
 WORD(ZeroGOff)
+virtual string description() {
+  return "Turns off zero gravity mode, so Ein will publish the current pose as the desired target position.";
+}
 virtual void execute(MachineState * ms) {
   ms->config.zero_g_toggle = 0;
 }
@@ -462,6 +493,9 @@ REGISTER_WORD(Plus)
 
 
 WORD(Sum)
+virtual string description() {
+  return "Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -> 3.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -475,6 +509,10 @@ END_WORD
 REGISTER_WORD(Sum)
 
 WORD(Prod)
+virtual string description() {
+  return "Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -> 1.";
+}
+
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram(" ( * ) accumulate");
 }
@@ -751,6 +789,17 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Next)
 
+WORD(ClearConsole)
+virtual string description() {
+  return "Prints a lot of newlines to the console to clear it.";
+}
+virtual void execute(MachineState * ms) {
+  CONSOLE(ms, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+}
+END_WORD
+REGISTER_WORD(ClearConsole)
+
+
 WORD(Print)
 virtual string description() {
   return "Pop a word from the stack and print it to the Ein console.";
@@ -833,6 +882,34 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Slip)
 
+
+WORD(EePoseGetPoseRelativeTo)
+virtual void execute(MachineState * ms) {
+/* call with "base_pose to_apply EePoseGetPoseRelativeTo" */
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  ms->pushWord(make_shared<EePoseWord>(base_pose.getPoseRelativeTo(to_apply)));
+}
+END_WORD
+REGISTER_WORD(EePoseGetPoseRelativeTo)
+
+WORD(EePoseApplyRelativePoseTo)
+virtual void execute(MachineState * ms) {
+/* call with "to_apply base_pose EePoseApplyRelativePoseTo" */
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  eePose to_apply;
+  GET_ARG(ms, EePoseWord, to_apply);
+
+  ms->pushWord(make_shared<EePoseWord>(to_apply.applyAsRelativePoseTo(base_pose)));
+}
+END_WORD
+REGISTER_WORD(EePoseApplyRelativePoseTo)
 
 
 
@@ -1125,7 +1202,57 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Fetch)
 
+WORD(CalibrateCameraAToB)
+virtual void execute(MachineState * ms)
+{
+  int cameraA = 0;
+  int cameraB = 0;
+  GET_NUMERIC_ARG(ms, cameraA);
+  GET_NUMERIC_ARG(ms, cameraB);
 
+  if ( cameraA >= ms->config.cameras.size() || cameraB >= ms->config.cameras.size() ) {
+    cout << "Invalid cameras, exiting." << endl;
+  } else {
+    cout << "Camera indeces valid, proceeding." << endl;
+  }
+
+  // scan once
+  // scan again
+  // calculate relative pose
+  // update pose of cameraA
+}
+END_WORD
+REGISTER_WORD(CalibrateCameraAToB)
+
+
+
+WORD(IncrementCamera)
+virtual void execute(MachineState * ms)
+{
+  int newCamera = (ms->config.focused_camera + 1) % ms->config.cameras.size();
+  changeCamera(ms, newCamera);
+}
+END_WORD
+REGISTER_WORD(IncrementCamera)
+
+
+WORD(DecrementCamera)
+virtual void execute(MachineState * ms)
+{
+  int newCamera = (ms->config.focused_camera - 1) % ms->config.cameras.size();
+  changeCamera(ms, newCamera);
+}
+END_WORD
+REGISTER_WORD(DecrementCamera)
+
+
+WORD(ReloadCamera)
+virtual void execute(MachineState * ms)
+{
+  changeCamera(ms, ms->config.focused_camera);
+}
+END_WORD
+REGISTER_WORD(ReloadCamera)
 
 
 
@@ -1191,7 +1318,7 @@ WORD(ExportDoc)
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.html";
-  cout << "Writing words to " << wordFileName << endl;
+  CONSOLE(ms, "Writing words to " << wordFileName);
   ofstream wordFile;
   wordFile.open(wordFileName);
   wordFile << "<table><tr><th>Word</th><th>Description</th></tr>" << endl;
@@ -1222,9 +1349,10 @@ WORD(IncMx)
 CODE(65361) // left arrow 
 virtual void execute(MachineState * ms)
 {
-  ms->config.m_x += .01;
-  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
-  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->m_x += .01;
+  camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
+  cout << "m_x, m_x_h: " << camera->m_x << endl;
 }
 END_WORD
 REGISTER_WORD(IncMx)
@@ -1233,9 +1361,10 @@ WORD(DecMx)
 CODE(65363) // right arrow 
 virtual void execute(MachineState * ms)
 {
-  ms->config.m_x -= .01;
-  ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
-  cout << "m_x, m_x_h: " << ms->config.m_x << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->m_x -= .01;
+  camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
+  cout << "m_x, m_x_h: " << camera->m_x << endl;
 }
 END_WORD
 REGISTER_WORD(DecMx)
@@ -1244,9 +1373,10 @@ WORD(IncMy)
 CODE(65362) // up arrow 
 virtual void execute(MachineState * ms)
 {
-  ms->config.m_y += .01;
-  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
-  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->m_y += .01;
+  camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
+  cout << "m_y, m_y_h: " << camera->m_y << endl;
 }
 END_WORD
 REGISTER_WORD(IncMy)
@@ -1255,9 +1385,10 @@ WORD(DecMy)
 CODE(65364) // down arrow 
 virtual void execute(MachineState * ms)
 {
-  ms->config.m_y -= .01;
-  ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
-  cout << "m_y, m_y_h: " << ms->config.m_y << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->m_y -= .01;
+  camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
+  cout << "m_y, m_y_h: " << camera->m_y << endl;
 }
 END_WORD
 REGISTER_WORD(DecMy)
@@ -1271,8 +1402,8 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(CameraZeroNonLinear)
 
-CONFIG_GETTER_INT(CameraGetCalibrationMode, ms->config.currentCameraCalibrationMode);
-CONFIG_SETTER_ENUM(CameraSetCalibrationMode, ms->config.currentCameraCalibrationMode, (cameraCalibrationMode));
+CONFIG_GETTER_INT(CameraGetCalibrationMode, ms->config.cameras[ms->config.focused_camera]->currentCameraCalibrationMode);
+CONFIG_SETTER_ENUM(CameraSetCalibrationMode, ms->config.cameras[ms->config.focused_camera]->currentCameraCalibrationMode, (cameraCalibrationMode));
 
 CONFIG_GETTER_INT(SceneGetFixationMode, ms->config.currentSceneFixationMode);
 CONFIG_SETTER_ENUM(SceneSetFixationMode, ms->config.currentSceneFixationMode, (sceneFixationMode));
@@ -1280,6 +1411,7 @@ CONFIG_SETTER_ENUM(SceneSetFixationMode, ms->config.currentSceneFixationMode, (s
 WORD(CameraFitQuadratic)
 virtual void execute(MachineState * ms)
 {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   double bBZ[4];
   bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -1289,10 +1421,10 @@ virtual void execute(MachineState * ms)
   cout << "cameraFitQuadratic: " << endl;
   {
     cout << "  running y reticles... 0 1 2 3: " <<
-       ms->config.m_y_h[0] << " " <<
-       ms->config.m_y_h[1] << " " <<
-       ms->config.m_y_h[2] << " " <<
-       ms->config.m_y_h[3] << endl;
+       camera->m_y_h[0] << " " <<
+       camera->m_y_h[1] << " " <<
+       camera->m_y_h[2] << " " <<
+       camera->m_y_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1303,25 +1435,25 @@ virtual void execute(MachineState * ms)
        , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
        , 1 , bBZ[3] , bBZ[3] * bBZ[3];
 
-    Y << ms->config.m_y_h[0]
-       , ms->config.m_y_h[1]
-       , ms->config.m_y_h[2]
-       , ms->config.m_y_h[3];
+    Y << camera->m_y_h[0]
+       , camera->m_y_h[1]
+       , camera->m_y_h[2]
+       , camera->m_y_h[3];
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
     cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
-    ms->config.m_YQ[0] = beta(0);
-    ms->config.m_YQ[1] = beta(1);
-    ms->config.m_YQ[2] = beta(2);
+    camera->m_YQ[0] = beta(0);
+    camera->m_YQ[1] = beta(1);
+    camera->m_YQ[2] = beta(2);
   }
   {
     cout << "  running x reticles... 0 1 2 3: " <<
-       ms->config.m_x_h[0] << " " <<
-       ms->config.m_x_h[1] << " " <<
-       ms->config.m_x_h[2] << " " <<
-       ms->config.m_x_h[3] << endl;
+       camera->m_x_h[0] << " " <<
+       camera->m_x_h[1] << " " <<
+       camera->m_x_h[2] << " " <<
+       camera->m_x_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1332,18 +1464,18 @@ virtual void execute(MachineState * ms)
        , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
        , 1 , bBZ[3] , bBZ[3] * bBZ[3];
 
-    Y << ms->config.m_x_h[0]
-       , ms->config.m_x_h[1]
-       , ms->config.m_x_h[2]
-       , ms->config.m_x_h[3];
+    Y << camera->m_x_h[0]
+       , camera->m_x_h[1]
+       , camera->m_x_h[2]
+       , camera->m_x_h[3];
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
     cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
-    ms->config.m_XQ[0] = beta(0);
-    ms->config.m_XQ[1] = beta(1);
-    ms->config.m_XQ[2] = beta(2);
+    camera->m_XQ[0] = beta(0);
+    camera->m_XQ[1] = beta(1);
+    camera->m_XQ[2] = beta(2);
   }
 }
 END_WORD
@@ -1352,6 +1484,7 @@ REGISTER_WORD(CameraFitQuadratic)
 WORD(CameraFitHyperbolic)
 virtual void execute(MachineState * ms)
 {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   double bBZ[4];
   bBZ[0] = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   bBZ[1] = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -1374,10 +1507,10 @@ virtual void execute(MachineState * ms)
   //cout << "cameraFitHyperbolic: " << endl;
   {
     //cout << "  running y reticles... 0 1 2 3: " <<
-    // ms->config.m_y_h[0] << " " <<
-    // ms->config.m_y_h[1] << " " <<
-    // ms->config.m_y_h[2] << " " <<
-    // ms->config.m_y_h[3] << endl;
+    // camera->m_y_h[0] << " " <<
+    // camera->m_y_h[1] << " " <<
+    // camera->m_y_h[2] << " " <<
+    // camera->m_y_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1388,25 +1521,25 @@ virtual void execute(MachineState * ms)
        , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
        , 1 , bBZ[3] , bBZ[3] * bBZ[3];
 
-    Y << ms->config.m_y_h[0]
-       , ms->config.m_y_h[1]
-       , ms->config.m_y_h[2]
-       , ms->config.m_y_h[3];
+    Y << camera->m_y_h[0]
+       , camera->m_y_h[1]
+       , camera->m_y_h[2]
+       , camera->m_y_h[3];
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
     //cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
-    ms->config.m_YQ[0] = beta(0);
-    ms->config.m_YQ[1] = beta(1);
-    ms->config.m_YQ[2] = beta(2);
+    camera->m_YQ[0] = beta(0);
+    camera->m_YQ[1] = beta(1);
+    camera->m_YQ[2] = beta(2);
   }
   {
     //cout << "  running x reticles... 0 1 2 3: " <<
-    //ms->config.m_x_h[0] << " " <<
-    //ms->config.m_x_h[1] << " " <<
-    //ms->config.m_x_h[2] << " " <<
-    //ms->config.m_x_h[3] << endl;
+    //camera->m_x_h[0] << " " <<
+    //camera->m_x_h[1] << " " <<
+    //camera->m_x_h[2] << " " <<
+    //camera->m_x_h[3] << endl;
 
     Vector3d beta;
     Vector4d Y;
@@ -1417,18 +1550,18 @@ virtual void execute(MachineState * ms)
        , 1 , bBZ[2] , bBZ[2] * bBZ[2] 
        , 1 , bBZ[3] , bBZ[3] * bBZ[3];
 
-    Y << ms->config.m_x_h[0]
-       , ms->config.m_x_h[1]
-       , ms->config.m_x_h[2]
-       , ms->config.m_x_h[3];
+    Y << camera->m_x_h[0]
+       , camera->m_x_h[1]
+       , camera->m_x_h[2]
+       , camera->m_x_h[3];
 
     beta = (X.transpose() * X).inverse() * X.transpose() * Y;
 
     //cout << "beta: " << endl << beta << endl << "X: " << endl << X << endl << "Y: " << endl << Y << endl << "X times beta: " << endl << X * beta << endl;
 
-    ms->config.m_XQ[0] = beta(0);
-    ms->config.m_XQ[1] = beta(1);
-    ms->config.m_XQ[2] = beta(2);
+    camera->m_XQ[0] = beta(0);
+    camera->m_XQ[1] = beta(1);
+    camera->m_XQ[2] = beta(2);
   }
 }
 END_WORD
@@ -1437,17 +1570,18 @@ REGISTER_WORD(CameraFitHyperbolic)
 WORD(CameraPrintParams)
 virtual void execute(MachineState * ms)
 {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   double gZ = ms->config.currentEEPose.pz;
 
-  int x1 = ms->config.heightReticles[0].px;
-  int x2 = ms->config.heightReticles[1].px;
-  int x3 = ms->config.heightReticles[2].px;
-  int x4 = ms->config.heightReticles[3].px;
+  int x1 = camera->heightReticles[0].px;
+  int x2 = camera->heightReticles[1].px;
+  int x3 = camera->heightReticles[2].px;
+  int x4 = camera->heightReticles[3].px;
 
-  int y1 = ms->config.heightReticles[0].py;
-  int y2 = ms->config.heightReticles[1].py;
-  int y3 = ms->config.heightReticles[2].py;
-  int y4 = ms->config.heightReticles[3].py;
+  int y1 = camera->heightReticles[0].py;
+  int y2 = camera->heightReticles[1].py;
+  int y3 = camera->heightReticles[2].py;
+  int y4 = camera->heightReticles[3].py;
 
   double z1 = convertHeightIdxToGlobalZ(ms, 0) + ms->config.currentTableZ;
   double z2 = convertHeightIdxToGlobalZ(ms, 1) + ms->config.currentTableZ;
@@ -1455,8 +1589,8 @@ virtual void execute(MachineState * ms)
   double z4 = convertHeightIdxToGlobalZ(ms, 3) + ms->config.currentTableZ;
 
   {
-    //double d = ms->config.d_x;
-    double d = ms->config.d_x/ms->config.m_x;
+    //double d = camera->handCameraOffset.py;
+    double d = camera->handCameraOffset.py/camera->m_x;
     double c = ((z4*x4-z2*x2)*(x3-x1)-(z3*x3-z1*x1)*(x4-x2))/((z1-z3)*(x4-x2)-(z2-z4)*(x3-x1));
 
     double b42 = (z4*x4-z2*x2+(z2-z4)*c)/(x4-x2);
@@ -1470,25 +1604,25 @@ virtual void execute(MachineState * ms)
     double b = (b42+b31)/2.0;
 
     int x_thisZ = c + ( (x1-c)*(z1-b) )/(gZ-b);
-    //int x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //int x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/(gZ-b);
     //*pX = c + ( (gX-d)*(x1-c) )/(ms->config.currentEEPose.px-d);
     //*pX = c + ( (gX-d)*(x_thisZ-c) )/(ms->config.currentEEPose.px-d);
-    //*pX = c + ( ms->config.m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
+    //*pX = c + ( camera->m_x*(gX-ms->config.trueEEPose.position.x+d)*(x_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //x_thisZ = c + ( ms->config.m_x*(x1-c)*(z1-b) )/(gZ-b);
+    //x_thisZ = c + ( camera->m_x*(x1-c)*(z1-b) )/(gZ-b);
     //x_thisZ = c + ( (d)*(x_thisZ-c) )/(d);
     // removed the above correction
 
     cout << "(x pass) d c b42 b31 bDiff b x_thisZ m_x: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << ms->config.m_x << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << x_thisZ << " "  << camera->m_x << " " << endl;
 /*
     cout << "x1 x2 x3 x4: " << x1 << " " << x2 << " " << x3 << " " << x4 << endl;
     cout << "z1 z2 z3 z4: " << z1 << " " << z2 << " " << z3 << " " << z4 << endl;
 */
   }
   {
-    //double d = ms->config.d_y;
-    double d = ms->config.d_y/ms->config.m_y;
+    //double d = -camera->handCameraOffset.px;
+    double d = -camera->handCameraOffset.px/camera->m_y;
     double c = ((z4*y4-z2*y2)*(y3-y1)-(z3*y3-z1*y1)*(y4-y2))/((z1-z3)*(y4-y2)-(z2-z4)*(y3-y1));
 
     double b42 = (z4*y4-z2*y2+(z2-z4)*c)/(y4-y2);
@@ -1502,17 +1636,17 @@ virtual void execute(MachineState * ms)
     double b = (b42+b31)/2.0;
 
     int y_thisZ = c + ( (y1-c)*(z1-b) )/(gZ-b);
-    //int y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //int y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/(gZ-b);
     //*pY = c + ( (gY-d)*(y1-c) )/(ms->config.currentEEPose.py-d);
     //*pY = c + ( (gY-d)*(y_thisZ-c) )/(ms->config.currentEEPose.py-d);
-    //*pY = c + ( ms->config.m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
+    //*pY = c + ( camera->m_y*(gY-ms->config.trueEEPose.position.y+d)*(y_thisZ-c) )/(d);
     // need to set this again so things match up if gX is truEEpose
-    //y_thisZ = c + ( ms->config.m_y*(y1-c)*(z1-b) )/(gZ-b);
+    //y_thisZ = c + ( camera->m_y*(y1-c)*(z1-b) )/(gZ-b);
     //y_thisZ = c + ( (d)*(y_thisZ-c) )/(d);
     // XXX removed the above correction still need to check
 
     cout << "(y pass) d c b42 b31 bDiff b y_thisZ m_y: " << endl 
-	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << ms->config.m_y << " " << endl;
+	 << d << " " << c << " " << b42 << " " << b31 << " " << bDiff << " " << b << " " << y_thisZ << " "  << camera->m_y << " " << endl;
   }
 }
 END_WORD
@@ -1659,7 +1793,7 @@ REGISTER_WORD(WaitUntilImageCallbackReceived)
 WORD(WaitUntilImageCallbackReceivedA)
 virtual void execute(MachineState * ms)
 {
-  if (ms->config.lastImageCallbackRequest >= ms->config.lastImageCallbackReceived) {
+  if (ms->config.lastImageCallbackRequest >= ms->config.cameras[ms->config.focused_camera]->lastImageCallbackReceived) {
     ms->pushWord("waitUntilImageCallbackReceivedA");
     ms->config.shouldIImageCallback = 1;
     ms->config.endThisStackCollapse = 1;
@@ -1815,7 +1949,7 @@ virtual void execute(MachineState * ms)
 {
   shared_ptr<Word> word;
   GET_WORD_ARG(ms, Word, word);
-  shared_ptr<StringWord> outword = std::make_shared<StringWord>(word->description());
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>("Word " + word->name() + ": " + word->description());
   ms->pushWord(outword);
 }
 END_WORD
@@ -1823,11 +1957,11 @@ REGISTER_WORD(PushHelp)
 
 WORD(Help)
 virtual string description() {
-  return "Return help text for a word, dereferencing the symbol if necessary.  Usage:   ' < word >   help.";
+  return "Return help text for a word.  Takes a compound word as an argument with a single word inside.  Usage:  ( word ) help.";
 }
 virtual void execute(MachineState * ms)
 {
-  ms->evaluateProgram("derefToTruth pushHelp print");
+  ms->evaluateProgram("car pushHelp print");
 }
 END_WORD
 REGISTER_WORD(Help)
@@ -1912,6 +2046,9 @@ REGISTER_WORD(Map)
 
 
 WORD(Accumulate)
+virtual string description() {
+  return "Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -> 3.";
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> lambdaWord;
@@ -2834,6 +2971,218 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Eval)
 
+WORD(FileOpenOutput)
+virtual string description() {
+  return "Open an output file for writing; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+
+  shared_ptr<OutputFileWord> word = make_shared<OutputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenOutput)
+
+
+
+WORD(FileOpenInput)
+virtual string description() {
+  return "Open an input file for reading; takes a file name as an argument.";
+}
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  shared_ptr<InputFileWord> word = make_shared<InputFileWord>();
+  word->open(ms, fname);
+  ms->pushData(word);
+}
+END_WORD
+REGISTER_WORD(FileOpenInput)
+
+
+WORD(FileReadLine)
+virtual string description() {
+  return "Read one line from the file into a string and leave it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readline();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadLine)
+
+
+WORD(FileReadAll)
+virtual string description() {
+  return "Read the contents of the file into a string and push it on the data stack.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<InputFileWord> fileWord;
+  GET_WORD_ARG(ms, InputFileWord, fileWord);
+
+  string line = fileWord->readfile();
+
+  shared_ptr<StringWord> outword = std::make_shared<StringWord>(line);
+  ms->pushData(outword);
+
+}
+END_WORD
+REGISTER_WORD(FileReadAll)
+
+
+WORD(FileWrite)
+virtual string description() {
+  return "Write a string to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  std::shared_ptr<Word> word = ms->popData();
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);
+  string stuff;
+  if (s != NULL) {
+    stuff = s->value();
+  } else if (word != NULL) {
+    stuff = word->repr();
+  } else {
+    stuff = "";
+  }
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+
+}
+END_WORD
+REGISTER_WORD(FileWrite)
+
+WORD(FileWriteLine)
+virtual string description() {
+  return "Write a line to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.";
+}
+virtual void execute(MachineState * ms) {
+
+  string stuff;
+  GET_WORD_AS_STRING(ms, stuff);
+
+  shared_ptr<OutputFileWord> fileWord;
+  GET_WORD_ARG(ms, OutputFileWord, fileWord);
+
+  bool result = fileWord->write(stuff);
+  result = fileWord->write("\n");
+
+}
+END_WORD
+REGISTER_WORD(FileWriteLine)
+
+
+
+WORD(FileClose)
+virtual string description() {
+  return "Close the file.  If you forget to do this, it will be closed automatically when the word is deallocated.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<FileWord> fileWord;
+  GET_WORD_ARG(ms, FileWord, fileWord);
+  fileWord->close();
+}
+END_WORD
+REGISTER_WORD(FileClose)
+
+
+
+WORD(SaveConfig)
+virtual void execute(MachineState * ms) {
+  saveConfig(ms, ms->config.config_filename);
+}
+END_WORD
+REGISTER_WORD(SaveConfig)
+
+
+WORD(LoadConfig)
+virtual void execute(MachineState * ms) {
+  loadConfig(ms, ms->config.config_filename);
+}
+END_WORD
+REGISTER_WORD(LoadConfig)
+
+
+WORD(CameraSetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> argsWord;
+  GET_WORD_ARG(ms, CompoundWord, argsWord);
+
+  if (argsWord->size() != 4) {
+    CONSOLE_ERROR(ms, "Must pass a four word compound word to set the matrix.");
+  }
+
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < argsWord->size(); i++) {
+    shared_ptr<Word> w = argsWord->getWord(i);
+    camera->transform_matrix[i] = w->to_double();
+  }
+}
+END_WORD
+REGISTER_WORD(CameraSetTransformMatrix)
+
+WORD(CameraGetTransformMatrix)
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> body = make_shared<CompoundWord>();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  for (int i = 0; i < 4; i++) {
+    body->pushWord(make_shared<DoubleWord>(camera->transform_matrix[i]));
+  }
+
+  ms->pushData(body);
+
+}
+END_WORD
+REGISTER_WORD(CameraGetTransformMatrix)
+
+
+
+
+WORD(CameraCreate)
+virtual string description() {
+  return "Creates a new camera, usage in kinect2.back";
+}
+virtual void execute(MachineState * ms)
+{
+
+  string link;
+  GET_STRING_ARG(ms, link);
+
+  string ee_link;
+  GET_STRING_ARG(ms, ee_link);
+
+
+  string topic;
+  GET_STRING_ARG(ms, topic);
+
+  string name;
+  GET_STRING_ARG(ms, name);
+
+  Camera * camera  = new Camera(ms, name, topic, ee_link, link);
+  ms->config.cameras.push_back(camera);
+
+
+}
+END_WORD
+REGISTER_WORD(CameraCreate)
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -2857,6 +3206,8 @@ CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory)
 
 CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
+CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version)
+CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version)
 
 CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
 CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
@@ -2878,8 +3229,8 @@ CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
 CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 
-CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.gripperMaskThresh)
-CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.gripperMaskThresh)
+CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
+CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
 
 
 CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)
@@ -2887,23 +3238,66 @@ CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
 
 
 
-CONFIG_GETTER_INT(ObservedCameraFlip, ms->config.observedCameraFlip)
-CONFIG_GETTER_INT(ObservedCameraMirror, ms->config.observedCameraMirror)
+CONFIG_GETTER_INT(ObservedCameraFlip, ms->config.cameras[ms->config.focused_camera]->observedCameraFlip)
+CONFIG_GETTER_INT(ObservedCameraMirror, ms->config.cameras[ms->config.focused_camera]->observedCameraMirror)
 
-CONFIG_GETTER_INT(ObservedCameraExposure, ms->config.observedCameraExposure)
-CONFIG_GETTER_INT(ObservedCameraGain, ms->config.observedCameraGain)
-CONFIG_GETTER_INT(ObservedCameraWhiteBalanceRed, ms->config.observedCameraWhiteBalanceRed)
-CONFIG_GETTER_INT(ObservedCameraWhiteBalanceGreen, ms->config.observedCameraWhiteBalanceGreen)
-CONFIG_GETTER_INT(ObservedCameraWhiteBalanceBlue, ms->config.observedCameraWhiteBalanceBlue)
-CONFIG_GETTER_INT(ObservedCameraWindowX, ms->config.observedCameraWindowX)
-CONFIG_GETTER_INT(ObservedCameraWindowY, ms->config.observedCameraWindowY)
+CONFIG_GETTER_INT(ObservedCameraExposure, ms->config.cameras[ms->config.focused_camera]->observedCameraExposure)
+CONFIG_GETTER_INT(ObservedCameraGain, ms->config.cameras[ms->config.focused_camera]->observedCameraGain)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceRed, ms->config.cameras[ms->config.focused_camera]->observedCameraWhiteBalanceRed)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceGreen, ms->config.cameras[ms->config.focused_camera]->observedCameraWhiteBalanceGreen)
+CONFIG_GETTER_INT(ObservedCameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_camera]->observedCameraWhiteBalanceBlue)
+CONFIG_GETTER_INT(ObservedCameraWindowX, ms->config.cameras[ms->config.focused_camera]->observedCameraWindowX)
+CONFIG_GETTER_INT(ObservedCameraWindowY, ms->config.cameras[ms->config.focused_camera]->observedCameraWindowY)
 
-CONFIG_GETTER_INT(CameraExposure, ms->config.cameraExposure)
-CONFIG_GETTER_INT(CameraGain, ms->config.cameraGain)
-CONFIG_GETTER_INT(CameraWhiteBalanceRed, ms->config.cameraWhiteBalanceRed)
-CONFIG_GETTER_INT(CameraWhiteBalanceGreen, ms->config.cameraWhiteBalanceGreen)
-CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameraWhiteBalanceBlue)
+CONFIG_GETTER_INT(CameraExposure, ms->config.cameras[ms->config.focused_camera]->cameraExposure)
+CONFIG_GETTER_INT(CameraGain, ms->config.cameras[ms->config.focused_camera]->cameraGain)
+CONFIG_GETTER_INT(CameraWhiteBalanceRed, ms->config.cameras[ms->config.focused_camera]->cameraWhiteBalanceRed)
+CONFIG_GETTER_INT(CameraWhiteBalanceGreen, ms->config.cameras[ms->config.focused_camera]->cameraWhiteBalanceGreen)
+CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_camera]->cameraWhiteBalanceBlue)
 
+CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
+CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
+
+CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name);
+
+
+
+CONFIG_GETTER_POSE(HandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
+CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_camera]->handCameraOffset);
+
+CONFIG_GETTER_POSE(HandEndEffectorOffset, ms->config.handEndEffectorOffset);
+CONFIG_SETTER_POSE(SetHandEndEffectorOffset, ms->config.handEndEffectorOffset);
+
+CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
+CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
+CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
+CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+
+CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
+CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
+CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
+CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+
+CONFIG_SETTER_DOUBLE(SetCameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
+CONFIG_SETTER_DOUBLE(SetCameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
+CONFIG_SETTER_DOUBLE(SetCameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
+CONFIG_SETTER_DOUBLE(SetCameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+
+CONFIG_SETTER_DOUBLE(SetCameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
+CONFIG_SETTER_DOUBLE(SetCameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
+CONFIG_SETTER_DOUBLE(SetCameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
+CONFIG_SETTER_DOUBLE(SetCameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+
+
+CONFIG_GETTER_INT(CameraCenterX, ms->config.cameras[ms->config.focused_camera]->centerX)
+CONFIG_GETTER_INT(CameraCenterY, ms->config.cameras[ms->config.focused_camera]->centerY)
+CONFIG_SETTER_INT(SetCameraCenterX, ms->config.cameras[ms->config.focused_camera]->centerX)
+CONFIG_SETTER_INT(SetCameraCenterY, ms->config.cameras[ms->config.focused_camera]->centerY)
+
+CONFIG_GETTER_INT(CameraCropUpperLeftCornerX, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.px)
+CONFIG_GETTER_INT(CameraCropUpperLeftCornerY, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.py)
+CONFIG_SETTER_INT(SetCameraCropUpperLeftCornerX, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.px)
+CONFIG_SETTER_INT(SetCameraCropUpperLeftCornerY, ms->config.cameras[ms->config.focused_camera]->cropUpperLeftCorner.py)
 
 CONFIG_GETTER_INT(SceneCellCountThreshold, ms->config.sceneCellCountThreshold)
 CONFIG_SETTER_INT(SceneSetCellCountThreshold, ms->config.sceneCellCountThreshold)
@@ -2923,8 +3317,17 @@ CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
 CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
 
+CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
+
+CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
+
+CONFIG_GETTER_INT(CurrentSceneFixationMode, ms->config.currentSceneFixationMode)
+
+CONFIG_GETTER_INT(ZeroGMode, ms->config.zero_g_toggle)
+CONFIG_GETTER_INT(PublishCommandsMode, ms->config.publish_commands_mode)
 
 //CONFIG_GETTER_INT(NumIkMapHeights, ms->config.numIkMapHeights)
+
 
 
 

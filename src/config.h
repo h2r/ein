@@ -8,6 +8,7 @@ class GaussianMap;
 class TransitionTable;
 class Scene;
 class OrientedRay;
+class Camera;
 
 #include <ros/package.h>
 #include <tf/transform_listener.h>
@@ -73,6 +74,9 @@ class OrientedRay;
 
 class EinWindow;
 class ArmWidget;
+class GaussianMapWindow;
+class StreamViewerWindow;
+class DiscrepancyWindow;
 
 typedef enum {
   IK_GOOD = 0,
@@ -84,6 +88,7 @@ typedef enum {
   DISCREPANCY_POINT = 0,
   DISCREPANCY_DOT = 1,
   DISCREPANCY_NOISY_OR = 2,
+  DISCREPANCY_NOISY_AND = 3,
 } discrepancyModeState;
 
 typedef enum {
@@ -411,6 +416,24 @@ typedef struct pixelToGlobalCache {
   double bDiffy;
   double by;
 
+  Eigen::Matrix4f p2gComposedZBuilt;
+  Eigen::Matrix4f g2pComposedZBuilt;
+  Eigen::Matrix4f p2gComposedZNotBuilt;
+  Eigen::Matrix4f g2pComposedZNotBuilt;
+
+  Eigen::Matrix4f ap;
+  Eigen::Matrix4f apInv;
+  Eigen::Matrix4f ccpRot;
+  Eigen::Matrix4f ccpRotInv;
+  Eigen::Matrix4f ccpTrans;
+  Eigen::Matrix4f ccpTransInv;
+
+  double mu_x;
+  double mu_y;
+  double kappa_x;
+  double kappa_y;
+
+  Vec4d target_plane;
 } pixelToGlobalCache;
 
 
@@ -472,8 +495,9 @@ class EinConfig {
   int repeat_halo = 1;
 
   int zero_g_toggle = 1;
+  int publish_commands_mode = 1;
 
-  const int imRingBufferSize = 300;
+
   const int epRingBufferSize = 10000;
   const int rgRingBufferSize = 100;
 
@@ -481,21 +505,19 @@ class EinConfig {
   // if the current index passes the last recorded index, then we just proceed
   //  and lose the ranges we skipped over. alert when this happens
   // first valid entries
-  int imRingBufferStart = 0;
   int epRingBufferStart = 0;
   int rgRingBufferStart = 0;
   
   // first free entries
-  int imRingBufferEnd = 0;
   int epRingBufferEnd = 0;
   int rgRingBufferEnd = 0;
 
 
-  std::vector<Mat> imRingBuffer;
+
   std::vector<geometry_msgs::Pose> epRingBuffer;
   std::vector<double> rgRingBuffer;
   
-  std::vector<ros::Time> imRBTimes;
+
   std::vector<ros::Time> epRBTimes;
   std::vector<ros::Time> rgRBTimes;
 
@@ -620,12 +642,10 @@ class EinConfig {
   int streamLabelBatchSize = 5;
   std::vector<streamEePose> streamPoseBuffer;
   std::vector<streamRange> streamRangeBuffer;
-  std::vector<streamImage> streamImageBuffer;
   std::vector<streamJoints> streamJointsBuffer;
   std::vector<streamWord> streamWordBuffer;
   std::vector<streamLabel> streamLabelBuffer;
   // stream image buffer current index
-  int sibCurIdx = 0;
   int srbCurIdx = 0;
   int spbCurIdx = 0;
   int sjbCurIdx = 0;
@@ -682,6 +702,15 @@ class EinConfig {
   EinWindow * observedStdDevWindow;
   EinWindow * predictedWindow;
   EinWindow * predictedStdDevWindow;
+
+  GaussianMapWindow * backgroundMapWindow;
+  GaussianMapWindow * observedMapWindow;
+  GaussianMapWindow * predictedMapWindow;
+
+  StreamViewerWindow * streamViewerWindow;
+
+  DiscrepancyWindow * discrepancyViewerWindow;
+
   ArmWidget * armWidget;
 
   int last_key;
@@ -694,19 +723,6 @@ class EinConfig {
   //.qx = 0.0, .qy = 1.0, .qz = 0.0, .qw = 0.0}; 
   eePose straightDown = eePose(0.0, 0.0, 0.0,
                                0.0, 1.0, 0.0, 0.0); 
-
-  eePose cropUpperLeftCorner = eePose(320, 200, 0.0,
-                                      0.0, 1.0, 0.0, 0.0); // center of image
-
-  eePose centerReticle = eePose(325, 127, 0.0,
-                                0.0, 0.0, 0.0, 0.0);
-
-  eePose defaultReticle = centerReticle;
-  eePose heightReticles[4];
-
-  eePose probeReticle = defaultReticle;
-  eePose vanishingPointReticle = defaultReticle;
-  eePose reticle = defaultReticle;
 
 
 
@@ -737,6 +753,8 @@ class EinConfig {
   string other_arm = "left";
   string robot_serial;
   string robot_description;
+  string robot_software_version;
+  string ein_software_version;
 
 
   geometry_msgs::Pose trueEEPose;
@@ -747,7 +765,6 @@ class EinConfig {
   eePose trueEEPoseEEPose;
   eePose lastHandEEPose;
 
-  eePose trueCameraPose;
   eePose trueRangePose;
 
   std::string forthCommand;
@@ -966,7 +983,7 @@ class EinConfig {
   // grasp gear should always be even
   static const int totalGraspGears = 8;
   int currentGraspGear = -1;
-  Eigen::Quaternionf gear0offset;
+
   // XXX maybe we should initialize this to a reasonable value
   //// reticles
   double ggX[totalGraspGears];
@@ -978,16 +995,6 @@ class EinConfig {
 
   Quaternionf irGlobalPositionEEFrame;
  
-  constexpr static double cReticleIndexDelta = .01;
-  const static int numCReticleIndeces = 14;
-  constexpr static double firstCReticleIndexDepth = .08;
-  int xCR[numCReticleIndeces];
-  int yCR[numCReticleIndeces];
-  double fEpsilon = 1.0e-9;
-
-  int curseReticleX = 0;
-  int curseReticleY = 0;
-
 
   
   double w1GoThresh = 0.03;//0.01;
@@ -1100,7 +1107,6 @@ class EinConfig {
   //hand   0.33396; 0.75551; 0.082641
   double pickFlushFactor = 0.108;//0.08;//0.09;//0.11;
   eePose handEndEffectorOffset = {0,0,0.028838, 0,0,0,1};
-  eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
   eePose handRangeOffset = {0.03192,-0.02046,0.028838, 0,0,0,1};
   eePose handToRethinkEndPointTransform = {0,0,0, 0,0,0,1};
   eePose handFromEndEffectorTransform = {0,0,0, 0,0,0,1};
@@ -1120,20 +1126,9 @@ class EinConfig {
   //double d_y = -0.04;
   //double d_x = 0.018;
   //eePose handCameraOffset = {0.03815,0.01144,0.01589, 0,0,0,1};
-  double d_y = -0.038;
-  double d_x = 0.011;
   double offX = 0;
   double offY = 0;
-  // these corrective magnification factors should be close to 1
-  //  these are set elsewhere according to chirality
-  double m_x = 1.08;
-  double m_y = 0.94;
-  double m_x_h[4];
-  double m_y_h[4];
-  cameraCalibrationMode currentCameraCalibrationMode = CAMCAL_HYPERBOLIC;
   sceneFixationMode currentSceneFixationMode = FIXATE_STREAM;
-  double m_XQ[3] = {0,0,0};
-  double m_YQ[3] = {0,0,0};
 
   int mappingServoTimeout = 5;
   //const int mappingHeightIdx = 0;
@@ -1172,17 +1167,17 @@ class EinConfig {
 
 
   ros::Time lastAccelerometerCallbackRequest;
-  ros::Time lastImageCallbackRequest;
   ros::Time lastGripperCallbackRequest;
   ros::Time lastEndpointCallbackRequest;
   
   ros::Time lastAccelerometerCallbackReceived;
-  ros::Time lastImageCallbackReceived;
   ros::Time lastGripperCallbackReceived;
   ros::Time lastEndpointCallbackReceived;
 
   ros::Time lastImageStamp;
   ros::Time lastImageFromDensityReceived;
+
+  ros::Time lastImageCallbackRequest;
 
   bool usePotentiallyCollidingIK = 0;
 
@@ -1236,14 +1231,6 @@ class EinConfig {
   vector<Sprite> instanceSprites;
 
 
-  Mat gripperMaskFirstContrast;
-  Mat gripperMaskSecondContrast;
-  Mat gripperMaskMean;
-  Mat gripperMaskSquares;
-  int gripperMaskCounts;
-  Mat gripperMask;
-  Mat cumulativeGripperMask;
-  double gripperMaskThresh = 0.02;
 
   int darkServoIterations = 0;
   int darkServoTimeout = 20;
@@ -1269,26 +1256,8 @@ class EinConfig {
   int drawGray = 1;
   int drawBlueKP = 1;
 
-  ros::Time lastCameraLogTime;
-  bool observedCameraFlip;
-  bool observedCameraMirror;
-  int observedCameraExposure = -1;
-  int observedCameraGain = -1;
-  int observedCameraWhiteBalanceRed = -1;
-  int observedCameraWhiteBalanceGreen = -1;
-  int observedCameraWhiteBalanceBlue = -1;
-  int observedCameraWindowX = -1;
-  int observedCameraWindowY = -1;
-
-  int cameraExposure = -1;
-  int cameraGain = -1;
-  int cameraWhiteBalanceRed = -1;
-  int cameraWhiteBalanceGreen = -1;
-  int cameraWhiteBalanceBlue = -1;
 
 
-
-  cv_bridge::CvImagePtr cv_ptr = NULL;
   Mat stereoViewerImage;
   Mat objectViewerImage;
   Mat objectMapViewerImage;
@@ -1326,11 +1295,12 @@ class EinConfig {
 
 
 
-  std::string data_directory = "unspecified_dd";
-  std::string vocab_file = "unspecified_vf";
-  std::string knn_file = "unspecified_kf";
-  std::string label_file = "unspecified_lf";
+  std::string data_directory;
+  std::string vocab_file = "vocab.yml";
+  std::string knn_file = "knn.yml";
+  std::string label_file = "labels.yml";
   std::string config_directory = "/config/";
+  std::string config_filename;
   
   std::string run_prefix = "";
   std::string scan_group = "";
@@ -1338,8 +1308,8 @@ class EinConfig {
   //std::string class_labels= "unspecified_cl1 unspecified_cl2";
   //std::string class_pose_models = "unspecified_pm1 unspecified_pm2";
   
-  std::string image_topic = "/camera/rgb/image_raw"; 
-  
+  vector<Camera *> cameras;
+  int focused_camera = -1;
 
   std::string cache_prefix = "";
 
@@ -1364,7 +1334,6 @@ class EinConfig {
 
   std::string class_crops_path;
 
-  cv::Mat cam_img;
 
   int cropCounter;
 
@@ -1577,7 +1546,6 @@ class EinConfig {
     return numCollisions;
   }
 
-  image_transport::Subscriber image_sub;
   ros::Subscriber eeRanger;
   ros::Subscriber epState;
   ros::Subscriber gravity_comp_sub;
@@ -1592,7 +1560,6 @@ class EinConfig {
 
 
 
-  shared_ptr<image_transport::ImageTransport> it;
 
   ros::Subscriber collisionDetectionState;
   ros::Subscriber gripState;
@@ -1748,7 +1715,7 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void rangeCallback(const sensor_msgs::Range& range);
   void update_baxter(ros::NodeHandle &n);
   void timercallback1(const ros::TimerEvent&);
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+  void imageCallback(Camera * camera);
   void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
   void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
   void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;

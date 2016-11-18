@@ -4,6 +4,8 @@
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/c_local_time_adjustor.hpp>
+#include <glob.h>
+
 
 #include <boost/filesystem.hpp>
 
@@ -169,46 +171,44 @@ eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
 
 
 void initializeMachine(MachineState * ms) {
+  ms->execute_stack = 1;
+
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
   ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
 
   stringstream s;
-  s << "*** Starting Ein " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
+  s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
   cout << "start message: " << s.str() << endl;
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
 
-  if (ms->config.currentRobotMode != PHYSICAL) {
-    return;
-  }
+  if (ms->config.currentRobotMode == PHYSICAL) {
 
-  ms->pushWord("zeroGOff"); 
-  ms->pushWord("waitUntilEndpointCallbackReceived"); 
-
-  ms->pushWord("guiCustom1"); 
-  ms->pushCopies("zUp", 15);
-  int devInit = 1;
-  if (devInit) {
+    ms->pushWord("zeroGOff"); 
+    ms->pushWord("waitUntilEndpointCallbackReceived"); 
+    
+    ms->pushCopies("zUp", 15);
     ms->pushWord("incrementTargetClass"); 
     ms->pushWord("synchronicServoTakeClosest");
-  }
-  ms->pushWord("silenceSonar");
-  ms->pushWord("exportWords");
-  ms->pushWord("openGripper");
-  ms->pushWord("calibrateGripper");
-  ms->pushWord("shiftIntoGraspGear1"); 
 
-  {
+    ms->pushWord("silenceSonar");
+    ms->pushWord("exportWords");
+    ms->pushWord("openGripper");
+    ms->pushWord("calibrateGripper");
+    ms->pushWord("shiftIntoGraspGear1"); 
+    
     ms->pushWord("fillClearanceMap"); 
-    ms->pushWord("loadCalibration"); 
-    ms->pushWord("loadIkMap"); 
-    ms->pushWord("loadGripperMask"); 
-    ms->pushWord("initializeConfig");
   }
-  ms->execute_stack = 1;
 
+
+  ms->pushWord("loadCalibration"); 
+  ms->pushWord("loadIkMap"); 
+  ms->pushWord("loadGripperMask"); 
+  ms->pushWord("loadConfig"); 
+  ms->pushWord("initializeConfig");
+  ms->pushWord("guiCustom1"); 
   
 }
 
@@ -223,7 +223,7 @@ string formatTime(ros::Time time) {
   boost::posix_time::ptime p =  local_adj::utc_to_local(old);
 
   boost::posix_time::time_facet * facet = new boost::posix_time::time_facet();
-  facet->format("%Y-%m-%d_%H:%M:%S %Z");
+  facet->format("%Y-%m-%d_%H:%M:%s %Z%f");
 
   buf.imbue(std::locale(std::cout.getloc(), facet));
   buf << p;
@@ -324,6 +324,11 @@ string sceneModelFile(MachineState * ms, string label) {
   return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
 }
 
+string streamDirectory(MachineState * ms, int classIdx) {
+  string thisLabelName = ms->config.classLabels[classIdx];
+  return ms->config.data_directory + "/objects/" + thisLabelName + "/raw";
+}
+
 
 
 string xmlEncode(const string data) {
@@ -340,4 +345,16 @@ string xmlEncode(const string data) {
     }
   }
   return buffer;
+}
+
+std::vector<std::string> glob(const std::string& pat){
+  using namespace std;
+  glob_t glob_result;
+  glob(pat.c_str(),GLOB_TILDE,NULL,&glob_result);
+  vector<string> ret;
+  for(unsigned int i=0;i<glob_result.gl_pathc;++i){
+    ret.push_back(string(glob_result.gl_pathv[i]));
+  }
+  globfree(&glob_result);
+  return ret;
 }

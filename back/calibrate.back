@@ -539,3 +539,236 @@
 "When you are confident with calibrateRGBCameraIntrinsics, this is a good all-in-one." 
 "calibrateDeluxe" define
 
+
+
+
+
+
+(
+
+  0.00025 "tableReconstructWithZGridMultiplier" store
+
+
+  0.002425 "magCalBase" store
+  32 "magCalSteps" store
+  0.00000625 "magCalDelta" store
+
+  magCalBase setCameraMuX 
+  magCalBase setCameraMuY
+
+  1 changeToHeight
+  magCalBase cameraSetIdxMagX 
+
+  0 cameraSetCalibrationMode
+
+  2000 "tableReconstructStreamTakeSceneSamples" store
+  tableReconstructStreamTakeSceneSamples "tableSpiralStreamTakeSceneSamples" store
+
+  1 "tableChrStartHeight" store
+  1 "tableChrEndHeight" store
+  0.0 "tableChrExtraZ" store
+
+  ( cameraMuX ) "magCalGetter" store
+  ( setCameraMuX ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+  ( cameraMuY ) "magCalGetter" store
+  ( setCameraMuY ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+) 
+"Find magnification for new calibration."
+"calibrateFullMus" define
+
+(
+  0.0000008 "magCalBase" store
+  16 "magCalSteps" store
+  0.0000001 "magCalDelta" store
+
+  magCalBase setCameraKappaX 
+  magCalBase setCameraKappaY
+
+  1 changeToHeight
+  magCalBase cameraSetIdxMagX 
+
+  0 cameraSetCalibrationMode
+
+  100 "tableReconstructStreamTakeSceneSamples" store
+  1 "tableChrStartHeight" store
+  1 "tableChrEndHeight" store
+  0.0 "tableChrExtraZ" store
+
+/*
+  ( cameraKappaX ) "magCalGetter" store
+  ( setCameraKappaX ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+*/
+
+  ( cameraKappaY ) "magCalGetter" store
+  ( setCameraKappaY ) "magCalSetter" store
+  calibrateOnBundleOneDimension
+
+) 
+"Find distortion for new calibration."
+"calibrateFullKappas" define
+
+(
+  /*
+
+  make a map with the first camera
+  set block filter size appropriately
+  * add a detection in the middle of the workspace
+	* push pose of cblock in this, the first map 
+  create a temporary calibrator block (cblock) class
+  grab the most certainly discrepant cblock region as the model
+  switch to the second camera
+  make a (the) second map and localize the cblock
+	* push pose of cblock in second map
+      obtain relative transformation between the two cblock poses
+      push the second camera offset
+    apply the relative transformation to the pushed camera offset
+  set the camera offset to the transformed value
+
+  */
+    
+  cameraWristConfig
+/*
+  tableTakeScene
+*/
+
+  0.10 "tableBlockMaxGraspThickness" store 0.0 "tableBlockGripperThrow" store 0.10 "tableBlockTargetContactWidth" store tableSwapToBlocks
+  
+  sceneClearPredictedObjects
+  0 0 0 sceneAddPredictedFocusedObject 
+    0 scenePushSceneObjectPose
+  "ccOffPredition1" store
+
+  0.01 "sceneGrabDiscrepantCropAsClassDefaultThresh" store
+  sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass
+
+/*
+  incrementCamera
+  cameraK2QHDConfig
+
+  0.0 sceneSetScoreThresh
+  10000000 sceneSetDiscrepancySearchDepth 
+
+  sceneClearPredictedObjects
+  scenePredictBestObject tableUpdateMaps
+    0 scenePushSceneObjectPose
+  "ccOffPredition2" store
+  tableTakeScene
+
+    ccOffPredition1 ccOffPredition2 eePoseGetPoseRelativeTo
+  "ccOffRelativeTransform" store
+
+    handCameraOffset ccOffRelativeTransform eePoseApplyRelativePoseTo
+  "ccOffNewCameraPose" store
+
+  ccOffNewCameraPose setHandCameraOffset
+*/
+) 
+"Find the offset of the next (second) camera from the current (first) camera and use this to set the offset of the next camera." 
+"calibrateNextCameraOffset" define
+
+(
+  0 setCameraR00 1 setCameraR01 -1 setCameraR10 0 setCameraR11
+/* 0.03815 0.01144 0.01589 */
+  0.027 0.012 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0024 setCameraMuX 0.00245 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  640 setCameraCenterX
+  400 setCameraCenterY
+  320 setCameraCropUpperLeftCornerX 
+  200 setCameraCropUpperLeftCornerY 
+) "cameraWristConfig" store
+
+(
+  1 setCameraR00 0 setCameraR01 0 setCameraR10 1 setCameraR11
+  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0019 setCameraMuX 0.00195 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  480 setCameraCenterX
+  270 setCameraCenterY
+  0 setCameraCropUpperLeftCornerX 
+  0 setCameraCropUpperLeftCornerY 
+/*
+960
+540
+*/
+) "cameraK2QHDConfig" store
+
+(
+  1 setCameraR00 0 setCameraR01 0 setCameraR10 1 setCameraR11
+  0.03815 0.01144 0.01589 0 0 0 1 createEEPose setHandCameraOffset
+  0.0019 setCameraMuX 0.00195 setCameraMuY
+  0.0 setCameraKappaX 0.0000002 setCameraKappaY
+  250 setCameraCenterX
+  250 setCameraCenterY
+  0 setCameraCropUpperLeftCornerX 
+  0 setCameraCropUpperLeftCornerY 
+/*
+960
+540
+*/
+) "cameraK2IRConfig" store
+
+(
+/*
+    -0.02 0.02 0.03515 0 0 0.7071 0.7071 createEEPose setHandEndEffectorOffset
+    0.0 0.0 0.0 0 0 0 1.0 createEEPose setHandEndEffectorOffset
+*/
+    0.0 0.0 0.0 0 0 0 1.0 createEEPose setHandEndEffectorOffset
+) "gauntletCrystalConfigOffset" store
+
+(
+  cameraWristConfig
+  80 10 1124 1024 2048 fixCameraLighting
+/*
+  ikModeIkFast 0 setCurrentIKFastMode
+*/
+) "gauntletCrystalConfig" store
+
+(
+  4.0 sceneSetBackgroundStdDevY
+  400.0 "calibrateFromZScale" store
+
+  bg "noGlassBase" + sceneLoadObservedMap
+  calibrateFromZScale sceneSetObservedRGBFromZ sceneRenderObservedMap
+
+  bg "noGlassBase" "scaled" + + sceneSaveObservedMap
+  bg "noGlassBase" "scaled" + + sceneLoadBackgroundMap
+
+  bg "yesGlassBase" + sceneLoadObservedMap
+  calibrateFromZScale sceneSetObservedRGBFromZ sceneRenderObservedMap
+
+  tableUpdateMaps
+
+) "calibrateFromZDiscrepancy" store
+
+(
+
+/* Take a scene, add some glass, take another scene, look at discrepant cells, average color, 
+store. Then use this to segment specular highlight, which is another channel for discrepancy and
+a means by which to infer 3D structure. */
+
+  "Make sure the background is clear of objects and unpause." print
+  pauseStackExecution
+
+  tableTakeSceneNoReconstruct
+  tableReconstructLightSlabWithoutZ
+  bg "calibrateLM_background" + sceneSaveObservedMap
+  bg "calibrateLM_background" + sceneLoadBackgroundMap
+  
+  "Add a sheet of transparent material and unpause." print
+  pauseStackExecution
+  tableTakeSceneNoReconstruct
+  tableReconstructLightSlabWithoutZ
+  bg "calibrateLM_background" + sceneSaveObservedMap
+
+  0.5 sceneSetLightModelFromDiscrepancy
+) 
+"learn a one color lighting model with the lens array."
+"calibrateSetLightingModel" define
+
+

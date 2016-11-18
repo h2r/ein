@@ -992,7 +992,24 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(SetEffortHere)
 
+
+WORD(PressUntilEffortAllInOne)
+virtual string description() {
+  return "Push down until there is effort sensed; top level word that can be called all in one.";
+}
+virtual void execute(MachineState * ms)
+{
+
+  ms->evaluateProgram("comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo");
+}
+END_WORD
+REGISTER_WORD(PressUntilEffortAllInOne)
+
+
 WORD(PressUntilEffortInit)
+virtual string description() {
+  return "Initialize parameters for pressUntilEffort.";
+}
 virtual void execute(MachineState * ms)
 {
   ms->pushWord("setEffortThresh");
@@ -1121,6 +1138,9 @@ END_WORD
 REGISTER_WORD(PressUntilEffortStart)
 
 WORD(PressUntilEffortCombo)
+virtual string description() {
+  return "Press down until effort is larger than a threshold.  Pushes down once more quickly with a coarse press, then does a fine-grained press (to unwined the springs), so at the end you are lightly touching the surface.";
+}
 virtual void execute(MachineState * ms)
 {
   // restore

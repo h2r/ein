@@ -147,10 +147,7 @@ bool isCellIkImpossible(MachineState * ms, int i, int j);
 //
 // start pilot prototypes 
 ////////////////////////////////////////////////
-
 int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
-int getRingImageAtTime(MachineState * ms, ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
-int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack = 0);
 int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
 
 
@@ -160,7 +157,6 @@ double cephes_incbet(double a, double b, double x) ;
 void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet);
 void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet);
 void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet);
-void imRingBufferAdvance(MachineState * ms);
 void rgRingBufferAdvance(MachineState * ms);
 void epRingBufferAdvance(MachineState * ms);
 void allRingBuffersAdvance(MachineState * ms, ros::Time t);
@@ -179,12 +175,6 @@ void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
-streamImage * setIsbIdx(MachineState * ms, int idx);
-streamImage * setIsbIdxNoLoad(MachineState * ms, int idx);
-streamImage * setIsbIdxYesLoadNoKick(MachineState * ms, int idx);
-streamImage * setIsbIdxNoLoadNoKick(MachineState * ms, int idx);
-streamImage * getIsbIdxNoLoadNoKick(MachineState * ms, int idx);
-void resetAccumulatedStreamImage(MachineState * ms);
 int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
@@ -202,7 +192,6 @@ void deactivateSensorStreaming(MachineState * ms);
 
 int didSensorStreamTimeout(MachineState * ms);
 
-void populateStreamImageBuffer(MachineState * ms);
 void populateStreamPoseBuffer(MachineState * ms);
 void populateStreamRangeBuffer(MachineState * ms);
 void populateStreamWordBuffer(MachineState * ms);
@@ -219,9 +208,10 @@ void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx);
 void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx);
 void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx);
 
+int loadStreamImage(MachineState * ms, streamImage * tsi);
 void checkAndStreamWord(MachineState * ms, string wordIn, string commandIn);
 
-void writeSideAndSerialToFileStorage(FileStorage& fsvO);
+void writeSideAndSerialToFileStorage(MachineState * ms, FileStorage& fsvO);
 void readSideAndSerialFromFileStorage(MachineState * ms, FileStorage fsvI, string * serial, string * side);
 string appendSideAndSerial(MachineState * ms, string root);
 
@@ -288,6 +278,7 @@ void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int
                                   int * rx, int * ry);
 
 void changeTargetClass(MachineState * ms, int);
+void changeCamera(MachineState * ms, int);
 
 void zeroGraspMemoryAndRangeMap(MachineState * ms);
 void zeroClassGraspMemory(MachineState * ms);
@@ -358,12 +349,19 @@ void pixelToGlobalFromCacheBackCast(MachineState * ms, int pX, int pY, double * 
 void computePixelToGlobalCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
 void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY, eePose givenEEPose);
-void globalToPixelPrint(MachineState * ms, int * pX, int * pY, double gZ, double gX, double gY);
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ);
+string pixelToGlobalCacheToString(const pixelToGlobalCache &cache);
 
 void pixelToPlane(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose, eePose referenceFrame);
 void computePixelToPlaneCache(MachineState * ms, double gZ, eePose givenEEPose, eePose referenceFrame, pixelToGlobalCache * cache);
 
+void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z);
+void pixelToGlobalFullFromCacheZBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
+void globalToPixelFullFromCache(MachineState * ms, int * pX, int * pY, double gX, double gY, double gZ, pixelToGlobalCache * cache);
+void computePixelToGlobalFullCache(MachineState * ms, double gZ, eePose givenEEPose, pixelToGlobalCache * cache);
+
+void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache);
+void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose givenEEPose, eePose otherPlane, pixelToGlobalCache * cache);
 
 void mapPixelToWorld(Mat mapImage, double xMin, double xMax, double yMin, double yMax, int px, int py, double &x, double &y) ;
 cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y);
@@ -380,8 +378,6 @@ void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositio
 
 void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
-void loadCalibration(MachineState * ms, string inFileName);
-void saveCalibration(MachineState * ms, string outFileName);
 
 void findDarkness(MachineState * ms, int * xout, int * yout);
 void findLight(MachineState * ms, int * xout, int * yout);
@@ -426,7 +422,6 @@ void substituteAccumulatedImageQuantities(MachineState * ms);
 void substituteLatestImageQuantities(MachineState * ms);
 
 void loadROSParamsFromArgs(MachineState * ms);
-void saveROSParams(MachineState * ms);
 
 void spinlessNodeMain(MachineState * ms);
 void nodeInit(MachineState * ms);
@@ -443,7 +438,7 @@ void sad(MachineState * ms);
 void neutral(MachineState * ms);
 
 
-void guardViewers(MachineState * ms);
+void initializeViewers(MachineState * ms);
 
 int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSearch = -1);
 void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa);
@@ -462,10 +457,12 @@ double computeSimilarity(MachineState * ms, Mat im1, Mat im2);
 void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
 void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
+void mapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void publishConsoleMessage(MachineState * ms, string msg);
 
-
+void loadConfig(MachineState * ms, string filename);
+void saveConfig(MachineState * ms, string outFileName);
 
 ////////////////////////////////////////////////
 // end node prototypes 

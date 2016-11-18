@@ -111,8 +111,10 @@ To do this process first `goHome` and then run
 
 The gripper will move to four different heights and take a series of
 measurements at different orientations.  This process takes about 20
-minutes to complete.  If it fails you may have to run it again; in
-that case restart Ein or run `loadCalibration` to reload your old
+minutes to complete.  Because Ein is single threaded, the gui will
+periodically freeze while it is running the inference; this freezing
+does not mean it is broken.   If it fails you may have to run it again;
+in that case restart Ein or run `loadCalibration` to reload your old
 calibration (which, while not perfect, is a reasonable
 initialization).  When you obtain a good calibration (described
 below), save it by running `saveCalibration`.
@@ -133,12 +135,14 @@ state indicator; watch as it changes from moving to hovering to
 stopped.  You can try large movements by double clicking in the Object
 Map Viewer; this action sends the arm to the corresponding position.  
 
-#### Exercise: Check the calibration.  To check the calibration,
-verify that the gripper projection line appears as shown in the above
-legend.  It should be a relatively straight line, no zig-zags or
-curves.  It should also not be absent.  If there is a problem,
-rearrange the magic circle and try the calibration again.  Do not
-hesitate to post an issue if you have problems.
+#### Exercise: Check the calibration.  
+
+To check the calibration, verify that the gripper projection line
+appears as shown in the above legend.  It should be a relatively
+straight line, no zig-zags or curves.  It should also not be absent.
+If there is a problem, rearrange the magic circle and try the
+calibration again.  Do not hesitate to post an issue if you have
+problems.
 
 Second, find the calibration reticle, drawn in red and green near the
 gripper projection line.  Drive the arm so that the calibration

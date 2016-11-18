@@ -11,15 +11,28 @@ happyFace
 tableInit
 
 (  
-/*  0.562 0.478 0.069 -0.001 0.999 -0.000 0 createEEPose moveEeToPoseWord */
-   assumeBeeHome  
+assumeBeeHome
+
+/*
+leftOrRightArm "right" =
+( 
+ 0.607890 -0.388495 0.098883 0.000585 0.999998 0.000919 0.001453 createEEPose moveEeToPoseWord
+)
+( 
+leftOrRightArm "left" = 
+(
+ assumeBeeHome
+)
+ ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
+ifte
+)
+ifte
+*/
+
+
   1 changeToHeight waitUntilAtCurrentPosition 
 
   shoreUp
-) "goHome" store
+) "Go to the home position, wait until at current position, and put the joints in a good state."  "goHome" define
 
-
-
-
-
-
+cameraWristConfig

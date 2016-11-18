@@ -1,6 +1,6 @@
 #include "ein_words.h"
 #include "ein.h"
-
+#include "camera.h"
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
 using namespace std;
@@ -324,6 +324,9 @@ REGISTER_WORD(PushClassLabels)
 
 WORD(ReloadClassLabels)
 virtual void execute(MachineState * ms)  {
+
+  ms->pushWord("setTargetClassIdx");
+  ms->pushWord(make_shared<IntegerWord>(ms->config.focusedClass));
   ms->pushWord("setClassLabels");
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     ms->pushWord(make_shared<StringWord>(ms->config.classLabels[i]));
@@ -742,10 +745,12 @@ REGISTER_WORD(VisionCycleNoClassify)
 WORD(RecordExampleAsFocusedClass)
 CODE(131148)     // capslock + l 
 virtual void execute(MachineState * ms)       {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   cout << "recordExamplesFocusedClass is deprecated." << endl;
   if ((ms->config.focusedClass > -1) && (ms->config.bTops.size() == 1)) {
     string thisLabelName = ms->config.focusedClassLabel;
-    Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
+    Mat crop = camera->cam_img(cv::Rect(ms->config.bTops[0].x, ms->config.bTops[0].y, ms->config.bBots[0].x-ms->config.bTops[0].x, ms->config.bBots[0].y-ms->config.bTops[0].y));
     char buf[1000];
     string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 
@@ -761,10 +766,12 @@ REGISTER_WORD(RecordExampleAsFocusedClass)
 WORD(RecordAllExamplesFocusedClass)
 virtual void execute(MachineState * ms)       {
   cout << "recordAllExamplesFocusedClass is deprecated." << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   if ( ms->config.focusedClass > -1 ) {
     for (int c = 0; c < ms->config.bTops.size(); c++) {
       string thisLabelName = ms->config.focusedClassLabel;
-      Mat crop = ms->config.cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
+      Mat crop = camera->cam_img(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
       char buf[1000];
       string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/rgb/";
 
@@ -831,7 +838,8 @@ REGISTER_WORD(RgbScan)
 
 WORD(SetPhotoPinHere)
 virtual void execute(MachineState * ms) {
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -839,7 +847,8 @@ REGISTER_WORD(SetPhotoPinHere)
 WORD(PutCameraOverPhotoPin)
 virtual void execute(MachineState * ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, ms->config.vanishingPointReticle.px, ms->config.vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -1274,9 +1283,10 @@ virtual void execute(MachineState * ms) {
 
     //int hbb = ms->config.pilotTargetBlueBoxNumber;
     //int hbb = 0;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    int topCornerX = ms->config.reticle.px - (ms->config.aerialGradientReticleWidth/2);
-    int topCornerY = ms->config.reticle.py - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerX = camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
+    int topCornerY = camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
     int crows = ms->config.aerialGradientReticleWidth;
     int ccols = ms->config.aerialGradientReticleWidth;
 
@@ -1403,12 +1413,13 @@ virtual void execute(MachineState * ms) {
   string oldfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
   string newfolder = ms->config.data_directory + "/objects/" + newname + "/";
   try {
-  rename(oldfolder, newfolder);
+    rename(oldfolder, newfolder);
   } catch (boost::filesystem::filesystem_error e) {
     CONSOLE_ERROR(ms, "Could not rename focused class to " << newname << " with old folder: " << oldfolder << " and new folder: " << newfolder << " because of exception: " << e.what());
   }
   ms->config.classLabels[idx] = newname;
   ms->pushWord("reloadClassLabels");
+
 }
 END_WORD
 REGISTER_WORD(RenameFocusedClass)
@@ -1619,9 +1630,11 @@ REGISTER_WORD(SetIROffset)
 
 WORD(ZeroIROffset)
 virtual void execute(MachineState * ms) {
-  ms->config.gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(ZeroIROffset)
@@ -1658,14 +1671,15 @@ virtual void execute(MachineState * ms) {
   double offByY = ((minY-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
 
   cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  ms->config.gear0offset = Eigen::Quaternionf(0.0, 
-    ms->config.gear0offset.x()+offByX, 
-    ms->config.gear0offset.y()+offByY, 
+  camera->gear0offset = Eigen::Quaternionf(0.0, 
+    camera->gear0offset.x()+offByX, 
+    camera->gear0offset.y()+offByY, 
     0.0167228); // z is from TF, good for depth alignment
 
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * ms->config.gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
 }
 END_WORD
 REGISTER_WORD(SetIROffsetA)
@@ -1729,20 +1743,11 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetHeightReticles)
 
-WORD(PrintGlobalToPixel)
-virtual void execute(MachineState * ms) {
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-  }
-}
-END_WORD
-REGISTER_WORD(PrintGlobalToPixel)
 
 WORD(SetHeightReticlesA)
 virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   int darkX = 0;
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
@@ -1750,14 +1755,14 @@ virtual void execute(MachineState * ms) {
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
-  ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
+  camera->heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
+  camera->heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
 
   cout << "setHeightReticles,  currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  eePose::print(ms->config.heightReticles[0]); cout << endl;
-  eePose::print(ms->config.heightReticles[1]); cout << endl;
-  eePose::print(ms->config.heightReticles[2]); cout << endl;
-  eePose::print(ms->config.heightReticles[3]); cout << endl;
+  eePose::print(camera->heightReticles[0]); cout << endl;
+  eePose::print(camera->heightReticles[1]); cout << endl;
+  eePose::print(camera->heightReticles[2]); cout << endl;
+  eePose::print(camera->heightReticles[3]); cout << endl;
 }
 END_WORD
 REGISTER_WORD(SetHeightReticlesA)
@@ -1767,8 +1772,10 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
-  ms->config.cropUpperLeftCorner.px = 320;
-  ms->config.cropUpperLeftCorner.py = 200;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->cropUpperLeftCorner.px = 320;
+  camera->cropUpperLeftCorner.py = 200;
   ms->pushWord("moveCropToProperValue");
 }
 END_WORD
@@ -1784,25 +1791,27 @@ REGISTER_WORD(MoveCropToProperValue)
 
 WORD(MoveCropToProperValueNoUpdate)
 virtual void execute(MachineState * ms) {
-  cout << "Setting exposure " << ms->config.cameraExposure << " gain: " << ms->config.cameraGain;
-  cout << " wbr: " << ms->config.cameraWhiteBalanceRed << " wbg: " << ms->config.cameraWhiteBalanceGreen << " wbb: " << ms->config.cameraWhiteBalanceBlue << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  cout << "Setting exposure " << camera->cameraExposure << " gain: " << camera->cameraGain;
+  cout << " wbr: " << camera->cameraWhiteBalanceRed << " wbg: " << camera->cameraWhiteBalanceGreen << " wbb: " << camera->cameraWhiteBalanceBlue << endl;
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(7);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
   ocMessage.request.settings.controls[2].id = 100;
-  ocMessage.request.settings.controls[2].value = ms->config.cameraExposure;
+  ocMessage.request.settings.controls[2].value = camera->cameraExposure;
   ocMessage.request.settings.controls[3].id = 101;
-  ocMessage.request.settings.controls[3].value = ms->config.cameraGain;
+  ocMessage.request.settings.controls[3].value = camera->cameraGain;
   ocMessage.request.settings.controls[4].id = 102;
-  ocMessage.request.settings.controls[4].value = ms->config.cameraWhiteBalanceRed;
+  ocMessage.request.settings.controls[4].value = camera->cameraWhiteBalanceRed;
   ocMessage.request.settings.controls[5].id = 103;
-  ocMessage.request.settings.controls[5].value = ms->config.cameraWhiteBalanceGreen;
+  ocMessage.request.settings.controls[5].value = camera->cameraWhiteBalanceGreen;
   ocMessage.request.settings.controls[6].id = 104;
-  ocMessage.request.settings.controls[6].value = ms->config.cameraWhiteBalanceBlue;
+  ocMessage.request.settings.controls[6].value = camera->cameraWhiteBalanceBlue;
 
   int testResult = ms->config.cameraClient.call(ocMessage);
 }
@@ -1827,7 +1836,9 @@ REGISTER_WORD(FixCameraLightingToAutomaticParameters)
 WORD(FixCameraLightingToObservedValues)
 virtual void execute(MachineState * ms) {
   stringstream p;
-  p << ms->config.observedCameraExposure << " " << ms->config.observedCameraGain << " " << ms->config.observedCameraWhiteBalanceRed << " " << ms->config.observedCameraWhiteBalanceGreen << " " << ms->config.observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  p << camera->observedCameraExposure << " " << camera->observedCameraGain << " " << camera->observedCameraWhiteBalanceRed << " " << camera->observedCameraWhiteBalanceGreen << " " << camera->observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
   cout << p.str() << endl;
   ms->evaluateProgram(p.str());
 }
@@ -1851,11 +1862,12 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, gain);
   GET_INT_ARG(ms, exposure);
 
-  ms->config.cameraGain = gain;
-  ms->config.cameraExposure = exposure;
-  ms->config.cameraWhiteBalanceRed = wbRed;
-  ms->config.cameraWhiteBalanceGreen = wbGreen;
-  ms->config.cameraWhiteBalanceBlue = wbBlue;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cameraGain = gain;
+  camera->cameraExposure = exposure;
+  camera->cameraWhiteBalanceRed = wbRed;
+  camera->cameraWhiteBalanceGreen = wbGreen;
+  camera->cameraWhiteBalanceBlue = wbBlue;
 
   ms->pushWord("moveCropToProperValueNoUpdate");
 
@@ -1901,13 +1913,15 @@ REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
 
 WORD(UnFixCameraLightingNoUpdate)
 virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   baxter_core_msgs::OpenCamera ocMessage;
   ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
   ocMessage.request.settings.controls.resize(2);
   ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = ms->config.cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = ms->config.cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
   int testResult = ms->config.cameraClient.call(ocMessage);
 }
 END_WORD
@@ -1928,14 +1942,15 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
-  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
+  double Vx = camera->vanishingPointReticle.px - (imW/2);
+  double Vy = camera->vanishingPointReticle.py - (imH/2);
 
-  ms->config.cropUpperLeftCorner.px += Vx;
-  ms->config.cropUpperLeftCorner.py += Vy;
-  ms->config.vanishingPointReticle.px -= Vx;
-  ms->config.vanishingPointReticle.py -= Vy;
+  camera->cropUpperLeftCorner.px += Vx;
+  camera->cropUpperLeftCorner.py += Vy;
+  camera->vanishingPointReticle.px -= Vx;
+  camera->vanishingPointReticle.py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
   ms->pushWord("moveCropToProperValue");
@@ -1948,24 +1963,25 @@ virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
   int imH = sz.height;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  double Vx = ms->config.vanishingPointReticle.px - (imW/2);
-  double Vy = ms->config.vanishingPointReticle.py - (imH/2);
+  double Vx = camera->vanishingPointReticle.px - (imW/2);
+  double Vy = camera->vanishingPointReticle.py - (imH/2);
 
-  ms->config.cropUpperLeftCorner.px += Vx;
-  ms->config.cropUpperLeftCorner.py += Vy;
-  ms->config.vanishingPointReticle.px -= Vx;
-  ms->config.vanishingPointReticle.py -= Vy;
+  camera->cropUpperLeftCorner.px += Vx;
+  camera->cropUpperLeftCorner.py += Vy;
+  camera->vanishingPointReticle.px -= Vx;
+  camera->vanishingPointReticle.py -= Vy;
 
-  ms->config.heightReticles[0].px -= Vx;
-  ms->config.heightReticles[1].px -= Vx;
-  ms->config.heightReticles[2].px -= Vx;
-  ms->config.heightReticles[3].px -= Vx;
+  camera->heightReticles[0].px -= Vx;
+  camera->heightReticles[1].px -= Vx;
+  camera->heightReticles[2].px -= Vx;
+  camera->heightReticles[3].px -= Vx;
 
-  ms->config.heightReticles[0].py -= Vy;
-  ms->config.heightReticles[1].py -= Vy;
-  ms->config.heightReticles[2].py -= Vy;
-  ms->config.heightReticles[3].py -= Vy;
+  camera->heightReticles[0].py -= Vy;
+  camera->heightReticles[1].py -= Vy;
+  camera->heightReticles[2].py -= Vy;
+  camera->heightReticles[3].py -= Vy;
 
   cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
   ms->pushWord("moveCropToProperValue");
@@ -2036,15 +2052,16 @@ virtual void execute(MachineState * ms) {
   int darkX = 0;
   int darkY = 0;
   findDarkness(ms, &darkX, &darkY);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   ms->config.pilotTarget.px = darkX;
   ms->config.pilotTarget.py = darkY;
 
-  int Px = darkX - ms->config.vanishingPointReticle.px;
-  int Py = darkY - ms->config.vanishingPointReticle.py;
+  int Px = darkX - camera->vanishingPointReticle.px;
+  int Py = darkY - camera->vanishingPointReticle.py;
 
-  ms->config.vanishingPointReticle.px = darkX;
-  ms->config.vanishingPointReticle.py = darkY;
+  camera->vanishingPointReticle.px = darkX;
+  camera->vanishingPointReticle.py = darkY;
   
   cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
 
@@ -2188,12 +2205,13 @@ virtual void execute(MachineState * ms) {
 
   int magIters = 2000; 
   double magStep = 0.01;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   for (int i = 0; i < magIters; i++) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2202,8 +2220,9 @@ virtual void execute(MachineState * ms) {
     double xFlip = 1.0;
     double yFlip = 1.0;
 
+
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -2215,12 +2234,12 @@ virtual void execute(MachineState * ms) {
 
     // only do x
     if ((Px*xFlip) > 0) {
-      ms->config.m_x += .01;
-      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+      camera->m_x += .01;
+      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
       cout << "m_x++ ";
     } else if ((Px*xFlip) < 0) {
-      ms->config.m_x -= .01;
-      ms->config.m_x_h[ms->config.currentThompsonHeightIdx] = ms->config.m_x;
+      camera->m_x -= .01;
+      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
       cout << "m_x-- ";
     }
 
@@ -2230,29 +2249,30 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetMagnificationA)
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
-CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.m_y_h[ms->config.currentThompsonHeightIdx]) 
-
-
-CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.vanishingPointReticle.px) 
-CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.vanishingPointReticle.px) 
-
-CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.vanishingPointReticle.py) 
-CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.vanishingPointReticle.py) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
-CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
+CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
-CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
 WORD(SetMagnificationB)
 virtual void execute(MachineState * ms) {
   // adjust until close	
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int darkX = 0;
   int darkY = 0;
@@ -2268,7 +2288,7 @@ virtual void execute(MachineState * ms) {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixelPrint(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
+    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
 
     // remember this is flipped!
     double Px = darkY - eY;
@@ -2278,7 +2298,7 @@ virtual void execute(MachineState * ms) {
     double yFlip = 1.0;
 
     // remember x, y are swapped
-    eePose thisFlipReticle = ms->config.heightReticles[ms->config.currentThompsonHeightIdx];
+    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
     if (darkX < thisFlipReticle.px) {
       yFlip = -1.0;
     }
@@ -2290,12 +2310,12 @@ virtual void execute(MachineState * ms) {
 
     // only do y
     if ((Py*yFlip) > 0) {
-      ms->config.m_y += .01;
-      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+      camera->m_y += .01;
+      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
       cout << "m_y++ ";
     } else if ((Py*yFlip) < 0) {
-      ms->config.m_y -= .01;
-      ms->config.m_y_h[ms->config.currentThompsonHeightIdx] = ms->config.m_y;
+      camera->m_y -= .01;
+      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
       cout << "m_y-- ";
     }
 
@@ -2307,18 +2327,21 @@ REGISTER_WORD(SetMagnificationB)
 
 WORD(SetGripperMaskOnes)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
-  ms->config.cumulativeGripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  
 
-  Size sz = ms->config.gripperMask.size();
+  camera->gripperMask.create(camera->cam_img.size(), CV_8U);
+  camera->cumulativeGripperMask.create(camera->cam_img.size(), CV_8U);
+
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      ms->config.gripperMask.at<uchar>(y,x) = 1;
-      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 1;
+      camera->gripperMask.at<uchar>(y,x) = 1;
+      camera->cumulativeGripperMask.at<uchar>(y,x) = 1;
     }
   }
 }
@@ -2340,22 +2363,23 @@ REGISTER_WORD(SetGripperMask)
 
 WORD(SetGripperMaskAA)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
-  ms->config.gripperMaskSecondContrast = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskMean = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskMean = 0.0;
-  ms->config.gripperMaskSquares = ms->config.gripperMaskFirstContrast.clone();
-  ms->config.gripperMaskSquares = 0.0;
-  ms->config.gripperMaskCounts = 0;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
+  camera->gripperMaskSecondContrast = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = 0.0;
+  camera->gripperMaskSquares = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskSquares = 0.0;
+  camera->gripperMaskCounts = 0;
 
-  ms->config.gripperMask.create(ms->config.gripperMaskFirstContrast.size(), CV_8U);
+  camera->gripperMask.create(camera->gripperMaskFirstContrast.size(), CV_8U);
 
-  Size sz = ms->config.gripperMask.size();
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   cout << "Updating image" << endl;
-  //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
+  //camera->gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2363,11 +2387,11 @@ virtual void execute(MachineState * ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMask.at<uchar>(y,x) = 0;
+      camera->gripperMask.at<uchar>(y,x) = 0;
     }
   }
   //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
@@ -2377,13 +2401,14 @@ REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(MachineState * ms) {
-  ms->config.cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
-  Size sz = ms->config.cumulativeGripperMask.size();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cumulativeGripperMask.create(ms->config.accumulatedImage.size(), CV_8U);
+  Size sz = camera->cumulativeGripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      ms->config.cumulativeGripperMask.at<uchar>(y,x) = 0;
+      camera->cumulativeGripperMask.at<uchar>(y,x) = 0;
     }
   }
 }
@@ -2415,13 +2440,13 @@ REGISTER_WORD(SetGripperMaskB)
 
 WORD(SetGripperMaskBA)
 virtual void execute(MachineState * ms) {
-
-  Size sz = ms->config.gripperMask.size();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
   int dilationPixels = 10;
-  double baseThresh = ms->config.gripperMaskThresh;
+  double baseThresh = camera->gripperMaskThresh;
   //double multiThresh = 3*baseThresh*baseThresh; // for rgb
   double multiThresh = 2*baseThresh*baseThresh; // for ycbcr
 
@@ -2433,27 +2458,27 @@ virtual void execute(MachineState * ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[0] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[1] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.gripperMaskMean.at<Vec3d>(y,x)[2] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[0] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[1] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
+      camera->gripperMaskMean.at<Vec3d>(y,x)[2] += (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
 
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[0] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom), 2);
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[1] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom), 2);
-      ms->config.gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[0] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[1] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom), 2);
+      camera->gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
     }
   }
-  ms->config.gripperMaskCounts += 1;
+  camera->gripperMaskCounts += 1;
   //ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
-  Mat firstFloat; Mat firstYCBCR;  ms->config.gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
-  Mat secondFloat; Mat secondYCBCR;  ms->config.gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
+  Mat firstFloat; Mat firstYCBCR;  camera->gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
+  Mat secondFloat; Mat secondYCBCR;  camera->gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
 
-  Mat varianceImage = ms->config.gripperMaskFirstContrast.clone();
+  Mat varianceImage = camera->gripperMaskFirstContrast.clone();
 
-  Mat differenceImage = ms->config.gripperMaskFirstContrast.clone();
+  Mat differenceImage = camera->gripperMaskFirstContrast.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2479,9 +2504,9 @@ virtual void execute(MachineState * ms) {
       differenceImage.at<Vec3d>(y,x)[1] = 0.0;
       differenceImage.at<Vec3d>(y,x)[2] = 0.0;
 
-      varianceImage.at<Vec3d>(y,x)[0] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[0] / ms->config.gripperMaskCounts, 2) ;
-      varianceImage.at<Vec3d>(y,x)[1] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[1] / ms->config.gripperMaskCounts, 2) ;
-      varianceImage.at<Vec3d>(y,x)[2] = ms->config.gripperMaskSquares.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts - pow(ms->config.gripperMaskMean.at<Vec3d>(y, x)[2] / ms->config.gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[0] = camera->gripperMaskSquares.at<Vec3d>(y, x)[0] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[0] / camera->gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[1] = camera->gripperMaskSquares.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts, 2) ;
+      varianceImage.at<Vec3d>(y,x)[2] = camera->gripperMaskSquares.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts, 2) ;
 
       varianceImage.at<Vec3d>(y,x)[0] = 0;//varianceImage.at<Vec3d>(y,x)[0] / pow(255.0, 2);
       varianceImage.at<Vec3d>(y,x)[1] = varianceImage.at<Vec3d>(y,x)[1] / pow(255.0, 2);
@@ -2489,9 +2514,9 @@ virtual void execute(MachineState * ms) {
 
       double maskDiffVariance = sqrt( pow(varianceImage.at<Vec3d>(y,x)[1],2) + pow(varianceImage.at<Vec3d>(y,x)[2],2) );
       if (maskDiffVariance > multiThresh) {
-	ms->config.gripperMask.at<uchar>(y,x) = 1;
+	camera->gripperMask.at<uchar>(y,x) = 1;
       } else {
-	ms->config.gripperMask.at<uchar>(y,x) = 0;
+	camera->gripperMask.at<uchar>(y,x) = 0;
       }
     }
   }
@@ -2501,7 +2526,7 @@ virtual void execute(MachineState * ms) {
   //ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
   //ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
 
-  Mat tmpMask = ms->config.gripperMask.clone();
+  Mat tmpMask = camera->gripperMask.clone();
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -2512,7 +2537,7 @@ virtual void execute(MachineState * ms) {
 	int ymax = min(imH-1, y + dilationPixels);
 	for (int xp = xmin; xp < xmax; xp++) {
 	  for (int yp = ymin; yp < ymax; yp++) {
-	    ms->config.gripperMask.at<uchar>(yp,xp) = 0;
+	    camera->gripperMask.at<uchar>(yp,xp) = 0;
 	  }
 	}
       }
@@ -2568,14 +2593,16 @@ REGISTER_WORD(SetGripperMaskWithMotionA)
 
 WORD(SetGripperMaskCA)
 virtual void execute(MachineState * ms) {
-  ms->config.cumulativeGripperMask = max(ms->config.cumulativeGripperMask, ms->config.gripperMask);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->cumulativeGripperMask = max(camera->cumulativeGripperMask, camera->gripperMask);
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskCA)
 
 WORD(SetGripperMaskCB)
 virtual void execute(MachineState * ms) {
-  ms->config.gripperMask = ms->config.cumulativeGripperMask.clone();
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->gripperMask = camera->cumulativeGripperMask.clone();
   cout << "Thank you. Don't forget to save your mask!" << endl;
 }
 END_WORD
@@ -2583,38 +2610,31 @@ REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(MachineState * ms) {
-  string filename = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "GripperMask.bmp";
-  cout << "Loading gripper mask from " << filename << "...";
-  Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-  cout << "Read type: " <<  tmpMask.type() << " Size:" << tmpMask.size() << endl;
-
-  ms->config.gripperMask.create(tmpMask.size(), CV_8U);
-  Size sz = ms->config.gripperMask.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      if (tmpMask.at<uchar>(y,x) > 0) {
-	ms->config.gripperMask.at<uchar>(y,x) = 1;
-      } else {
-	ms->config.gripperMask.at<uchar>(y,x) = 0;
-      }
-    }
-  }
-  
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->loadGripperMask();
 }
 END_WORD
 REGISTER_WORD(LoadGripperMask)
 
 WORD(SaveGripperMask)
 virtual void execute(MachineState * ms) {
-  string filename = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "GripperMask.bmp";
-  cout << "Saving gripper mask to " << filename << endl;
-  imwrite(filename, 255*ms->config.gripperMask);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->saveGripperMask();
 }
 END_WORD
 REGISTER_WORD(SaveGripperMask)
+
+
+WORD(SetDefaultHandCameraOffset)
+virtual string description() {
+  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setDefaultHandCameraOffset();
+}
+END_WORD
+REGISTER_WORD(SetDefaultHandCameraOffset)
 
 WORD(CalibrateRGBCameraIntrinsicsPoint)
 virtual string description() {
@@ -2676,9 +2696,8 @@ REGISTER_WORD(InitializeConfig)
 
 WORD(LoadCalibration)
 virtual void execute(MachineState * ms) {
-  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
-  cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->loadCalibration();
   ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
@@ -2688,17 +2707,20 @@ WORD(LoadCalibrationRaw)
 virtual void execute(MachineState * ms) {
   string fileName;
   GET_ARG(ms, StringWord, fileName);
-  cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->loadCalibration(fileName);
+  ms->pushWord("moveCropToProperValue"); 
 }
 END_WORD
 REGISTER_WORD(LoadCalibrationRaw)
 
 WORD(LoadDefaultCalibration)
 virtual void execute(MachineState * ms) {
-  string fileName = ms->config.data_directory + "/config/" + ms->config.left_or_right_arm + "Calibration.yml";
+  string fileName = ms->config.data_directory + "/config/defaultCamera/cameraCalibration.yml";
   cout << "Loading calibration file from " << fileName << endl;
-  loadCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->loadCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(LoadDefaultCalibration)
@@ -2706,9 +2728,8 @@ REGISTER_WORD(LoadDefaultCalibration)
 
 WORD(SaveCalibration)
 virtual void execute(MachineState * ms) {
-  string fileName = ms->config.data_directory + ms->config.config_directory + ms->config.left_or_right_arm + "Calibration.yml";
-  cout << "Saving calibration file from " << fileName << endl;
-  saveCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->saveCalibration();
 }
 END_WORD
 REGISTER_WORD(SaveCalibration)
@@ -2732,16 +2753,18 @@ virtual void execute(MachineState * ms) {
   string fileName(buf); 
 
   cout << "saveCalibrationToClass: Saving calibration file to " << fileName << endl;
-  saveCalibration(ms, fileName);
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->saveCalibration(fileName);
 }
 END_WORD
 REGISTER_WORD(SaveCalibrationToClass)
 
 WORD(SetColorReticles)
 virtual void execute(MachineState * ms) {
-
-  ms->config.bDelta = ms->config.cReticleIndexDelta;
-  ms->config.currentEEPose.pz = ms->config.firstCReticleIndexDepth;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  ms->config.bDelta = camera->cReticleIndexDelta;
+  ms->config.currentEEPose.pz = camera->firstCReticleIndexDepth;
 
   // leave it in a canonical state
   ms->pushWord("setGridSizeCoarse");
@@ -2749,7 +2772,8 @@ virtual void execute(MachineState * ms) {
   int * ii = &(ms->config.scrI);
   (*ii) = 0;
 
-  for (int i = 0; i < ms->config.numCReticleIndeces; i++) {
+
+  for (int i = 0; i < camera->numCReticleIndexes; i++) {
     ms->pushWord("zUp");
     ms->pushWord("setColorReticlesA");
     ms->pushWord("accumulatedDensity");
@@ -2770,10 +2794,11 @@ virtual void execute(MachineState * ms) {
 
   ms->config.pilotTarget.px = lightX;
   ms->config.pilotTarget.py = lightY;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   int * ii = &(ms->config.scrI);
-  ms->config.xCR[(*ii)] = lightX;
-  ms->config.yCR[(*ii)] = lightY;
+  camera->xCR[(*ii)] = lightX;
+  camera->yCR[(*ii)] = lightY;
 
   (*ii)++;
 }
@@ -5064,9 +5089,6 @@ virtual void execute(MachineState * ms) {
 	ms->pushWord("comeToStop");
 	ms->pushWord("waitUntilAtCurrentPosition");
 
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.05");
-
 	ms->pushWord("setGridSizeCoarse");
       } else {
 	ms->pushWord("comeToStop"); 
@@ -5078,6 +5100,7 @@ virtual void execute(MachineState * ms) {
       }
 
       ms->pushWord("waitUntilAtCurrentPosition"); 
+      ms->pushWord("quarterImpulse");
       return;
     } else {
       feasible_indeces[tc] = 0;
@@ -5540,11 +5563,12 @@ virtual void execute(MachineState * ms)
     ms->config.bCens.resize(1);
     ms->config.bLabels.resize(1);
 
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - ms->config.fakeBBWidth;
-    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - ms->config.fakeBBWidth;
-    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + ms->config.fakeBBWidth;
-    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + ms->config.fakeBBWidth;
+    ms->config.bTops[0].x = camera->vanishingPointReticle.px - ms->config.fakeBBWidth;
+    ms->config.bTops[0].y = camera->vanishingPointReticle.py - ms->config.fakeBBWidth;
+    ms->config.bBots[0].x = camera->vanishingPointReticle.px + ms->config.fakeBBWidth;
+    ms->config.bBots[0].y = camera->vanishingPointReticle.py + ms->config.fakeBBWidth;
 
     ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
     ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;
@@ -5575,11 +5599,12 @@ virtual void execute(MachineState * ms)
     ms->config.bCens.resize(1);
     ms->config.bLabels.resize(1);
 
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-    ms->config.bTops[0].x = ms->config.vanishingPointReticle.px - ms->config.fakeBBWidth;
-    ms->config.bTops[0].y = ms->config.vanishingPointReticle.py - ms->config.fakeBBWidth;
-    ms->config.bBots[0].x = ms->config.vanishingPointReticle.px + ms->config.fakeBBWidth;
-    ms->config.bBots[0].y = ms->config.vanishingPointReticle.py + ms->config.fakeBBWidth;
+    ms->config.bTops[0].x = camera->vanishingPointReticle.px - ms->config.fakeBBWidth;
+    ms->config.bTops[0].y = camera->vanishingPointReticle.py - ms->config.fakeBBWidth;
+    ms->config.bBots[0].x = camera->vanishingPointReticle.px + ms->config.fakeBBWidth;
+    ms->config.bBots[0].y = camera->vanishingPointReticle.py + ms->config.fakeBBWidth;
 
     ms->config.bCens[0].x = (ms->config.bTops[0].x + ms->config.bBots[0].x)/2.0;
     ms->config.bCens[0].y = (ms->config.bTops[0].y + ms->config.bBots[0].y)/2.0;

@@ -188,6 +188,7 @@ public: \
   }\
 }\
 
+
 #define CONFIG_GETTER_INT(backName, configName)	\
 WORD(backName) \
 virtual void execute(MachineState * ms) { \
@@ -380,7 +381,16 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
 }\
 \
 
-
+#define GET_WORD_AS_STRING(ms,x)\
+  std::shared_ptr<Word> word = ms->popData();\
+  std::shared_ptr<StringWord> s = std::dynamic_pointer_cast<StringWord>(word);\
+  if (s != NULL) {\
+    x = s->value();\
+  } else if (word != NULL) {\
+    x = word->repr();\
+  } else {\
+    x = "";\
+  }
 
 int register_word(shared_ptr<Word> word);
 

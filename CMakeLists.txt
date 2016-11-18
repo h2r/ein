@@ -85,13 +85,17 @@ find_package (Qt5Widgets)
 
 set (EinQtLib_src ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.cpp 
 ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.cpp
-${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
+${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp  
+${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.cpp  
+${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
 )
 set (EinQtLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h  ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.h   ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.h
-${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.h
+${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.h  ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.h 
+${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.h
+${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.h
 ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.h)
 set (EinQtLib_ui  ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.ui
-                  ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.ui)
+                  ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.ui   ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.ui ${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.ui)
 
 qt5_wrap_cpp(EinQtLib_hdr_moc ${EinQtLib_hdr})
 qt5_wrap_ui (EinQtLib_ui_moc  ${EinQtLib_ui})
@@ -108,9 +112,9 @@ add_library (EinQtLib SHARED
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp
-src/word.cpp src/gaussian_map.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp src/ein_face_animation.cpp
-src/opencl/ein_opencl.cpp
+src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp src/camera.cpp  
+src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp src/ein_face_animation.cpp
+src/opencl/ein_opencl.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
 src/cephes/bdtr.c    src/cephes/fresnl.c  src/cephes/kolmogorov.c  src/cephes/setprec.c
