@@ -2,8 +2,13 @@
 layout: page
 title: FAQ
 permalink: /faq/
-order: 7
+order: 100
 ---
+
+* TOC
+{:toc}
+
+
 
 ### What if my console stops updating?
 
@@ -118,4 +123,17 @@ things.
 You can put arbitrary commands in the file init.back, which will be
 executed whenever Ein starts up, after all other initialization is
 complete.
+
+### I am getting strage TF errors about "Lookup would require extrapolation into the past" or "Lookup would require extrapolation into the future."    
+
+This error most often means that Baxter's system time is out of sync
+with client computers.  Note that Baxter syncs its time using ntp to
+pool.ntp.org, and this server cannot be changed (as per Rethink's
+instructions).  We have had issues at sites that block pool.ntp.org,
+causing Baxter to stop updating its time and fall out of sync with
+other computers that were updating their time.  We had to have our IT
+staff open a special port in their firewall to allow Baxter to sync
+up. 
+
+
 
