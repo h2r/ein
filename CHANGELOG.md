@@ -1,3 +1,8 @@
+## 0.8.0 (November 17, 2016)
+  - Introduced the idea of multiple cameras and associated words.
+  - Lots more documentation and tutorial.
+  - Bug fixes and optimization. 
+
 ## 0.7.1 (July 14, 2016)
   - commiting version bump
 
