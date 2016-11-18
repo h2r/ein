@@ -10,7 +10,7 @@ objects.  This process is a giant for loop over objects; in the inner
 loop you can do whatever experiments you like.  
 
 
-There are three poses defined in scan.back designated with functionality for the scan (note that the back files can be located in the src directory in your workspace):
+There are three poses defined in scan.back designated with functionality for the scan:
 
 ```
 inputPileWorkspace
@@ -31,14 +31,15 @@ You can change the values of these variables in the file, save, and reload with
 Check the `inputPile` and `playWorkspace` and make sure there is about 20cm by 20cm of free real estate. The output
 pile doesn't really need space as long as objects deposited there can clear the other workspaces.
 
-Once everthing is clear, issue
+Once everything is clear, issue
 
 ```
-catScan5UpdateInputBg catScan5UpdatePlayBg 
+catScan5CacheBackgrounds
 ```
 
-To update the background maps for the two workspaces. These words invoke scan patterns which cover the default workspaces
-slightly better than a square scan. If you change the workspaces you might need to change these words.
+This word invokes scan patterns which cover the default workspaces
+slightly better than a square scan. If you change the workspaces you
+might need to change the scan patterns.
 
 Check the background maps by calling
 
@@ -49,7 +50,7 @@ catScan5LoadPlayBg
 and checking the Background View window after each command.
 
 
-Find three objects that fit in the 4cm gripper and contrasst with the background. Place them in the `inputPile` workspace and issue
+Find three objects that fit in the 4cm gripper and contrast with the background. Place them in the `inputPile` workspace and issue
 
 ```
 tableInfiniteScan

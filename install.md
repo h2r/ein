@@ -36,7 +36,7 @@ sudo apt-get install libopencv-nonfree-\*
 Next install other Ein dependencies: 
 
 ```
-sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial
+sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default
 ```
 
 Create your catkin workspace:
@@ -62,27 +62,33 @@ wstool merge https://raw.githubusercontent.com/RethinkRobotics/baxter/master/bax
 wstool update
 ```
 
-Edit baxter.sh to set your ROS_HOSTNAME or ROS_IP and ROS_MASTER_URI
-following the instructions in that file.  Then enter the Baxter ROS
-workspace by running the baxter.sh file:
+Next run catkin_make for the first time:
 
 ```
-cd ~/catkin_ws
-cp ~/catkin_ws/src/ein/baxter.sh ./
-./baxter.sh
-```
-
-Next build for the first time:
-
-```
-cd .. 
+cd ~/catkin_ws/src 
 source /opt/ros/indigo/setup.bash
 catkin_make
 ```
 
-Sometimes we have to run catkin_make multiple times in a row to build
-dependencies.  After building, you should rerun `./baxter.sh` so that
-the workspace is in your `$ROS_PACKAGE_PATH`.
+The catkin_make command fail, but will create the devel directory so that the
+Rethink baxter.sh script will work.   
+Copy baxter.sh from the Ein directory into the top of your workspace:
+```
+cd ~/catkin_ws/src  && cp src/ein/baxter.sh . 
+```
+You can also use the one distributed by Rethink, but we have modified theirs to include some nice environment variables to set your ROS_HOSTNAME or ROS_IP and
+ROS_MASTER_URI following the instructions in that file. 
+
+```
+cd ~/catkin_ws
+./baxter.sh
+```
+
+Now build again; this build should succeed:
+
+```
+catkin_make
+```
 
 At this point you should be able to run Rethink's tools; for example
 to print the status of the robot:
@@ -93,25 +99,25 @@ rosrun baxter_tools  enable_robot.py -s
 
 Commands such as `rostopic echo`, `rostopic list` and the like should
 all work.  If these do not work, you may have network problems or ROS
-configuration problems preventing you from connecting to Baxter.  See
-the [Rethink SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for
-more information.
+configuration problems preventing you from connecting to Baxter.  A
+common problem is that the version of the SDK is a different version
+from the run running on your robot.  See the [Rethink
+SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for more
+information.  Another problem is that your ROS_MASTER_URI or
+ROS_HOSTNAME or ROS_IP are set incorrectly.
 
 
-Some other stuff you might need to do when installing fresh:
-
-```
-sudo apt-get install ros-indigo-object-recognition-msgs
-sudo apt-get install ros-indigo-pcl-ros
-sudo apt-get install libgsl0-dev
-sudo apt-get install qt5-default
-```
-
-Before running Ein, you should sync your workstation with your baxter:
+Before running Ein, you should sync the time on your workstation with
+your baxter:
 
 ```
 sudo ntpdate <baxter name>
 ```
+
+Note that Baxter syncs its time using ntp to pool.ntp.org, and this
+server cannot be changed (as per Rethink's instructions).  See our
+[FAQ](../faq/#i-am-getting-strage-tf-errors-about-lookup-would-require-extrapolation-into-the-past-or-lookup-would-require-extrapolation-into-the-future) entry for more information.
+
 
 To run the program, from the root of your catkin workspace, run the
 following command:
@@ -129,14 +135,22 @@ provided a screen configuration file to make this easy.  Go to the
 root of your catkin workspace and run
 
 ``` 
-BAXTER=your_baxter screen -c src/ein/ein_baxter.screenrc
+BAXTER=<your_baxter> screen -c src/ein/ein_baxter.screenrc
 ```
 
-This command will start a screen session preloaded with useful
-windows.  The ein program for the left arm is primed in window 8; for
-the right arm is primed in window 0.  The repl is primed in window 1
-and 7.  You can switch windows by using backtick-number.  For example,
-typing `` `1`` switches to window 1.
+Replease <your_baxter> with the hostname or IP address of your Baxter;
+this will be used to set the $ROS_MASTER_URI environment variable
+required by ROS.  You may also need to adjust baxer.sh to change the
+$ROS_HOSTNAME or $ROS_IP.  If your network is set up so that the
+$HOSTNAME environment variable can be used as your $ROS_HOSTNAME, then
+you do not need to change baxter.sh; otherwise you need to adjust it.
+(If you ssh into Baxter, you should be able to ping your machine from
+the Baxeter robot.  See the ROS instructions and tutorials for more
+information.)  This command will start a screen session preloaded with
+useful windows.  The ein program for the left arm is primed in window
+8; for the right arm is primed in window 0.  The repl is primed in
+window 1 and 7.  You can switch windows by using backtick-number.  For
+example, typing `` `1`` switches to window 1.
 
 If at any time you need to quit, you can type `` ` :quit `` in the
 screen session.
