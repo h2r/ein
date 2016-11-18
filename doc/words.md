@@ -2,7 +2,7 @@
 layout: page
 title: Word Index
 permalink: /words/
-order: 6
+order: 99
 ---
 
 This page contains all the words in Ein and their help text.  You can
