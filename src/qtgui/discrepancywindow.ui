@@ -22,13 +22,13 @@
       </property>
       <widget class="QWidget" name="discrepancyDensity">
        <attribute name="title">
-        <string>Discrepancy Density</string>
+        <string>Discrepancy RGB</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_2"/>
       </widget>
       <widget class="QWidget" name="discrepancyRgb">
        <attribute name="title">
-        <string>Discrepancy RGB</string>
+        <string>Discrepancy Density</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_2"/>
       </widget>
@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>27</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
