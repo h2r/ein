@@ -1442,6 +1442,23 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(WriteFocusedClass)
 
+WORD(WriteFocusedClassGrasps)
+virtual void execute(MachineState * ms) {
+  int idx = ms->config.focusedClass;
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    return;
+  }
+
+  string outfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  writeClassGraspsToFolder(ms, idx, outfolder);
+}
+END_WORD
+REGISTER_WORD(WriteFocusedClassGrasps)
+
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A
 virtual void execute(MachineState * ms) {
