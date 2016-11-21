@@ -29,13 +29,24 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 ) "tableCaptureCore" store
 
 (
+
+
+/* 
+ Back when calibration wasn't great, we needed regularization. Now the regularization hurts because
+ sharp lines blur due to camera uncertainty when the robot shakes. Using the natural statistics is
+ the right thing, because it captures uncertainty along sharp adges, as was intended. 
+*/
+/*
   4.0 sceneSetBackgroundStdDevY
   4.0 sceneSetBackgroundStdDevColor
+*/
 ) "tableRegularizeBackground" store
 
 (
+/*
   4.0 sceneSetFocusedSceneStdDevY
   4.0 sceneSetFocusedSceneStdDevColor
+*/
 ) "tableRegularizeFocusedClassModel" store
 
 0.1 "tableDefaultScoreThresh" store
@@ -1013,7 +1024,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
   tableScanBase setC3dPoseBase
   tableScanNewGrasp add3dGraspPoseWord
-  writeFocusedClass
+  writeFocusedClassGrasps
 ) "tableAddBarGrasp" store
 
 (
@@ -1038,7 +1049,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
   tableScanBase setC3dPoseBase
   tableScanNewGrasp add3dGraspPoseWord
-  writeFocusedClass
+  writeFocusedClassGrasps
 ) "tableAddBlockGrasp" store
 
 (
@@ -1060,7 +1071,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
   tableScanBase setC3dPoseBase
   tableScanNewGrasp add3dGraspPoseWord
-  writeFocusedClass
+  writeFocusedClassGrasps
 
 ) "tableAddBlockGraspInPlace" store
 
@@ -1102,7 +1113,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     trainAndWriteFocusedClassKnn
 
     clearClass3dGrasps
-    writeFocusedClass
+    writeFocusedClassGrasps
 
     /*
     tableAddBlockGrasp
@@ -1116,7 +1127,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
     setPickModeToLearningAlgorithmC
     tableMapBestAndPickInPlace
-    writeFocusedClass
+    writeFocusedClassGrasps
 
       playWorkspace 
     moveEeToPoseWord waitUntilAtCurrentPosition
@@ -1143,7 +1154,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     /* tablePickWithAddedGrasp */
     setPickModeToLearningAlgorithmC
     tableMapBestAndPickInPlace
-    writeFocusedClass
+    writeFocusedClassGrasps
 
     setGridSizeCoarse departureSpeed ( zUp ) 10 replicateWord setMovementStateToMoving comeToStop
 
@@ -1158,12 +1169,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.070 "tableBlockMaxGraspThickness" store
+0.040 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 */
-0.025 "tableBlockGripperThrow" store
+0.02 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
 0.055 "tableBlockTargetContactWidth" store
 0.02 "tableBlockCollarWidth" store
@@ -2391,10 +2402,6 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructLightSlabWithZ" store
 
 (
-/*
-  tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
-*/
-
   tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
   tableReconstructMarginalsFromStackCore
 )  "tableReconstructMarginalsFromStack" store
@@ -2410,10 +2417,6 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 )  "tableReconstructMarginalsFromStackCore" store
 
 (
-/*
-  tableReconstructWithZTopZ 0.388 divide 0.00075 times  "slfgRebaseCellWidth" store slfgRebaseTable
-*/
-
   tableReconstructWithZTopZ 0.388 divide tableReconstructWithZGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
 
   tableReconstructMaxLikelihoodFromStackCore
@@ -2576,10 +2579,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructPhrases" store
 
 
-/*
-0.00025 "tableReconstructWithZGridMultiplier" store
-*/
-0.001 "tableReconstructWithZGridMultiplier" store
+0.002 "tableReconstructWithZGridMultiplier" store
 (
 	currentPose
       eePosePZ
@@ -2587,18 +2587,8 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     +
   "tableReconstructWithZTopZ" store 
 
-/*
-  0.01 "tableDefaultMapGridFactor" store
-  tableDefaultMapGridFactor "tableMapGridFactor" store
-  tableReconstructWithZTopZ 0.388 divide tableMapGridFactor times  "slfgRebaseCellWidth" store slfgRebaseTable
-  "USE tableReconstructWithZGridMultiplier" instead 
-*/
-
   tableReconstructWithZ 
 
-  /* 
-  3.0 sceneSmoothDepthStackInZ sceneInitRegisterMax sceneMinDepthStackIntoRegister sceneRecallFromRegister sceneRenderZ tableUpdateMaps
-  */
 ) "tableReconstructFromStream" store
 
 (
@@ -2687,6 +2677,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   replicateWord
   sceneClearPredictedObjects
   tableUpdateMaps
+
   /* initializeAndFocusOnNewClass
   0.1 sceneGrabDiscrepantCropAsClass
   writeFocusedClass */
@@ -2886,11 +2877,33 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 0.001 "slfgRebaseCellWidth" store
 (
-  slfgRebaseCellWidth currentPose sceneInitFromEePoseScale 
+  /*
+    slfgRebaseCellWidth currentPose 
+  sceneInitFromEePoseScale 
+  */
+
+    0.5
+  "slfgRebaseDesiredMapWidth" store
+
+      slfgRebaseDesiredMapWidth
+      slfgRebaseCellWidth
+    divide
+  "slfgRebaseCalculatedCellDimension" store
+
+    slfgRebaseCellWidth 
+    slfgRebaseCalculatedCellDimension
+    slfgRebaseCalculatedCellDimension
+    currentPose 
+  sceneInitFromEePoseScaleDimensions 
+) "slfgRebaseCore" store
+
+(
+  slfgRebaseCore
   tableInit
 ) "slfgRebase" store
+
 (
-  slfgRebaseCellWidth currentPose sceneInitFromEePoseScale 
+  slfgRebaseCore
   tableInitNoBackground
 ) "slfgRebaseNoBackground" store
 
@@ -2898,19 +2911,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     slfgRebaseCellWidth 
     currentPose 
   sceneInitFromEePoseScale
+
   tableInit
 ) "slfgRebaseTable" store
-
-(
-  951 "slfgRebaseDefaultDimension" store
-
-    slfgRebaseCellWidth 
-    slfgRebaseDefaultDimension 
-    slfgRebaseDefaultDimension 
-    currentPose 
-    sceneInitFromEePoseScaleDimensions 
-  tableInit
-) "slfgRebaseDimensions" store
 
 (
   /* turn streaming on, no disk streaming */ 
