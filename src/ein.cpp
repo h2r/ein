@@ -2416,9 +2416,39 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
 
   string scene_model_file_path = sceneModel + "model.yml";
   writeSceneModel(ms, idx, scene_model_file_path);
+}
 
-  // XXX save grasp memories separately from range
-  // XXX load grasp memories separately 
+void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName) {
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    CONSOLE_ERROR(ms, "writeClassGraspsToFolder: invalid idx, not writing.");
+    return;
+  }
+
+  string item = folderName + "/";
+    string raw = item + "raw/";
+      string images = raw + "images/";
+      string poseBatches = raw + "poseBatches/";
+      string rangeBatches = raw + "rangeBatches/";
+    string ein = item + "ein/";
+      string d3dGrasps = ein + "3dGrasps/";
+      string detectionCrops = ein + "detectionCrops/";
+      string sceneModel = ein + "sceneModel/";
+      string ir2d = ein + "ir2d/";
+      string pickMemories = ein + "pickMemories/";
+      string servoCrops = ein + "servoCrops/";
+      string servoImages = ein + "servoImages/";
+
+  initClassFolders(ms, folderName);
+  CONSOLE(ms, "Writing grasps for class " << idx << " to folder " << folderName);
+
+  string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
+  write3dGrasps(ms, idx, d3d_grasp_file_path);
+
+  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
+  writeGraspMemory(ms, idx, grasp_memory_file_path);
 }
 
 
