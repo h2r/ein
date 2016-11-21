@@ -302,8 +302,12 @@ void Camera::imRingBufferAdvance() {
 
 
 streamImage * Camera::currentImage() {
-  streamImage * tsi = &(streamImageBuffer[sibCurIdx]);
-  return tsi;
+  if (sibCurIdx < streamImageBuffer.size()) {
+    streamImage * tsi = &(streamImageBuffer[sibCurIdx]);
+    return tsi;
+  } else {
+    return NULL;
+  }
 }
 
 streamImage * Camera::setIsbIdxNoLoadNoKick(int idx) {
