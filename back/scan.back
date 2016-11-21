@@ -334,7 +334,7 @@ workspace4 "outputPileWorkspace" store
 
   scan_catScan2_base setC3dPoseBase
   scan_catScan2_newGrasp add3dGraspPoseWord
-  writeFocusedClass
+  writeFocusedClassGrasps
 ) "scan_addBar3dGrasp" store
 
 (
@@ -349,40 +349,6 @@ workspace4 "outputPileWorkspace" store
     scan_catPickCounter 1 + "scan_catPickCounter" store
   ) while
 ) "catPlayLoop" store
-
-(
-  setPickModeToLearningAlgorithmC
-  1 setSnapToFlushGrasp
-  2 setGradientServoHardMaxIterations
-  2 setGradientServoSoftMaxIterations
-
-  1 "somethingsThere" store
-
-  ( isGripperGripping ! somethingsThere and ) (
-    ">>>> entering moveToOutputPile <<<<" print
-    halfImpulse playWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    ( perturbPosition ) 5 replicateWord 
-    openGripper
-    halfImpulse
-    1 changeToHeight
-    setPlaceModeToHold
-
-    playWorkspace cw_workspaceIsClear ( 0 "somethingsThere" store ) ift
-
-    "somethingsThere: " print somethingsThere print
-
-    1 changeToHeight
-    pickFocusedClass
-    isGripperGripping ( liftArm ) ( openGripper playWorkspace cw_clearWorkspace ) ifte
-  ) while
-
-  somethingsThere isGripperGripping and (
-    halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition
-    isGripperGripping ( comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm ) ift 
-  ) ( openGripper ) ifte
-
-  playWorkspace cw_clearWorkspace
-) "moveToOutputPile" store
 
 (
   1 setSnapToFlushGrasp
@@ -798,6 +764,7 @@ dateString "catScan5VarianceTrialThisTime" store
   somethingsThere isGripperGripping and (
     halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition waitUntilEndpointCallbackReceived
     isGripperGripping ( 
+      0.1 perturbPositionScale
       comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm 
     ) ( 
       openGripper
@@ -984,6 +951,7 @@ dateString "catScan5VarianceTrialThisTime" store
 (
   halfImpulse 
   outputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear1 
+  waitUntilAtCurrentPosition
 
     0.01 
   setGridSize
