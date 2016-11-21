@@ -1877,6 +1877,7 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
+CONFIG_GETTER_DOUBLE(SceneCellWidth, ms->config.scene->cell_width)
 CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
 CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
 
