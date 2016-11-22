@@ -1,5 +1,6 @@
 [ robotSerial "_bg_" leftOrRightArm ] join "bg" store
 bg sceneInitDefaultBackgroundMap
+currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
 ( ( sceneUpdateObservedFromWrist  ( xDown ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXDown" store
@@ -52,7 +53,11 @@ bg sceneInitDefaultBackgroundMap
 
   tableInitNoBackground
 
+  /*
   bg sceneLoadBackgroundMap 
+  */
+  currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
+
   tableRegularizeBackground
 ) "Initialize scene parameters." "tableInit" define
 
@@ -942,7 +947,12 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 (
   shoreUp
   tableTakeScene
+
+  /*
   bg sceneSaveObservedMap 
+  */
+  currentObservedMap sceneCopyGaussianMap "bgRAM" store 
+
   tableInit
 ) "tableUpdateBg" store
 
@@ -1148,7 +1158,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.040 "tableBlockMaxGraspThickness" store
+0.070 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
@@ -1550,10 +1560,17 @@ define
 ) "tableReconstructCpLightModelRisingGC" store
 
 (
+    tableSpiralStreamTakeSceneStride 
+    tableReconstructWithZThisZ 
+  sceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP
+) "tableReconstructCpWithOOP" store
+
+(
   /*
   tableReconstructCpNoGC
   tableReconstructCpSelfGC
   tableReconstructCpLightModelGC 
+
   */
 
   tableReconstructCpNoGC
@@ -1569,6 +1586,21 @@ define
   sceneInitRegisterMax  
 
 ) "tableReconstructWithZRegisterInitializer" store
+
+(
+  ( 
+    tableReconstructCpWithOOP
+  ) "tableReconstructWithZCaster" store
+  ( 
+    sceneInitRegisterMax
+  ) "tableReconstructWithZRegisterInitializer" store
+  (
+  /* XXX undo to 151 */
+    151 sceneSetAngularApertureRows 151 sceneSetAngularApertureCols
+  ) "tableReconstructWithZApertureSetter" store
+  
+  tableReconstructWithZCore
+) "tableReconstructWithOOP" store
 
 (
   ( 
@@ -1973,6 +2005,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
   10000000 "tableReconstructStreamTakeSceneSamples" store
+
+  /*
+  tableReconstructWithOOP
+  */
   tableReconstructGCNone
 ) "tableReconstructWithZTableOne" store
 
@@ -2417,18 +2453,19 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   quarterImpulse
   waitUntilAtCurrentPosition
-  /* 0.01 */
-  0.02 setW1GoThresh
+
 
     0.01625 
   /* XXX no commit */
     1.0 divide
   "tableSpiralGridSize" store
 
-/* 0.08 */ 
-  0.3 "tableSpiralMoveSpeed" store
 
-/* 18 */ 
+/* 0.1 18 0.02 */ 
+
+  0.2 "tableSpiralMoveSpeed" store
+
+  0.03 setW1GoThresh
   18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
@@ -3354,7 +3391,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 (
   ikModeIkFast
   halfImpulse
-  setMovementStateToMoving comeToStop
+  setMovementStateToMoving waitUntilAtCurrentPosition 
   ikModeService
 ) "shoreUp" store
 

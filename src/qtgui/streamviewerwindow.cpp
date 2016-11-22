@@ -56,12 +56,13 @@ void StreamViewerWindow::update()
   streamImage * tsi = camera->currentImage();
   loadStreamImage(ms, tsi);
   stringstream txt;
+  txt << "Camera: " << camera->name << endl;
   txt << "Image: " << camera->sibCurIdx + 1 << " of " << camera->streamImageBuffer.size() << endl;
 
   double fraction = (double) camera->sibCurIdx / camera->streamImageBuffer.size();
   int value = (int) (fraction * 100);
   ui->timeSlider->setValue(value);
-
+  
 
 
   if (tsi != NULL) {

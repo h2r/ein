@@ -117,7 +117,9 @@ virtual string description() {
 virtual void execute(MachineState * ms) {
   shared_ptr<GaussianMapWord> map;
   GET_WORD_ARG(ms, GaussianMapWord, map);
-  ms->config.scene->background_map = map->map;
+
+  // XXX this seems unintuitive
+  //ms->config.scene->background_map = map->map;
 
   shared_ptr<SceneWord> sceneWord;
   GET_WORD_ARG(ms, SceneWord, sceneWord);
@@ -127,6 +129,25 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneSetBackgroundMap)
+
+WORD(SceneSetObservedMap)
+virtual string description() {
+  return "Takes a scene and an observed map and sets the scene with the observed map. ";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<GaussianMapWord> map;
+  GET_WORD_ARG(ms, GaussianMapWord, map);
+  // XXX this seems unintuitive
+  //ms->config.scene->observed_map = map->map;
+
+  shared_ptr<SceneWord> sceneWord;
+  GET_WORD_ARG(ms, SceneWord, sceneWord);
+
+  sceneWord->scene->observed_map = map->map;
+
+}
+END_WORD
+REGISTER_WORD(SceneSetObservedMap)
 
 WORD(SceneCopyScene)
 virtual string description() {
