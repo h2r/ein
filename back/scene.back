@@ -1,5 +1,4 @@
 [ robotSerial "_bg_" leftOrRightArm ] join "bg" store
-bg sceneInitDefaultBackgroundMap
 currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
 
 ( ( sceneUpdateObservedFromWrist  ( xUp ) 10 replicateWord waitUntilAtCurrentPosition comeToStop ) 5 replicateWord ) "sceneScanXUp" store
@@ -71,6 +70,11 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 
   tableRegularizeBackground
 ) "Initialize scene parameters." "tableInit" define
+
+(
+  currentObservedMap sceneCopyGaussianMap "bgRAM" store 
+  currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
+) "Set current observed map to the background map and save to RAM." "tableSetBackgroundFromObserved" define
 
 0.5 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
@@ -962,7 +966,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   /*
   bg sceneSaveObservedMap 
   */
-  currentObservedMap sceneCopyGaussianMap "bgRAM" store 
+  tableSetBackgroundFromObserved
 
   tableInit
 ) "tableUpdateBg" store
