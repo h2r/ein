@@ -1,8 +1,11 @@
 
-Due to a bug in ubutnu:  
-sudo apt-get install ruby-dev ruby-mkrf ruby2.0 ruby2.0-dev
+sudo apt-get install ruby-dev ruby-mkrf ruby2.0 ruby2.0-dev nodejs
+
+Due to a bug in Ubuntu:  
 sudo ln -sf /usr/bin/ruby2.0 /usr/bin/ruby
 sudo ln -sf /usr/bin/gem2.0 /usr/bin/gem
+
+Then: 
 sudo gem install jekyll -v 2.5
 
 jekyll serve
@@ -16,7 +19,8 @@ However the Ein doc is also duplicated in each checkout and branch so
 the way to see the latest doc is to use the doc directory in an ein
 checkout and view it by running Jeykll locally.
 
-We chose to use Jekyll because that is what github uses to host a documentation website.
+We chose to use Jekyll because that is what github uses to host a
+documentation website.
 
 
 

@@ -117,44 +117,33 @@ Ein gets its power from reactive variables, defined in C, such as
 truePose, which is always set to the value of the current pose of the end effector.   This reactivity 
 
 
-### Elementary Operations
-
-Basic data operations are available.
-
-<!--  
-
-```
-+
--
-*
-/
-
-```
-
---> 
 
 ### Control Words 
 
 Back includes looping and condition constructs.
 
+`ift` takes two arguments and prints if its argument is true.  Ein
+casts words to booleans followin C's semantics, so zero is false, and
+all other values are true (including the empty string).
 
-<!--  
-ift
-ifte
-while
-not
+This version prints "hello":
+`( "hello" print ) 1 ift`
 
---> 
-
-### Domain Words
-
-Some words invoke complicated domain specific behaviors or routines.
-
-<!--  
-tableReconstructTakeScene
---> 
+This version does not:
+`( "hello" print ) 0 ift`
 
 
+`ifte` is "if, then, else". Here is an example:
+
+ 0 ( "condition was true" print ) ( "condition was false" print )   ifte
+
+`not` negates its condition.
+
+`while` takes a condition and a compound word and executes until the
+condition is true.  While collapses the stack and will freeze ein
+unless the condition includes a wait word.
+
+`( 1 ) ( torsoFanOn 1 waitForSeconds )  while`
 
 
 ### Back files

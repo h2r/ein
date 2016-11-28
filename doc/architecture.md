@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Ein's System Architecture
+title: System Architecture
 permalink: /architecture/
 order: 7
 ---
@@ -9,7 +9,7 @@ order: 7
 Ein is a C++ ROS program that does perception for robots.  It is a C++
 ROS node with an associated QT5 gui.  When run, it opens up
 subscriptions to various perception topics.  It starts a callback loop
-(timecallback1 in ein.cpp) that does the following things:
+(timercallback1 in ein.cpp) that does the following things:
 
 * processes QT gui events
 * updates various GUI windows with the latest data (such as the wrist view image and current pose).

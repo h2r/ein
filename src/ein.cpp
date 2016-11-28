@@ -5016,7 +5016,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
 
   double glowBias = 0.15;
   double glowLast = 30.0;
-
+  ros::Time now = ros::Time::now();
   if (ms->config.drawIKMap || ms->config.drawClearanceMap) { // draw ikMap and clearance map
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
@@ -5024,7 +5024,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
 	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
                                 ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
           //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-          double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+          double longAgoSec = now.sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
           double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgoSec, 0.0), glowLast) / glowLast)) + glowBias;
           glowFraction = min(max(glowFraction, 0.0), 1.0);
           if (!ms->config.useGlow) {
@@ -5163,7 +5163,6 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       putText(ms->config.objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
     }
   }
-
   // draw blue boxes
   for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
     BoxMemory memory = ms->config.blueBoxMemories[i];
@@ -5202,7 +5201,8 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       double lockRenderPeriod1 = 3.0;
       double lockRenderPeriod2 = 2.0;
       //ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
-      ros::Duration timeSince = ros::Time::now() - ros::Time(0);
+      ros::Duration timeSince = now - ros::Time(0);
+
       double lockArg1 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod1;
       double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
       cv::Point outTopLock;

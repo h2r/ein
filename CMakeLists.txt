@@ -140,7 +140,7 @@ src/cephes/expn.c    src/cephes/k1.c      src/cephes/round.c
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
-	opencv_nonfree
+#	opencv_nonfree
         ${GSL_LIBRARIES}
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
