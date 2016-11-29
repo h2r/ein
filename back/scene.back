@@ -81,7 +81,15 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 
 (
   /* this is not consistent with tableReconstruct routines */
-  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tableUpdateMaps
+  /*  sceneClearObservedMap ( waitUntilImageCallbackReceived sceneUpdateObservedFromWrist ) 2 replicateWord tableUpdateMaps */
+  sceneClearObservedMap
+  clearStreamBuffers
+  streamEnableSisImageAndPoses
+  activateSensorStreaming ( waitUntilImageCallbackReceived ) 3 replicateWord
+  deactivateSensorStreaming
+  tableReconstructFromStream
+  tableUpdateMaps
+
 ) "tableShortTakeScene" store
 
 (
