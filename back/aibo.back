@@ -40,6 +40,13 @@ dogBark
   dogFormatImageDefault
 ) "dogSummonEars" store
 
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.160.142" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonMars" store
+
 
 (
   dogFormatImageDefault
@@ -97,9 +104,22 @@ dogBark
 
   sceneClearObservedMap 
   dogGetImage
+
+  /*
   dogReplaceWristImageWithSnoutImage
   sceneUpdateObservedFromWrist
+  */
+
+    0.388
+  sceneUpdateObservedFromSnout
+
+  /*
   60 sceneSetBackgroundStdDevY
+  */
+
+  1 sceneSetCellCountThreshold
+  60 sceneSetBackgroundStdDevY
+
   sceneComposePredictedMap
   sceneUpdateDiscrepancy
   sceneDensityFromDiscrepancy
@@ -157,7 +177,7 @@ dogBark
 
 (
   dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
-  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground now minus print endStackCollapseNoop ) while
+  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground sceneRenderBackgroundMap now minus print endStackCollapseNoop ) while
 ) "dogWatchForAveragedChanges" store
 
 
