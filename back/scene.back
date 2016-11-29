@@ -39,12 +39,14 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 ) "tableRegularizeFocusedClassModel" store
 
 0.1 "tableDefaultScoreThresh" store
+50 "tableInitCellCountThresholdDefault" store
+tableInitCellCountThresholdDefault "tableInitCellCountThreshold" store
 ( 
   "init NO BACK" print
   sceneSetDiscrepancyModeNoisyOr
   tableDefaultScoreThresh sceneSetScoreThresh
   /* 75 */
-  50 sceneSetCellCountThreshold 
+  tableInitCellCountThreshold sceneSetCellCountThreshold 
   sceneClearObservedMap sceneClearPredictedObjects 
 ) "Initialize scene parameters, no background map reload." "tableInitNoBackground" define
 
