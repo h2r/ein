@@ -15,25 +15,7 @@ Install ROS Indigo as per http://wiki.ros.org/indigo/Installation/Ubuntu
 If you are on Trusty 14.04 LTS with Indigo, you need the non-free
 functionality of opencv.
 
-Install the ppa at https://launchpad.net/~xqms/+archive/ubuntu/opencv-nonfree:
-
-```
-sudo add-apt-repository ppa:xqms/opencv-nonfree
-```
-
-Then update apt-get 
-
-```
-sudo apt-get update
-```
-
-Then run
-
-```
-sudo apt-get install libopencv-nonfree-\*
-```
-
-Next install other Ein dependencies: 
+Install other Ein dependencies: 
 
 ```
 sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default
@@ -77,7 +59,7 @@ Copy baxter.sh from the Ein directory into the top of your workspace:
 cd ~/catkin_ws/src  && cp src/ein/baxter.sh . 
 ```
 You can also use the one distributed by Rethink, but we have modified theirs to include some nice environment variables to set your ROS_HOSTNAME or ROS_IP and
-ROS_MASTER_URI following the instructions in that file. 
+ROS_MASTER_URI.
 
 ```
 cd ~/catkin_ws
@@ -89,22 +71,6 @@ Now build again; this build should succeed:
 ```
 catkin_make
 ```
-
-At this point you should be able to run Rethink's tools; for example
-to print the status of the robot:
-
-``` 
-rosrun baxter_tools  enable_robot.py -s
-```
-
-Commands such as `rostopic echo`, `rostopic list` and the like should
-all work.  If these do not work, you may have network problems or ROS
-configuration problems preventing you from connecting to Baxter.  A
-common problem is that the version of the SDK is a different version
-from the run running on your robot.  See the [Rethink
-SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for more
-information.  Another problem is that your ROS_MASTER_URI or
-ROS_HOSTNAME or ROS_IP are set incorrectly.
 
 
 Before running Ein, you should sync the time on your workstation with
@@ -154,3 +120,20 @@ example, typing `` `1`` switches to window 1.
 
 If at any time you need to quit, you can type `` ` :quit `` in the
 screen session.
+
+At this point you should be able to run Rethink's tools; for example
+to print the status of the robot:
+
+``` 
+rosrun baxter_tools  enable_robot.py -s
+```
+
+Commands such as `rostopic echo`, `rostopic list` and the like should
+all work.  If these do not work, you may have network problems or ROS
+configuration problems preventing you from connecting to Baxter.  A
+common problem is that the version of the SDK is a different version
+from the run running on your robot.  See the [Rethink
+SDK](http://sdk.rethinkrobotics.com/wiki/Main_Page) for more
+information.  Another problem is that your ROS_MASTER_URI or
+ROS_HOSTNAME or ROS_IP are set incorrectly.
+

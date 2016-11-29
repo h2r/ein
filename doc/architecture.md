@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Ein's System Architecture
+title: System Architecture
 permalink: /architecture/
 order: 7
 ---
@@ -9,7 +9,7 @@ order: 7
 Ein is a C++ ROS program that does perception for robots.  It is a C++
 ROS node with an associated QT5 gui.  When run, it opens up
 subscriptions to various perception topics.  It starts a callback loop
-(timecallback1 in ein.cpp) that does the following things:
+(timercallback1 in ein.cpp) that does the following things:
 
 * processes QT gui events
 * updates various GUI windows with the latest data (such as the wrist view image and current pose).
@@ -35,3 +35,9 @@ turning the lights on Baxter to engaging very high-level long-term
 actions.  Ein is a ROS program and more information about its [ROS
 API](../ros/) is available.
 
+
+Each instance of Ein can control one or both arms on Baxter. However,
+because Ein is single threaded, if you use one Ein to control both
+arms, it will run twice as slow.  As a result, we usually run two
+separate instances of Ein, one for each arm.  The screen is set up
+accordingly with separate windows for each arm (windows 0 and 9).  

@@ -39,3 +39,6 @@ cameraWristConfig
 
 
 bg sceneInitDefaultBackgroundMap
+bg sceneLoadBackgroundMap 
+currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
+

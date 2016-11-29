@@ -287,6 +287,8 @@ Now it is time to test the object. Return to your workspace center and run
 tableInfiniteDribbleBest
 ```
 
+### Mapping and Picking
+
 Dribbling is a nice demo, but you probably want the capability to
 pause the arm when it holds the object and command its movement for
 your own purposes.  First map the area with:
@@ -339,9 +341,11 @@ endArgs "itemA" "itemB" setClassLabels
 ``` 
 
 
-Train workspaces a and b, save their poses. It's ok if the workspaces overlap. Put one object in each workspace, make sure it is
-closer to the center of its workspace than the other object. For each workspace, move the arm, load the background model, detect best, add
-to blue boxes, can command which blue box to pick.
+Train workspaces a and b, save their poses. It is ok if the workspaces
+overlap. Put one object in each workspace, make sure it is closer to
+the center of its workspace than the other object. For each workspace,
+move the arm, load the background model, detect best, add to blue
+boxes, can command which blue box to pick.
 
 
 
@@ -387,6 +391,7 @@ Write a program to pick up an object and drop it from a height of
 10cm.
 
 
+
 ### Practical Picking
 
 For practical tasks, you will want to make a model of the object you
@@ -397,3 +402,6 @@ area, find the best object, and then pick it.  It will stop once it
 has closed around the object; afterward you must send commands to tell
 the robot to move the object to the new location, for example with
 `assumeHandingPose` or more generally, `moveEeToPoseWord`.
+
+You might have different background models for different regions of the workspace, described as 
+[synthetic photographs](../scene).

@@ -128,7 +128,13 @@ void initializeAndFocusOnNewClass(MachineState * ms) {
 namespace ein_words {
 
 
-WORD(SetTargetClass)
+WORD(SetFocusedClass)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("setTargetClassClass");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   string className;
   GET_ARG(ms, StringWord, className);
@@ -137,16 +143,22 @@ virtual void execute(MachineState * ms) {
   changeTargetClass(ms, class_idx);
 }
 END_WORD
-REGISTER_WORD(SetTargetClass)
+REGISTER_WORD(SetFocusedClass)
 
-WORD(SetTargetClassIdx)
+WORD(SetFocusedClassIdx)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("setTargetClassIdx");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   int class_idx;
   GET_INT_ARG(ms, class_idx);
   changeTargetClass(ms, class_idx);
 }
 END_WORD
-REGISTER_WORD(SetTargetClassIdx)
+REGISTER_WORD(SetFocusedClassIdx)
 
 
 WORD(SetTargetClassToLastLabelLearned)
