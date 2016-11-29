@@ -35,3 +35,9 @@ turning the lights on Baxter to engaging very high-level long-term
 actions.  Ein is a ROS program and more information about its [ROS
 API](../ros/) is available.
 
+
+Each instance of Ein can control one or both arms on Baxter. However,
+because Ein is single threaded, if you use one Ein to control both
+arms, it will run twice as slow.  As a result, we usually run two
+separate instances of Ein, one for each arm.  The screen is set up
+accordingly with separate windows for each arm (windows 0 and 9).  

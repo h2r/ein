@@ -16,15 +16,22 @@ tool for collecting calibrated light rays.
 * table height
 * hand camera offset?
 
-* stream buffer
-
-### Stream Buffer
-
-`populateStreamBuffer` populates them from focused class.
 
 ### Saving and Loading Scenes
 
+
+
 ### Data Formats
+
+Ein stores its data in the `default` directory in the ein checkout.
+Configuration is stored in a directory named for the serial number.
+Objects are stored in the `objects` directory and gaussian maps are
+stored in the `maps` directory.  Streams are stored in the `streams`
+directory.  We use a combination of custom YAML formats as well as
+standard images to store data.  Scenes consist of uuencoded compressed
+YAML, and we provide C++ and python code to unpack it into opencv
+images. 
+
 
 
 

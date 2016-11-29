@@ -11,16 +11,21 @@ such as
 [object_recognition_msgs](http://wiki.ros.org/object_recognition_msgs).
 
 Ein does not have to use ROS; indeed one of the first robots we
-integrated it with besides Baxter was the Aibo.  HOwever
+integrated it with besides Baxter was the Aibo, and it connects over a
+TCP/IP connection.  However data structures such as ros::Time and the
+like are embedded into Ein's code, so it must have a ROS environment
+to compile, currently ROS Indigo.
 
 
-sendToBothArms.sh
+### Sending Commands to Ein
 
-Name of commands topic
+You can send commands to Ein by publishing on the topic
+`/ein/right/forth_commands` or `/ein/left/forth_commands` for each
+hand.  These topics take a std_msgs/String which is a valid Back
+program.  You can use any ROS program to publish to this topic,
+including `rostopic pub`.  For an example, see `sendToBothArms.sh`
+which sends commands to each arm.
 
-check rename focused 
-
-tableUpdateBg, describe multiple backgrounds
 
 
 Document color calibration
@@ -40,7 +45,7 @@ tableMap
 add pictures of predicted map
 
 
-  scenePredictBestObject tableUpdateMaps
+scenePredictBestObject tableUpdateMaps
 
 
 

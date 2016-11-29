@@ -63,9 +63,6 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 
   tableInitNoBackground
 
-  /*
-  bg sceneLoadBackgroundMap 
-  */
   currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
 
   tableRegularizeBackground
@@ -963,9 +960,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   shoreUp
   tableTakeScene
 
-  /*
   bg sceneSaveObservedMap 
-  */
   tableSetBackgroundFromObserved
 
   tableInit
