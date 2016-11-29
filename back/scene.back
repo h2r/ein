@@ -85,8 +85,7 @@ scenePredictedMapThreshDefault "scenePredictedMapThresh" store
   sceneClearObservedMap
   clearStreamBuffers
   streamEnableSisImageAndPoses
-  activateSensorStreaming ( waitUntilImageCallbackReceived ) 3 replicateWord
-  deactivateSensorStreaming
+  activateSensorStreaming ( waitUntilImageCallbackReceived ) 50 replicateWord deactivateSensorStreaming
   tableReconstructFromStream
   tableUpdateMaps
 
@@ -2556,7 +2555,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   tableReconstructWithZ 
 
-) "tableReconstructFromStream" store
+) "Reconstruct the entire stream at the table height."  "tableReconstructFromStream" define
 
 (
   tableReconstructWithZTopZ 0.388 divide 0.0005 times  "slfgRebaseCellWidth" store slfgRebaseTable
