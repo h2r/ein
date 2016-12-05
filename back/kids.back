@@ -4,6 +4,9 @@ leftOrRightArm "right" =
 0.852186 -0.694436 0.494315 0.000207 0.367980 -0.276971 0.887625 createEEPose "wavePose" store
 0.879307 -0.023933 -0.076161 0.459157 0.527586 0.489220 0.521049 createEEPose "lowShakePose" store
 0.660164 -0.061894 -0.029110 -0.044431 0.828624 -0.021404 0.557629 createEEPose "kidPicturePose" store
+
+0.666559 -1.142433 0.473728 0.379813 0.586891 -0.266738 0.663439 createEEPose "dabRightPose" store
+0.946537 0.301329 0.557267 -0.380047 0.586422 0.135297 0.702401 createEEPose "dabLeftPose" store
 )
 ( 
 leftOrRightArm "left" = 
@@ -11,6 +14,8 @@ leftOrRightArm "left" =
 0.930691 0.378035 0.498006 0.028296 0.179526 0.039754 0.982542 createEEPose "wavePose" store
 0.995837 0.049584 -0.044754 0.539836 -0.529479 0.448137 -0.476867 createEEPose "lowShakePose" store
 0.832231 0.098156 -0.016543 -0.178823 0.760640 -0.028450 0.623409 createEEPose "kidPicturePose" store
+0.927865 -0.316768 0.462431 0.310272 0.570838 -0.347365 0.676175 createEEPose "dabRightPose" store
+0.072410 1.303297 0.614679 -0.669614 -0.011129 -0.026810 0.742142 createEEPose "dabLeftPose" store
 )
  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
 ifte
@@ -31,6 +36,14 @@ ifte
 ( kidPicturePose moveEeToPoseWord waitUntilAtCurrentPosition ) "assumeKidPicturePose" store
 
 
+( dabLeftPose moveEeToPoseWord waitUntilAtCurrentPosition ) "doDabLeft" store
+( "doDabLeft" commandOtherArm doDabLeft ) "dabLeft" store
+
+( dabRightPose moveEeToPoseWord waitUntilAtCurrentPosition ) "doDabRight" store
+( "doDabRight" commandOtherArm doDabRight ) "dabRight" store
+
+( dabLeft dabRight ) "dab" store
+
 ( assumeKidPicturePose ( 1 ) ( publishWristViewToFace 0.1 waitForSeconds ) while ) "lookAtKids" store
 
 
@@ -48,3 +61,20 @@ ifte
 
 ( wave ) "kidWave" store
 ( tempGoHome ) "kidCrane" store
+
+
+
+/*
+
+ 1. Lights On
+ 2. Lights Off
+ 3. Fan On
+ 4. Fan Off
+ 5. Open Gripper
+ 6. Close Gripper
+ 7. Wave
+ 8. Happy Face
+ 9. Sad Face
+10. Crane Pose
+11. Dab Pose
+*/
