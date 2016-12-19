@@ -1,7 +1,7 @@
 8 "scan_IRheight" store
 /* 10 "catScan_dropHeight" store */
 10 "catScan_dropHeight" store 
-5 "pileSwitchThreshold" store
+3 "pileSwitchThreshold" store
 
 1 "scan_catScanLimit" store
 0 "scan_catPickLimit" store
@@ -20,7 +20,7 @@ leftOrRightArm "left" =
 0.281250 0.801250 0.20 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3" store
 0.068750 0.812500 0.200000 -0.001554 0.999990 0.003099 -0.002801 createEEPose  "workspace3_1" store
 0.575000 0.368750 0.201245 -0.001554 0.999990 0.003099 -0.002801 createEEPose "workspace4" store  )
- ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
+ ( "Neither left or right arm." leftOrRightArm pauseStackExecution ) 
 ifte
 )
 ifte
@@ -766,6 +766,7 @@ dateString "catScan5VarianceTrialThisTime" store
     isGripperGripping ( 
       0.1 perturbPositionScale
       comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm 
+      waitUntilAtCurrentPosition
     ) ( 
       openGripper
     ) ifte
@@ -823,7 +824,7 @@ dateString "catScan5VarianceTrialThisTime" store
       "saving INPUT background map for LEFT side to RAM." print
       currentObservedMap sceneCopyGaussianMap "catScan5InputBgRAM_left" store 
     ) ( 
-      "Neither left or right arm, not saving INPUT background map to RAM" leftOrRighArm pauseStackExecution 
+      "Neither left or right arm, not saving INPUT background map to RAM" leftOrRightArm pauseStackExecution 
     ) 
     ifte
   )
@@ -843,7 +844,7 @@ dateString "catScan5VarianceTrialThisTime" store
       "loading INPUT background map for LEFT side from RAM." print
       currentScene catScan5InputBgRAM_left sceneSetBackgroundMap sceneRenderScene
     ) ( 
-      "Neither left or right arm, not loading INPUT background map from RAM" leftOrRighArm pauseStackExecution 
+      "Neither left or right arm, not loading INPUT background map from RAM" leftOrRightArm pauseStackExecution 
     ) 
     ifte
   )
@@ -905,7 +906,7 @@ dateString "catScan5VarianceTrialThisTime" store
       "saving PLAY background map for LEFT side to RAM." print
       currentObservedMap sceneCopyGaussianMap "catScan5PlayBgRAM_left" store 
     ) ( 
-      "Neither left or right arm, not saving PLAY background map to RAM" leftOrRighArm pauseStackExecution 
+      "Neither left or right arm, not saving PLAY background map to RAM" leftOrRightArm pauseStackExecution 
     ) 
     ifte
   )
@@ -925,7 +926,7 @@ dateString "catScan5VarianceTrialThisTime" store
       "loading PLAY background map for LEFT side from RAM." print
       currentScene catScan5PlayBgRAM_left sceneSetBackgroundMap sceneRenderScene
     ) ( 
-      "Neither left or right arm, not loading PLAY background map from RAM" leftOrRighArm pauseStackExecution 
+      "Neither left or right arm, not loading PLAY background map from RAM" leftOrRightArm pauseStackExecution 
     ) 
     ifte
   )
@@ -976,7 +977,7 @@ dateString "catScan5VarianceTrialThisTime" store
   halfImpulse
 
   catScan5InputPileTakeScene 
-  bg "_green_back" + sceneSaveObservedMap 
+  bg "_green_back" leftOrRightArm + + sceneSaveObservedMap 
 
   catScan5SaveInputBgRAM
   catScan5SaveInputBgDisk
@@ -985,12 +986,22 @@ dateString "catScan5VarianceTrialThisTime" store
   assumeCrane1
 
   catScan5OutputPileTakeScene 
-  bg "_green_front" + sceneSaveObservedMap 
+  bg "_green_front" leftOrRightArm + + sceneSaveObservedMap 
 
-  /* this does not mark the RAM variable with LEFT or RIGHT */
-  bg "_cat_temp" + sceneSaveObservedMap
+  bg "_cat_temp" leftOrRightArm + + sceneSaveObservedMap
   currentObservedMap sceneCopyGaussianMap "bg_cat_tempRAM" store
 ) "catScan5CacheBackgrounds" store
+
+(
+  bg "_green_back" leftOrRightArm + + sceneLoadObservedMap 
+  catScan5SaveInputBgRAM
+  catScan5SaveInputBgDisk
+
+  bg "_green_front" leftOrRightArm + + sceneLoadObservedMap 
+
+  bg "_cat_temp" leftOrRightArm + + sceneSaveObservedMap
+  currentObservedMap sceneCopyGaussianMap "bg_cat_tempRAM" store
+) "catScan5LoadBackgrounds" store
 
 (
   inputPileWorkspace "temp" store 
@@ -1002,12 +1013,12 @@ dateString "catScan5VarianceTrialThisTime" store
 ) "catScan5SwapInputOutput" store
 
 (
-  bg "_cat_temp_2" + sceneSaveBackgroundMap
-  bg "_cat_temp" + sceneLoadBackgroundMap
+  bg "_cat_temp_2" leftOrRightArm + + sceneSaveBackgroundMap
+  bg "_cat_temp" leftOrRightArm + + sceneLoadBackgroundMap
   "catScan5InputBg" "_" leftOrRightArm + + sceneSaveBackgroundMap
 
-  bg "_cat_temp_2" + sceneLoadObservedMap
-  bg "_cat_temp" + sceneSaveObservedMap
+  bg "_cat_temp_2" leftOrRightArm + + sceneLoadObservedMap
+  bg "_cat_temp" leftOrRightArm + + sceneSaveObservedMap
 ) "catScan5SwapInputOutputDisk" store
 
 (

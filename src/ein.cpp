@@ -10067,10 +10067,14 @@ endl;
 
 void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
   // determine z using cache->target_plane
-  double planed_z = cache->target_plane[3] / (cache->mu_x * pX * cache->target_plane[0] + cache->mu_y * pY * cache->target_plane[1] + cache->target_plane[2]);
+  double maggedCentralizedX = cache->mu_x * (pX - cache->cx);
+  double maggedCentralizedY = cache->mu_y * (pY - cache->cy);
 
+  double permutedCoordinate0 = cache->ap(0,0) * maggedCentralizedX + cache->ap(0,1) * maggedCentralizedY;
+  double permutedCoordinate1 = cache->ap(1,0) * maggedCentralizedX + cache->ap(1,1) * maggedCentralizedY;
+  double planed_z = cache->target_plane[3] / (permutedCoordinate0 * cache->target_plane[0] + permutedCoordinate1 * cache->target_plane[1] + cache->target_plane[2]);
 
-
+  /*
   if (pX % 10 == 0 && pY % 10 == 0) {
     cout << planed_z << " ";
 
@@ -10080,7 +10084,8 @@ void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * 
     cache->target_plane[2] << " " <<
     cache->target_plane[3] << " " << endl;
   }
-
+  */
+  // XXX all of this can be substantially optimized by building another matrix by shooting the unit vectors through this transformation. 
 
   // cast with pixelToGlobalFullFromCacheZNotBuilt
   pixelToGlobalFullFromCacheZNotBuilt(ms, pX, pY, gX, gY, cache, planed_z);
@@ -10091,10 +10096,10 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
   // anchor pose tends to be the pose of the end effector upon calling
   computePixelToPlaneCache(ms, gZ, givenEEPose, otherPlane, cache);
 
-
-// XXX not verified... get the target plane as a relative plane to the end effector
-  eePose transformed_anchor = otherPlane.getPoseRelativeTo(givenEEPose);
-  //eePose transformed_anchor = givenEEPose.getPoseRelativeTo(otherPlane);
+  // fill out thisCameraPose
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  eePose thisCameraPose = camera->handCameraOffset.applyAsRelativePoseTo(givenEEPose);
+  eePose transformed_anchor = otherPlane.getPoseRelativeTo(thisCameraPose);
 
   // the plane is facing towards the arm
   eePose tempZUnit = eePose(0,0,1,0,0,0,1);
@@ -10103,7 +10108,10 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
   cache->target_plane[0] = tempPlaneNormal.px - transformed_anchor.px;
   cache->target_plane[1] = tempPlaneNormal.py - transformed_anchor.py;
   cache->target_plane[2] = tempPlaneNormal.pz - transformed_anchor.pz;
-  cache->target_plane[3] = -gZ;
+
+  // take a point known to be on the plane (the transformed anchor pose) and
+  // find the dot product with the determined normal of the plane, then add the target plane distance
+  cache->target_plane[3] = cache->target_plane[0]*transformed_anchor.px + cache->target_plane[1]*transformed_anchor.py + cache->target_plane[2]*transformed_anchor.pz - gZ;
 }
 
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
