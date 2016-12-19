@@ -132,7 +132,7 @@ WORD(SetFocusedClass)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
-  result.push_back("setTargetClassClass");
+  result.push_back("setTargetClass");
   return result;
 }
 virtual void execute(MachineState * ms) {
