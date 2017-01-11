@@ -97,7 +97,7 @@ your camera.  When the mask looks good, you can stop the process by
 running `clearStacks`.  It saves after every iteration.
 
 
-
+<!--
 ### Calibrate the height reticles
 
 Next we need to set the projection of the gripper in the image at
@@ -109,7 +109,7 @@ point at each point.
 
 To do this process first `goHome` and then run
 `calibrateRGBCameraIntrinsics`.
-
+-->
 
 The gripper will move to four different heights and take a series of
 measurements at different orientations.  This process takes about 20
