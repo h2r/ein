@@ -1,6 +1,6 @@
 8 "scan_IRheight" store
 /* 10 "catScan_dropHeight" store */
-10 "catScan_dropHeight" store 
+5 "catScan_dropHeight" store 
 3 "pileSwitchThreshold" store
 
 1 "scan_catScanLimit" store
@@ -764,7 +764,7 @@ dateString "catScan5VarianceTrialThisTime" store
   somethingsThere isGripperGripping and (
     halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition waitUntilEndpointCallbackReceived
     isGripperGripping ( 
-      0.1 perturbPositionScale
+      0.15 perturbPositionScale
       comeToStop pressUntilEffortInit 0.03 setSpeed pressUntilEffortCombo openGripper liftArm 
       waitUntilAtCurrentPosition
     ) ( 
@@ -956,8 +956,10 @@ dateString "catScan5VarianceTrialThisTime" store
 
     0.01 
   setGridSize
+/*
   ( xDown ) 2 replicateWord
   ( yDown ) 2 replicateWord
+*/
   
   shoreUp
   

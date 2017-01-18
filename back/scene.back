@@ -2054,12 +2054,16 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
+  /*
   10000000 "tableReconstructStreamTakeSceneSamples" store
+  */
+  100 "tableReconstructStreamTakeSceneSamples" store
 
   /*
   tableReconstructGCNone
-  */
   tableReconstructWithOOP
+  */
+  tableReconstructGCNone
 ) "tableReconstructWithZTable2D" store
 
 (
@@ -2070,13 +2074,16 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
+  /*
   10000000 "tableReconstructStreamTakeSceneSamples" store
+  */
+  100 "tableReconstructStreamTakeSceneSamples" store
 
   /*
-  tableReconstructGCNoneWide
   tableReconstructWithOOP
-  */
   tableReconstructWithOOPWide
+  */
+  tableReconstructGCNoneWide
 ) "tableReconstructWithZTable1D" store
 
 (
