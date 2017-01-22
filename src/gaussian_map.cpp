@@ -2662,6 +2662,7 @@ void Scene::tryToAddBestObjectToScene() {
   if (l_max_class != -1) {
     cout << " " << ms->config.classLabels[l_max_class];
   }
+  cout << " with pose " << l_max_x_meters <<"," << l_max_y_meters << " theta: " << l_max_theta;
   cout << endl;
 
   //if (l_max_x > -1)
