@@ -1,5 +1,6 @@
-It's a good idea to run exportDoc to creaet a new version of the words
-table for the documentation page.
+It's a good idea to run exportDoc to create a new version of the words
+table for the documentation page, and then copy ein_words.html to the
+doc/_includes directory and commit first.
 
 First create a new release branch from develop:
 $ git checkout -b release develop
