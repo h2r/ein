@@ -951,15 +951,16 @@ dateString "catScan5VarianceTrialThisTime" store
 
 (
   halfImpulse 
+/*
   outputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear1 
+*/
+  outputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear3 
   waitUntilAtCurrentPosition
 
     0.01 
   setGridSize
-/*
   ( xDown ) 2 replicateWord
   ( yDown ) 2 replicateWord
-*/
   
   shoreUp
   
