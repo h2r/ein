@@ -113,4 +113,5 @@ observed map from the stream buffer, using the entire buffer.  It
 takes two arguments: the stride, and the height z at which to use.
 You can compute this height using the table height or else hard-code
 to a particular value (or perform a focus sweep by rendering at a
-range of values).
+range of values).  The word `tableReconstructFromStream` reconstructs
+the entire stream at the table height.

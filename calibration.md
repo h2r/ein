@@ -6,8 +6,10 @@ order: 2
 ---
 
 Next we will calibrate the robot so that it can map between image
-coordinates and world coordinates.  This process takes several
-steps. 
+coordinates and world coordinates.  This process takes several steps.
+Calibration data is stored in the directory 'default/config_<your
+robot's serial>'.  There is one file with robot-specific parameters
+such as table height, and a separate directory for each camera.
 
 ### Make a magic circle
 First, print out about 10 pages of [magic paper](
@@ -95,7 +97,7 @@ your camera.  When the mask looks good, you can stop the process by
 running `clearStacks`.  It saves after every iteration.
 
 
-
+<!--
 ### Calibrate the height reticles
 
 Next we need to set the projection of the gripper in the image at
@@ -107,7 +109,7 @@ point at each point.
 
 To do this process first `goHome` and then run
 `calibrateRGBCameraIntrinsics`.
-
+-->
 
 The gripper will move to four different heights and take a series of
 measurements at different orientations.  This process takes about 20
@@ -126,6 +128,8 @@ We have included a legend showing the various reticles and markers
 below.
 
 ![Rendered Wrist View](../assets/wristviewLegend.png)
+
+
 
 
 #### Exercise:  Explore the movement state. 
