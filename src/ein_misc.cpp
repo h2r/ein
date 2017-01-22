@@ -690,6 +690,9 @@ REGISTER_WORD(Equals)
 
 WORD(Not)
 CODE('!') 
+virtual string description() {
+  return "Pops a word; pushes a 0 or a 1 depending on its truth value.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -712,6 +715,9 @@ REGISTER_WORD(Not)
 
 
 WORD(Ift)
+virtual string description() {
+  return "Takes two words on the stack, executes the second word if the first word is true.  For example, \" ( \"hello\" print ) 1 ift\" will print hello, while \" ( \"hello\" print ) 0 ift\" will not do it.";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> then;
   bool condition;
@@ -730,6 +736,9 @@ REGISTER_WORD(Ift)
 
 
 WORD(Ifte)
+virtual string description() {
+  return "If then else takes two compound words and a condition and does the first one if the condition is true and the second if it is false.   Usage: 0 ( \"condition was true\" print ) ( \"condition was false\" print )   ifte";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> then;
   std::shared_ptr<Word> else_;

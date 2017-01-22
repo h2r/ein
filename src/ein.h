@@ -167,6 +167,7 @@ int classIdxForName(MachineState * ms, string name);
 
 void initClassFolders(MachineState * ms, string folderName);
 void writeClassToFolder(MachineState * ms, int idx, string folderName);
+void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName);
 void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path);
 void writeThumbnail(MachineState * ms, int idx, string servoCrop_file_path);
 void writeIr2D(MachineState * ms, int idx, string this_range_path);

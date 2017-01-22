@@ -128,7 +128,13 @@ void initializeAndFocusOnNewClass(MachineState * ms) {
 namespace ein_words {
 
 
-WORD(SetTargetClass)
+WORD(SetFocusedClass)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("setTargetClass");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   string className;
   GET_ARG(ms, StringWord, className);
@@ -137,16 +143,22 @@ virtual void execute(MachineState * ms) {
   changeTargetClass(ms, class_idx);
 }
 END_WORD
-REGISTER_WORD(SetTargetClass)
+REGISTER_WORD(SetFocusedClass)
 
-WORD(SetTargetClassIdx)
+WORD(SetFocusedClassIdx)
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("setTargetClassIdx");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   int class_idx;
   GET_INT_ARG(ms, class_idx);
   changeTargetClass(ms, class_idx);
 }
 END_WORD
-REGISTER_WORD(SetTargetClassIdx)
+REGISTER_WORD(SetFocusedClassIdx)
 
 
 WORD(SetTargetClassToLastLabelLearned)
@@ -1441,6 +1453,23 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(WriteFocusedClass)
+
+WORD(WriteFocusedClassGrasps)
+virtual void execute(MachineState * ms) {
+  int idx = ms->config.focusedClass;
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    cout << "writeFocusedClass: invalid idx, not writing." << endl;
+    return;
+  }
+
+  string outfolder = ms->config.data_directory + "/objects/" + ms->config.classLabels[idx] + "/";
+  writeClassGraspsToFolder(ms, idx, outfolder);
+}
+END_WORD
+REGISTER_WORD(WriteFocusedClassGrasps)
 
 WORD(SaveCurrentClassDepthAndGraspMaps)
 CODE(196705) // capslock + A

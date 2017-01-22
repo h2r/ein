@@ -25,9 +25,27 @@
 ) "cw_workspaceIsClear" store
 
 /* 0.3 and 500 */
-0.3 "cw_viewIsClear_discrepancyThresh" store
-500 "cw_viewIsClear_numCellThresh" store
+0.5 "cw_viewIsClear_discrepancyThresh" store
+
+
+    4.0
+      0.01
+      0.01
+    times
+  times
+"cw_viewIsClear_squareMeterDiscrepancyThresh" store
 ( 
+  
+      cw_viewIsClear_squareMeterDiscrepancyThresh  
+	sceneCellWidth
+	sceneCellWidth
+      times
+    divide
+  "cw_viewIsClear_numCellThresh" store
+
+    "cw_viewIsClear_numCellThresh is set to " cw_viewIsClear_numCellThresh +
+  print
+
   /* warning, still hardcoded for playworkspace */
   /* if you are in blocks, you will end up back in blocks. if not you will get whatever you had. */
   tableRestoreFromBlocks
@@ -153,7 +171,7 @@
   pop
 ) "cw_tri_flick" store
 
-3 "cw_clearWorkspace_max" store
+0 "cw_clearWorkspace_max" store
 (
   tableSwapToBlocks
   catScan5LoadPlayBg

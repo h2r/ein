@@ -42,7 +42,7 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.160.142" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.160.143" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonMars" store

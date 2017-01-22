@@ -36,3 +36,9 @@ ifte
 ) "Go to the home position, wait until at current position, and put the joints in a good state."  "goHome" define
 
 cameraWristConfig
+
+
+bg sceneInitDefaultBackgroundMap
+bg sceneLoadBackgroundMap 
+currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
+

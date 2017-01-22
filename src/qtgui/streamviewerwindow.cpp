@@ -66,8 +66,6 @@ void StreamViewerWindow::update()
 
 
   if (tsi != NULL) {
-    eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
 
     if (!isSketchyMat(tsi->image)) {
       streamImageView.updateImage(tsi->image);
@@ -79,6 +77,8 @@ void StreamViewerWindow::update()
     double secondOffset = tsi->time - start->time;
     txt << secondOffset << " of " << length << " seconds" << endl;
 
+    eePose tArmP, tBaseP;
+    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
     if (success) {
       shared_ptr<EePoseWord> w = make_shared<EePoseWord>(tArmP);
       txt << w->repr() << endl;

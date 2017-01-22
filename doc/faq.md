@@ -106,8 +106,6 @@ reticles, as well as when running `fillIkMapAtCurrentHeight`.  One way
 to see what is happening when this occurs is to run "Ctrl-C" to Ein in
 gdb and backtrace, to see what part of the code is getting stuck.  
 
-
-
 ### What is the difference between `assumeBeeHome` and `goHome`?
 
 The `assumeBeeHome` word sets the target position to the home position
@@ -124,7 +122,7 @@ You can put arbitrary commands in the file init.back, which will be
 executed whenever Ein starts up, after all other initialization is
 complete.
 
-### I am getting strage TF errors about "Lookup would require extrapolation into the past" or "Lookup would require extrapolation into the future."    
+### I am getting strange TF errors about "Lookup would require extrapolation into the past" or "Lookup would require extrapolation into the future."    
 
 This error most often means that Baxter's system time is out of sync
 with client computers.  Note that Baxter syncs its time using ntp to
@@ -137,3 +135,9 @@ up.
 
 
 
+### Where is data stored on the file system? 
+
+Ein stores its data in the `default` directory in the ein checkout.
+Configuration is stored in a directory named for the serial number.
+Objects are stored in the `objects` directory and gaussian maps are
+stored in the `maps` directory.  

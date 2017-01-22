@@ -2416,9 +2416,39 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
 
   string scene_model_file_path = sceneModel + "model.yml";
   writeSceneModel(ms, idx, scene_model_file_path);
+}
 
-  // XXX save grasp memories separately from range
-  // XXX load grasp memories separately 
+void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName) {
+
+  if ((idx > -1) && (idx < ms->config.classLabels.size())) {
+    // do nothing
+  } else {
+    CONSOLE_ERROR(ms, "writeClassGraspsToFolder: invalid idx, not writing.");
+    return;
+  }
+
+  string item = folderName + "/";
+    string raw = item + "raw/";
+      string images = raw + "images/";
+      string poseBatches = raw + "poseBatches/";
+      string rangeBatches = raw + "rangeBatches/";
+    string ein = item + "ein/";
+      string d3dGrasps = ein + "3dGrasps/";
+      string detectionCrops = ein + "detectionCrops/";
+      string sceneModel = ein + "sceneModel/";
+      string ir2d = ein + "ir2d/";
+      string pickMemories = ein + "pickMemories/";
+      string servoCrops = ein + "servoCrops/";
+      string servoImages = ein + "servoImages/";
+
+  initClassFolders(ms, folderName);
+  CONSOLE(ms, "Writing grasps for class " << idx << " to folder " << folderName);
+
+  string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
+  write3dGrasps(ms, idx, d3d_grasp_file_path);
+
+  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
+  writeGraspMemory(ms, idx, grasp_memory_file_path);
 }
 
 
@@ -4986,7 +5016,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
 
   double glowBias = 0.15;
   double glowLast = 30.0;
-
+  ros::Time now = ros::Time::now();
   if (ms->config.drawIKMap || ms->config.drawClearanceMap) { // draw ikMap and clearance map
     int ikMapRenderStride = 1;
     for (int i = 0; i < ms->config.mapWidth; i+=ikMapRenderStride) {
@@ -4994,7 +5024,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
 	if ( cellIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, 
                                 ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, i, j) ) {
           //ros::Duration longAgo = ros::Time::now() - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime;
-          double longAgoSec = ros::Time::now().sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
+          double longAgoSec = now.sec - ms->config.objectMap[i + ms->config.mapWidth * j].lastMappedTime.sec; // faster than above
           double glowFraction = (1.0-glowBias)*(1.0-(min(max(longAgoSec, 0.0), glowLast) / glowLast)) + glowBias;
           glowFraction = min(max(glowFraction, 0.0), 1.0);
           if (!ms->config.useGlow) {
@@ -5133,7 +5163,6 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       putText(ms->config.objectMapViewerImage, sprite.name, objectPoint, MY_FONT, 0.5, CV_RGB(196, 255, 196), 2.0);
     }
   }
-
   // draw blue boxes
   for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
     BoxMemory memory = ms->config.blueBoxMemories[i];
@@ -5172,7 +5201,8 @@ void renderObjectMapViewOneArm(MachineState * ms) {
       double lockRenderPeriod1 = 3.0;
       double lockRenderPeriod2 = 2.0;
       //ros::Duration timeSince = ros::Time::now() - memory.cameraTime;
-      ros::Duration timeSince = ros::Time::now() - ros::Time(0);
+      ros::Duration timeSince = now - ros::Time(0);
+
       double lockArg1 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod1;
       double lockArg2 = 2.0 * 3.1415926 * timeSince.toSec() / lockRenderPeriod2;
       cv::Point outTopLock;
@@ -10037,10 +10067,14 @@ endl;
 
 void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache) {
   // determine z using cache->target_plane
-  double planed_z = cache->target_plane[3] / (cache->mu_x * pX * cache->target_plane[0] + cache->mu_y * pY * cache->target_plane[1] + cache->target_plane[2]);
+  double maggedCentralizedX = cache->mu_x * (pX - cache->cx);
+  double maggedCentralizedY = cache->mu_y * (pY - cache->cy);
 
+  double permutedCoordinate0 = cache->ap(0,0) * maggedCentralizedX + cache->ap(0,1) * maggedCentralizedY;
+  double permutedCoordinate1 = cache->ap(1,0) * maggedCentralizedX + cache->ap(1,1) * maggedCentralizedY;
+  double planed_z = cache->target_plane[3] / (permutedCoordinate0 * cache->target_plane[0] + permutedCoordinate1 * cache->target_plane[1] + cache->target_plane[2]);
 
-
+  /*
   if (pX % 10 == 0 && pY % 10 == 0) {
     cout << planed_z << " ";
 
@@ -10050,7 +10084,8 @@ void pixelToGlobalFullFromCacheZOOP(MachineState * ms, int pX, int pY, double * 
     cache->target_plane[2] << " " <<
     cache->target_plane[3] << " " << endl;
   }
-
+  */
+  // XXX all of this can be substantially optimized by building another matrix by shooting the unit vectors through this transformation. 
 
   // cast with pixelToGlobalFullFromCacheZNotBuilt
   pixelToGlobalFullFromCacheZNotBuilt(ms, pX, pY, gX, gY, cache, planed_z);
@@ -10061,10 +10096,10 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
   // anchor pose tends to be the pose of the end effector upon calling
   computePixelToPlaneCache(ms, gZ, givenEEPose, otherPlane, cache);
 
-
-// XXX not verified... get the target plane as a relative plane to the end effector
-  eePose transformed_anchor = otherPlane.getPoseRelativeTo(givenEEPose);
-  //eePose transformed_anchor = givenEEPose.getPoseRelativeTo(otherPlane);
+  // fill out thisCameraPose
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  eePose thisCameraPose = camera->handCameraOffset.applyAsRelativePoseTo(givenEEPose);
+  eePose transformed_anchor = otherPlane.getPoseRelativeTo(thisCameraPose);
 
   // the plane is facing towards the arm
   eePose tempZUnit = eePose(0,0,1,0,0,0,1);
@@ -10073,7 +10108,10 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
   cache->target_plane[0] = tempPlaneNormal.px - transformed_anchor.px;
   cache->target_plane[1] = tempPlaneNormal.py - transformed_anchor.py;
   cache->target_plane[2] = tempPlaneNormal.pz - transformed_anchor.pz;
-  cache->target_plane[3] = -gZ;
+
+  // take a point known to be on the plane (the transformed anchor pose) and
+  // find the dot product with the determined normal of the plane, then add the target plane distance
+  cache->target_plane[3] = cache->target_plane[0]*transformed_anchor.px + cache->target_plane[1]*transformed_anchor.py + cache->target_plane[2]*transformed_anchor.pz - gZ;
 }
 
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {

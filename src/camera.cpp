@@ -47,6 +47,8 @@ Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link,
 
   centerX = 640;
   centerY = 400;
+
+  setDefaultHandCameraOffset();
 }
 
 
@@ -94,18 +96,14 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
   //cout << "Type: " << cv_ptr->image.type() << endl;
   //cout << "type: " << CV_16U << endl;
 
-  if (cv_ptr->image.type()==CV_8UC4) {
-    cvtColor(cv_ptr->image, cam_img, CV_BGRA2BGR);
-  } else {
-    cam_img = cv_ptr->image.clone();
-  }
-
-
+  cam_img = cv_ptr->image.clone();
 
   if (cam_img.type() == CV_16UC1) {
     Mat graybgr;
     cvtColor(cam_img, graybgr, CV_GRAY2BGR);  
     graybgr.convertTo(cam_bgr_img, CV_8U, 1.0/256.0);
+  } else if (cam_img.type() == CV_8UC4) {
+    cvtColor(cam_img, cam_bgr_img, CV_BGRA2BGR);
   } else {
     cam_bgr_img = cam_img.clone();
   }
@@ -302,8 +300,12 @@ void Camera::imRingBufferAdvance() {
 
 
 streamImage * Camera::currentImage() {
-  streamImage * tsi = &(streamImageBuffer[sibCurIdx]);
-  return tsi;
+  if (sibCurIdx < streamImageBuffer.size()) {
+    streamImage * tsi = &(streamImageBuffer[sibCurIdx]);
+    return tsi;
+  } else {
+    return NULL;
+  }
 }
 
 streamImage * Camera::setIsbIdxNoLoadNoKick(int idx) {
