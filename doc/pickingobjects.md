@@ -405,3 +405,13 @@ the robot to move the object to the new location, for example with
 
 You might have different background models for different regions of the workspace, described as 
 [synthetic photographs](../scene).
+
+
+
+Another workflow is to run `tableTakeScene` to take a scene.  Then you
+can repeatedly run `scenePredictBestObject` to add the best object in
+the set of class labels to the scene.  After that run
+`tableUpdateMaps` to redraw the predicted map with the new object.
+
+
+scenePredictBestObject tableUpdateMaps
