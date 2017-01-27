@@ -3134,6 +3134,9 @@ REGISTER_WORD(SceneLoadObjectModel)
 
 
 WORD(SceneLoadFocusedObjectModel)
+virtual string description() {
+  return "Load the object model of the focused class from disk.";
+}
 virtual void execute(MachineState * ms) {
   std::stringstream buffer;
   buffer << "\"" << sceneModelFile(ms, ms->config.focusedClassLabel) << "\" sceneLoadSceneRaw";
@@ -3334,6 +3337,10 @@ END_WORD
 REGISTER_WORD(SceneSaveFocusedSceneModel)
 
 WORD(SceneLoadFocusedSceneModel)
+virtual string description() {
+  return "Loads a scene from disk into the scene model for the focused class.  Requires the name of a scene that is saved to disk.";
+}
+
 virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);

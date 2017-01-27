@@ -411,7 +411,55 @@ You might have different background models for different regions of the workspac
 Another workflow is to run `tableTakeScene` to take a scene.  Then you
 can repeatedly run `scenePredictBestObject` to add the best object in
 the set of class labels to the scene.  After that run
-`tableUpdateMaps` to redraw the predicted map with the new object.
+`tableUpdateMaps` to redraw the predicted map with the new object. 
+ 
+To reset, you can run `sceneClearPredictedObjects` and
+`tableUpdateMaps` to view them.
 
 
-scenePredictBestObject tableUpdateMaps
+### Class Labels
+
+Ein has a concept of loaded classes, which can be seen by running
+`printClassLabels`.  The word `pushClassLabels` pushes the class
+labels onto the stack, while the ideom `endArgs "name1" "name2"
+setClassLabels` sets a set of class labels.  Each class corresponds to
+a directory in `default/objects` which contains information about the
+class including appearance information, grasp locations, and other
+data.  One of these classes is called the "focused class" and is used
+as the default class when one is necessary.  
+
+The word `initializeAndFocusOnNewClass` makes a new class with
+default content and an automatically generated name.  The word
+`renameFocusedClass` renames the focused class in Ein and also in the
+file system and can be used to create user-friendly names for classes.
+
+You can view the focused class in the Ein gui and also the CLI gui.
+The word `focusedClassLabel` returns the name of the focused class.
+You can change the focused class by running `incrementTargetClass`.
+For a while we had two separate concepts (focused class and target
+class) but now they are one and the same.  However some words still
+refer to target class - we are gradually renaming these words.
+
+You can view the focused class model by running
+`sceneLoadFocusedObjectModel`.  This will populate the loaded model
+into the scene so you can view its predicted map, observed map, and
+discrepancy.  You can reset to the default scene by running
+
+
+### Evaluation Location Accuracy
+
+For some of our papers, we wanted to report Ein's ability to localize
+objects repeatedly.  To do this we created infrastructure to localize
+objects and record the results, and then compute mean and standard
+deviation on the error.  To run this code:
+
+`catScan5VarianceTrails` will run a batch of trials for an object in a
+location.  It will use `servoToBestSceneObject` to find the object's
+initial location.  Then it will move a short distance away, make a
+map, and localize the object.
+
+After this finishes, you can move it to a new location and run it
+again.
+
+After that run `catScan5VarianceTrialCalculatePoseVariances` to print
+the results to standard output.
