@@ -376,7 +376,7 @@ workspace4 "outputPileWorkspace" store
 
 ) "tableInfiniteScan" store
 
-"varianceTrial.back" import
+"varianceTrial" import
 
 ( /* expects an eePose on the stack */
   clearClassLabels
