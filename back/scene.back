@@ -69,6 +69,11 @@ table2DCellCountThreshold "tableCellCountThreshold" store
   currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
 
   tableRegularizeBackground
+
+  bg sceneInitDefaultBackgroundMap
+  bg sceneLoadBackgroundMap 
+  currentBackgroundMap sceneCopyGaussianMap "bgRAM" store 
+
 ) "Initialize scene parameters." "tableInit" define
 
 (
@@ -2055,9 +2060,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.01 "tableReconstructWithZDeltaZ" store
 
   /*
-  10000000 "tableReconstructStreamTakeSceneSamples" store
-  */
   100 "tableReconstructStreamTakeSceneSamples" store
+  */
+  10000000 "tableReconstructStreamTakeSceneSamples" store
 
   /*
   tableReconstructGCNone
@@ -2678,7 +2683,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableTakeScene1DNoReconstruct" store
 
 (
-  tableTakeScene1D
+  tableTakeScene2D
 ) "tableTakeScene" store
 
 (
