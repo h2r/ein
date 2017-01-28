@@ -444,6 +444,7 @@ You can view the focused class model by running
 `sceneLoadFocusedObjectModel`.  This will populate the loaded model
 into the scene so you can view its predicted map, observed map, and
 discrepancy.  You can reset to the default scene by running
+`tableInit`.
 
 
 ### Evaluation Location Accuracy
@@ -453,10 +454,11 @@ objects repeatedly.  To do this we created infrastructure to localize
 objects and record the results, and then compute mean and standard
 deviation on the error.  To run this code:
 
-`catScan5VarianceTrails` will run a batch of trials for an object in a
-location.  It will use `servoToBestSceneObject` to find the object's
-initial location.  Then it will move a short distance away, make a
-map, and localize the object.
+`"DIR" catScan5VarianceTrails` will run a batch of trials for an
+object in a location.  It will save the results in the folder for that
+object in the DIR directory.  It will use `servoToBestSceneObject`
+to find the object's initial location.  Then it will move a short
+distance away, make a map, and localize the object.
 
 After this finishes, you can move it to a new location and run it
 again.
