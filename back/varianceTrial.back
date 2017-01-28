@@ -13,10 +13,10 @@ dateString "catScan5VarianceTrialThisTime" store
 
   sceneClearPredictedObjects tableUpdateMaps 
 
-    ( tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 3 replicateWord 
+    ( tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop ) 2 replicateWord 
 
     scenePushNumSceneObjects
-    1
+   1
   = 
   (
      dateString
@@ -46,11 +46,11 @@ dateString "catScan5VarianceTrialThisTime" store
 
   halfImpulse 
   ( 
-    tableShortServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
-  ) 3 replicateWord
+    tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
+  ) 1 replicateWord
 
     currentPose 
-  ( 
+  (
     catScan5VarianceTrial dup moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop 
   ) 5 replicateWord
   pop
