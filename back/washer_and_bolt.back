@@ -20,7 +20,7 @@ washerStart, washerSpot -- eePoses
 */
 
 (
-  pressUntilEffortInit 0.005 setSpeed pressUntilEffort  
+  pressUntilEffortInit 0.005 setSpeed 0.0025 setGridSize pressUntilEffort  
 ) "boltPress" store
 
 ( 
@@ -80,7 +80,7 @@ washerStart, washerSpot -- eePoses
   endArgs "rssNutClose" setClassLabels
   "rssNutClose" setFocusedClass
 
-  30000 sceneSetDiscrepancySearchDepth
+  3000 sceneSetDiscrepancySearchDepth
   100 setGripperMovingForce
 
   tableMapFocusedAndPickInPlace
@@ -96,7 +96,7 @@ washerStart, washerSpot -- eePoses
 
   tableReset 0.01 setGridSize ( zDown ) 22 replicateWord
 
-  30000 sceneSetDiscrepancySearchDepth
+  3000 sceneSetDiscrepancySearchDepth
   100 setGripperMovingForce
 
   shoreUp
@@ -105,8 +105,8 @@ washerStart, washerSpot -- eePoses
   tableServoToFocusedSceneObject
 
   0.1 setSpeed
-  0.0075 setGridSize ( localXDown waitUntilAtCurrentPosition ) 1 replicateWord
-  0.005 setGridSize ( localYUp waitUntilAtCurrentPosition ) 1 replicateWord
+  0.005 setGridSize ( localXDown waitUntilAtCurrentPosition ) 1 replicateWord
+  0.0025 setGridSize ( localYDown waitUntilAtCurrentPosition ) 1 replicateWord
   setMovementStateToMoving comeToStop
   
   currentPose "washerSpot" store

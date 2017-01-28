@@ -63,10 +63,11 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 0.5 "tableDefaultScoreThresh" store
 50 "table2DCellCountThreshold" store
 1 "table1DCellCountThreshold" store
+1 "table0DCellCountThreshold" store
 table2DCellCountThreshold "tableCellCountThreshold" store
 ( 
   "init NO BACK" print
-  sceneSetDiscrepancyModeNoisyOr
+  sceneSetDiscrepancyModePoint
   tableDefaultScoreThresh sceneSetScoreThresh
   /* 75 */
   tableCellCountThreshold sceneSetCellCountThreshold 
@@ -2683,7 +2684,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   0.1 "tableSpiralMoveSpeed" store
 
   0.01 setW1GoThresh
-  27 "tableUpdateSpiralN" store
+  18 "tableUpdateSpiralN" store
   currentPose "tableUpdateSpiralPos" store
 
   /* clear it all */
@@ -2702,7 +2703,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableUpdatePanCoreNoClean
   */
   tableUpdateSpiralCoreNoClean 
-  table2DCellCountThreshold "tableCellCountThreshold" store
+  2 "tableCellCountThreshold" store
 
   tableUpdateMaps
 
@@ -2710,6 +2711,15 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableUpdateSpiralPos moveEeToPoseWord
   waitUntilAtCurrentPosition
 ) "tableTakeScene2DCloseNoReconstruct" store
+
+(
+  sceneClearObservedMap
+  clearStreamBuffers
+
+  tableUpdatePauseCoreNoClean
+  table0DCellCountThreshold "tableCellCountThreshold" store
+  tableUpdateMaps
+) "tableTakeScene0DNoReconstruct" store
 
 (
   quarterImpulse
@@ -2808,24 +2818,72 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   0.3 sceneSetObservedRGBFromVariance sceneRenderObservedMap
 
+  0.01 setGridSize ( zDown ) 23 replicateWord waitUntilAtCurrentPosition 
 
-  0.01 setGridSize ( zDown ) 22 replicateWord waitUntilAtCurrentPosition 
+
+  tableTakeScene2DClose
+  tableTakeScene1D
+  tableTakeScene0D
+
+  tableTakeScene2D
+
   */
 
-
   (
+    tableTakeScene2DNoReconstruct
 
-    tableTakeScene2DCloseNoReconstruct
     0.01 setGridSize ( localXUp ) 4 replicateWord
     0.01 setGridSize ( localYUp ) 2 replicateWord
-    20 "tableCellCountThreshold" store tableReconstructWithOOPNarrow
+
+    2 "tableCellCountThreshold" store 
+    tableReconstructWithOOPNarrow
+
+    0.01 setGridSize ( localXDown ) 4 replicateWord
+    0.01 setGridSize ( localYDown ) 2 replicateWord
   ) "tableReconstructWithZ" store
 
   tableReconstructFromStream
   tableUpdateMaps
 
 
+
 ) "tableTakeScene" store
+
+(
+  (
+    tableTakeScene2DCloseNoReconstruct
+
+    0.01 setGridSize ( localXUp ) 4 replicateWord
+    0.01 setGridSize ( localYUp ) 2 replicateWord
+
+    2 "tableCellCountThreshold" store 
+    tableReconstructWithOOPNarrow
+
+    0.01 setGridSize ( localXDown ) 4 replicateWord
+    0.01 setGridSize ( localYDown ) 2 replicateWord
+  ) "tableReconstructWithZ" store
+
+  tableReconstructFromStream
+  tableUpdateMaps
+) "tableTakeScene2DClose" store
+
+(
+  (
+    tableTakeScene0DNoReconstruct
+
+    0.01 setGridSize ( localXUp ) 4 replicateWord
+    0.01 setGridSize ( localYUp ) 2 replicateWord
+
+    2 "tableCellCountThreshold" store 
+    tableReconstructWithOOPWide
+
+    0.01 setGridSize ( localXDown ) 4 replicateWord
+    0.01 setGridSize ( localYDown ) 2 replicateWord
+  ) "tableReconstructWithZ" store
+
+  tableReconstructFromStream
+  tableUpdateMaps
+) "tableTakeScene0D" store
 
 (
   tableTakeScene1DNoReconstruct
@@ -2874,6 +2932,8 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructPhrases" store
 
 
+/* 0.002 for museum and close */
+/* 0.001 for close hi */
 0.002 "tableReconstructGridMultiplier" store
 (
 	currentPose
@@ -3166,7 +3226,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   */
 
     /* 0.5 for museum */
-    0.25
+    /* 0.25 for close */
+    /* 0.16 for close hi */
+    0.5
   "slfgRebaseDesiredMapWidth" store
 
       slfgRebaseDesiredMapWidth
