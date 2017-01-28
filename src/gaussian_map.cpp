@@ -2059,7 +2059,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	if ( i % numThreads == thr ) {
 	  if ( ! local_scores[i].loglikelihood_valid ) {
 	    // score should return the delta of including vs not including
-	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_score = scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
 	    if (i % 10000 == 0) {
 	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
@@ -2283,7 +2283,7 @@ void Scene::findBestAffineScoreForObject(int class_idx, int num_orientations, in
 	if ( i % numThreads == thr ) {
 	  if ( ! local_scores[i].loglikelihood_valid ) {
 	    // score should return the delta of including vs not including
-	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_score = scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
 	    if (i % 10000 == 0) {
 	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
