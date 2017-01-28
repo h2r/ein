@@ -368,6 +368,9 @@ REGISTER_WORD(ClearClassLabels)
 
 
 WORD(SetClassLabels)
+virtual string description() {
+  return "Set the active classes.  useage:  endArgs \"class1\" \"class2\" setClassLabels.  The class names must be directorys in the ein/default/objects folder.";
+}
 virtual void execute(MachineState * ms)  {
 
   cout << "entering setClassLabels." << endl;
@@ -437,6 +440,7 @@ END_WORD
 REGISTER_WORD(SetClassLabels)
 
 WORD(SetClassLabelsBaseClassAbsolute)
+
 virtual void execute(MachineState * ms)  {
   string baseClassPath;
   GET_STRING_ARG(ms, baseClassPath);
