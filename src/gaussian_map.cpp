@@ -4856,13 +4856,15 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
       eePose scene_pose = predictedObject->scene_pose;
+      eePose objectPoseInBase = predictedObject->scene_pose.applyAsRelativePoseTo(this_scene->anchor_pose);
+
       double roll, pitch, yaw;
-      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      objectPoseInBase.getRollPitchYaw(&roll, &pitch, &yaw);
       //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
       double this_theta = yaw;
-      double this_x = scene_pose.px;
-      double this_y = scene_pose.py;
+      double this_x = objectPoseInBase.px;
+      double this_y = objectPoseInBase.py;
       cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
       
       // integrate
@@ -4893,13 +4895,15 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
       eePose scene_pose = predictedObject->scene_pose;
+      eePose objectPoseInBase = predictedObject->scene_pose.applyAsRelativePoseTo(this_scene->anchor_pose);
+
       double roll, pitch, yaw;
-      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      objectPoseInBase.getRollPitchYaw(&roll, &pitch, &yaw);
       //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
       double this_theta = yaw;
-      double this_x = scene_pose.px;
-      double this_y = scene_pose.py;
+      double this_x = objectPoseInBase.px;
+      double this_y = objectPoseInBase.py;
 
 
       double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
