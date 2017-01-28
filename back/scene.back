@@ -49,7 +49,7 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
   96.0 sceneSetPredictedStdDevY
   8.0 sceneSetPredictedStdDevColor
   */
-  4.0 sceneSetPredictedStdDevY
+  94.0 sceneSetPredictedStdDevY
   4.0 sceneSetPredictedStdDevColor
 ) "tableRegularizePredictedMap" store
 
@@ -1364,6 +1364,27 @@ define
 
   clearMapForPatrol clearBlueBoxMemories tableMapFocusedClass deliverTargetObject
 ) "tableMapFocusedAndPick" store
+
+(
+  openGripper waitUntilGripperNotMoving
+  clearMapForPatrol clearBlueBoxMemories
+ 
+  tableServoToFocusedSceneObject
+
+  scenePushNumSceneObjects 0 > (
+    "tableMapFocusedAndPickInPlace: mapping object..." print
+      scenePushNumSceneObjects 1 - 
+    sceneMapSceneObject
+    recordPreTargetLock
+    /* prepareForGraspFromMemory */
+    recordPostTargetLock
+    publishRecognizedObjectArrayFromBlueBoxMemory
+  ) (
+    "tableMapFocusedAndPickInPlace: oops, no sceneObjects..." print
+  ) ifte
+
+  deliverTargetObject
+) "tableMapFocusedAndPickInPlace" store
 
 (
   openGripper waitUntilGripperNotMoving
@@ -2795,6 +2816,8 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   (
 
     tableTakeScene2DCloseNoReconstruct
+    0.01 setGridSize ( localXUp ) 4 replicateWord
+    0.01 setGridSize ( localYUp ) 2 replicateWord
     20 "tableCellCountThreshold" store tableReconstructWithOOPNarrow
   ) "tableReconstructWithZ" store
 

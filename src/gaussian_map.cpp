@@ -4658,6 +4658,51 @@ END_WORD
 REGISTER_WORD(SceneZeroBox)
 
 
+WORD(SceneZeroLowerX)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width/2; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerX)
+
+WORD(SceneZeroUpperX)
+virtual void execute(MachineState * ms) {
+  for (int x = ms->config.scene->width/2; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperX)
+
+WORD(SceneZeroLowerY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height/2; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerY)
+
+WORD(SceneZeroUpperY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = ms->config.scene->height/2; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperY)
+
+
 CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
 
 WORD(SceneSetDiscrepancyModeDot)

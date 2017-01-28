@@ -57,6 +57,7 @@ washerStart, washerSpot -- eePoses
 ) "boltTightenNut" store
 
 (
+  endArgs "rssNutClose" setClassLabels
   tableReset 0.01 setGridSize ( zDown ) 22 replicateWord
 
   3000 sceneSetDiscrepancySearchDepth
@@ -76,13 +77,77 @@ washerStart, washerSpot -- eePoses
 ) "boltLocalizeAndGrabNut" store
 
 (
+  endArgs "rssNutClose" setClassLabels
+  "rssNutClose" setFocusedClass
+
+  30000 sceneSetDiscrepancySearchDepth
+  100 setGripperMovingForce
+
+  tableMapFocusedAndPickInPlace
+
+  0.1 setSpeed
+  0.01 setGridSize ( zUp ) 7 replicateWord
+  waitUntilAtCurrentPosition
+) "boltLocalizeAndGrabNutInPlace" store
+
+(
+  endArgs "rssNutClose" "rssBoltBlockClose" setClassLabels
+  "rssBoltBlockClose" setFocusedClass
+
+  tableReset 0.01 setGridSize ( zDown ) 22 replicateWord
+
+  30000 sceneSetDiscrepancySearchDepth
+  100 setGripperMovingForce
+
+  shoreUp
+
+  tableTakeScene
+  tableServoToFocusedSceneObject
+
+  0.1 setSpeed
+  0.0075 setGridSize ( localXDown waitUntilAtCurrentPosition ) 1 replicateWord
+  0.005 setGridSize ( localYUp waitUntilAtCurrentPosition ) 1 replicateWord
+  setMovementStateToMoving comeToStop
+  
+  currentPose "washerSpot" store
+) "boltLocalizeAndPointBoltBlock" store
+
+(
   boltLocalizeAndGrabNut waitUntilAtCurrentPosition washerSpot moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop boltPress boltUnwind boltPress boltWind boltRaise boltUnwind
 ) "boltPlaceNutLocalizeNut" store
 
+(
+  boltLocalizeAndGrabNutInPlace washerSpot moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop boltPress boltUnwind boltPress boltWind boltRaise boltUnwind
+) "boltPlaceNutLocalizeNutInPlace" store
+
+(
+  boltPlaceNutOpenLoop
+  (
+    boltTightenNut
+  ) 4 replicateWord
+) "boltRoutineOpenLoop" store
 
 (
   boltPlaceNutLocalizeNut
   (
     boltTightenNut
   ) 4 replicateWord
-) "boltRoutine" store
+) "boltRoutineLocalizeNut" store
+
+(
+  sceneClearPredictedObjects 
+  boltLocalizeAndPointBoltBlock
+
+  sceneZeroUpperY sceneRenderObservedMap
+
+  sceneClearPredictedObjects tableUpdateMaps
+
+  boltPlaceNutLocalizeNutInPlace
+  (
+    boltTightenNut
+  ) 4 replicateWord
+) "boltRoutineLocalizeBoth" store
+
+
+
+
