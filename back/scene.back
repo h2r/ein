@@ -2683,7 +2683,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableTakeScene1DNoReconstruct" store
 
 (
-  tableTakeScene2D
+  tableTakeScene1D
 ) "tableTakeScene" store
 
 (
