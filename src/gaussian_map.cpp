@@ -3988,6 +3988,35 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevColor)
 
+WORD(SceneSetPredictedStdDevY)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->predicted_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->predicted_map->width; x++) {
+      ms->config.scene->predicted_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetPredictedStdDevY)
+
+WORD(SceneSetPredictedStdDevColor)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->predicted_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->predicted_map->width; x++) {
+      ms->config.scene->predicted_map->refAtCell(x,y)->red.sigmasquared = pow(stddev, 2);
+      ms->config.scene->predicted_map->refAtCell(x,y)->green.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetPredictedStdDevColor)
+
 WORD(SceneSetFocusedSceneStdDevY)
 virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
@@ -4637,6 +4666,51 @@ END_WORD
 REGISTER_WORD(SceneZeroBox)
 
 
+WORD(SceneZeroLowerX)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width/2; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerX)
+
+WORD(SceneZeroUpperX)
+virtual void execute(MachineState * ms) {
+  for (int x = ms->config.scene->width/2; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperX)
+
+WORD(SceneZeroLowerY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height/2; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerY)
+
+WORD(SceneZeroUpperY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = ms->config.scene->height/2; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperY)
+
+
 CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
 
 WORD(SceneSetDiscrepancyModeDot)
@@ -5104,11 +5178,11 @@ virtual void execute(MachineState * ms) {
 	ms->pushWord("sceneSaveSceneAbsolute");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
 	ms->pushWord("endStackCollapseNoop");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	// labels and leaves these detections in the scene
 	ms->pushWord("sceneSetClassNameToFocusedClass");
 	ms->pushWord("scenePredictBestObject");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	ms->pushWord("sceneClearPredictedObjects");
 	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
@@ -5159,7 +5233,7 @@ virtual void execute(MachineState * ms) {
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	CONSOLE_ERROR(ms, dot << " is NOT a directory and " << dotdot << " is NOT a directory.");
 	ms->pushWord("pauseStackExecution");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	// preserves the prediction that was last saved
 	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );

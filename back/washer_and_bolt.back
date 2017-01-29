@@ -1,0 +1,153 @@
+( 
+  pressUntilEffortInit pressUntilEffortCombo 0.005 setGridSize 0.25 setSpeed xUp 0.1 waitForSeconds xDown xDown 0.1 waitForSeconds xUp 0.1 waitForSeconds yUp 0.1 waitForSeconds yDown yDown 0.1 waitForSeconds yUp 0.1 waitForSeconds 
+) "washerPress" store
+
+( 
+  pressUntilEffortInit 0.005 setSpeed pressUntilEffortCombo closeGripper waitUntilGripperNotMoving ( zUp ) 5 replicateWord 
+) "washerGet" store
+
+( 
+  0.1 setSpeed 0.01 setGridSize 
+) "washerSettings" store 
+
+( 
+  washerSettings washerStart moveEeToPoseWord waitUntilAtCurrentPosition washerGet washerSettings washerStart moveEeToPoseWord waitUntilAtCurrentPosition washerSpot moveEeToPoseWord comeToStop washerPress washerPress 
+) "washerRoutine" store
+
+
+/*
+washerStart, washerSpot -- eePoses
+*/
+
+(
+  pressUntilEffortInit 0.005 setSpeed 0.0025 setGridSize pressUntilEffort  
+) "boltPress" store
+
+( 
+  0.01 setGridSize 0.1 setSpeed ( ( oZUp ) 10 replicateWord 0.4 waitForSeconds ) 20 replicateWord 
+) "boltWind" store
+
+( 
+  50 openGripperInt 0.01 setGridSize zUp setMovementStateToMoving comeToStop 3.0 waitForSeconds
+) "boltRaise" store
+
+( 
+  0.01 setGridSize 0.1 setSpeed ( ( oZDown ) 10 replicateWord 0.4 waitForSeconds ) 20 replicateWord 
+) "boltUnwind" store
+
+( 
+  25 openGripperInt waitUntilGripperNotMoving pressUntilEffortInit pressUntilEffortCombo
+  /* optional */
+  closeGripper waitUntilGripperNotMoving
+) "boltLower" store
+
+(
+  washerSettings washerStart moveEeToPoseWord waitUntilAtCurrentPosition washerGet washerSettings washerStart moveEeToPoseWord waitUntilAtCurrentPosition washerSpot moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop boltPress boltUnwind boltPress boltWind boltRaise boltUnwind
+) "boltPlaceNutOpenLoop" store
+
+(
+  /* optional adaptive phase */
+  /*
+  boltLower boltWind boltRaise boltUnwind
+  */
+
+  /* reset to original position each time */
+  boltLower boltWind boltRaise 
+  washerSpot moveEeToPoseWord boltUnwind
+) "boltTightenNut" store
+
+(
+  endArgs "rssNutClose" setClassLabels
+  tableReset 0.01 setGridSize ( zDown ) 22 replicateWord
+
+  3000 sceneSetDiscrepancySearchDepth
+  100 setGripperMovingForce
+
+  shoreUp
+    currentPose
+  tableMapFocusedAndPick 
+
+  0.1 setSpeed
+  0.01 setGridSize ( zUp ) 7 replicateWord
+  waitUntilAtCurrentPosition
+
+  moveEeToPoseWord
+  shiftIntoGraspGear1
+  waitUntilAtCurrentPosition
+) "boltLocalizeAndGrabNut" store
+
+(
+  endArgs "rssNutClose" setClassLabels
+  "rssNutClose" setFocusedClass
+
+  3000 sceneSetDiscrepancySearchDepth
+  100 setGripperMovingForce
+
+  tableMapFocusedAndPickInPlace
+
+  0.1 setSpeed
+  0.01 setGridSize ( zUp ) 7 replicateWord
+  waitUntilAtCurrentPosition
+) "boltLocalizeAndGrabNutInPlace" store
+
+(
+  endArgs "rssNutClose" "rssBoltBlockClose" setClassLabels
+  "rssBoltBlockClose" setFocusedClass
+
+  tableReset 0.01 setGridSize ( zDown ) 22 replicateWord
+
+  3000 sceneSetDiscrepancySearchDepth
+  100 setGripperMovingForce
+
+  shoreUp
+
+  tableTakeScene
+  tableServoToFocusedSceneObject
+
+  0.1 setSpeed
+  0.005 setGridSize ( localXDown waitUntilAtCurrentPosition ) 1 replicateWord
+  0.0025 setGridSize ( localYDown waitUntilAtCurrentPosition ) 1 replicateWord
+  setMovementStateToMoving comeToStop
+  
+  currentPose "washerSpot" store
+) "boltLocalizeAndPointBoltBlock" store
+
+(
+  boltLocalizeAndGrabNut waitUntilAtCurrentPosition washerSpot moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop boltPress boltUnwind boltPress boltWind boltRaise boltUnwind
+) "boltPlaceNutLocalizeNut" store
+
+(
+  boltLocalizeAndGrabNutInPlace washerSpot moveEeToPoseWord waitUntilAtCurrentPosition setMovementStateToMoving comeToStop boltPress boltUnwind boltPress boltWind boltRaise boltUnwind
+) "boltPlaceNutLocalizeNutInPlace" store
+
+(
+  boltPlaceNutOpenLoop
+  (
+    boltTightenNut
+  ) 4 replicateWord
+) "boltRoutineOpenLoop" store
+
+(
+  boltPlaceNutLocalizeNut
+  (
+    boltTightenNut
+  ) 4 replicateWord
+) "boltRoutineLocalizeNut" store
+
+(
+  sceneClearPredictedObjects 
+  boltLocalizeAndPointBoltBlock
+
+  sceneZeroUpperY sceneRenderObservedMap
+
+  sceneClearPredictedObjects tableUpdateMaps
+
+  boltPlaceNutLocalizeNutInPlace
+  (
+    boltTightenNut
+  ) 4 replicateWord
+) "boltRoutineLocalizeBoth" store
+
+
+
+
