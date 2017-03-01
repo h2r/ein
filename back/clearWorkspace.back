@@ -171,7 +171,7 @@
   pop
 ) "cw_tri_flick" store
 
-3 "cw_clearWorkspace_max" store
+0 "cw_clearWorkspace_max" store
 (
   tableSwapToBlocks
   catScan5LoadPlayBg

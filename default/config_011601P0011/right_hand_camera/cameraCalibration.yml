@@ -1,11 +1,17 @@
 %YAML:1.0
 savedTime:
-   - 1.4642742054425395e+09
-currentTableZ:
-   - 2.4467870913459339e-01
+   - 1.4864938697802997e+09
+hand_camera_offset: { px:1.0000000000000000e-02,
+    py:2.0000000000000000e-03, pz:0., qw:1., qx:0., qy:0., qz:0. }
 cropUpperLeftCorner:
-   - 324.
-   - 211.
+   - 320.
+   - 200.
+mu:
+   - 2.3999999999999998e-03
+   - 2.3999999999999998e-03
+kappa:
+   - 0.
+   - 0.
 vanishingPointReticle:
    - 320.
    - 200.
@@ -62,7 +68,7 @@ gear0offset:
    - 1.6722800210118294e-02
    - 0.
 cameraExposure: 80
-cameraGain: 25
-cameraWhiteBalanceRed: 1124
+cameraGain: 20
+cameraWhiteBalanceRed: 1024
 cameraWhiteBalanceGreen: 1024
 cameraWhiteBalanceBlue: 2048
