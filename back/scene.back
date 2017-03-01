@@ -999,6 +999,18 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableQuickScan" store
 
 (
+  /* save a thumbnail of the last component in the object directory */
+
+  sceneLoadFocusedObjectModel
+    dataDirectory "/objects/" focusedClassLabel "/rgb.png" + + + 
+  sceneSaveObservedMapImage
+
+    dataDirectory "/objects/" focusedClassLabel "/mask.png" + + + 
+  sceneSaveDiscrepancyDensityImage
+
+) "tableSaveFocusedThumbnails" store
+
+(
   "tableFullScan: starting" print
 
   tableQuickScan
@@ -2631,8 +2643,12 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableUpdatePanCoreNoClean
 */
   tableUpdatePanCoreNoClean
-  aboutFace
   tableUpdatePanCoreNoClean
+/*
+  aboutFace
+
+  tableUpdatePanCoreNoClean
+*/
 
 
 

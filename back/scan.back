@@ -630,11 +630,7 @@ dateString "catScan5VarianceTrialThisTime" store
     redundant servoing and collect data for localization and classification studies
   */
 
-  /* save a thumbnail of the last component in the object directory */
-
-  sceneLoadFocusedObjectModel
-    dataDirectory "/objects/" focusedClassLabel "/rgb.png" + + + 
-  sceneSaveObservedMapImage
+  tableSaveFocusedThumbnails
 
 ) "catScan5" store
 

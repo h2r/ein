@@ -225,6 +225,7 @@ void writeJointsBatchAsClass(MachineState * ms, int classToStreamIdx);
 bool isInGripperMask(MachineState * ms, int x, int y);
 bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
 bool isGripperGripping(MachineState * ms);
+bool isGripperMoving(MachineState * ms);
 void initialize3DParzen(MachineState * ms);
 void l2Normalize3DParzen(MachineState * ms);
 void initializeParzen(MachineState * ms);
