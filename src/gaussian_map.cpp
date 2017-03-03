@@ -10898,6 +10898,19 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSaveObservedMapImage)
 
+WORD(SceneSaveDiscrepancyDensityImage)
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  
+  Mat image = ms->config.scene->discrepancy_density;
+  cout << "Writing " << fname << endl;
+  imwrite(fname, 255.0 * image);
+
+}
+END_WORD
+REGISTER_WORD(SceneSaveDiscrepancyDensityImage)
+
 
 WORD(SceneLoadMonochromeBackground)
 virtual void execute(MachineState * ms) {

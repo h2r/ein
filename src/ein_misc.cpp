@@ -2632,6 +2632,14 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(IsGripperGripping)
 
+WORD(IsGripperMoving)
+virtual void execute(MachineState * ms) {
+  shared_ptr<IntegerWord> isMoving= make_shared<IntegerWord>(isGripperMoving(ms));
+  ms->pushWord(isMoving);
+}
+END_WORD
+REGISTER_WORD(IsGripperMoving)
+
 
 
 

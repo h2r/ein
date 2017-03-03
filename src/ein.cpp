@@ -2861,6 +2861,11 @@ bool isGripperGripping(MachineState * ms) {
   return ms->config.gripperGripping; 
 }
 
+bool isGripperMoving(MachineState * ms) {
+  //return (ms->config.gripperPosition >= ms->config.gripperThresh);
+  return ms->config.gripperMoving; 
+}
+
 void initialize3DParzen(MachineState * ms) {
   for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
@@ -4787,6 +4792,13 @@ void MachineState::imageCallback(Camera * camera) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(camera->cam_img);
+
+    if (ms->config.wristViewBrightnessScalar == 1.0) {
+      ms->config.wristViewWindow->updateImage(camera->cam_img);
+    } else {
+      Mat scaledWristViewImage = ms->config.wristViewBrightnessScalar * camera->cam_img;
+      ms->config.wristViewWindow->updateImage(scaledWristViewImage);
+    }
     //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
     //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
