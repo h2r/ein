@@ -49,7 +49,7 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
   96.0 sceneSetPredictedStdDevY
   8.0 sceneSetPredictedStdDevColor
   */
-  94.0 sceneSetPredictedStdDevY
+  32.0 sceneSetPredictedStdDevY
   4.0 sceneSetPredictedStdDevColor
 ) "tableRegularizePredictedMap" store
 
@@ -1199,7 +1199,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 ) "tableAddBlockGraspSaveModelAndPickAfterFind" store
 
 0 "tableBlockUsingBlocks" store
-0.040 "tableBlockMaxGraspThickness" store
+0.080 "tableBlockMaxGraspThickness" store
 /*
 0.04 "tableBlockGripperThrow" store
 0.01 "tableBlockGraspResolution" store
@@ -2766,8 +2766,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   tableUpdatePanCoreNoClean
 */
   tableUpdatePanCoreNoClean
+/*
   aboutFace
   tableUpdatePanCoreNoClean
+*/
 
 
 
