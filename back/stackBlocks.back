@@ -1,0 +1,29 @@
+leftOrRightArm "right" =
+( 
+)
+( 
+leftOrRightArm "left" = 
+(
+ 0.524217 0.363860 0.104058 -0.001253 0.999999 -0.000147 0.000237 createEEPose "towerPose" store
+)
+ ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
+ifte
+)
+ifte
+
+
+
+
+( goHome 
+  /* tableMapBestAndPick */ 
+) "towerGetBlock" store
+
+(
+
+  towerPose moveEeToPoseWord
+
+) "towerPutBlockOnTower" store
+
+(
+  ( towerGetBlock towerPutBlockOnTower ) 8 replicateWord
+) "towerMakeTower" store
