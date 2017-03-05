@@ -1684,7 +1684,10 @@ define
     sceneInitRegisterMax
   ) "tableReconstructWithZRegisterInitializer" store
   (
+	/*
     399 sceneSetAngularApertureRows 639 sceneSetAngularApertureCols
+	*/
+    201 sceneSetAngularApertureRows 201 sceneSetAngularApertureCols
   ) "tableReconstructWithZApertureSetter" store
   
   tableReconstructWithZCore
@@ -2159,14 +2162,15 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   /*
   10000000 "tableReconstructStreamTakeSceneSamples" store
-  */
   100 "tableReconstructStreamTakeSceneSamples" store
+  */
+  10000000 "tableReconstructStreamTakeSceneSamples" store
 
   /*
   tableReconstructWithOOP
-  tableReconstructWithOOPWide
-  */
   tableReconstructGCNoneWide
+  */
+  tableReconstructWithOOPWide
 ) "tableReconstructWithZTable1D" store
 
 (
@@ -2755,7 +2759,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   0.01 setGridSize
   /* 20 */
-  14 "panCoreSteps" store
+  28 "panCoreSteps" store
 
   0.01 setGridSize
 
@@ -2777,7 +2781,10 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   aboutFace
   tableUpdatePanCoreNoClean
 */
+
   tableUpdatePanCoreNoClean
+
+
 /*
   aboutFace
 
