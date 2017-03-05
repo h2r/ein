@@ -70,7 +70,7 @@ void doSaveImage(QMainWindow * parent, const Mat & image) {
   Mat dst;
   if (image.channels() == 1) {
     dst = image.clone();
-    dst = dst * 255;
+    //dst = dst * 255;
   } else {
     dst = image;
   }

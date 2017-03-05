@@ -1634,9 +1634,7 @@ class EinConfig {
   vector< vector<Mat> > emotionImages;
   double animationRate = 60; 
 
-
-
-
+  double wristViewBrightnessScalar = 1.0;
 
 
   

@@ -206,6 +206,7 @@
 <tr><td>catScan5</td><td></td></tr>
 <tr><td>catScan5CacheBackgrounds</td><td></td></tr>
 <tr><td>catScan5InputPileTakeScene</td><td></td></tr>
+<tr><td>catScan5LoadBackgrounds</td><td></td></tr>
 <tr><td>catScan5LoadInputBg</td><td></td></tr>
 <tr><td>catScan5LoadInputBgDisk</td><td></td></tr>
 <tr><td>catScan5LoadInputBgRAM</td><td></td></tr>
@@ -315,8 +316,8 @@
 <tr><td>cw_tri_flick</td><td></td></tr>
 <tr><td>cw_viewIsClear</td><td></td></tr>
 <tr><td>cw_viewIsClear_discrepancyThresh</td><td></td></tr>
-<tr><td>cw_viewIsClear_numCellThresh</td><td></td></tr>
 <tr><td>cw_viewIsClear_old</td><td></td></tr>
+<tr><td>cw_viewIsClear_squareMeterDiscrepancyThresh</td><td></td></tr>
 <tr><td>cw_workspaceIsClear</td><td></td></tr>
 <tr><td>darkServo</td><td></td></tr>
 <tr><td>darkServoA</td><td></td></tr>
@@ -926,8 +927,8 @@
 <tr><td>idler</td><td></td></tr>
 <tr><td>ifGrasp</td><td></td></tr>
 <tr><td>ifNoGrasp</td><td></td></tr>
-<tr><td>ift</td><td></td></tr>
-<tr><td>ifte</td><td></td></tr>
+<tr><td>ift</td><td>Takes two words on the stack, executes the second word if the first word is true.  For example, &quot; ( &quot;hello&quot; print ) 1 ift&quot; will print hello, while &quot; ( &quot;hello&quot; print ) 0 ift&quot; will not do it.</td></tr>
+<tr><td>ifte</td><td>If then else takes two compound words and a condition and does the first one if the condition is true and the second if it is false.   Usage: 0 ( &quot;condition was true&quot; print ) ( &quot;condition was false&quot; print )   ifte</td></tr>
 <tr><td>ikMapEndHeight</td><td></td></tr>
 <tr><td>ikMapStartHeight</td><td></td></tr>
 <tr><td>ikModeIkFast</td><td></td></tr>
@@ -1061,7 +1062,6 @@
 <tr><td>moveToEEPose</td><td></td></tr>
 <tr><td>moveToMappingHeight</td><td></td></tr>
 <tr><td>moveToNextMapPosition</td><td></td></tr>
-<tr><td>moveToOutputPile</td><td></td></tr>
 <tr><td>moveToOutputPile2</td><td></td></tr>
 <tr><td>moveToOutputPile2MaxPicks</td><td></td></tr>
 <tr><td>moveToRegister</td><td></td></tr>
@@ -1084,7 +1084,7 @@
 <tr><td>next</td><td></td></tr>
 <tr><td>nod</td><td></td></tr>
 <tr><td>noop</td><td></td></tr>
-<tr><td>not</td><td></td></tr>
+<tr><td>not</td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
 <tr><td>now</td><td></td></tr>
 <tr><td>numBlueBoxes</td><td></td></tr>
 <tr><td>numCameras</td><td></td></tr>
@@ -1112,7 +1112,9 @@
 <tr><td>or</td><td></td></tr>
 <tr><td>outputPileWorkspace</td><td></td></tr>
 <tr><td>paintReticles</td><td></td></tr>
+<tr><td>panCoreSteps</td><td></td></tr>
 <tr><td>pauseAndReset</td><td></td></tr>
+<tr><td>pauseCoreSeconds</td><td></td></tr>
 <tr><td>pauseStackExecution</td><td></td></tr>
 <tr><td>perturbPosition</td><td></td></tr>
 <tr><td>perturbPositionScale</td><td></td></tr>
@@ -1314,6 +1316,7 @@
 <tr><td>sceneAngularBaffleRows</td><td></td></tr>
 <tr><td>sceneBackgroundMap</td><td>Takes a scene on the stack and returns its background map.</td></tr>
 <tr><td>sceneCellCountThreshold</td><td></td></tr>
+<tr><td>sceneCellWidth</td><td></td></tr>
 <tr><td>sceneClearDepthStack</td><td></td></tr>
 <tr><td>sceneClearObservedMap</td><td></td></tr>
 <tr><td>sceneClearPredictedObjects</td><td></td></tr>
@@ -1475,8 +1478,6 @@
 <tr><td>sceneUpdateObservedFromSnout</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBuffer</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZ</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZCellwiseApproxNoRecalc</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZCellwiseNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAll</td><td>Updates the observed map from the stream buffer in a big for loop; fastest version without GPU.  This is the one to copy and call.</td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly</td><td></td></tr>
@@ -1486,6 +1487,7 @@
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderGlareOnly</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderWithoutGlare</td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcEPI</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray</td><td></td></tr>
@@ -1494,7 +1496,6 @@
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderWithoutGlare</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderGlareOnly</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderWithoutGlare</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthBeamAll</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferDepthMap</td><td>Updates the observed map from the stream buffer as a depth map.  Used for the Kinect 2.</td></tr>
 <tr><td>sceneUpdateObservedFromStreamBufferNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromWrist</td><td></td></tr>
@@ -1570,6 +1571,8 @@
 <tr><td>setEffortThresh</td><td></td></tr>
 <tr><td>setExpectedCropsToStream</td><td></td></tr>
 <tr><td>setFakeBBWidth</td><td></td></tr>
+<tr><td>setFocusedClass</td><td></td></tr>
+<tr><td>setFocusedClassIdx</td><td></td></tr>
 <tr><td>setGradientServoHardMaxIterations</td><td></td></tr>
 <tr><td>setGradientServoMode</td><td></td></tr>
 <tr><td>setGradientServoSoftMaxIterations</td><td></td></tr>
@@ -1671,8 +1674,6 @@
 <tr><td>setStreamPicks</td><td></td></tr>
 <tr><td>setTable</td><td></td></tr>
 <tr><td>setTableA</td><td></td></tr>
-<tr><td>setTargetClass</td><td></td></tr>
-<tr><td>setTargetClassIdx</td><td></td></tr>
 <tr><td>setTargetClassToLastLabelLearned</td><td></td></tr>
 <tr><td>setTargetReticleToTheMaxMappedPosition</td><td></td></tr>
 <tr><td>setTheYcbTable</td><td></td></tr>
@@ -1701,9 +1702,8 @@
 <tr><td>sin</td><td></td></tr>
 <tr><td>slfgRebase</td><td></td></tr>
 <tr><td>slfgRebaseCellWidth</td><td></td></tr>
-<tr><td>slfgRebaseDimensions</td><td></td></tr>
+<tr><td>slfgRebaseCore</td><td></td></tr>
 <tr><td>slfgRebaseNoBackground</td><td></td></tr>
-<tr><td>slfgRebaseTable</td><td></td></tr>
 <tr><td>slfgReconstructPoints</td><td></td></tr>
 <tr><td>slide</td><td></td></tr>
 <tr><td>slip</td><td></td></tr>
@@ -1788,6 +1788,8 @@
 <tr><td>synchronicServoDoNotTakeClosest</td><td></td></tr>
 <tr><td>synchronicServoRepeat</td><td></td></tr>
 <tr><td>synchronicServoTakeClosest</td><td></td></tr>
+<tr><td>table1DCellCountThreshold</td><td></td></tr>
+<tr><td>table2DCellCountThreshold</td><td></td></tr>
 <tr><td>tableAddBarGrasp</td><td></td></tr>
 <tr><td>tableAddBlockGrasp</td><td></td></tr>
 <tr><td>tableAddBlockGraspInPlace</td><td></td></tr>
@@ -1803,6 +1805,7 @@
 <tr><td>tableBlockUsingBlocks</td><td></td></tr>
 <tr><td>tableCaptureAsFocused</td><td></td></tr>
 <tr><td>tableCaptureCore</td><td></td></tr>
+<tr><td>tableCellCountThreshold</td><td></td></tr>
 <tr><td>tableChrEndHeight</td><td></td></tr>
 <tr><td>tableChrExtraZ</td><td></td></tr>
 <tr><td>tableChrStartHeight</td><td></td></tr>
@@ -1870,18 +1873,21 @@
 <tr><td>tableReconstructCpViewSynthLightModelGC</td><td></td></tr>
 <tr><td>tableReconstructCpViewSynthNoGC</td><td></td></tr>
 <tr><td>tableReconstructCpWithOOP</td><td></td></tr>
+<tr><td>tableReconstructEPIWithoutZ</td><td></td></tr>
 <tr><td>tableReconstructFromPhasedArrayRegister</td><td></td></tr>
 <tr><td>tableReconstructFromPhasedArrayRegisterKernel</td><td></td></tr>
-<tr><td>tableReconstructFromStream</td><td></td></tr>
+<tr><td>tableReconstructFromStream</td><td>Reconstruct the entire stream at the table height.</td></tr>
 <tr><td>tableReconstructGCAll</td><td></td></tr>
 <tr><td>tableReconstructGCLightAllFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCLightRisingFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCNone</td><td></td></tr>
+<tr><td>tableReconstructGCNoneWide</td><td></td></tr>
 <tr><td>tableReconstructGCSelfFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthLightModel</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthLightModelDilate</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthNone</td><td></td></tr>
 <tr><td>tableReconstructGCWrist</td><td></td></tr>
+<tr><td>tableReconstructLenticularWithoutZ</td><td></td></tr>
 <tr><td>tableReconstructLightSlabWithZ</td><td></td></tr>
 <tr><td>tableReconstructLightSlabWithoutZ</td><td></td></tr>
 <tr><td>tableReconstructMarginalsFromStack</td><td></td></tr>
@@ -1894,8 +1900,7 @@
 <tr><td>tableReconstructServoToFocusedSceneObject</td><td></td></tr>
 <tr><td>tableReconstructStreamTakeSceneSamples</td><td></td></tr>
 <tr><td>tableReconstructWithOOP</td><td></td></tr>
-<tr><td>tableReconstructWithRebase</td><td></td></tr>
-<tr><td>tableReconstructWithRebaseTable</td><td></td></tr>
+<tr><td>tableReconstructWithOOPWide</td><td></td></tr>
 <tr><td>tableReconstructWithZ</td><td></td></tr>
 <tr><td>tableReconstructWithZApertureSetter</td><td></td></tr>
 <tr><td>tableReconstructWithZCaster</td><td></td></tr>
@@ -1904,16 +1909,16 @@
 <tr><td>tableReconstructWithZGridMultiplier</td><td></td></tr>
 <tr><td>tableReconstructWithZRegisterInitializer</td><td></td></tr>
 <tr><td>tableReconstructWithZTable</td><td></td></tr>
+<tr><td>tableReconstructWithZTable1D</td><td></td></tr>
+<tr><td>tableReconstructWithZTable2D</td><td></td></tr>
 <tr><td>tableReconstructWithZTableGlare</td><td></td></tr>
 <tr><td>tableReconstructWithZTableGlareShort</td><td></td></tr>
-<tr><td>tableReconstructWithZTableOne</td><td></td></tr>
 <tr><td>tableReconstructWithZTableShortMarginals</td><td></td></tr>
 <tr><td>tableReconstructWithZTopZ</td><td></td></tr>
 <tr><td>tableReconstructWithZTotalZ</td><td></td></tr>
 <tr><td>tableReconstructWithZTotalZDefault</td><td></td></tr>
 <tr><td>tableReconstructWithZUnderWater</td><td></td></tr>
 <tr><td>tableReconstructWithZUnderWaterMarginals</td><td></td></tr>
-<tr><td>tableReconstructWithoutRebaseTable</td><td></td></tr>
 <tr><td>tableReconstructWithoutZ</td><td></td></tr>
 <tr><td>tableRegularizeBackground</td><td></td></tr>
 <tr><td>tableRegularizeFocusedClassModel</td><td></td></tr>
@@ -1921,6 +1926,7 @@
 <tr><td>tableRestoreFromBlocks</td><td></td></tr>
 <tr><td>tableServoToBestSceneObject</td><td></td></tr>
 <tr><td>tableServoToFocusedSceneObject</td><td></td></tr>
+<tr><td>tableSetBackgroundFromObserved</td><td>Set current observed map to the background map and save to RAM.</td></tr>
 <tr><td>tableSetClassesSS1</td><td></td></tr>
 <tr><td>tableSetClassesSS2</td><td></td></tr>
 <tr><td>tableShortServoToBestSceneObject</td><td></td></tr>
@@ -1944,9 +1950,10 @@
 <tr><td>tableStreamBufferTakeScene</td><td>Render the stream buffer into the observed map.</td></tr>
 <tr><td>tableSwapToBlocks</td><td></td></tr>
 <tr><td>tableTakeScene</td><td></td></tr>
-<tr><td>tableTakeSceneMid</td><td></td></tr>
-<tr><td>tableTakeSceneNoReconstruct</td><td></td></tr>
-<tr><td>tableTakeSceneWide</td><td></td></tr>
+<tr><td>tableTakeScene1D</td><td></td></tr>
+<tr><td>tableTakeScene1DNoReconstruct</td><td></td></tr>
+<tr><td>tableTakeScene2D</td><td></td></tr>
+<tr><td>tableTakeScene2DNoReconstruct</td><td></td></tr>
 <tr><td>tableUpdateBg</td><td></td></tr>
 <tr><td>tableUpdateClassScene</td><td></td></tr>
 <tr><td>tableUpdateFivePointThreeWidth</td><td></td></tr>
@@ -1956,6 +1963,7 @@
 <tr><td>tableUpdateMaps</td><td></td></tr>
 <tr><td>tableUpdateObservedFromWristFivePoint</td><td></td></tr>
 <tr><td>tableUpdatePanCoreNoClean</td><td></td></tr>
+<tr><td>tableUpdatePauseCoreNoClean</td><td></td></tr>
 <tr><td>tableUpdateSpinCoreNoClean</td><td></td></tr>
 <tr><td>tableUpdateSpiral</td><td></td></tr>
 <tr><td>tableUpdateSpiralCore</td><td></td></tr>
@@ -1965,6 +1973,8 @@
 <tr><td>tableUpdateSpiralEccentricCoreNoClean</td><td></td></tr>
 <tr><td>tableUpdateSpiralRing</td><td></td></tr>
 <tr><td>tableUpdateSpiralStop</td><td></td></tr>
+<tr><td>tableUpdateStrafeCoreNoClean</td><td></td></tr>
+<tr><td>tableUpdateTiltCoreNoClean</td><td></td></tr>
 <tr><td>tableUpdateZoomCoreNoClean</td><td></td></tr>
 <tr><td>tableUsefulPhrases</td><td></td></tr>
 <tr><td>temp_backScan</td><td></td></tr>
@@ -1973,6 +1983,9 @@
 <tr><td>tenthImpulse</td><td></td></tr>
 <tr><td>throw</td><td></td></tr>
 <tr><td>throwOpenCV</td><td></td></tr>
+<tr><td>tiltCoreAmount</td><td></td></tr>
+<tr><td>tiltCoreGridSize</td><td></td></tr>
+<tr><td>tiltCoreTimes</td><td></td></tr>
 <tr><td>time</td><td></td></tr>
 <tr><td>times</td><td></td></tr>
 <tr><td>toggleDrawClearanceMap</td><td></td></tr>
@@ -2054,6 +2067,7 @@
 <tr><td>writeAlphaObjectToBetaFolders</td><td></td></tr>
 <tr><td>writeAlphaObjectToBetaFoldersA</td><td></td></tr>
 <tr><td>writeFocusedClass</td><td></td></tr>
+<tr><td>writeFocusedClassGrasps</td><td></td></tr>
 <tr><td>writeXMLEnvironment</td><td></td></tr>
 <tr><td>xDown</td><td></td></tr>
 <tr><td>xUp</td><td>Move end effector up in the x dimension one unit.  Change unit size with setGridSize.  Usage:  xUp</td></tr>

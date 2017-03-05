@@ -73,7 +73,29 @@ END_WORD
 REGISTER_WORD(CurrentPredictedMap)
 
 
-  
+WORD(SceneAnchorPose)
+virtual string description() {
+  return "Takes a gaussian map on the stack and returns its anchor eePose.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<Word> word;
+  GET_WORD_ARG(ms, Word, word);
+
+  std::shared_ptr<GaussianMapWord> map = std::dynamic_pointer_cast<GaussianMapWord>(word);
+  std::shared_ptr<SceneWord> scene = std::dynamic_pointer_cast<SceneWord>(word);
+  if (map != NULL) {
+    ms->pushWord(make_shared<EePoseWord>(map->map->anchor_pose));    
+  } else if (scene != NULL) {
+    ms->pushWord(make_shared<EePoseWord>(scene->scene->anchor_pose));    
+  } else {
+    CONSOLE_ERROR(ms, "Must pass a Gaussian Map word or a Scene word.");
+    ms->pushWord("pauseStackExecution");   
+  }
+}
+END_WORD
+REGISTER_WORD(SceneAnchorPose)
+
+
 WORD(SceneBackgroundMap)
 virtual string description() {
   return "Takes a scene on the stack and returns its background map.";

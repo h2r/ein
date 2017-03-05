@@ -132,7 +132,7 @@ WORD(SetFocusedClass)
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
-  result.push_back("setTargetClassClass");
+  result.push_back("setTargetClass");
   return result;
 }
 virtual void execute(MachineState * ms) {
@@ -295,6 +295,9 @@ CONFIG_GETTER_INT(NumClasses, ms->config.numClasses)
 CONFIG_SETTER_INT(SetNumClasses, ms->config.numClasses)
 
 WORD(PrintClassLabels)
+virtual string description() {
+  return "Print class labels to standard output.";
+}
 virtual void execute(MachineState * ms)       {
   CONSOLE(ms, "printClassLabels: " << ms->config.classLabels.size());
 
@@ -324,6 +327,9 @@ REGISTER_WORD(PushClassLabelsReport)
 CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel)
 
 WORD(PushClassLabels)
+virtual string description() {
+  return "Push the class labels on the stack.";
+}
 virtual void execute(MachineState * ms)       {
   for (int i = 0; i < ms->config.classLabels.size(); i++) {
     shared_ptr<StringWord> outword = std::make_shared<StringWord>(ms->config.classLabels[i]);
@@ -362,6 +368,9 @@ REGISTER_WORD(ClearClassLabels)
 
 
 WORD(SetClassLabels)
+virtual string description() {
+  return "Set the active classes.  useage:  endArgs \"class1\" \"class2\" setClassLabels.  The class names must be directorys in the ein/default/objects folder.";
+}
 virtual void execute(MachineState * ms)  {
 
   cout << "entering setClassLabels." << endl;
@@ -431,6 +440,7 @@ END_WORD
 REGISTER_WORD(SetClassLabels)
 
 WORD(SetClassLabelsBaseClassAbsolute)
+
 virtual void execute(MachineState * ms)  {
   string baseClassPath;
   GET_STRING_ARG(ms, baseClassPath);
@@ -1392,6 +1402,9 @@ END_WORD
 REGISTER_WORD(SaveAerialGradientMap)
 
 WORD(InitializeAndFocusOnNewClass)
+virtual string description() {
+  return "Initialize a new class with a default date-based name and focus on it.  It will be created in the file system with default values and focused on.";
+}
 CODE(196720)     // capslock + P
 virtual void execute(MachineState * ms) {
   initializeAndFocusOnNewClass(ms);

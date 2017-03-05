@@ -47,6 +47,8 @@ Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link,
 
   centerX = 640;
   centerY = 400;
+
+  setDefaultHandCameraOffset();
 }
 
 

@@ -920,6 +920,21 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
 
+WORD(EePoseRPYOnQ)
+virtual void execute(MachineState * ms) {
+
+  double roll, pitch, yaw;
+  GET_NUMERIC_ARG(ms, yaw);
+  GET_NUMERIC_ARG(ms, pitch);
+  GET_NUMERIC_ARG(ms, roll);
+
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  ms->pushWord(make_shared<EePoseWord>(base_pose.applyRPYTo(roll, pitch, yaw)));
+}
+END_WORD
+REGISTER_WORD(EePoseRPYOnQ)
 
 
 WORD(SetEEPosePX)
@@ -2616,6 +2631,14 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(IsGripperGripping)
+
+WORD(IsGripperMoving)
+virtual void execute(MachineState * ms) {
+  shared_ptr<IntegerWord> isMoving= make_shared<IntegerWord>(isGripperMoving(ms));
+  ms->pushWord(isMoving);
+}
+END_WORD
+REGISTER_WORD(IsGripperMoving)
 
 
 
