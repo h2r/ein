@@ -1,14 +1,16 @@
 
 ( towerBlockHeight towerNumberOfBlocks * ) "towerHeight" store
 
-( currentTableZ -1 * towerHeight +  ) "towerTopZ" store
+( currentTableZ -1 * towerHeight +  towerBlockHeight - ) "towerTopZ" store
 
 ( currentTableZ -1 * towerBlockHeight 8 * +  0.2 + ) "towerSafeZ" store
 
 ( 
 
 0 "towerNumberOfBlocks" store
-0.04 "towerBlockHeight" store
+0.044 "towerBlockHeight" store
+
+30000 sceneSetDiscrepancySearchDepth 
 
 
 leftOrRightArm "right" =
@@ -30,22 +32,41 @@ ifte
 
 
 ( 
+  setGraspModeTo3D
   halfImpulse
   goHome 
   tableMapBestAndPick 
+
+  0.01 setGridSize
+  0.05 setSpeed
+  ( zUp waitUntilAtCurrentPosition ) 40 replicateWord
 
   currentPose  towerSafeZ setEEPosePZ moveEeToPoseWord waitUntilAtCurrentPosition
 ) "towerGetBlock" store
 
 (
   fullImpulse towerPose moveEeToPoseWord waitUntilAtCurrentPosition 
-  quarterImpulse towerPose towerTopZ 0.2  +  setEEPosePZ moveEeToPoseWord
+  quarterImpulse towerPose towerTopZ 0.15  +  setEEPosePZ moveEeToPoseWord
   waitUntilAtCurrentPosition comeToStop
 ) "towerMoveAboveTower" store
 
 (
   towerMoveAboveTower
-  pressUntilEffortInit pressUntilEffort 
+  /* pressUntilEffortInit pressUntilEffort  */
+
+  0.01 setGridSize
+  ( zDown waitUntilAtCurrentPosition ) 5 replicateWord
+
+  setMovementStateToMoving  
+  comeToStop 
+  0.005 setGridSize
+  0.05 setSpeed
+  ( zDown waitUntilAtCurrentPosition ) 3 replicateWord
+  setMovementStateToMoving
+  comeToStop 
+  setMovementStateToMoving
+  comeToStop 
+
   openGripper waitUntilGripperNotMoving 
   0.01 setGridSize ( zUp ) 10 replicateWord 
 

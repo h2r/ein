@@ -129,9 +129,8 @@ center of the gripper.  The red and green reticles should be exactly
 in the center of the washer, but they are probably not.  Run
 `setDefaultHandCameraOffset` to load a reasonable set of default
 values.  Then run `handCameraOffset print` to print the "createEEPose"
-command.  Copy this command to the repl and run something like: `
-0.014 0.007 0.015890 0.000000 0.000000 0.000000 1.000000 createEEPose
-setHandCameraOffset` to adjust the hand camera offset.  The reticles
+command.  Copy this command to the repl and run something like: 
+`0.014 0.007 0.015890 0.000000 0.000000 0.000000 1.000000 createEEPose setHandCameraOffset` to adjust the hand camera offset.  The reticles
 should update immediately.  Adjust the x and y terms (the first two
 numbers) until the reticle is directly above the marker.  Then run `1
 changeToHeight` and do it at height 1 (the most common scanning
