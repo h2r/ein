@@ -48,6 +48,10 @@ public:
     }
   }
 
+  virtual bool compareTo(std::shared_ptr<Word> word) {
+    return false;
+  }
+
   virtual bool to_bool() {
     return true;
   }
@@ -478,6 +482,7 @@ class CompoundWord : public Word {
   string repr();
   string name();
   string to_string();
+  bool equals(shared_ptr<Word> word);
   static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 

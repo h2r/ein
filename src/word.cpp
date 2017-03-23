@@ -517,6 +517,29 @@ string CompoundWord::repr()  {
   return state.str();
 }
 
+bool CompoundWord::equals(shared_ptr<Word> word) {
+  shared_ptr<CompoundWord> other = dynamic_pointer_cast<CompoundWord>(word);
+
+  if (other == NULL) {
+    return false;
+  }
+  else if (other->stack.size() != this->stack.size()) {
+    return false;
+  } else {
+    for (int i = 0; i < this->stack.size(); i++) {
+      shared_ptr<Word> w1 = this->stack[i];
+      shared_ptr<Word> w2 = other->stack[i];
+      if (!w1->equals(w2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  assert(0);
+}
+
+
 string CompoundWord::to_string() {
   return repr();
 }

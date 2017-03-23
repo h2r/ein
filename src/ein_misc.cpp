@@ -522,6 +522,9 @@ REGISTER_WORD(Prod)
 
 WORD(Langle)
 CODE('<') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 < returns true, and 3 1 < returns false.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -542,6 +545,9 @@ REGISTER_WORD(Langle)
 
 WORD(Rangle)
 CODE('>') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 < returns false, and 3 1 < returns true";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -561,6 +567,9 @@ END_WORD
 REGISTER_WORD(Rangle)
 
 WORD(Leq)
+virtual string description() {
+  return "Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise."
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -580,6 +589,9 @@ END_WORD
 REGISTER_WORD(Leq)
 
 WORD(Geq)
+virtual string description() {
+  return "Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise."
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -660,6 +672,9 @@ REGISTER_WORD(Minus)
 
 WORD(Equals)
 CODE('=') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are equal (by value) and 0 otherwise.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -2096,6 +2111,16 @@ REGISTER_WORD(Accumulate)
 
 
 WORD(Car)
+virtual string description() {
+  return "Takes a compound word on the stack and returns the first word in the list.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("First");
+  result.push_back("Head");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> word;
@@ -2128,6 +2153,16 @@ REGISTER_WORD(Append)
 
 
 WORD(Cdr)
+virtual string description() {
+  return "Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("Rest");
+  result.push_back("Tail");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> word;
