@@ -622,6 +622,68 @@ bool StringWord::equals(shared_ptr<Word> word) {
   }
 }
 
+
+  
+int StringWord::compareTo(shared_ptr<Word> word) {
+  if (word == NULL) {
+    throw new domain_error("null word.");
+  }
+  shared_ptr<StringWord> w1 = dynamic_pointer_cast<StringWord>(word);
+  if (w1 == NULL) {
+    throw domain_error("must pass string word: " + word->to_string());
+  } else {
+    return this->value().compare(w1->value());
+  }
+}
+
+int IntegerWord::compareTo(shared_ptr<Word> word) {
+  shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
+  shared_ptr<IntegerWord> i1 = dynamic_pointer_cast<IntegerWord>(word);
+  double value;
+  if (w1 != NULL) {
+    value = w1->value();
+  } else if (i1 != NULL) {
+    value = i1->value();
+  } else {
+    throw domain_error("must pass numeric word: " + word->to_string());
+  }
+
+  if (this->value() < value) {
+      return -1;
+  } else if (this->value() > value) {
+    return 1;
+  } else if (this->value() == value) {
+    return 0;
+  } else {
+    assert(0);
+  }
+}
+
+
+int DoubleWord::compareTo(shared_ptr<Word> word) {
+  shared_ptr<DoubleWord> w1 = dynamic_pointer_cast<DoubleWord>(word);
+  shared_ptr<IntegerWord> i1 = dynamic_pointer_cast<IntegerWord>(word);
+  double value;
+  if (w1 != NULL) {
+    value = w1->value();
+  } else if (i1 != NULL) {
+    value = i1->value();
+  } else {
+    throw domain_error("must pass numeric word: " + word->to_string());
+  }
+  
+  if (this->value() < value) {
+    return -1;
+  } else if (this->value() > value) {
+    return 1;
+  } else if (this->value() == value) {
+    return 0;
+  } else {
+    assert(0);
+  }
+}
+
+
 bool DoubleWord::isDouble(string token) {
     try {
       parse(token);

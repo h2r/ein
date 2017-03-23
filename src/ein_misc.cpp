@@ -610,6 +610,23 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Geq)
 
+WORD(Cmp)
+virtual string description() {
+  return "Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.";
+}
+
+virtual void execute(MachineState * ms) {
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w2->compareTo(w1));
+  ms->pushWord(newWord);
+}
+END_WORD
+REGISTER_WORD(Cmp)
+
 WORD(Times)
 CODE('*') 
 virtual vector<string> names() {
@@ -682,14 +699,11 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
+  shared_ptr<Word> p1;
+  GET_WORD_ARG(ms, Word, p1);
+  shared_ptr<Word> p2;
+  GET_WORD_ARG(ms, Word, p2);
 
-  std::shared_ptr<Word> p1 = ms->popData();
-  std::shared_ptr<Word> p2 = ms->popData();
-
-  if (p1 == NULL || p2 == NULL) {
-    cout << "Warning, requires two words on the stack." << endl;
-    return;
-  }
   int new_value;
   if (p1->equals(p2)) {
     new_value = 1;

@@ -14,3 +14,38 @@ assertNo
 ( 1 2 3 4 ) ( 2 2 3 4 ) = 
 assertNo
 
+
+
+1 2 cmp -1 =
+assert
+
+2 1 cmp 1 = 
+assert
+
+2 2 cmp 0 = 
+assert
+
+
+1.1 2.3 cmp -1 =
+assert
+
+2.3 1 cmp 1 = 
+assert
+
+2 2 cmp 0 = 
+assert
+
+2 2.0 cmp 0 = 
+assert
+
+2 2.000001 cmp -1 = 
+assert
+
+"a" "b" cmp -1 =
+assert
+
+"b" "a" cmp 1 =
+assert
+
+"a" "a" cmp 0 =
+assert
