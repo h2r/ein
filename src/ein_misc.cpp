@@ -491,6 +491,32 @@ END_WORD
 REGISTER_WORD(Plus)
 
 
+WORD(Mod)
+CODE('%') 
+virtual string description() {
+  return "Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("%");
+  return result;
+}
+virtual void execute(MachineState * ms) {
+
+  int v1;
+  GET_INT_ARG(ms, v1);
+  int v2;
+  GET_INT_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 % v1);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(Mod)
+
+
 
 WORD(Sum)
 virtual string description() {
@@ -532,12 +558,19 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 < v1);
+  int result = w2->compareTo(w1);
+  bool value;
+  if (result == -1) {
+    value = true;
+  } else {
+    value = false;
+  }
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(value);
   ms->pushWord(newWord);
 }
 END_WORD
@@ -676,13 +709,25 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
 
-  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
-  ms->pushWord(newWord);
+  std::shared_ptr<IntegerWord> i1 = std::dynamic_pointer_cast<IntegerWord>(w1);
+  std::shared_ptr<IntegerWord> i2 = std::dynamic_pointer_cast<IntegerWord>(w2);
+  std::shared_ptr<DoubleWord> d1 = std::dynamic_pointer_cast<DoubleWord>(w1);
+  std::shared_ptr<DoubleWord> d2 = std::dynamic_pointer_cast<DoubleWord>(w2);
+
+  if (i1 != NULL && i2 != NULL) {
+    ms->pushWord(make_shared<IntegerWord>(w2->to_int() - w1->to_int()));
+  } else if ((i1 != NULL && d2 != NULL) || (d1 != NULL && i2 != NULL) || (d1 != NULL && d2 != NULL)) {
+    ms->pushWord(make_shared<DoubleWord>(w2->to_double() - w1->to_double()));
+  } else {
+    CONSOLE_ERROR(ms, "Minus requires numbers.  Got w1: " << w1->repr() << " and w2 " << w2->repr());
+    ms->pushWord("pauseStackExecution");   
+  }
+
 }
 END_WORD
 REGISTER_WORD(Minus)

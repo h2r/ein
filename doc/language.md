@@ -118,13 +118,33 @@ Finally, the `define` word takes both a word and help text:
 
 `( 1 + ) "Increment the value on the data stack" "inc" define`
 
-
 Equals is defined for compound words if the two words are the same
 length and all the containing words are equal.
 
+Compound words can also be defined using square brackets: `[ 1 2 3 ]`.
+Square brackets evaluate the program inside and put the result in a
+compound word.  For example, the program `[ 1 1 + 2 ]` results in the
+compound word `( 2 2)` on the data stack.  In contrast, the program `( 1 1 + 2 )` results in exactly that compound word on the data stack.
 
 
+#### Exercise:  Brackets
 
+Use square brackets and `replicateWord` to create a compound word with
+10 zeros.
+
+Answer (select to see):
+
+[ ( 0 ) 10 replicateWord ]
+{: style="color:white;" }
+
+### Higher-order Functions
+
+Ein includes `map`, `filter`, and `accumulate` to operate on compound
+words.  For example, map takes a compound word and a lambda word, and
+applies the function to every element of the input:
+
+`( 0 0 0 ) ( 1 + ) map` produces `( 1 1 1)`, adding 1 to each element
+of the input word.
 
 ### Reactive Variables
 
