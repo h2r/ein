@@ -101,9 +101,16 @@ For example, `0 "x" store` will store the integer word zero in the
 variable x.  Aftewards, typing `x` will push a `0` on the data stack,
 just as if you had typed `0`.
 
+
+### Compound Words
+
+Compound words are Back's list type.  They are analgous to Lisp lists.
+To push a compound word on the stack, embed a sequence of words in
+parentheses: `( 1 3 4 )`.  The word
+
 You can also use store to define new compound words: 
 
-`( 1 + ) "inc" store` definse a new compound word, `inc` which adds
+`( 1 + ) "inc" store` defines a new compound word, `inc` which adds
 `1` to the argument on the data stack and pushes the result.
 
 
@@ -112,9 +119,29 @@ Finally, the `define` word takes both a word and help text:
 `( 1 + ) "Increment the value on the data stack" "inc" define`
 
 
+Equals is defined for compound words if the two words are the same
+length and all the containing words are equal.
+
+
+
+
+
+### Reactive Variables
 
 Ein gets its power from reactive variables, defined in C, such as
-truePose, which is always set to the value of the current pose of the end effector.   This reactivity 
+`truePose`, which is always set to the value of the current pose of
+the end effector.  This reactivity means that message passing from the
+lower-level OS is hidden; one need only reference `truePose` to get
+the latest estimate on the robot's current pose.  One can define new
+reactive variables.  For example, one can access the current height of
+the end effector with `truePose eePosePZ`.  To create a new variable,
+use `store`:
+
+`( truePose eePosePZ ) "trueHeight" store
+
+This results in a new word, `trueHeight`, which, whenever accessed,
+contains the current height of the arm. Note that this computation is
+done lazily, when the variable is read.
 
 
 
