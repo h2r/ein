@@ -590,7 +590,7 @@ REGISTER_WORD(Leq)
 
 WORD(Geq)
 virtual string description() {
-  return "Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise."
+  return "Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.";
 }
 virtual vector<string> names() {
   vector<string> result;
