@@ -6,7 +6,9 @@ leftOrRightArm "right" =
 0.660164 -0.061894 -0.029110 -0.044431 0.828624 -0.021404 0.557629 createEEPose "kidPicturePose" store
 
 0.666559 -1.142433 0.473728 0.379813 0.586891 -0.266738 0.663439 createEEPose "dabRightPose" store
-0.946537 0.301329 0.557267 -0.380047 0.586422 0.135297 0.702401 createEEPose "dabLeftPose" store
+
+/* 0.946537 0.301329 0.557267 -0.380047 0.586422 0.135297 0.702401 createEEPose "dabLeftPose" store */
+0.410174 0.469739 0.607892 -0.716619 0.070692 0.171473 0.672351 createEEPose "dabLeftPose" store
 )
 ( 
 leftOrRightArm "left" = 
@@ -14,8 +16,11 @@ leftOrRightArm "left" =
 0.930691 0.378035 0.498006 0.028296 0.179526 0.039754 0.982542 createEEPose "wavePose" store
 0.995837 0.049584 -0.044754 0.539836 -0.529479 0.448137 -0.476867 createEEPose "lowShakePose" store
 0.832231 0.098156 -0.016543 -0.178823 0.760640 -0.028450 0.623409 createEEPose "kidPicturePose" store
-0.927865 -0.316768 0.462431 0.310272 0.570838 -0.347365 0.676175 createEEPose "dabRightPose" store
+/* 0.927865 -0.316768 0.462431 0.310272 0.570838 -0.347365 0.676175 createEEPose "dabRightPose" store */
+0.720554 -0.324646 0.627185 -0.488981 -0.500781 0.521607 -0.487896 createEEPose "dabRightPose" store
 0.072410 1.303297 0.614679 -0.669614 -0.011129 -0.026810 0.742142 createEEPose "dabLeftPose" store
+
+
 )
  ( "Neither left or right arm." leftOrRighArm pauseStackExecution ) 
 ifte
@@ -48,10 +53,10 @@ ifte
 
 
 
-( openGripper waitUntilGripperNotMoving ) "kidOpenGripper" store
-( closeGripper waitUntilGripperNotMoving ) "kidCloseGripper" store
-( lightsOn 0.5 waitForSeconds ) "kidLightsOn" store
-( lightsOff 0.5 waitForSeconds ) "kidLightsOff" store
+( openGripper waitUntilGripperNotMoving "openGripper" commandOtherArm ) "kidOpenGripper" store
+( closeGripper waitUntilGripperNotMoving "closeGripper" commandOtherArm ) "kidCloseGripper" store
+( lightsOn 0.5 waitForSeconds "lightsOn" commandOtherArm ) "kidLightsOn" store
+( lightsOff 0.5 waitForSeconds "lightsOff" commandOtherArm ) "kidLightsOff" store
 ( torsoFanOn 0.5 waitForSeconds ) "kidFanOn" store
 ( torsoFanOff 0.5 waitForSeconds ) "kidFanOff" store
 
@@ -60,7 +65,9 @@ ifte
 ( sadFace 0.5 waitForSeconds ) "kidSadFace" store
 
 ( wave ) "kidWave" store
-( tempGoHome ) "kidCrane" store
+( "goHome" commandOtherArm goHome ) "kidCrane" store
+
+( dab ) "kidDab" store
 
 
 
