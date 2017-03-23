@@ -561,20 +561,25 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
+
+
   shared_ptr<Word> w1;
   GET_WORD_ARG(ms, Word, w1);
   shared_ptr<Word> w2;
   GET_WORD_ARG(ms, Word, w2);
-
-  int result = w2->compareTo(w1);
-  bool value;
-  if (result == -1) {
-    value = true;
-  } else {
-    value = false;
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result < 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
   }
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(value);
-  ms->pushWord(newWord);
+
 }
 END_WORD
 REGISTER_WORD(Langle)
@@ -591,13 +596,22 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
-
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 > v1);
-  ms->pushWord(newWord);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result > 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
 }
 END_WORD
 REGISTER_WORD(Rangle)
@@ -613,13 +627,25 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 <= v1);
-  ms->pushWord(newWord);
+
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result <= 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
 }
 END_WORD
 REGISTER_WORD(Leq)
@@ -635,13 +661,24 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 >= v1);
-  ms->pushWord(newWord);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result >= 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
 }
 END_WORD
 REGISTER_WORD(Geq)
@@ -656,9 +693,16 @@ virtual void execute(MachineState * ms) {
   GET_WORD_ARG(ms, Word, w1);
   shared_ptr<Word> w2;
   GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w2->compareTo(w1));
+    ms->pushWord(newWord);
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w2->compareTo(w1));
-  ms->pushWord(newWord);
 }
 END_WORD
 REGISTER_WORD(Cmp)
