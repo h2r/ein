@@ -457,6 +457,9 @@ virtual vector<string> names() {
   result.push_back("+");
   return result;
 }
+virtual string description() {
+  return "Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.";
+}
 virtual void execute(MachineState * ms) {
   //double v1;
   //GET_NUMERIC_ARG(ms, v1);
@@ -645,7 +648,7 @@ REGISTER_WORD(Geq)
 
 WORD(Cmp)
 virtual string description() {
-  return "Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.";
+  return "Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.";
 }
 
 virtual void execute(MachineState * ms) {
@@ -702,6 +705,9 @@ REGISTER_WORD(Divide)
 
 WORD(Minus)
 CODE('-') 
+virtual string description() {
+  return "Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -786,6 +792,17 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Not)
 
+
+
+WORD(Inc)
+virtual string description() {
+  return "Adds one to its argument.  1 inc produces 2.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("1 +");
+}
+END_WORD
+REGISTER_WORD(Inc)
 
 
 WORD(Ift)

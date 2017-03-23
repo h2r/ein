@@ -104,7 +104,7 @@ just as if you had typed `0`.
 
 ### Compound Words
 
-Compound words are Back's list type.  They are analgous to Lisp lists.
+Compound words are Back's list type.  They are analagous to Lisp lists.
 To push a compound word on the stack, embed a sequence of words in
 parentheses: `( 1 3 4 )`.  The word
 
@@ -123,8 +123,8 @@ length and all the containing words are equal.
 
 Compound words can also be defined using square brackets: `[ 1 2 3 ]`.
 Square brackets evaluate the program inside and put the result in a
-compound word.  For example, the program `[ 1 1 + 2 ]` results in the
-compound word `( 2 2)` on the data stack.  In contrast, the program `( 1 1 + 2 )` results in exactly that compound word on the data stack.
+compound word, something like Python list comprehensions.  For example, the program `[ 1 1 + 2 ]` results in the
+compound word `( 2 2 )` on the data stack.  In contrast, the program `( 1 1 + 2 )` results in exactly that compound word on the data stack.
 
 
 #### Exercise:  Brackets
@@ -137,6 +137,16 @@ Answer (select to see):
 [ ( 0 ) 10 replicateWord ]
 {: style="color:white;" }
 
+
+Now use square brackets, `replicateWord`, and `inc` to produce a
+compound word with the integers from one to ten.
+
+Answer (select to see):
+
+[ 0 ( dup inc ) 10 replicateWord ]
+{: style="color:white;" }
+
+
 ### Higher-order Functions
 
 Ein includes `map`, `filter`, and `accumulate` to operate on compound
@@ -144,7 +154,17 @@ words.  For example, map takes a compound word and a lambda word, and
 applies the function to every element of the input:
 
 `( 0 0 0 ) ( 1 + ) map` produces `( 1 1 1)`, adding 1 to each element
-of the input word.
+of the input word.  `( 1 1 1 ) ( + ) accumulate )` produces 3.  
+
+#### Exercise:  Squares
+
+Use `map` to create a compound word that contains the squares of the first ten integers.
+
+Answer (select to see):
+
+[ 0 ( dup inc ) 10 replicateWord ] ( dup * ) map
+{: style="color:white;" }
+
 
 ### Reactive Variables
 
