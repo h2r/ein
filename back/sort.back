@@ -1,0 +1,6 @@
+
+( 1 2 3 4 )  car 1 =
+assert
+
+( 1 2 3 4 )  cdr ( 2 3 4 ) =
+assert
