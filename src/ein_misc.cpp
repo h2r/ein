@@ -2230,6 +2230,57 @@ END_WORD
 REGISTER_WORD(Accumulate)
 
 
+WORD(Get)
+virtual string description() {
+  return "Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.";
+}
+virtual void execute(MachineState * ms)
+{
+  int idx;
+  GET_INT_ARG(ms, idx);
+  
+  shared_ptr<CompoundWord> compoundWord;
+  GET_WORD_ARG(ms, CompoundWord, compoundWord);
+
+  if (idx >= compoundWord->size() || idx < 0) {
+    CONSOLE_ERROR(ms, "Out of bounds: " << idx << " in word " << compoundWord->repr() << " with size " << compoundWord->size());
+    ms->pushWord("pauseStackExecution");
+  } else {
+    ms->pushData(compoundWord->getWord(compoundWord->size() - idx - 1));
+  }
+}
+END_WORD
+REGISTER_WORD(Get)
+
+
+
+WORD(Size)
+virtual string description() {
+  return "Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.";
+}
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> compoundWord;
+  GET_WORD_ARG(ms, CompoundWord, compoundWord);
+  ms->pushData(make_shared<IntegerWord>(compoundWord->size()));
+}
+END_WORD
+REGISTER_WORD(Size)
+
+
+WORD(Nil)
+virtual string description() {
+  return "The empty list.  ( ) .";
+}
+virtual void execute(MachineState * ms)
+{
+  ms->pushData(ms->nil);
+}
+END_WORD
+REGISTER_WORD(Nil)
+
+
+
 WORD(Car)
 virtual string description() {
   return "Takes a compound word on the stack and returns the first word in the list.";

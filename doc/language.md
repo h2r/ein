@@ -126,6 +126,10 @@ Square brackets evaluate the program inside and put the result in a
 compound word, something like Python list comprehensions.  For example, the program `[ 1 1 + 2 ]` results in the
 compound word `( 2 2 )` on the data stack.  In contrast, the program `( 1 1 + 2 )` results in exactly that compound word on the data stack.
 
+To access elements of compound words, you can use `car`, `first` or
+`head` to access the first element (all synonyms).  You can use `cdr`,
+`tail` or `rest` to access the rest of the list.
+
 
 #### Exercise:  Brackets
 

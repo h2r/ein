@@ -92,3 +92,15 @@ assert
 ( 0 1 4 9 16 25 ) = 
 assert
 
+
+
+( 1 2 3 4 ) 2 get 3 = 
+assert
+
+
+( 1 2 3 4 ) 0 get 1 = 
+assert
+
+( 1 2 3 4 ) size 4 = 
+assert
+

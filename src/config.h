@@ -447,6 +447,7 @@ typedef struct pixelToGlobalCache {
 #define GRID_VERY_FINE 0.00125
 
 class Word;
+class CompoundWord;
 
 class EinConfig {
  public:
@@ -1673,6 +1674,8 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   executionMode execution_mode = INSTANT;
   map<string, shared_ptr<Word> > wordsInNamespace();
+
+  shared_ptr<CompoundWord> nil;
   
   bool pushWord(int code);
   bool pushWord(string name);
