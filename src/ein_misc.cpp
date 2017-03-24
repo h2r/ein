@@ -3118,6 +3118,9 @@ END_WORD
 REGISTER_WORD(Time)
 
 WORD(CommandOtherArm)
+virtual string description() {
+  return "Send a command to the other arm.  It takes a string on the stack and sends it as a program to be executed on the other arm.";
+}
 virtual void execute(MachineState * ms) {
   string string_in;
   GET_STRING_ARG(ms, string_in);

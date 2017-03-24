@@ -200,7 +200,7 @@
 <tr><td>cameraWhiteBalanceRed</td><td></td></tr>
 <tr><td>cameraWristConfig</td><td></td></tr>
 <tr><td>cameraZeroNonLinear</td><td></td></tr>
-<tr><td>car</td><td></td></tr>
+<tr><td>car</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
 <tr><td>castToInteger</td><td></td></tr>
 <tr><td>catPlayLoop</td><td></td></tr>
 <tr><td>catScan5</td><td></td></tr>
@@ -238,7 +238,7 @@
 <tr><td>catScan5VarianceTrials</td><td></td></tr>
 <tr><td>catScan5VarianceTrialsZ</td><td></td></tr>
 <tr><td>catScan_dropHeight</td><td></td></tr>
-<tr><td>cdr</td><td></td></tr>
+<tr><td>cdr</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
 <tr><td>ceil</td><td></td></tr>
 <tr><td>centerHead</td><td></td></tr>
 <tr><td>changeAnimationState</td><td></td></tr>
@@ -273,6 +273,7 @@
 <tr><td>clearStacks</td><td></td></tr>
 <tr><td>clearStreamBuffers</td><td></td></tr>
 <tr><td>closeGripper</td><td></td></tr>
+<tr><td>cmp</td><td>Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.</td></tr>
 <tr><td>collapseStack</td><td></td></tr>
 <tr><td>collectMoreCrops</td><td></td></tr>
 <tr><td>collectMoreStreams</td><td></td></tr>
@@ -280,7 +281,7 @@
 <tr><td>comeToHoverA</td><td></td></tr>
 <tr><td>comeToStop</td><td></td></tr>
 <tr><td>comeToStopA</td><td></td></tr>
-<tr><td>commandOtherArm</td><td></td></tr>
+<tr><td>commandOtherArm</td><td>Send a command to the other arm.  It takes a string on the stack and sends it as a program to be executed on the other arm.</td></tr>
 <tr><td>continueHeightLearning</td><td></td></tr>
 <tr><td>continuousServo</td><td></td></tr>
 <tr><td>continuousServoA</td><td></td></tr>
@@ -819,6 +820,7 @@
 <tr><td>eePoseQX</td><td></td></tr>
 <tr><td>eePoseQY</td><td></td></tr>
 <tr><td>eePoseQZ</td><td></td></tr>
+<tr><td>eePoseRPYOnQ</td><td></td></tr>
 <tr><td>eePoseToArmPose</td><td></td></tr>
 <tr><td>eeRange</td><td></td></tr>
 <tr><td>eeRangeMaxValue</td><td></td></tr>
@@ -830,7 +832,7 @@
 <tr><td>endArgs</td><td></td></tr>
 <tr><td>endStackCollapse</td><td></td></tr>
 <tr><td>endStackCollapseNoop</td><td></td></tr>
-<tr><td>equals</td><td></td></tr>
+<tr><td>equals</td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
 <tr><td>eval</td><td>Takes a string from the data stack; evaluates the string as a back program.  Usage:  &lt; string &gt; eval -&gt; whatever the program does</td></tr>
 <tr><td>exec</td><td></td></tr>
 <tr><td>executePreparedGrasp</td><td></td></tr>
@@ -881,7 +883,8 @@
 <tr><td>gaitAnchoredTranslation</td><td></td></tr>
 <tr><td>gauntletCrystalConfig</td><td></td></tr>
 <tr><td>gauntletCrystalConfigOffset</td><td></td></tr>
-<tr><td>geq</td><td></td></tr>
+<tr><td>geq</td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>get</td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
 <tr><td>getSpeed</td><td></td></tr>
 <tr><td>goClassifyBlueBoxes</td><td></td></tr>
 <tr><td>goFindBlueBoxes</td><td></td></tr>
@@ -936,6 +939,7 @@
 <tr><td>ikModeService</td><td></td></tr>
 <tr><td>imageStreamBufferLoadCurrent</td><td></td></tr>
 <tr><td>import</td><td></td></tr>
+<tr><td>inc</td><td>Adds one to its argument.  1 inc produces 2.</td></tr>
 <tr><td>incMx</td><td></td></tr>
 <tr><td>incMy</td><td></td></tr>
 <tr><td>incrementCamera</td><td></td></tr>
@@ -949,7 +953,7 @@
 <tr><td>incrementTargetMasterSprite</td><td></td></tr>
 <tr><td>initCumulativeGripperMask</td><td></td></tr>
 <tr><td>initDepthScan</td><td></td></tr>
-<tr><td>initializeAndFocusOnNewClass</td><td></td></tr>
+<tr><td>initializeAndFocusOnNewClass</td><td>Initialize a new class with a default date-based name and focus on it.  It will be created in the file system with default values and focused on.</td></tr>
 <tr><td>initializeAndFocusOnTempClass</td><td></td></tr>
 <tr><td>initializeConfig</td><td></td></tr>
 <tr><td>initializeKdlTree</td><td></td></tr>
@@ -964,8 +968,9 @@
 <tr><td>irFixPick</td><td></td></tr>
 <tr><td>isAtCurrentPosition</td><td></td></tr>
 <tr><td>isGripperGripping</td><td></td></tr>
+<tr><td>isGripperMoving</td><td></td></tr>
 <tr><td>iterateIsbAndAccumulateHeightImages</td><td></td></tr>
-<tr><td>langle</td><td></td></tr>
+<tr><td>langle</td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
 <tr><td>leftOrRightArm</td><td></td></tr>
 <tr><td>lensArrayGap</td><td></td></tr>
 <tr><td>lensArrayPhaseX</td><td></td></tr>
@@ -976,7 +981,7 @@
 <tr><td>lensArrayStrength</td><td></td></tr>
 <tr><td>lensArrayStrengthX</td><td></td></tr>
 <tr><td>lensArrayStrengthY</td><td></td></tr>
-<tr><td>leq</td><td></td></tr>
+<tr><td>leq</td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
 <tr><td>liftArm</td><td></td></tr>
 <tr><td>lightsOff</td><td></td></tr>
 <tr><td>lightsOn</td><td></td></tr>
@@ -1040,9 +1045,10 @@
 <tr><td>measureTimeSinceStart</td><td></td></tr>
 <tr><td>measureTimeStart</td><td></td></tr>
 <tr><td>min</td><td></td></tr>
-<tr><td>minus</td><td></td></tr>
+<tr><td>minus</td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
 <tr><td>mkdir</td><td></td></tr>
 <tr><td>mkdirs</td><td></td></tr>
+<tr><td>mod</td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
 <tr><td>mostRecentUntabledZ</td><td></td></tr>
 <tr><td>moveAndStreamAimedShot</td><td></td></tr>
 <tr><td>moveArmToPoseWord</td><td></td></tr>
@@ -1082,6 +1088,7 @@
 <tr><td>neutralScanB</td><td></td></tr>
 <tr><td>neutralScanH</td><td></td></tr>
 <tr><td>next</td><td></td></tr>
+<tr><td>nil</td><td>The empty list.  ( ) .</td></tr>
 <tr><td>nod</td><td></td></tr>
 <tr><td>noop</td><td></td></tr>
 <tr><td>not</td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
@@ -1107,6 +1114,8 @@
 <tr><td>observedCameraWhiteBalanceRed</td><td></td></tr>
 <tr><td>observedCameraWindowX</td><td></td></tr>
 <tr><td>observedCameraWindowY</td><td></td></tr>
+<tr><td>openClEchoTest</td><td></td></tr>
+<tr><td>openClNbodyDemo</td><td></td></tr>
 <tr><td>openGripper</td><td></td></tr>
 <tr><td>openGripperInt</td><td></td></tr>
 <tr><td>or</td><td></td></tr>
@@ -1152,7 +1161,7 @@
 <tr><td>playLoopP</td><td></td></tr>
 <tr><td>playWithObject</td><td></td></tr>
 <tr><td>playWorkspace</td><td></td></tr>
-<tr><td>plus</td><td></td></tr>
+<tr><td>plus</td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
 <tr><td>pointToClearanceMap</td><td></td></tr>
 <tr><td>pop</td><td></td></tr>
 <tr><td>populateStreamBuffers</td><td></td></tr>
@@ -1182,7 +1191,7 @@
 <tr><td>pressUntilEffortOrTwistInit</td><td></td></tr>
 <tr><td>pressUntilEffortStart</td><td></td></tr>
 <tr><td>print</td><td>Pop a word from the stack and print it to the Ein console.</td></tr>
-<tr><td>printClassLabels</td><td></td></tr>
+<tr><td>printClassLabels</td><td>Print class labels to standard output.</td></tr>
 <tr><td>printJointAngles</td><td></td></tr>
 <tr><td>printMencoderCommand</td><td></td></tr>
 <tr><td>printStacks</td><td></td></tr>
@@ -1197,7 +1206,7 @@
 <tr><td>publishState</td><td></td></tr>
 <tr><td>publishWristViewToFace</td><td></td></tr>
 <tr><td>pursuitProximity</td><td></td></tr>
-<tr><td>pushClassLabels</td><td></td></tr>
+<tr><td>pushClassLabels</td><td>Push the class labels on the stack.</td></tr>
 <tr><td>pushClassLabelsReport</td><td></td></tr>
 <tr><td>pushCurrentJointAngle</td><td></td></tr>
 <tr><td>pushCurrentJointAngles</td><td></td></tr>
@@ -1207,7 +1216,7 @@
 <tr><td>quarterImpulse</td><td></td></tr>
 <tr><td>quarterTurn</td><td></td></tr>
 <tr><td>quiveringPalm</td><td></td></tr>
-<tr><td>rangle</td><td></td></tr>
+<tr><td>rangle</td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
 <tr><td>rasterScanningSpeed</td><td></td></tr>
 <tr><td>rayBufferInit</td><td></td></tr>
 <tr><td>rayBufferPopulateFromImageBuffer</td><td></td></tr>
@@ -1229,6 +1238,8 @@
 <tr><td>reloadCamera</td><td></td></tr>
 <tr><td>reloadClassLabels</td><td></td></tr>
 <tr><td>renameFocusedClass</td><td></td></tr>
+<tr><td>renderSetWristViewBrightnessScalar</td><td></td></tr>
+<tr><td>renderWristViewBrightnessScalar</td><td></td></tr>
 <tr><td>repeatHalo</td><td></td></tr>
 <tr><td>replaceBlueBoxesWithFocusedClass</td><td></td></tr>
 <tr><td>replaceBlueBoxesWithHistogramWinner</td><td></td></tr>
@@ -1310,6 +1321,7 @@
 <tr><td>sceneAddPredictedFocusedObject</td><td></td></tr>
 <tr><td>sceneAddPredictedObject</td><td></td></tr>
 <tr><td>sceneAddPredictedToObserved</td><td></td></tr>
+<tr><td>sceneAnchorPose</td><td>Takes a gaussian map on the stack and returns its anchor eePose.</td></tr>
 <tr><td>sceneAngularApertureCols</td><td></td></tr>
 <tr><td>sceneAngularApertureRows</td><td></td></tr>
 <tr><td>sceneAngularBaffleCols</td><td></td></tr>
@@ -1362,8 +1374,8 @@
 <tr><td>sceneIsNewConfiguration</td><td></td></tr>
 <tr><td>sceneLoadBackgroundMap</td><td></td></tr>
 <tr><td>sceneLoadDiscrepancyMap</td><td></td></tr>
-<tr><td>sceneLoadFocusedObjectModel</td><td></td></tr>
-<tr><td>sceneLoadFocusedSceneModel</td><td></td></tr>
+<tr><td>sceneLoadFocusedObjectModel</td><td>Load the object model of the focused class from disk.</td></tr>
+<tr><td>sceneLoadFocusedSceneModel</td><td>Loads a scene from disk into the scene model for the focused class.  Requires the name of a scene that is saved to disk.</td></tr>
 <tr><td>sceneLoadGaussianMap</td><td>Takes a string, loads the gaussian map and puts it on the stack.</td></tr>
 <tr><td>sceneLoadLightingModelFromGaussianMapFile</td><td></td></tr>
 <tr><td>sceneLoadMonochromeBackground</td><td></td></tr>
@@ -1411,6 +1423,7 @@
 <tr><td>sceneRenderTest</td><td></td></tr>
 <tr><td>sceneRenderZ</td><td></td></tr>
 <tr><td>sceneSaveBackgroundMap</td><td></td></tr>
+<tr><td>sceneSaveDiscrepancyDensityImage</td><td></td></tr>
 <tr><td>sceneSaveDiscrepancyMap</td><td></td></tr>
 <tr><td>sceneSaveFocusedSceneModel</td><td></td></tr>
 <tr><td>sceneSaveGaussianMap</td><td>Takes a string and saves a gaussian map to that string.</td></tr>
@@ -1459,6 +1472,8 @@
 <tr><td>sceneSetObservedRGBFromZ</td><td></td></tr>
 <tr><td>sceneSetPredictedClassName</td><td></td></tr>
 <tr><td>sceneSetPredictedClassNameToFocusedClass</td><td></td></tr>
+<tr><td>sceneSetPredictedStdDevColor</td><td></td></tr>
+<tr><td>sceneSetPredictedStdDevY</td><td></td></tr>
 <tr><td>sceneSetScoreThresh</td><td></td></tr>
 <tr><td>sceneSetVanishingPointFromPixel</td><td></td></tr>
 <tr><td>sceneSetVanishingPointFromVariance</td><td></td></tr>
@@ -1500,6 +1515,10 @@
 <tr><td>sceneUpdateObservedFromStreamBufferNoRecalc</td><td></td></tr>
 <tr><td>sceneUpdateObservedFromWrist</td><td></td></tr>
 <tr><td>sceneZeroBox</td><td></td></tr>
+<tr><td>sceneZeroLowerX</td><td></td></tr>
+<tr><td>sceneZeroLowerY</td><td></td></tr>
+<tr><td>sceneZeroUpperX</td><td></td></tr>
+<tr><td>sceneZeroUpperY</td><td></td></tr>
 <tr><td>searchProximity</td><td></td></tr>
 <tr><td>seeHz</td><td></td></tr>
 <tr><td>selectBestAvailableGrasp</td><td></td></tr>
@@ -1545,7 +1564,7 @@
 <tr><td>setCameraR01</td><td></td></tr>
 <tr><td>setCameraR10</td><td></td></tr>
 <tr><td>setCameraR11</td><td></td></tr>
-<tr><td>setClassLabels</td><td></td></tr>
+<tr><td>setClassLabels</td><td>Set the active classes.  useage:  endArgs &quot;class1&quot; &quot;class2&quot; setClassLabels.  The class names must be directorys in the ein/default/objects folder.</td></tr>
 <tr><td>setClassLabelsBaseClassAbsolute</td><td></td></tr>
 <tr><td>setClassLabelsObjectFolderAbsolute</td><td></td></tr>
 <tr><td>setClosestBlueBoxMemoryToFocusedClass</td><td></td></tr>
@@ -1700,6 +1719,7 @@
 <tr><td>shutdownToSensorsAndMovement</td><td></td></tr>
 <tr><td>silenceSonar</td><td></td></tr>
 <tr><td>sin</td><td></td></tr>
+<tr><td>size</td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
 <tr><td>slfgRebase</td><td></td></tr>
 <tr><td>slfgRebaseCellWidth</td><td></td></tr>
 <tr><td>slfgRebaseCore</td><td></td></tr>
@@ -1788,6 +1808,7 @@
 <tr><td>synchronicServoDoNotTakeClosest</td><td></td></tr>
 <tr><td>synchronicServoRepeat</td><td></td></tr>
 <tr><td>synchronicServoTakeClosest</td><td></td></tr>
+<tr><td>table0DCellCountThreshold</td><td></td></tr>
 <tr><td>table1DCellCountThreshold</td><td></td></tr>
 <tr><td>table2DCellCountThreshold</td><td></td></tr>
 <tr><td>tableAddBarGrasp</td><td></td></tr>
@@ -1795,7 +1816,6 @@
 <tr><td>tableAddBlockGraspInPlace</td><td></td></tr>
 <tr><td>tableAddBlockGraspSaveModelAndPickAfterFind</td><td></td></tr>
 <tr><td>tableAddBlueBoxesForSceneObjects</td><td></td></tr>
-<tr><td>tableArrayAutoFocus</td><td></td></tr>
 <tr><td>tableArrayViewSynthesisAutoFocus</td><td></td></tr>
 <tr><td>tableBlockCollarWidth</td><td></td></tr>
 <tr><td>tableBlockGraspResolution</td><td></td></tr>
@@ -1837,6 +1857,7 @@
 <tr><td>tableInitNoBackground</td><td>Initialize scene parameters, no background map reload.</td></tr>
 <tr><td>tableInitializeCategoryModel</td><td></td></tr>
 <tr><td>tableLenticularAutoFocus</td><td></td></tr>
+<tr><td>tableLightSlabAutoFocus</td><td></td></tr>
 <tr><td>tableLoadAndPrepareFocusedModel</td><td></td></tr>
 <tr><td>tableLoadAverageModel</td><td></td></tr>
 <tr><td>tableLoadFirstModel</td><td></td></tr>
@@ -1850,6 +1871,7 @@
 <tr><td>tableMapBestClass</td><td></td></tr>
 <tr><td>tableMapBestClassInPlace</td><td></td></tr>
 <tr><td>tableMapFocusedAndPick</td><td></td></tr>
+<tr><td>tableMapFocusedAndPickInPlace</td><td></td></tr>
 <tr><td>tableMapFocusedClass</td><td></td></tr>
 <tr><td>tableMergeFocusedClass</td><td></td></tr>
 <tr><td>tableMoveToSceneObject</td><td></td></tr>
@@ -1881,13 +1903,16 @@
 <tr><td>tableReconstructGCLightAllFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCLightRisingFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCNone</td><td></td></tr>
+<tr><td>tableReconstructGCNoneNarrow</td><td></td></tr>
 <tr><td>tableReconstructGCNoneWide</td><td></td></tr>
 <tr><td>tableReconstructGCSelfFromNone</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthLightModel</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthLightModelDilate</td><td></td></tr>
 <tr><td>tableReconstructGCViewSynthNone</td><td></td></tr>
 <tr><td>tableReconstructGCWrist</td><td></td></tr>
+<tr><td>tableReconstructGridMultiplier</td><td></td></tr>
 <tr><td>tableReconstructLenticularWithoutZ</td><td></td></tr>
+<tr><td>tableReconstructLightSlabGridMultiplier</td><td></td></tr>
 <tr><td>tableReconstructLightSlabWithZ</td><td></td></tr>
 <tr><td>tableReconstructLightSlabWithoutZ</td><td></td></tr>
 <tr><td>tableReconstructMarginalsFromStack</td><td></td></tr>
@@ -1900,13 +1925,13 @@
 <tr><td>tableReconstructServoToFocusedSceneObject</td><td></td></tr>
 <tr><td>tableReconstructStreamTakeSceneSamples</td><td></td></tr>
 <tr><td>tableReconstructWithOOP</td><td></td></tr>
+<tr><td>tableReconstructWithOOPNarrow</td><td></td></tr>
 <tr><td>tableReconstructWithOOPWide</td><td></td></tr>
 <tr><td>tableReconstructWithZ</td><td></td></tr>
 <tr><td>tableReconstructWithZApertureSetter</td><td></td></tr>
 <tr><td>tableReconstructWithZCaster</td><td></td></tr>
 <tr><td>tableReconstructWithZCore</td><td></td></tr>
 <tr><td>tableReconstructWithZDeltaZ</td><td></td></tr>
-<tr><td>tableReconstructWithZGridMultiplier</td><td></td></tr>
 <tr><td>tableReconstructWithZRegisterInitializer</td><td></td></tr>
 <tr><td>tableReconstructWithZTable</td><td></td></tr>
 <tr><td>tableReconstructWithZTable1D</td><td></td></tr>
@@ -1922,8 +1947,10 @@
 <tr><td>tableReconstructWithoutZ</td><td></td></tr>
 <tr><td>tableRegularizeBackground</td><td></td></tr>
 <tr><td>tableRegularizeFocusedClassModel</td><td></td></tr>
+<tr><td>tableRegularizePredictedMap</td><td></td></tr>
 <tr><td>tableReset</td><td></td></tr>
 <tr><td>tableRestoreFromBlocks</td><td></td></tr>
+<tr><td>tableSaveFocusedThumbnails</td><td></td></tr>
 <tr><td>tableServoToBestSceneObject</td><td></td></tr>
 <tr><td>tableServoToFocusedSceneObject</td><td></td></tr>
 <tr><td>tableSetBackgroundFromObserved</td><td>Set current observed map to the background map and save to RAM.</td></tr>
@@ -1950,10 +1977,15 @@
 <tr><td>tableStreamBufferTakeScene</td><td>Render the stream buffer into the observed map.</td></tr>
 <tr><td>tableSwapToBlocks</td><td></td></tr>
 <tr><td>tableTakeScene</td><td></td></tr>
+<tr><td>tableTakeScene0D</td><td></td></tr>
+<tr><td>tableTakeScene0DNoReconstruct</td><td></td></tr>
 <tr><td>tableTakeScene1D</td><td></td></tr>
 <tr><td>tableTakeScene1DNoReconstruct</td><td></td></tr>
 <tr><td>tableTakeScene2D</td><td></td></tr>
+<tr><td>tableTakeScene2DClose</td><td></td></tr>
+<tr><td>tableTakeScene2DCloseNoReconstruct</td><td></td></tr>
 <tr><td>tableTakeScene2DNoReconstruct</td><td></td></tr>
+<tr><td>tableTakeScene2DWithDepth</td><td></td></tr>
 <tr><td>tableUpdateBg</td><td></td></tr>
 <tr><td>tableUpdateClassScene</td><td></td></tr>
 <tr><td>tableUpdateFivePointThreeWidth</td><td></td></tr>
