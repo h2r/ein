@@ -884,7 +884,7 @@ virtual void execute(MachineState * ms) {
     }
 
     // convert YCrCb explicity to BGR
-    //cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
+    cvtColor(ms->pack[this_dog].snoutImage, ms->pack[this_dog].snoutImage, CV_YCrCb2BGR);
 
     // for now this is done for display purposes only
     Size p_toBecome(640, 400);
@@ -909,7 +909,7 @@ virtual void execute(MachineState * ms) {
     msg.height = topub.rows;
     msg.step = topub.cols * topub.elemSize();
     msg.is_bigendian = false;
-    msg.encoding = sensor_msgs::image_encodings::RGB8;
+    msg.encoding = sensor_msgs::image_encodings::BGR8;
     msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
 
     ms->pack[this_dog].aibo_snout_pub.publish(msg);
