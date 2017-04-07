@@ -194,7 +194,7 @@ done lazily, when the variable is read.
 Back includes looping and condition constructs.
 
 `ift` takes two arguments and prints if its argument is true.  Ein
-casts words to booleans followin C's semantics, so zero is false, and
+casts words to booleans following C's semantics, so zero is false, and
 all other values are true (including the empty string).
 
 This version prints "hello":
