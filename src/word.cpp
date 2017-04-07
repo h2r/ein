@@ -57,7 +57,10 @@ map<string, shared_ptr<Word> > MachineState::wordsInNamespace()
     r[iter->first] = iter->second;
   }
   for (int i = 0; i < words.size(); i++) {
-    r[words[i]->repr()] = words[i];
+    vector<string> names = words[i]->names();
+    for (int j = 0; j < names.size(); j++) {
+      r[names[j]] = words[i];
+    }
   }
   return r;
 }
