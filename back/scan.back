@@ -39,7 +39,7 @@ workspace4 "outputPileWorkspace" store
     { |B 
       ( 1 ) ( 
 	blink_lightshow 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 
@@ -51,21 +51,21 @@ workspace4 "outputPileWorkspace" store
 	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
 	publishWristViewToFace
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
 	isGripperGripping ( 
 	  nod 
 	) ift 
-      ) while 
+      ) whileCollapsed 
     } 
-  } ( 1 ) ( slip ) while
+  } ( 1 ) ( slip ) whileCollapsed
 ) "scan_threaded_catScan_wristFace" store
 
 (
@@ -75,7 +75,7 @@ workspace4 "outputPileWorkspace" store
     { |B 
       ( 1 ) ( 
 	blink_lightshow 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 
@@ -87,16 +87,16 @@ workspace4 "outputPileWorkspace" store
 	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
 	isGripperGripping ( 
 	  nod 
 	) ift 
-      ) while 
+      ) whileCollapsed 
     } 
-  } ( 1 ) ( slip ) while
+  } ( 1 ) ( slip ) whileCollapsed
 ) "scan_threaded_catScan_noFace" store
 
 (
@@ -106,7 +106,7 @@ workspace4 "outputPileWorkspace" store
     { |B 
       ( 1 ) ( 
 	blink_lightshow 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 
@@ -118,7 +118,7 @@ workspace4 "outputPileWorkspace" store
 	0.5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
@@ -138,16 +138,16 @@ workspace4 "outputPileWorkspace" store
 	  gazeDelta spinForSeconds
 	) 5 replicateWord
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
 	isGripperGripping ( 
 	  nod 
 	) ift 
-      ) while 
+      ) whileCollapsed 
     } 
-  } ( 1 ) ( slip ) while
+  } ( 1 ) ( slip ) whileCollapsed
 ) "scan_threaded_catScan_aFace" store
 
 (
@@ -161,7 +161,7 @@ workspace4 "outputPileWorkspace" store
 	"ursula_no.tif" publishImageFileToFace 
       ) ifte 
       endStackCollapseNoop 
-    ) while 
+    ) whileCollapsed 
   } 
   { |B 
     ( 1 ) ( 
@@ -181,7 +181,7 @@ workspace4 "outputPileWorkspace" store
 	gazeDelta spinForSeconds
       ) 5 replicateWord
       endStackCollapseNoop 
-    ) while 
+    ) whileCollapsed 
   } 
 ) "scan_thread_alterface" store
 
@@ -212,7 +212,7 @@ workspace4 "outputPileWorkspace" store
     ) ift
     openGripper
 
-  ) while
+  ) whileCollapsed
 
 ) "scan_findNewComponent" store
 
@@ -254,7 +254,7 @@ workspace4 "outputPileWorkspace" store
     ) ifte
 
     scan_pointCounter 1 + "scan_pointCounter" store
-  ) while
+  ) whileCollapsed
 
   scan_breakInd
 ) "scan_findObjectAfterDrop_old" store
@@ -347,7 +347,7 @@ workspace4 "outputPileWorkspace" store
     playWorkspace moveEeToPoseWord 1 changeToHeight currentPose
     scan_findObjectAfterDrop "scan_catScanSees" store
     scan_catPickCounter 1 + "scan_catPickCounter" store
-  ) while
+  ) whileCollapsed
 ) "catPlayLoop" store
 
 (
@@ -372,7 +372,7 @@ workspace4 "outputPileWorkspace" store
     pickFromInputPile2
     playWithObject
     moveToOutputPile2
-  ) while
+  ) whileCollapsed
 
 ) "tableInfiniteScan" store
 
@@ -428,7 +428,7 @@ workspace4 "outputPileWorkspace" store
 
       scan_catScanCounter 1 + 
     "scan_catScanCounter" store
-  ) while 
+  ) whileCollapsed 
 
     0 
   "scan_catPickCounter" store
@@ -464,7 +464,7 @@ workspace4 "outputPileWorkspace" store
 
       scan_catPickCounter 1 + 
     "scan_catPickCounter" store
-  ) while
+  ) whileCollapsed
 
   /*
     catScan5 uses bandits over 3d grasps to select the best grasp, perform
@@ -532,7 +532,7 @@ workspace4 "outputPileWorkspace" store
 	catScan5SwapInputOutput
 
       ) ift
-    ) while
+    ) whileCollapsed
 
     halfImpulse
     playWorkspace moveEeToPoseWord
@@ -540,7 +540,7 @@ workspace4 "outputPileWorkspace" store
     ( zDown ) 15 replicateWord
 
     isGripperGripping ! ( openGripper playWorkspace cw_clearWorkspace ) ift 
-  ) while
+  ) whileCollapsed
 
   tableRestoreFromBlocks
 ) "pickFromInputPile2" store
@@ -596,7 +596,7 @@ workspace4 "outputPileWorkspace" store
       liftArm 
     ) ift 
 
-  ) while
+  ) whileCollapsed
 
   somethingsThere isGripperGripping and (
     halfImpulse outputPileWorkspace moveEeToPoseWord waitUntilAtCurrentPosition waitUntilEndpointCallbackReceived

@@ -39,6 +39,10 @@ assert
 0 not assert
 
 1 "x" store
+( x 10 < ) ( x 1 + "x" store ) whileCollapsed
+x 10.0 = assert
+
+1 "x" store
 ( x 10 < ) ( x 1 + "x" store ) while
 x 10.0 = assert
 
