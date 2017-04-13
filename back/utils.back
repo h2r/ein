@@ -1,5 +1,5 @@
 
-( ( 1 ) ( dup exec 1 waitForSeconds pop ) while ) "watch" store
+( ( 1 ) ( dup exec 1 waitForSeconds pop ) whileCollapsed ) "watch" store
 
 (
   0.01 setGridSize
@@ -7,7 +7,7 @@
   comeToStop 
 ) "liftArm" store
 
-( "doUntilAtCurrentPositionTemp" store ( isAtCurrentPosition not )  ( doUntilAtCurrentPositionTemp endStackCollapseNoop )  while  ) "doUntilAtCurrentPosition" store
+( "doUntilAtCurrentPositionTemp" store ( isAtCurrentPosition not )  ( doUntilAtCurrentPositionTemp endStackCollapseNoop )  whileCollapsed  ) "doUntilAtCurrentPosition" store
 
 (
 
@@ -47,7 +47,7 @@
     { |B 
       ( 1 ) ( 
 	blink_lightshow 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       mapAndPickL
@@ -57,7 +57,7 @@
 	drand48 -0.5 plus 4.0 times 5 setHeadPanTargetSpeed 
 	drand48 20 times spinForSeconds 
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
@@ -77,16 +77,16 @@
 	  gazeDelta spinForSeconds
 	) 5 replicateWord
 	endStackCollapseNoop 
-      ) while 
+      ) whileCollapsed 
     } 
     { |B 
       ( 1 ) ( 
 	isGripperGripping ( 
 	  nod 
 	) ift 
-      ) while 
+      ) whileCollapsed 
     } 
-  } ( 1 ) ( slip ) while
+  } ( 1 ) ( slip ) whileCollapsed
 
 ) "utils_practice_bars" store
 

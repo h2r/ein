@@ -187,6 +187,15 @@ REGISTER_WORD(ZeroGOff)
 
 WORD(ClearStack)
 CODE('r') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("clearCallStack");
+  return result;
+}
+virtual string description() {
+  return "Clear the call stack.";
+}
 virtual void execute(MachineState * ms) {
   ms->clearStack();
 }
@@ -194,6 +203,9 @@ END_WORD
 REGISTER_WORD(ClearStack)
 
 WORD(ClearStacks)
+virtual string description() {
+  return "Clear the call stack and the data stack.";
+}
 virtual void execute(MachineState * ms) {
   ms->clearData();
   ms->clearStack();
@@ -1466,7 +1478,10 @@ virtual void execute(MachineState * ms)
   wordFile.open(wordFileName);
 
   for (int i = 0; i < words.size(); i++) {
-    wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
+    vector<string> names = words[i]->names();
+    for (int j = 0; j < names.size(); j++) {
+      wordFile << names[j] << " " << words[i]->character_code() << endl;
+    }
   }
   wordFile.close();
 }
@@ -1485,7 +1500,16 @@ virtual void execute(MachineState * ms)
   map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
   std::map<std::string, shared_ptr<Word> >::iterator iter;
   for (iter = words.begin(); iter != words.end(); ++iter) {
-    wordFile << "<tr><td>" << xmlEncode(iter->first) << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
+    vector<string> names = iter->second->names();
+    wordFile << "<tr><td>";
+    //for (int j = 0; j < names.size(); j++) {
+    wordFile << xmlEncode(iter->first);
+      //if (j != names.size() - 1) {
+      //  wordFile << ", ";
+      //}
+    //}
+    wordFile << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
+
   }
   wordFile << "</table>" << endl;
   wordFile.close();
@@ -2583,6 +2607,15 @@ END_WORD
 REGISTER_WORD(PrintStacks)
 
 WORD(ClearData)
+virtual string description() {
+  return "Clear the data stack.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("clearDataStack");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   ms->clearData();
@@ -2786,6 +2819,51 @@ REGISTER_WORD(AssertNo)
 
 
 WORD(While)
+virtual string description() {
+  return "While loop.  Usage:  ( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<CompoundWord> block;
+  shared_ptr<CompoundWord> condition;
+  GET_WORD_ARG(ms, CompoundWord, block);
+  GET_WORD_ARG(ms, CompoundWord, condition);
+
+  shared_ptr<CompoundWord> whileblock = make_shared<CompoundWord>();
+
+  whileblock->pushWord(ms, "while");
+  whileblock->pushWord(ms, ")");
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
+  whileblock->pushWord(ms, "(");
+  whileblock->pushWord(ms, ")");
+  for (int i = 0; i < condition->size(); i++) {
+    whileblock->pushWord(condition->getWord(i));
+  }
+  whileblock->pushWord(ms, "(");
+
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
+
+  ms->pushWord("ift");
+  ms->pushWord(")");
+  for (int i = 0; i < whileblock->size(); i++) {
+    ms->pushWord(whileblock->getWord(i));
+  }
+  ms->pushWord("endStackCollapseNoop");
+  ms->pushWord("(");
+  ms->pushWord(condition);
+}
+END_WORD
+REGISTER_WORD(While)
+
+
+
+WORD(WhileCollapsed)
+virtual string description() {
+  return "While loop.  Use as in while, but collaspses the stack.  This means that if you don't exit the while, Ein will also never exit the while, and be in an infinite loop, even if you clear the stacks.";
+}
 virtual void execute(MachineState * ms) {
   shared_ptr<CompoundWord> block;
   shared_ptr<CompoundWord> condition;
@@ -2819,7 +2897,7 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(condition);
 }
 END_WORD
-REGISTER_WORD(While)
+REGISTER_WORD(WhileCollapsed)
 
 
 WORD(LeftOrRightArm)

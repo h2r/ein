@@ -7,7 +7,7 @@
 
 
   { |B { |B 1 2 3 4 5 6 print print print print print print } { |B a b c d e f print print print print print print } }
-  0 "cc" store ( cc 1 + dup "cc" store 36 < ) ( slip ) while cc print
+  0 "cc" store ( cc 1 + dup "cc" store 36 < ) ( slip ) whileCollapsed cc print
 
 ) "cw_test" store
 
@@ -213,7 +213,7 @@
 
       cw_clearWorkspace_counter 1 + "cw_clearWorkspace_counter" store
     ) ifte
-  ) while
+  ) whileCollapsed
 
 
   /* 

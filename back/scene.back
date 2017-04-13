@@ -162,7 +162,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ( localYDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tableUpdateSpiralCoreNoClean" print
     tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
-  ) while
+  ) whileCollapsed
 
   /* turn streaming off */
   deactivateSensorStreaming
@@ -193,7 +193,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ( localYDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tableUpdateSpiralCoreNoClean" print
     tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
-  ) while
+  ) whileCollapsed
 
   /* turn streaming off */
   deactivateSensorStreaming
@@ -243,7 +243,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ( yDown waitUntilAtCurrentPosition ) tableUpdateSpiralIdx tableUpdateSpiralYNum times 1 tableUpdateSpiralYNum times + replicateWord ( 0.2 waitForSeconds ) doUntilAtCurrentPosition 
     "tableUpdateSpiralEccentricCore" print
     tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
-  ) while
+  ) whileCollapsed
 
   /* turn streaming off */
   deactivateSensorStreaming
@@ -798,7 +798,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     tableCounter sceneMapSceneObject
     publishRecognizedObjectArrayFromBlueBoxMemory
     tableCounter 1 +  "tableCounter" store
-  ) while
+  ) whileCollapsed
 ) "tableAddBlueBoxesForSceneObjects" store
 
 (
@@ -957,7 +957,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ( yDown ) tableUpdateSpiralIdx 1 + replicateWord ( 0.2 waitForSeconds sceneUpdateObservedFromWrist  ) doUntilAtCurrentPosition 
     "tableUpdateSpiralRing" print
     tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
-  ) while
+  ) whileCollapsed
 ) "tableUpdateSpiralRing" store
 
 (
@@ -974,7 +974,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ( yDown ) tableUpdateSpiralIdx 1 + replicateWord waitWord sceneUpdateObservedFromWrist
     "tableUpdateSpiralStop" print
     tableUpdateSpiralIdx 2 + "tableUpdateSpiralIdx" store
-  ) while
+  ) whileCollapsed
 ) "tableUpdateSpiralStop" store
 
 
@@ -1235,7 +1235,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ) ( 
       tableBlockCollarWidth tableBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
       thisBlockGraspThickness tableBlockGraspResolution minus "thisBlockGraspThickness" store
-    ) while
+    ) whileCollapsed
 
     setGraspModeTo3D
     0 sceneSetClassificationMode
@@ -1251,7 +1251,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     ) ( 
       tableBlockCollarWidth tableBlockTargetContactWidth thisBlockGraspThickness sceneFabricateIdealBlockModel 
       thisBlockGraspThickness tableBlockGraspResolution minus "thisBlockGraspThickness" store
-    ) while
+    ) whileCollapsed
 
     setGraspModeTo3D
     0 sceneSetClassificationMode
@@ -2054,7 +2054,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 
     tableReconstructWithZThisZ tableReconstructWithZDeltaZ - "tableReconstructWithZThisZ" store
-  ) while
+  ) whileCollapsed
 
 
   tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
@@ -2529,7 +2529,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 */
 
     tableReconstructWithZThisZ tableReconstructWithZDeltaZ - "tableReconstructWithZThisZ" store
-  ) while
+  ) whileCollapsed
 
 
   tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
@@ -3781,7 +3781,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ( 1 ) (
     tableDribbleCore
     endStackCollapseNoop
-  ) while
+  ) whileCollapsed
 ) "tableInfiniteDribble" store
 
 (
@@ -3790,7 +3790,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ( 1 ) (
     tableDribbleBestCore
     endStackCollapseNoop
-  ) while
+  ) whileCollapsed
 ) "tableInfiniteDribbleBest" store
 
 (
@@ -3819,7 +3819,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 	3.0 times
       waitForSeconds
     ) 80 replicateWord
-  ) while
+  ) whileCollapsed
 ) "tableIdolDance" store
 
 
@@ -4000,7 +4000,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   (
     hypotrochoidGait
     cgWaitT waitForSeconds
-  ) while
+  ) whileCollapsed
 ) "hypotrochoidGaitStarDrive" store
 
 (
@@ -4009,7 +4009,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   (
     circleGait
     cgWaitT waitForSeconds
-  ) while
+  ) whileCollapsed
 ) "circleGaitRingDrive" store
 
 (

@@ -1,4 +1,27 @@
 <table><tr><th>Word</th><th>Description</th></tr>
+<tr><td>!</td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
+<tr><td>%</td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
+<tr><td>&amp;&amp;</td><td></td></tr>
+<tr><td>&apos;</td><td></td></tr>
+<tr><td>(</td><td></td></tr>
+<tr><td>)</td><td></td></tr>
+<tr><td>*</td><td></td></tr>
+<tr><td>+</td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
+<tr><td>-</td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
+<tr><td>/</td><td></td></tr>
+<tr><td>;</td><td></td></tr>
+<tr><td>&lt;</td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
+<tr><td>&lt;=</td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>=</td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
+<tr><td>&gt;</td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
+<tr><td>&gt;=</td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>First</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
+<tr><td>Head</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
+<tr><td>Pause</td><td></td></tr>
+<tr><td>Rest</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
+<tr><td>Tail</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
+<tr><td>[</td><td></td></tr>
+<tr><td>]</td><td></td></tr>
 <tr><td>aboutFace</td><td>Rotate the gripper in oZ by 180 degrees.</td></tr>
 <tr><td>accumulate</td><td>Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -&gt; 3.</td></tr>
 <tr><td>accumulatedDensity</td><td></td></tr>
@@ -262,15 +285,17 @@
 <tr><td>classRangeMapFromRegister1</td><td></td></tr>
 <tr><td>clearAllRangeMaps</td><td></td></tr>
 <tr><td>clearBlueBoxMemories</td><td></td></tr>
+<tr><td>clearCallStack</td><td>Clear the call stack.</td></tr>
 <tr><td>clearClass3dGrasps</td><td></td></tr>
 <tr><td>clearClassLabels</td><td></td></tr>
 <tr><td>clearConsole</td><td>Prints a lot of newlines to the console to clear it.</td></tr>
-<tr><td>clearData</td><td></td></tr>
+<tr><td>clearData</td><td>Clear the data stack.</td></tr>
+<tr><td>clearDataStack</td><td>Clear the data stack.</td></tr>
 <tr><td>clearIkMap</td><td>Reset the IK Map so that every cell is good.</td></tr>
 <tr><td>clearMapForPatrol</td><td></td></tr>
-<tr><td>clearStack</td><td></td></tr>
+<tr><td>clearStack</td><td>Clear the call stack.</td></tr>
 <tr><td>clearStackIntoMappingPatrol</td><td></td></tr>
-<tr><td>clearStacks</td><td></td></tr>
+<tr><td>clearStacks</td><td>Clear the call stack and the data stack.</td></tr>
 <tr><td>clearStreamBuffers</td><td></td></tr>
 <tr><td>closeGripper</td><td></td></tr>
 <tr><td>cmp</td><td>Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.</td></tr>
@@ -970,6 +995,7 @@
 <tr><td>isGripperGripping</td><td></td></tr>
 <tr><td>isGripperMoving</td><td></td></tr>
 <tr><td>iterateIsbAndAccumulateHeightImages</td><td></td></tr>
+<tr><td>join</td><td>Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -&gt; 3.</td></tr>
 <tr><td>langle</td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
 <tr><td>leftOrRightArm</td><td></td></tr>
 <tr><td>lensArrayGap</td><td></td></tr>
@@ -1693,6 +1719,8 @@
 <tr><td>setStreamPicks</td><td></td></tr>
 <tr><td>setTable</td><td></td></tr>
 <tr><td>setTableA</td><td></td></tr>
+<tr><td>setTargetClass</td><td></td></tr>
+<tr><td>setTargetClassIdx</td><td></td></tr>
 <tr><td>setTargetClassToLastLabelLearned</td><td></td></tr>
 <tr><td>setTargetReticleToTheMaxMappedPosition</td><td></td></tr>
 <tr><td>setTheYcbTable</td><td></td></tr>
@@ -2090,7 +2118,8 @@
 <tr><td>waitUntilRingBufferImageAtCurrentPosition</td><td></td></tr>
 <tr><td>waitWord</td><td></td></tr>
 <tr><td>watch</td><td></td></tr>
-<tr><td>while</td><td></td></tr>
+<tr><td>while</td><td>While loop.  Usage:  ( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while</td></tr>
+<tr><td>whileCollapsed</td><td>While loop.  Use as in while, but collaspses the stack.  This means that if you don&apos;t exit the while, Ein will also never exit the while, and be in an infinite loop, even if you clear the stacks.</td></tr>
 <tr><td>workspace1</td><td></td></tr>
 <tr><td>workspace2</td><td></td></tr>
 <tr><td>workspace3</td><td></td></tr>
@@ -2112,4 +2141,9 @@
 <tr><td>zeroGOn</td><td>Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.</td></tr>
 <tr><td>zeroGToggle</td><td>Toggle zero gravity mode.</td></tr>
 <tr><td>zeroIROffset</td><td></td></tr>
+<tr><td>{</td><td></td></tr>
+<tr><td>|B</td><td></td></tr>
+<tr><td>|S</td><td></td></tr>
+<tr><td>||</td><td></td></tr>
+<tr><td>}</td><td></td></tr>
 </table>

@@ -194,7 +194,7 @@ done lazily, when the variable is read.
 Back includes looping and condition constructs.
 
 `ift` takes two arguments and prints if its argument is true.  Ein
-casts words to booleans followin C's semantics, so zero is false, and
+casts words to booleans following C's semantics, so zero is false, and
 all other values are true (including the empty string).
 
 This version prints "hello":
@@ -212,9 +212,40 @@ This version does not:
 
 `while` takes a condition and a compound word and executes until the
 condition is true.  While collapses the stack and will freeze ein
-unless the condition includes a wait word.
+unless the condition includes a wait word.  For example the following
+program pulses the torso fan forever:
 
-`( 1 ) ( torsoFanOn 1 waitForSeconds )  while`
+`( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while`
+
+
+### Stack Collapse
+
+Ein is constantly processing sensor and gui messages in the
+backaround, and then alternating between processing words.  For Back
+words, the robot will process messages after each word.  However for
+certain words, it can collapse the stack and execute it all at once,
+without performaing message processing.  This collapse will freeze the
+gui and stop message passing from occurring but allows the system to
+devote all its CPU to the computational task, exploiting cache
+efficiency.
+
+For `while` loops and `for` loops, they do not collapse the stack by
+default.  However there exists a `whileCollapsed` word where the inner
+loop is collapsed.  This means that message processing will not be
+done (unless the inner loop contain words that do not collapse the
+stack and instigate message processing.
+
+`( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while`
+
+#### Exercise:  Stack Collapse
+
+Experiment with a program to make an infinite set of ones on the
+stack.  If you use `while` with `( 1 1 + ) ( 1 ) while`, you will see
+the stack continue to grow as the program runs.  Abort the program
+with `clearCallStack`.
+
+Now try `whileCollapsed` which collapses the stack.  Note that Ein is
+frozen, and that clearCallStack no longer stops the program.
 
 
 ### Back files

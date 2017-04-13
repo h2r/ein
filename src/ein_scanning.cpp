@@ -4660,6 +4660,9 @@ END_WORD
 REGISTER_WORD(Lock3dGraspBase)
 
 WORD(Add3dGrasp)
+virtual string description() {
+  return "Add the current pose as a 3D grasp relative to the focused object.  Must have locked the 3d grasp first so it knows what pose to use relative to the object.";
+}
 virtual void execute(MachineState * ms) {
   cout << "Adding 3d grasp" << endl;
   eePose thisAbsolute3dGrasp = ms->config.currentEEPose;
@@ -4700,6 +4703,9 @@ END_WORD
 REGISTER_WORD(AssumeZOfPoseWord)
 
 WORD(Add3dGraspPoseWord)
+virtual string description() {
+  return "Takes an argument on the stack of an EEPose and adds that pose as a 3d grasp relative to the base object.";
+}
 virtual void execute(MachineState * ms) {
   eePose thisAbsolute3dGrasp ;
   GET_ARG(ms, EePoseWord, thisAbsolute3dGrasp);
