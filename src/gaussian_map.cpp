@@ -4552,6 +4552,9 @@ END_WORD
 REGISTER_WORD(SceneSmoothDiscrepancyDensity)
 
 WORD(ScenePushSceneObjectPose)
+virtual string description() {
+  return "Takes an index; pushes the pose for this predicted object.";
+}
 virtual void execute(MachineState * ms) {
   int so_idx = 0;
   GET_INT_ARG(ms, so_idx);
@@ -4562,11 +4565,14 @@ virtual void execute(MachineState * ms) {
     eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
     ms->pushWord(make_shared<EePoseWord>(objectPoseInBase));
   } else {
-    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
+    CONSOLE_ERROR(ms, "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid...");
+    ms->pushWord("pauseStackExecution");
+
   }
 }
 END_WORD
 REGISTER_WORD(ScenePushSceneObjectPose)
+
 
 WORD(ScenePushNumSceneObjects)
 virtual void execute(MachineState * ms) {
@@ -4586,6 +4592,24 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(ScenePushSceneObjectLabel)
+
+
+WORD(SceneObjectLabelToSceneObjectIdx)
+virtual void execute(MachineState * ms) {
+  string label;
+  GET_STRING_ARG(ms, label);
+  ms->pushWord(")");
+  for (unsigned int i = 0; i < ms->config.scene->predicted_objects.size(); i++) {
+    if (ms->config.scene->predicted_objects[i]->object_label == label) {
+      ms->pushWord(make_shared<IntegerWord>(i));
+    }
+  }
+  ms->pushWord("(");
+
+}
+END_WORD
+REGISTER_WORD(SceneObjectLabelToSceneObjectIdx)
+
 
 WORD(SceneMapSceneObject)
 virtual void execute(MachineState * ms) {
