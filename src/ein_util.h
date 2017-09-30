@@ -8,12 +8,9 @@
 #include <cv.h>
 #include <ml.h>
 #include <opencv2/gpu/gpu.hpp>
-#include <geometry_msgs/Pose.h>
 
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
-
-#include "eePose.h"
 
 #include "word.h"
 
@@ -60,7 +57,6 @@ typedef enum {
 
 void pushGridSign(MachineState * ms, double speed);
 bool isSketchyMat(Mat sketchy);
-eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
 gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(MachineState * ms);

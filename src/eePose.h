@@ -138,5 +138,6 @@ typedef struct _armPose{
   */
 } armPose;
 
+eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
 #endif /* _EEPOSEH_ */

@@ -494,3 +494,17 @@ void _armPose::writeToFileStorage(FileStorage& fsvO) const {
 
 
 
+
+
+eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
+  eePose result;
+  result.px = pose.position.x;
+  result.py = pose.position.y;
+  result.pz = pose.position.z;
+  result.qx = pose.orientation.x;
+  result.qy = pose.orientation.y;
+  result.qz = pose.orientation.z;
+  result.qw = pose.orientation.w;
+  return result;
+}
+

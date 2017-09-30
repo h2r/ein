@@ -4,8 +4,11 @@
 #include <ros/ros.h>
 
 #include<arpa/inet.h> 
+#include <sys/poll.h>
 
 #include "word.h"
+
+#include <cv.h>
 
 class EinAiboJoints {
   public:
