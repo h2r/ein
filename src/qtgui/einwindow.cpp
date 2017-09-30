@@ -1,6 +1,7 @@
 #include "einwindow.h"
 #include "ui_einwindow.h"
 #include "mainwindow.h"
+#include "ein_util.h"
 
 #include <highgui.h>
 #include <QTest>
