@@ -1656,10 +1656,10 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   EinConfig config;
 
   int focusedMember = 0;
-  std::vector<EinAiboConfig> pack;
+  std::vector<EinAiboConfig*> pack;
 
   ros::Time aiboStoppedTime;
-  EinAiboJoints stoppedJoints;
+  EinAiboJoints * stoppedJoints;
   ros::Time aiboComeToStopTime;
   int execute_stack = 0;
 

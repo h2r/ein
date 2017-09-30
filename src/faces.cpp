@@ -1,5 +1,6 @@
 #include "faces.h"
 #include "ein_util.h"
+#include "eePose.h"
 #include <ros/console.h>
 
 

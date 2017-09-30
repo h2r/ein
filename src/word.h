@@ -2,13 +2,13 @@
 #define _WORD_H_
 
 #include "ein_util.h"
-#include "ein_aibo.h"
+
 
 using namespace std;
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
-
+#include "eePose.h"
 
 class MachineState;
 
@@ -487,66 +487,6 @@ class CompoundWord : public Word {
   static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 
-class AiboPoseWord: public Word
-{
-private:
-  EinAiboJoints pose;
-
-public:
-  EinAiboJoints value() {
-    return pose;
-  }
-
-  virtual bool is_value() {
-    return true;
-  }
-
-  static std::shared_ptr<AiboPoseWord> parse(string token) {
-    EinAiboJoints pose;
-    return std::make_shared<AiboPoseWord>(pose);
-  }
-  virtual bool is_static() {
-    return false;
-  }
-  static bool isInteger(string token) {
-    if (token.substr(0,5) == "EinAiboJoints") {
-      return true;
-    } else {
-      return false;
-    }
-  }
-  
-  AiboPoseWord(EinAiboJoints _pose) {
-    pose = _pose;
-  }
-
-  virtual string repr();
-
-  string name() {
-    stringstream ss;
-    //ss << pose;
-    return ss.str();
-    // XXX need to overload << 
-  }
-
-  bool equals(shared_ptr<Word> word) {
-    shared_ptr<AiboPoseWord> w1 = dynamic_pointer_cast<AiboPoseWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      //return w1->value().equals(this->value());
-      // XXX not done
-      return false;
-    }
-  }
-  
-  virtual bool to_bool() {
-    return true;
-  }
-  virtual int to_int() {
-    return 1;
-  }
-};
 
 
 
