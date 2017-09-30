@@ -2,6 +2,7 @@
 #define _CONFIG_H_
 
 #include "ein_aibo.h"
+#include "ein_baxter.h"
 #include "gaussian_map.h"
 
 class GaussianMap;
@@ -38,24 +39,11 @@ class Camera;
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 
+namespace baxter_core_msgs {
+  ROS_DECLARE_MESSAGE(DigitalIOState);
+  ROS_DECLARE_MESSAGE(AnalogIOState);
 
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/CollisionDetectionState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/SEAJointState.h>
-#include <baxter_core_msgs/DigitalIOState.h>
-#include <baxter_core_msgs/AnalogIOState.h>
-
-
-
-
-
+}
 
 #include "eigen_util.h"
 #include <ein/EinState.h>
@@ -388,7 +376,6 @@ typedef struct pixelToGlobalCache {
   double finalYOffset;
 
   Mat un_rot_mat;
-
   double rotx[3];
   double roty[3];
 
@@ -443,27 +430,18 @@ class CompoundWord;
 class EinConfig {
  public:
 
+  EinBaxterConfig * baxterConfig;
 
-  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
-  std_msgs::Bool currentHeadNodCommand;
-  std_msgs::UInt16 currentSonarCommand;
   std_msgs::UInt32 currentStiffnessCommand;
   
   tf::TransformListener* tfListener;
   
-  baxter_core_msgs::SolvePositionIK currentJointPositions;
-  baxter_core_msgs::SolvePositionIK ikRequest;
-  baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
   
   ros::ServiceClient ikClient;
   ros::ServiceClient cameraClient;
-  ros::Publisher joint_mover;
   ros::Publisher gripperPub;
   ros::Publisher facePub;
   ros::Publisher moveSpeedPub;
-  ros::Publisher sonarPub;
-  ros::Publisher headPub;
-  ros::Publisher nodPub;
   ros::Publisher stiffPub;
   ros::Publisher einStatePub;
   ros::Publisher einConsolePub;
@@ -1538,26 +1516,10 @@ class EinConfig {
     return numCollisions;
   }
 
-  ros::Subscriber eeRanger;
-  ros::Subscriber epState;
-  ros::Subscriber gravity_comp_sub;
-  ros::Subscriber torso_fan_sub;
-  ros::Subscriber arm_button_back_sub;
-  ros::Subscriber arm_button_ok_sub;
-  ros::Subscriber arm_button_show_sub;
-  ros::Subscriber cuff_grasp_sub;
-  ros::Subscriber cuff_ok_sub;
-  ros::Subscriber shoulder_sub;
   ros::Subscriber rosout_sub;
 
 
 
-
-  ros::Subscriber collisionDetectionState;
-  ros::Subscriber gripState;
-  ros::Subscriber eeAccelerator;
-  ros::Subscriber eeTarget;
-  ros::Subscriber jointSubscriber;
 
   ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
@@ -1692,7 +1654,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   string currentState();
 
-  void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 
 
@@ -1700,22 +1661,10 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
   void evaluateProgram(const string program);
-  void endpointCallback(const baxter_core_msgs::EndpointState& eps);
-  void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds);
-  void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
   void accelerometerCallback(const sensor_msgs::Imu& moment);
   void rangeCallback(const sensor_msgs::Range& range);
-  void update_baxter(ros::NodeHandle &n);
   void timercallback1(const ros::TimerEvent&);
   void imageCallback(Camera * camera);
-  void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
-  void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
-  void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
-  void torsoFanCallback(const baxter_core_msgs::AnalogIOState& dios) ;
-  void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armShowButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armBackButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armOkButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
 
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);

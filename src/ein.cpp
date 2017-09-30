@@ -817,22 +817,6 @@ void recordReadyRangeReadings(MachineState * ms) {
 #endif
 }
 
-void MachineState::jointCallback(const sensor_msgs::JointState& js) {
-  MachineState * ms = this;
-
-  if (ms->config.jointNamesInit) {
-    int limit = js.position.size();
-    for (int i = 0; i < limit; i++) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-	if (0 == js.name[i].compare(ms->config.jointNames[j]))
-	  ms->config.trueJointPositions[j] = js.position[i];
-	  ms->config.trueJointVelocities[j] = js.velocity[i];
-	  ms->config.trueJointEfforts[j] = js.effort[i];
-	//cout << "tJP[" << j << "]: " << trueJointPositions[j] << endl;
-      }
-    }
-  }
-}
 
 int classIdxForName(MachineState * ms, string name) {
   int class_idx = -1;
@@ -1996,9 +1980,8 @@ void activateSensorStreaming(MachineState * ms) {
     mkdir(this_calibration_path.c_str(), 0777);
     ms->config.sensorStreamOn = 1;
 
-    // turn that queue size up!
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms);
+    baxterActivateSensorStreaming(ms);
+
     for (int i = 0; i < ms->config.cameras.size(); i++) {
       ms->config.cameras[i]->activateSensorStreaming();
     }
@@ -2018,10 +2001,9 @@ void deactivateSensorStreaming(MachineState * ms) {
   cout << "deactivateSensorStreaming: Making image transport." << endl;
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
-  cout << "deactivateSensorStreaming: Subscribe to endpoint_state." << endl;
-  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
-  cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
-  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
+
+  baxterDeactivateSensorStreaming(ms);
+
   for (int i = 0; i < ms->config.cameras.size(); i++) {
     ms->config.cameras[i]->deactivateSensorStreaming();
   }
@@ -2576,285 +2558,6 @@ void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 
-void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps) {
-  baxter_core_msgs::EndpointState eps = _eps;
-  MachineState * ms = this;
-
-  eePose endPointEEPose;
-  {
-    endPointEEPose.px = _eps.pose.position.x;
-    endPointEEPose.py = _eps.pose.position.y;
-    endPointEEPose.pz = _eps.pose.position.z;
-    endPointEEPose.qx = _eps.pose.orientation.x;
-    endPointEEPose.qy = _eps.pose.orientation.y;
-    endPointEEPose.qz = _eps.pose.orientation.z;
-    endPointEEPose.qw = _eps.pose.orientation.w;
-  }
-
-  ms->config.lastEndpointCallbackReceived = ros::Time::now();
-
-  // note that the quaternion field holds a vector3!
-  ms->config.trueEEWrench.px = eps.wrench.force.x;
-  ms->config.trueEEWrench.py = eps.wrench.force.y;
-  ms->config.trueEEWrench.pz = eps.wrench.force.z;
-  ms->config.trueEEWrench.qx = eps.wrench.torque.x;
-  ms->config.trueEEWrench.qy = eps.wrench.torque.y;
-  ms->config.trueEEWrench.qz = eps.wrench.torque.z;
-
-  double thisWrenchNorm = eePose::distance(eePose::zero(), ms->config.trueEEWrench);
-  double td = ms->config.averagedWrechDecay;
-  //cout << "JJJ theWrenchNorm " << thisWrenchNorm << " " << td << endl;
-  ms->config.averagedWrechAcc = (1.0-td)*thisWrenchNorm + (td)*ms->config.averagedWrechAcc;
-  ms->config.averagedWrechMass =  (1.0-td)*1 + (td)*ms->config.averagedWrechMass;
-  //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
-
-  //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
-  // XXX
-  //ms->config.tfListener
-  //tf::StampedTransform transform;
-  //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_gripper_base", ros::Time(0), transform);
-
-  geometry_msgs::PoseStamped hand_pose;
-  //tf::StampedTransform base_to_hand_transform;
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 0;
-    pose.pose.orientation.x = 0;
-    pose.pose.orientation.y = 0;
-    pose.pose.orientation.z = 0;
-    pose.pose.orientation.w = 1;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", hand_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    } else {
-      //pose = ms->config.currentEEPose;
-    }
-    //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
-  }
-
-
-  // XXX
-  // right now we record the position of the hand and then switch current and
-  // true pose to refer to where the gripper actually is, which is a minor
-  // inconsistency
-  setRingPoseAtTime(ms, hand_pose.header.stamp, hand_pose.pose);
-  geometry_msgs::Pose thisPose;
-  int weHavePoseData = getRingPoseAtTime(ms, hand_pose.header.stamp, thisPose);
-
-  int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
-    double thisNow = hand_pose.header.stamp.toSec();
-    eePose tempPose;
-    {
-      tempPose.px = hand_pose.pose.position.x;
-      tempPose.py = hand_pose.pose.position.y;
-      tempPose.pz = hand_pose.pose.position.z;
-      tempPose.qx = hand_pose.pose.orientation.x;
-      tempPose.qy = hand_pose.pose.orientation.y;
-      tempPose.qz = hand_pose.pose.orientation.z;
-      tempPose.qw = hand_pose.pose.orientation.w;
-    }
-    streamPoseAsClass(ms, tempPose, cfClass, thisNow); 
-  } 
-  // XXX 
-
-  eePose handEEPose;
-  {
-    handEEPose.px = hand_pose.pose.position.x;
-    handEEPose.py = hand_pose.pose.position.y;
-    handEEPose.pz = hand_pose.pose.position.z;
-    handEEPose.qx = hand_pose.pose.orientation.x;
-    handEEPose.qy = hand_pose.pose.orientation.y;
-    handEEPose.qz = hand_pose.pose.orientation.z;
-    handEEPose.qw = hand_pose.pose.orientation.w;
-  }
-
-  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
-    //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-  }
-  ms->config.lastHandEEPose = handEEPose;
-  
-  ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = ms->config.handEndEffectorOffset.px;
-    pose.pose.position.y = ms->config.handEndEffectorOffset.py;
-    pose.pose.position.z = ms->config.handEndEffectorOffset.pz;
-    pose.pose.orientation.x = ms->config.handEndEffectorOffset.qx;
-    pose.pose.orientation.y = ms->config.handEndEffectorOffset.qy;
-    pose.pose.orientation.z = ms->config.handEndEffectorOffset.qz;
-    pose.pose.orientation.w = ms->config.handEndEffectorOffset.qw;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    }
-
-    eps.pose.position.x = transformed_pose.pose.position.x;
-    eps.pose.position.y = transformed_pose.pose.position.y;
-    eps.pose.position.z = transformed_pose.pose.position.z;
-    eps.pose.orientation = transformed_pose.pose.orientation;
-
-    //cout << pose << transformed_pose << hand_pose;
-    //cout << base_to_hand_transform.getOrigin().x() << base_to_hand_transform.getOrigin().y() << base_to_hand_transform.getOrigin().z() << endl;
-    //tf::Vector3 test(0,0,0.03);
-    //tf::Vector3 test2 = base_to_hand_transform * test;
-    //cout <<  test2.x() << test2.y() << test2.z() << endl;
-  }
-  for (int i = 0; i < ms->config.cameras.size(); i++) {
-    ms->config.cameras[i]->updateTrueCameraPoseWithHandCameraOffset(eps.header.stamp);
-  }
-
-
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = ms->config.handRangeOffset.px;
-    pose.pose.position.y = ms->config.handRangeOffset.py;
-    pose.pose.position.z = ms->config.handRangeOffset.pz;
-    pose.pose.orientation.x = ms->config.handRangeOffset.qx;
-    pose.pose.orientation.y = ms->config.handRangeOffset.qy;
-    pose.pose.orientation.z = ms->config.handRangeOffset.qz;
-    pose.pose.orientation.w = ms->config.handRangeOffset.qw;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    }
-
-    ms->config.trueRangePose.px = transformed_pose.pose.position.x;
-    ms->config.trueRangePose.py = transformed_pose.pose.position.y;
-    ms->config.trueRangePose.pz = transformed_pose.pose.position.z;
-    ms->config.trueRangePose.qx = transformed_pose.pose.orientation.x;
-    ms->config.trueRangePose.qy = transformed_pose.pose.orientation.y;
-    ms->config.trueRangePose.qz = transformed_pose.pose.orientation.z;
-    ms->config.trueRangePose.qw = transformed_pose.pose.orientation.w;
-  }
-
-// XXX TODO get a better convention for controlling gripper position, maybe
-// this should be done by grasp calculators
-  ms->config.trueEEPose = eps.pose;
-  {
-    ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
-    ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
-    ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
-    ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
-    ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
-    ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
-    ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
-  }
-  ms->config.handFromEndEffectorTransform = handEEPose.getPoseRelativeTo(ms->config.trueEEPoseEEPose);
-// XXX
-
-
-
-
-  {
-    double distance = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
-    double distance2 = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
-
-    if (ms->config.currentMovementState == ARMED ) {
-      if (distance2 > ms->config.armedThreshold*ms->config.armedThreshold) {
-	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
-	ms->config.currentMovementState = MOVING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      } else {
-	//cout << "ms->config.currentMovementState is ARMED." << endl;
-      }
-    } else if (distance > ms->config.movingThreshold*ms->config.movingThreshold) {
-      ms->config.currentMovementState = MOVING;
-      ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-      ms->config.lastMovementStateSet = ros::Time::now();
-    } else if (distance > ms->config.hoverThreshold*ms->config.hoverThreshold) {
-      if (distance2 > ms->config.hoverThreshold) {
-	ms->config.currentMovementState = MOVING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      } else {
-	ms->config.currentMovementState = HOVERING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      }
-
-    } else {
-      ros::Duration deltaT = ros::Time::now() - ms->config.lastMovementStateSet;
-      if ( (deltaT.sec) > ms->config.stoppedTimeout ) {
-	if (distance2 > ms->config.hoverThreshold*ms->config.hoverThreshold) {
-	  ms->config.currentMovementState = BLOCKED;
-	  ms->config.lastMovementStateSet = ros::Time::now();
-	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	} else {
-	  ms->config.currentMovementState = STOPPED;
-	  ms->config.lastMovementStateSet = ros::Time::now();
-	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	}
-      }
-    }
-  }
-}
-
-void MachineState::collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
-  MachineState * ms = this;
-  CollisionDetection detection;
-  
-  detection.inCollision = cds.collision_state;
-  detection.time = cds.header.stamp;
-
-  ms->config.collisionStateBuffer.push_front(detection);
-  while (ms->config.collisionStateBuffer.size() > 100) {
-    ms->config.collisionStateBuffer.pop_back();
-  }
-
-}
-
-
-void MachineState::gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
-
-  MachineState * ms = this;
-  ms->config.lastGripperCallbackReceived = ros::Time::now();
-  ms->config.gripperLastUpdated = ros::Time::now();
-  ms->config.gripperPosition  = ees.position;
-  ms->config.gripperMoving = ees.moving;
-  ms->config.gripperGripping = ees.gripping;
-}
 
 bool isGripperGripping(MachineState * ms) {
   //return (ms->config.gripperPosition >= ms->config.gripperThresh);
@@ -3899,269 +3602,6 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
 }
 
 
-void MachineState::update_baxter(ros::NodeHandle &n) {
-
-  MachineState * ms = this;
-  ms->config.bfc = ms->config.bfc % ms->config.bfc_period;
-  if (!ms->config.shouldIDoIK) {
-    return;
-  }
-
-  if (ms->config.currentRobotMode == SIMULATED) {
-    return;
-  }
-  if (ms->config.currentRobotMode == SNOOP) {
-    return;
-  }
-
-  baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
-
-  int ikResultFailed = 0;
-  eePose originalCurrentEEPose = ms->config.currentEEPose;
-
-  // do not start in a state with ikShare 
-  if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
-
-    int numIkRetries = 2;//100; //5000;//100;
-    double ikNoiseAmplitude = 0.01;//0.1;//0.03;
-    double useZOnly = 1;
-    double ikNoiseAmplitudeQuat = 0;
-    for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
-      // ATTN 24
-      //int ikCallResult = ms->config.ikClient.call(thisIkRequest);
-      int ikCallResult = 0;
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	// set this here in case noise was added
-	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-	ikResultFailed = 0;
-	if (ikRetry > 0) {
-	  ROS_WARN_STREAM("___________________");
-	  CONSOLE_ERROR(ms, "Accepting perturbed IK result.");
-	  cout << "ikRetry: " << ikRetry << endl;
-	  eePose::print(originalCurrentEEPose);
-	  eePose::print(ms->config.currentEEPose);
-	  ROS_WARN_STREAM("___________________");
-	}
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-
-	  ikResultFailed = 0;
-	  ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	  ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	  ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      if (!ikResultFailed) {
-	break;
-      }
-
-      ROS_WARN_STREAM("Initial IK result invalid... adding noise and retrying.");
-      cout << thisIkRequest.request.pose_stamp[0].pose << endl;
-
-      reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
-      fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
-    }
-  }
-  
-  /*if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
-    ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-  } else {
-    cout << "waitForExistence timed out" << endl;
-    ikResultFailed = 1;
-  }*/
-
-  if (ikResultFailed) 
-  {
-    CONSOLE_ERROR(ms, "ikClient says pose request is invalid.");
-    ms->config.ik_reset_counter++;
-    ms->config.lastIkWasSuccessful = false;
-
-    cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
-    if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
-      ms->config.ik_reset_counter = 0;
-      //ms->config.currentEEPose = ms->config.ik_reset_eePose;
-      //cout << "  reset pose disabled! setting current position to true position." << endl;
-      //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
-      cout << "  reset pose disabled! setting current position to last good position." << endl;
-      ms->config.currentEEPose = ms->config.lastGoodEEPose;
-      //ms->pushWord("pauseStackExecution"); // pause stack execution
-      cout << "  pausing disabled!" << endl;
-      ms->pushCopies("beep", 15); // beep
-      cout << "target position denied by ik, please reset the object.";
-    }
-    else {
-      cout << "This pose was rejected by ikClient:" << endl;
-      cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
-      cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
-
-      if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_STOP) {
-	ms->config.currentEEPose = ms->config.lastGoodEEPose;
-      } else if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_PASS) {
-      } else {
-	assert(0);
-      }
-    }
-
-    return;
-  }
-  ms->config.lastIkWasSuccessful = true;
-  ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
-
-  ms->config.lastGoodEEPose = ms->config.currentEEPose;
-  ms->config.ikRequest = thisIkRequest;
-  ms->config.ikInitialized = 1;
-  
-
-  // but in theory we can bypass the joint controllers by publishing to this topic
-  // /robot/limb/left/joint_command
-
-  baxter_core_msgs::JointCommand myCommand;
-
-  if (!ms->config.jointNamesInit) {
-    ms->config.jointNames.resize(NUM_JOINTS);
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      ms->config.jointNames[j] = ms->config.ikRequest.response.joints[0].name[j];
-    }
-    ms->config.jointNamesInit = 1;
-  }
-
-  if (ms->config.currentControlMode == VELOCITY) {
-
-    double l2Gravity = 0.0;
-
-    myCommand.mode = baxter_core_msgs::JointCommand::VELOCITY_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ros::Time theNow = ros::Time::now();
-    ros::Duration howLong = theNow - ms->config.oscilStart;
-    double spiralEta = 1.25;
-    double rapidJointGlobalOmega[NUM_JOINTS] = {4, 0, 0, 4, 4, 4, 4};
-    double rapidJointLocalOmega[NUM_JOINTS] = {.2, 0, 0, 2, 2, .2, 2};
-    double rapidJointLocalBias[NUM_JOINTS] = {0, 0, 0, 0.7, 0, 0, 0};
-    int rapidJointMask[NUM_JOINTS] = {1, 0, 0, 1, 1, 1, 1};
-    double rapidJointScales[NUM_JOINTS] = {.10, 0, 0, 1.0, 2.0, .20, 3.1415926};
-
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
-      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ms->config.ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
-    }
-    {
-      double tim = howLong.toSec();
-      double rapidAmp1 = 0.00; //0.3 is great
-      myCommand.command[4] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
-      myCommand.command[3] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
-
-      double rapidAmp2 = 0.00;
-      myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
-      myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
-    }
-  } else if (ms->config.currentControlMode == EEPOSITION) {
-    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ms->config.lastGoodIkRequest.response.joints.resize(1);
-    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
-
-    ms->config.currentJointPositions.response.joints.resize(1);
-    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
-      myCommand.command[j] = ms->config.ikRequest.response.joints[0].position[j];
-      ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
-      ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
-
-      ms->config.currentJointPositions.response.joints[0].name[j] = myCommand.names[j];
-      ms->config.currentJointPositions.response.joints[0].position[j] = myCommand.command[j];
-    }
-    ms->config.goodIkInitialized = 1;
-  } else if (ms->config.currentControlMode == ANGLES) {
-    //ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    //ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    //ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    //ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    //ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    //ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    //ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
-
-    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ms->config.lastGoodIkRequest.response.joints.resize(1);
-    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
-
-    ms->config.currentJointPositions.response.joints.resize(1);
-    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.currentJointPositions.response.joints[0].name[j];
-      myCommand.command[j] = ms->config.currentJointPositions.response.joints[0].position[j];
-      //ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
-      //ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
-    }
-  } else {
-    assert(0);
-  }
-  if (ms->config.publish_commands_mode) {
-    std_msgs::Float64 speedCommand;
-    speedCommand.data = ms->config.currentEESpeedRatio;
-    int param_resend_times = 1;
-    for (int r = 0; r < param_resend_times; r++) {
-      ms->config.joint_mover.publish(myCommand);
-      ms->config.moveSpeedPub.publish(speedCommand);
-      
-      {
-        std_msgs::UInt16 thisCommand;
-        thisCommand.data = ms->config.sonar_led_state;
-        ms->config.sonar_pub.publish(thisCommand);
-      }
-      if (ms->config.repeat_halo) {
-        {
-          std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.red_halo_state;
-          ms->config.red_halo_pub.publish(thisCommand);
-        }
-        {
-          std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.green_halo_state;
-          ms->config.green_halo_pub.publish(thisCommand);
-        }
-      }
-    }
-  }
-
-  ms->config.bfc++;
-}
-
-
 
 
 
@@ -4278,7 +3718,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if (!ms->config.zero_g_toggle) {
-    update_baxter(n);
+    baxterUpdate(ms);
   }
   else {
     ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
@@ -4289,15 +3729,8 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
 
-    if ( (ms->config.currentJointPositions.response.joints.size() > 0) && (ms->config.currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-	ms->config.currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
-      }
-    } else {
-      ms->config.currentJointPositions.response.joints.resize(1);
-      ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-      ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-    }
+
+    baxterSetCurrentJointPositions(ms);
   }
 
   if (ms->config.coreViewWindow->isVisible()) {
@@ -4313,6 +3746,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     renderObjectMapView(left_arm, right_arm);
   }
 }
+
 void publishConsoleMessage(MachineState * ms, string msg) {
   EinConsole consoleMsg;
   consoleMsg.msg = msg;
@@ -4804,122 +4238,6 @@ void MachineState::imageCallback(Camera * camera) {
   }
 }
 
-void MachineState::gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) {
-  MachineState * ms = this;
-
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    ms->config.last_joint_actual_effort[i] = seaJ.actual_effort[i];
-  }
-}
-
-void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  MachineState * ms = this;
-  if (cuffDIOS.state == 1) {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-    command.args = "{\"position\": 0.0}";
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-  } else {
-  }
-
-}
-
-void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  MachineState * ms = this;
-  if (cuffDIOS.state == 1) {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-    command.args = "{\"position\": 100.0}";
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-    ms->config.lastMeasuredClosed = ms->config.gripperPosition;
-  } else {
-  }
-
-}
-
-void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->evaluateProgram("infiniteScan");
-    }      
-  }
-
-  if (dios.state) {
-    ms->config.lastArmShowButtonState = 1;
-  } else {
-    ms->config.lastArmShowButtonState = 0;
-  }
-}
-
-void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->clearStack();
-      ms->clearData();
-
-      ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
-    }      
-  }
-
-  if (dios.state) {
-    ms->config.lastArmBackButtonState = 1;
-  } else {
-    ms->config.lastArmBackButtonState = 0;
-  }
-}
-
-void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->evaluateProgram("zeroGToggle");
-    }      
-  }
-
-  if (dios.state == 1) {
-    ms->config.lastArmOkButtonState = 1;
-  } else if (dios.state == 0) {
-    ms->config.lastArmOkButtonState = 0;
-  } else {
-    CONSOLE_ERROR(ms, "Unexpected state: " << dios);
-    assert(0);
-  }
-
-}
-
-void MachineState::torsoFanCallback(const baxter_core_msgs::AnalogIOState& aios) {
-  MachineState * ms = this;
-  ms->config.torsoFanState = aios.value;
-}
-
-void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  // this is backwards, probably a bug
-  if (!dios.state && ms->config.lastShoulderState == 1) {
-    ms->config.intendedEnableState = !ms->config.intendedEnableState;
-    if (ms->config.intendedEnableState) {
-      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
-    } else {
-      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
-    }
-  }
-
-  if (dios.state) {
-    ms->config.lastShoulderState = 1;
-  } else {
-    ms->config.lastShoulderState = 0;
-  }
-}
 
 cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
@@ -10841,21 +10159,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
     myRange.header.stamp = ros::Time::now();
     rangeCallback(myRange);
   }
-
-  {
-    baxter_core_msgs::EndpointState myEPS;
-
-    myEPS.header.stamp = ros::Time::now();
-    myEPS.pose.position.x = ms->config.currentEEPose.px;
-    myEPS.pose.position.y = ms->config.currentEEPose.py;
-    myEPS.pose.position.z = ms->config.currentEEPose.pz;
-    myEPS.pose.orientation.x = ms->config.currentEEPose.qx;
-    myEPS.pose.orientation.y = ms->config.currentEEPose.qy;
-    myEPS.pose.orientation.z = ms->config.currentEEPose.qz;
-    myEPS.pose.orientation.w = ms->config.currentEEPose.qw;
-
-    endpointCallback(myEPS);
-  }
+  baxterEndPointCallback(ms);
   {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
@@ -14778,142 +14082,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-
-
-
-  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
-
-    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
-
-    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms);
-    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms);
-    ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms);
-
-    ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms);
-
-#ifdef RETHINK_SDK_1_2_0
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms);
-#else
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms);
-#endif
-
-
-    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms);
-    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms);
-    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms);
-    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms);
-    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms);
-
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    cout << "SIMULATION mode enabled." << endl;
-
-    ms->config.simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), &MachineState::simulatorCallback, ms);
-
-
-    { // load sprites
-      // snoop data/sprites folder
-      //   loop through subfolders
-      //     load image.ppm for now, default everything else
-      vector<string> spriteLabels;
-      spriteLabels.resize(0);
-      ms->config.masterSprites.resize(0);
-      ms->config.instanceSprites.resize(0);
-      DIR *dpdf;
-      struct dirent *epdf;
-      string dot(".");
-      string dotdot("..");
-
-      char buf[1024];
-      sprintf(buf, "%s/simulator/sprites", ms->config.data_directory.c_str());
-      dpdf = opendir(buf);
-      if (dpdf != NULL){
-	while (epdf = readdir(dpdf)){
-	  string thisFileName(epdf->d_name);
-
-	  string thisFullFileName(buf);
-	  thisFullFileName = thisFullFileName + "/" + thisFileName;
-	  cout << "checking " << thisFullFileName << " during sprite snoop...";
-
-	  struct stat buf2;
-	  stat(thisFullFileName.c_str(), &buf2);
-
-	  int itIsADir = S_ISDIR(buf2.st_mode);
-	  if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
-	    spriteLabels.push_back(thisFileName);
-	    cout << " is a directory." << endl;
-	  } else {
-	    cout << " is NOT a directory." << endl;
-	  }
-	}
-      }
-
-      ms->config.masterSprites.resize(spriteLabels.size());
-      for (int s = 0; s < ms->config.masterSprites.size(); s++) {
-	ms->config.masterSprites[s].name = spriteLabels[s];
-	string filename = ms->config.data_directory + "/simulator/sprites/" + ms->config.masterSprites[s].name + "/image.ppm";
-	cout << "loading sprite from " << filename << " ... ";
-
-	Mat tmp = imread(filename);
-	ms->config.masterSprites[s].image = tmp;
-	ms->config.masterSprites[s].scale = 15/.01;
-
-	ms->config.masterSprites[s].top = eePose::zero();
-	ms->config.masterSprites[s].bot = eePose::zero();
-	ms->config.masterSprites[s].pose = eePose::zero();
-	cout << "loaded " << ms->config.masterSprites[s].name << " as masterSprites[" << s << "] scale " << ms->config.masterSprites[s].scale << " image size " << ms->config.masterSprites[s].image.size() << endl;
-      }
-    }
-
-    // load background
-    int tileBackground = 1;
-    if (tileBackground) {
-      string filename;
-      filename = ms->config.data_directory + "/simulator/tableTile.png";
-      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-      Mat tmp = imread(filename);
-      cout << "done. Tiling " << tmp.size() << " "; cout.flush();
-      //cout << "downsampling... "; cout.flush();
-      //cv::resize(tmp, tmp, cv::Size(tmp.cols/2,tmp.rows/2));
-      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
-
-      int tilesWidth = ms->config.mbiWidth / tmp.cols;
-      int tilesHeight = ms->config.mbiHeight / tmp.rows;
-
-      for (int tx = 0; tx < tilesWidth; tx++) {
-	for (int ty = 0; ty < tilesHeight; ty++) {
-	  Mat crop = ms->config.mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
-	  resize(tmp, crop, crop.size(), 0, 0, CV_INTER_LINEAR);
-	  if (tx % 2) {
-	    flip(crop, crop, 1);
-	  }
-	  if ((ty) % 2) {
-	    flip(crop, crop, 0);
-	  }
-	}
-      }
-
-      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
-    } else {
-      string filename;
-      //filename = ms->config.data_directory + "/mapBackground.ppm";
-      filename = ms->config.data_directory + "/simulator/carpetBackground.jpg";
-      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-      Mat tmp = imread(filename);
-      cout << "done. Resizing " << tmp.size() << " "; cout.flush();
-      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
-      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
-    }
-    ms->config.originalMapBackgroundImage = ms->config.mapBackgroundImage.clone();
-
-  }  else {
-    assert(0);
-  }
+  baxterInitializeConfig(ms);
 
   ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, &MachineState::pickObjectUnderEndEffectorCommandCallback, ms);
   ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, &MachineState::placeObjectInEndEffectorCommandCallback, ms);
@@ -14939,12 +14108,8 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
 
-  ms->config.joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
   ms->config.gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
   ms->config.moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
-  ms->config.sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
-  ms->config.headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
-  ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
 
   ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
 
@@ -14956,15 +14121,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
   ms->config.face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
 
-
-  ms->config.currentHeadPanCommand.target = 0;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
-#else
-  ms->config.currentHeadPanCommand.speed = 50;
-#endif
-  ms->config.currentHeadNodCommand.data = 0;
-  ms->config.currentSonarCommand.data = 0;
 
 
   ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);

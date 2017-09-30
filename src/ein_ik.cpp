@@ -1,7 +1,7 @@
 #include "ein.h"
 #include <tf_conversions/tf_kdl.h>
 #include <geometry_msgs/PoseStamped.h>
-
+#include "ein_baxter_config.h"
 #include "ikfast/ikfast_wrapper_left.h"
 #undef IKFAST_NAMESPACE
 #undef IKFAST_SOLVER_CPP
@@ -49,8 +49,8 @@ void reseedIkRequest(MachineState * ms, eePose *givenEEPose, baxter_core_msgs::S
     givenIkRequest->request.seed_angles[0].position.resize(NUM_JOINTS);
     givenIkRequest->request.seed_angles[0].name.resize(NUM_JOINTS);
     for (int j = 0; j < NUM_JOINTS; j++) {
-      givenIkRequest->request.seed_angles[0].name[j] = ms->config.lastGoodIkRequest.response.joints[0].name[j];
-      givenIkRequest->request.seed_angles[0].position[j] = ms->config.lastGoodIkRequest.response.joints[0].position[j] + 
+      givenIkRequest->request.seed_angles[0].name[j] = ms->config.baxterConfig->lastGoodIkRequest.response.joints[0].name[j];
+      givenIkRequest->request.seed_angles[0].position[j] = ms->config.baxterConfig->lastGoodIkRequest.response.joints[0].position[j] + 
 	((drand48() - 0.5)*2.0*jointSeedAmplitude);
     }
   } else {

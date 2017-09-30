@@ -116,7 +116,7 @@ bool ikfast_search(MachineState * ms, geometry_msgs::Pose pose, double free, std
   for (int i = 0; i < NUM_JOINTS; i++) {
     // important: use current not true, or feedback could ensue
     //current_joints.push_back(ms->config.trueJointPositions[i]);
-    current_joints.push_back(ms->config.currentJointPositions.response.joints[0].position[i]);
+    current_joints.push_back(ms->config.baxterConfig->currentJointPositions.response.joints[0].position[i]);
   }
 
   vector<double> joint_weights;
