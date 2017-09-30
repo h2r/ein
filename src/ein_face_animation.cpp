@@ -1,8 +1,7 @@
 #include "ein_words.h"
 #include "ein_baxter_config.h"
-#include "ein.h"
-#include "qtgui/einwindow.h"
-#include "word.h"
+
+#include "config.h"
 
 #include <dirent.h>
 #include <highgui.h>

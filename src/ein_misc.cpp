@@ -1,6 +1,10 @@
 
 #include "ein_words.h"
 #include "ein.h"
+
+#include <ein/EinState.h>
+using namespace ein;
+
 #include <boost/filesystem.hpp>
 
 #include <sys/stat.h>
