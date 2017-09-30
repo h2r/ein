@@ -25,6 +25,7 @@
 
 #include <std_msgs/Bool.h>
 #include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 
 
 class EinBaxterConfig {
@@ -34,6 +35,7 @@ class EinBaxterConfig {
 
   EinBaxterConfig(MachineState * ms);
   void endpointCallback(const baxter_core_msgs::EndpointState& eps);
+
   void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds);
   void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
   void jointCallback(const sensor_msgs::JointState& js);
@@ -56,6 +58,8 @@ class EinBaxterConfig {
 
   std_msgs::Bool currentHeadNodCommand;
   std_msgs::UInt16 currentSonarCommand;
+
+  ros::ServiceClient ikClient;
 
   ros::Subscriber gravity_comp_sub;
   ros::Subscriber torso_fan_sub;
@@ -87,8 +91,12 @@ class EinBaxterConfig {
   ros::Publisher green_halo_pub;
 
   ros::Publisher face_screen_pub;
+  ros::Publisher gripperPub;
+  ros::Publisher facePub;
+  ros::Publisher moveSpeedPub;
+  ros::Publisher stiffPub;
 
-
+  std_msgs::UInt32 currentStiffnessCommand;
   int sonar_led_state = 0;
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;

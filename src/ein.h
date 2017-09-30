@@ -62,7 +62,7 @@
 #include "eePose.h"
 #include "eigen_util.h"
 #include "ein_util.h"
-#include "ein_ik.h"
+
 //#include "faces.h"
 
 using namespace std;
@@ -148,7 +148,6 @@ void epRingBufferAdvance(MachineState * ms);
 void allRingBuffersAdvance(MachineState * ms, ros::Time t);
 
 void recordReadyRangeReadings(MachineState * ms);
-void doEndpointCallback(MachineState * ms, const baxter_core_msgs::EndpointState& eps);
 int classIdxForName(MachineState * ms, string name);
 
 void initClassFolders(MachineState * ms, string folderName);
@@ -362,7 +361,6 @@ void initVectorArcTan(MachineState * ms);
 void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(MachineState * ms, BoxMemory boxMemory);
 
-void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
@@ -420,11 +418,6 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 void clearAllRangeMaps(MachineState * ms);
 
 void processSaliency(Mat in, Mat out);
-
-void happy(MachineState * ms);
-void sad(MachineState * ms);
-void neutral(MachineState * ms);
-
 
 void initializeViewers(MachineState * ms);
 

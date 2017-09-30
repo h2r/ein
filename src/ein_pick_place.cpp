@@ -668,24 +668,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(SetBreakGraspTiesWithNoise)
 
-WORD(SetStiffness)
-virtual void execute(MachineState * ms)
-{
-/*
-Don't use this code, if stiff == 1 the robot flails dangerously...
-*/
-  int stiff = 0;
-  // this is a safety value, do not go below 50. have e-stop ready.
-  stiff = max(50, stiff);
-
-  GET_ARG(ms, IntegerWord, stiff);
-  ms->config.currentStiffnessCommand.data = stiff;
-  ms->config.stiffPub.publish(ms->config.currentStiffnessCommand);
-}
-END_WORD
-REGISTER_WORD(SetStiffness)
-
-
 WORD(TurnAboutY)
 virtual void execute(MachineState * ms)
 {

@@ -49,24 +49,6 @@ MachineState * right_arm;
 // start pilot definitions 
 ////////////////////////////////////////////////
 
-void happy(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 0;
-  ms->config.facePub.publish(msg);
-}
-
-void sad(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 99;
-  ms->config.facePub.publish(msg);
-}
-
-void neutral(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 50;
-  ms->config.facePub.publish(msg);
-}
-
 
 int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack) {
   if (ms->config.rgRingBufferStart == ms->config.rgRingBufferEnd) {
@@ -14101,22 +14083,12 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   }
 
 
-
   ms->config.tfListener = new tf::TransformListener();
   ms->config.tfListener->setUsingDedicatedThread(true);
 
-  ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
   ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
 
-  ms->config.gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
-  ms->config.moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
 
-  ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
-
-
-
-
-  ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
   string state_topic = "/ein/" + ms->config.left_or_right_arm + "/state";
   ms->config.einStatePub = n.advertise<EinState>(state_topic, 10);
 

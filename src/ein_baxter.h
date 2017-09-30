@@ -11,5 +11,8 @@ void baxterActivateSensorStreaming(MachineState * ms);
 void baxterDeactivateSensorStreaming(MachineState * ms);
 void baxterUpdate(MachineState * ms);
 
+void happy(MachineState * ms);
+void sad(MachineState * ms);
+void neutral(MachineState * ms);
 
 #endif /* _EIN_BAXTER_H_ */

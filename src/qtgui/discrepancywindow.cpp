@@ -6,6 +6,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "einwindow.h"
+#include "ein.h"
 
 DiscrepancyWindow::DiscrepancyWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),

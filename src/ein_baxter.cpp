@@ -4,12 +4,31 @@
 #include "ein.h"
 #include "config.h"
 #include "camera.h"
+#include "ein_ik.h"
 
 #include "ikfast/ikfast_wrapper_left.h"
 #undef IKFAST_NAMESPACE
 #undef IKFAST_SOLVER_CPP
 #undef MY_NAMESPACE
 #include "ikfast/ikfast_wrapper_right.h"
+
+void happy(MachineState * ms) {
+  std_msgs::Int32 msg;
+  msg.data = 0;
+  ms->config.baxterConfig->facePub.publish(msg);
+}
+
+void sad(MachineState * ms) {
+  std_msgs::Int32 msg;
+  msg.data = 99;
+  ms->config.baxterConfig->facePub.publish(msg);
+}
+
+void neutral(MachineState * ms) {
+  std_msgs::Int32 msg;
+  msg.data = 50;
+  ms->config.baxterConfig->facePub.publish(msg);
+}
 
 
 void baxterInitializeConfig(MachineState * ms) {
@@ -71,7 +90,14 @@ EinBaxterConfig::EinBaxterConfig(MachineState * myms): n("~") {
   red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
   green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
   face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
+  facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
 
+
+  gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
+  moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
+
+  stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
+  ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
 
 
   ms = myms;
@@ -226,7 +252,7 @@ void EinBaxterConfig::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& 
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 0.0}";
     command.id = 65538;
-    ms->config.gripperPub.publish(command);
+    ms->config.baxterConfig->gripperPub.publish(command);
   } else {
   }
 
@@ -239,7 +265,7 @@ void EinBaxterConfig::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuf
     command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
     command.args = "{\"position\": 100.0}";
     command.id = 65538;
-    ms->config.gripperPub.publish(command);
+    ms->config.baxterConfig->gripperPub.publish(command);
     ms->config.lastMeasuredClosed = ms->config.gripperPosition;
   } else {
   }
@@ -887,7 +913,7 @@ void EinBaxterConfig::update_baxter() {
     int param_resend_times = 1;
     for (int r = 0; r < param_resend_times; r++) {
       ms->config.baxterConfig->joint_mover.publish(myCommand);
-      ms->config.moveSpeedPub.publish(speedCommand);
+      ms->config.baxterConfig->moveSpeedPub.publish(speedCommand);
       
       {
         std_msgs::UInt16 thisCommand;
@@ -1560,6 +1586,318 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(SetTorsoFanLevel)
+
+
+
+WORD(SetGripperMovingForce)
+virtual void execute(MachineState * ms) {
+// velocity - Velocity at which a position move will execute 
+// moving_force - Force threshold at which a move will stop 
+// holding_force - Force at which a grasp will continue holding 
+// dead_zone - Position deadband within move considered successful 
+// ALL PARAMETERS (0-100) 
+
+  int amount = 0; 
+  GET_ARG(ms,IntegerWord,amount);
+
+  amount = min(max(0,amount),100);
+
+  cout << "setGripperMovingForce, amount: " << amount << endl;
+
+  char buf[1024]; sprintf(buf, "{\"moving_force\": %d.0}", amount);
+  string argString(buf);
+
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_CONFIGURE;
+  command.args = argString.c_str();
+  command.id = 65538;
+  ms->config.baxterConfig->gripperPub.publish(command);
+}
+END_WORD
+REGISTER_WORD(SetGripperMovingForce)
+
+WORD(CloseGripper)
+CODE('j')
+virtual void execute(MachineState * ms) {
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+  command.args = "{\"position\": 0.0}";
+
+  // command id depends on model of gripper
+  // standard
+  command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
+  ms->config.baxterConfig->gripperPub.publish(command);
+}
+END_WORD
+REGISTER_WORD(CloseGripper)
+
+WORD(OpenGripper)
+CODE('k')
+virtual void execute(MachineState * ms) {
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+  command.args = "{\"position\": 100.0}";
+
+  // command id depends on model of gripper
+  // standard
+  command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
+  ms->config.baxterConfig->gripperPub.publish(command);
+  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
+}
+END_WORD
+REGISTER_WORD(OpenGripper)
+
+WORD(OpenGripperInt)
+virtual void execute(MachineState * ms) {
+  cout << "openGripperInt: ";
+
+  int amount = 0; 
+  GET_ARG(ms,IntegerWord,amount);
+
+  amount = min(max(0,amount),100);
+
+  char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
+  string argString(buf);
+
+  cout << "opening gripper to " << amount << endl;
+
+  baxter_core_msgs::EndEffectorCommand command;
+  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
+  command.args = argString.c_str();
+
+  // command id depends on model of gripper
+  // standard
+  command.id = 65538;
+  // legacy
+  //command.id = 65664;
+
+  ms->config.baxterConfig->gripperPub.publish(command);
+  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
+}
+END_WORD
+REGISTER_WORD(OpenGripperInt)
+
+
+
+WORD(SetStiffness)
+virtual void execute(MachineState * ms)
+{
+/*
+Don't use this code, if stiff == 1 the robot flails dangerously...
+*/
+  int stiff = 0;
+  // this is a safety value, do not go below 50. have e-stop ready.
+  stiff = max(50, stiff);
+
+  GET_ARG(ms, IntegerWord, stiff);
+  ms->config.baxterConfig->currentStiffnessCommand.data = stiff;
+  ms->config.baxterConfig->stiffPub.publish(ms->config.baxterConfig->currentStiffnessCommand);
+}
+END_WORD
+REGISTER_WORD(SetStiffness)
+
+WORD(MoveCropToProperValueNoUpdate)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  cout << "Setting exposure " << camera->cameraExposure << " gain: " << camera->cameraGain;
+  cout << " wbr: " << camera->cameraWhiteBalanceRed << " wbg: " << camera->cameraWhiteBalanceGreen << " wbb: " << camera->cameraWhiteBalanceBlue << endl;
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(7);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
+  ocMessage.request.settings.controls[2].id = 100;
+  ocMessage.request.settings.controls[2].value = camera->cameraExposure;
+  ocMessage.request.settings.controls[3].id = 101;
+  ocMessage.request.settings.controls[3].value = camera->cameraGain;
+  ocMessage.request.settings.controls[4].id = 102;
+  ocMessage.request.settings.controls[4].value = camera->cameraWhiteBalanceRed;
+  ocMessage.request.settings.controls[5].id = 103;
+  ocMessage.request.settings.controls[5].value = camera->cameraWhiteBalanceGreen;
+  ocMessage.request.settings.controls[6].id = 104;
+  ocMessage.request.settings.controls[6].value = camera->cameraWhiteBalanceBlue;
+
+  int testResult = ms->config.cameraClient.call(ocMessage);
+}
+END_WORD
+REGISTER_WORD(MoveCropToProperValueNoUpdate)
+
+
+WORD(AssumeAny3dGrasp)
+virtual void execute(MachineState * ms) {
+  double p_backoffDistance = 0.10;
+
+  for (int tc = 0; tc < ms->config.class3dGrasps[ms->config.targetClass].size(); tc++) {
+    eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][tc].grasp_pose;  
+
+    eePose thisBase = ms->config.lastLockedPose;
+    thisBase.pz = -ms->config.currentTableZ;
+
+    cout << "assumeAny3dGrasp, tc: " << tc << endl;
+
+    // this order is important because quaternion multiplication is not commutative
+    //ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
+    //ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
+    eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
+
+    int increments = floor(p_backoffDistance / GRID_COARSE); 
+    Vector3d localUnitX;
+    Vector3d localUnitY;
+    Vector3d localUnitZ;
+    fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
+    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+
+    int ikResultPassedBoth = 1;
+    {
+      cout << "Checking IK for 3D grasp number " << tc << ", "; 
+      int ikCallResult = 0;
+      baxter_core_msgs::SolvePositionIK thisIkRequest;
+      eePose toRequest = graspPose;
+      fillIkRequest(toRequest, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
+
+      cout << ikCallResult << "." << endl;
+
+      int ikResultFailed = 1;
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+	ikResultFailed = 0;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	if( ms->config.usePotentiallyCollidingIK ) {
+	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+	  ikResultFailed = 0;
+	} else {
+	  ikResultFailed = 1;
+	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
+	}
+      } else {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+      }
+
+      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
+    }
+    {
+      cout << "Checking IK for 3D pre-grasp number " << tc << ", ";
+      int ikCallResult = 0;
+      baxter_core_msgs::SolvePositionIK thisIkRequest;
+      eePose toRequest = retractedGraspPose;
+      fillIkRequest(toRequest, &thisIkRequest);
+      queryIK(ms, &ikCallResult, &thisIkRequest);
+
+      cout << ikCallResult << "." << endl;
+
+      int ikResultFailed = 1;
+      if (ikCallResult && thisIkRequest.response.isValid[0]) {
+	ikResultFailed = 0;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
+      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
+      } else if (thisIkRequest.response.joints.size() == 1) {
+	if( ms->config.usePotentiallyCollidingIK ) {
+	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
+	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
+	  ikResultFailed = 0;
+	} else {
+	  ikResultFailed = 1;
+	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
+	}
+      } else {
+	ikResultFailed = 1;
+	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
+      }
+
+      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
+    }
+
+    if (ikResultPassedBoth) {
+      ms->config.current3dGraspIndex = tc;
+
+      cout << "Grasp and pre-grasp both passed, accepting." << endl;
+
+      ms->config.currentEEPose = retractedGraspPose;
+      ms->config.lastPickPose = graspPose;
+      int tbb = ms->config.targetBlueBox;
+      if (tbb < ms->config.blueBoxMemories.size()) {
+	ms->config.blueBoxMemories[tbb].pickedPose = ms->config.lastPickPose;  
+      } else {
+	assert(0);
+      }
+
+      if (ms->config.snapToFlushGrasp) {
+	// using twist and effort
+	ms->pushWord("closeGripper");
+	ms->pushWord("pressUntilEffortCombo");
+
+	ms->pushWord("setEffortThresh");
+	ms->pushWord("7.0");
+
+	ms->pushWord("setSpeed");
+	ms->pushWord("0.03");
+
+	ms->pushWord("pressUntilEffortInit");
+	ms->pushWord("comeToStop");
+	ms->pushWord("setMovementStateToMoving");
+	ms->pushWord("comeToStop");
+	ms->pushWord("waitUntilAtCurrentPosition");
+
+	ms->pushWord("setSpeed");
+	ms->pushWord("0.05");
+
+	ms->pushWord("setGridSizeCoarse");
+      } else {
+	ms->pushWord("comeToStop"); 
+	ms->pushWord("waitUntilAtCurrentPosition"); 
+
+	ms->pushCopies("localZUp", increments);
+	ms->pushWord("setGridSizeCoarse");
+	ms->pushWord("approachSpeed");
+      }
+
+      ms->pushWord("waitUntilAtCurrentPosition"); 
+      return;
+    }
+  }
+
+  cout << "No 3D grasps were feasible. Continuing." << endl;
+}
+END_WORD
+REGISTER_WORD(AssumeAny3dGrasp)
+
+
+WORD(UnFixCameraLightingNoUpdate)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  baxter_core_msgs::OpenCamera ocMessage;
+  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
+  ocMessage.request.settings.controls.resize(2);
+  ocMessage.request.settings.controls[0].id = 105;
+  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
+  ocMessage.request.settings.controls[1].id = 106;
+  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
+  int testResult = ms->config.cameraClient.call(ocMessage);
+}
+END_WORD
+REGISTER_WORD(UnFixCameraLightingNoUpdate)
 
 
 CONFIG_GETTER_INT(RepeatHalo, ms->config.baxterConfig->repeat_halo)

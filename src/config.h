@@ -426,17 +426,10 @@ class EinConfig {
 
   EinBaxterConfig * baxterConfig;
 
-  std_msgs::UInt32 currentStiffnessCommand;
   
   tf::TransformListener* tfListener;
   
-  
-  ros::ServiceClient ikClient;
   ros::ServiceClient cameraClient;
-  ros::Publisher gripperPub;
-  ros::Publisher facePub;
-  ros::Publisher moveSpeedPub;
-  ros::Publisher stiffPub;
   ros::Publisher einStatePub;
   ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;
