@@ -1,6 +1,6 @@
 #include "word.h"
 #include "ein.h"
-
+#include <sstream>
 #include <boost/algorithm/string.hpp>
 using namespace boost::algorithm;
 #include <boost/regex.hpp>
