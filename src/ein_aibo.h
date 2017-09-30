@@ -3,9 +3,7 @@
 
 #include <ros/ros.h>
 
-#include<sys/socket.h>
 #include<arpa/inet.h> 
-#include <sys/poll.h>
 
 #include "word.h"
 

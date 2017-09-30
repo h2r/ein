@@ -5,6 +5,10 @@
 
 #include "ein_aibo.h"
 
+#include <sys/poll.h>
+#include<sys/socket.h>
+
+
 /*
 
 Using MS_URBI pink memory stick image downloaded from 
