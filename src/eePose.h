@@ -1,7 +1,7 @@
 #ifndef _EEPOSEH_
 #define _EEPOSEH_
 
-#include <geometry_msgs/PoseStamped.h>
+
 #include <geometry_msgs/Pose.h>
 #include <cv.h>
 
