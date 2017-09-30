@@ -10,6 +10,8 @@
 #include <ein/EinState.h>
 #include <ein/EinConsole.h>
 
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+
 #include <vector>
 #include <string>
 

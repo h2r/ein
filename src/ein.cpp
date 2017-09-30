@@ -31,6 +31,11 @@
 #include <sys/stat.h>
 #include <signal.h>
 
+#include <visualization_msgs/MarkerArray.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <sensor_msgs/image_encodings.h>
+
+
 //#define DEBUG_RING_BUFFER
 
 #define stringer(token) #token

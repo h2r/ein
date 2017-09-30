@@ -12,6 +12,8 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
 
 class EinAiboJoints {
   public:

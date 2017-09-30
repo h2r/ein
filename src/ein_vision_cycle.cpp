@@ -1,3 +1,4 @@
+#include <object_recognition_msgs/RecognizedObjectArray.h>
 
 #include "ein_words.h"
 #include "ein.h"

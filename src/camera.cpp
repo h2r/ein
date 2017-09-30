@@ -2,6 +2,7 @@
 #include "camera.h"
 #include <vector>
 #include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>

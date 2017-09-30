@@ -7,6 +7,10 @@
 #include <dirent.h>
 #include <highgui.h>
 
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+
+
 
 namespace ein_words {
 CONFIG_SETTER_ENUM(FaceAnimationSetMode, ms->config.currentAnimationMode, (animationMode))
