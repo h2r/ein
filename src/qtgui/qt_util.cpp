@@ -1,9 +1,12 @@
 #include "qt_util.h"
 
 #include <string>
-#include <QFileDialog>
+#include <iostream>
+#include <fstream>
 
+#include <QFileDialog>
 #include <highgui.h>
+using namespace std;
 
 void doSaveImage(MachineState * ms, QMainWindow * parent, const Mat & image) {
   cout << "Saving image." << endl;

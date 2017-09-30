@@ -1,15 +1,18 @@
 #ifndef _EEPOSEH_
 #define _EEPOSEH_
 
-#include <iostream>
-#include <cv.h>
-#include <ml.h>
-#include <opencv2/gpu/gpu.hpp>
-using namespace cv;
-using namespace std;
-
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
+#include <cv.h>
+
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+using namespace cv;
+
+
+
 
 typedef struct _eePose{
   double px;

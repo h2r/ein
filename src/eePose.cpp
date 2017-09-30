@@ -1,5 +1,6 @@
 #include "eePose.h"
 #include <iostream>
+#include <fstream>
 #include <Eigen/Geometry> 
 using namespace Eigen;
 
