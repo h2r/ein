@@ -4,11 +4,6 @@
 #include <string>
 
 #include <cv.h>
-#include <ml.h>
-#include <opencv2/gpu/gpu.hpp>
-
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_vector.h>
 
 #include "word.h"
 

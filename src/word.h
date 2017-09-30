@@ -1,9 +1,6 @@
 #ifndef _WORD_H_
 #define _WORD_H_
 
-#include "ein_util.h"
-
-
 using namespace std;
 #include <map>
 #include "eePose.h"

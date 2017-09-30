@@ -35,6 +35,11 @@
 #include <object_recognition_msgs/RecognizedObjectArray.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <cv.h>
+#include <ml.h>
+#include <opencv2/gpu/gpu.hpp>
+
+
 //#define DEBUG_RING_BUFFER
 
 #define stringer(token) #token

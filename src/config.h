@@ -27,6 +27,9 @@ class Camera;
 #include <tf/transform_listener.h>
 #include <rosgraph_msgs/Log.h>
 
+#include <cv.h>
+#include <ml.h>
+
 
 #include <ein/EinState.h>
 #include "distributions.h"
