@@ -30,7 +30,6 @@ void neutral(MachineState * ms) {
   ms->config.baxterConfig->facePub.publish(msg);
 }
 
-
 void baxterInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
 }
