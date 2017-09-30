@@ -31,6 +31,12 @@ class Camera;
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 #include <rosgraph_msgs/Log.h>
+#include <image_transport/image_transport.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <object_recognition_msgs/RecognizedObject.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <actionlib/client/simple_action_client.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 
 
 #include <baxter_core_msgs/CameraControl.h>
@@ -43,27 +49,12 @@ class Camera;
 #include <baxter_core_msgs/JointCommand.h>
 #include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/SEAJointState.h>
-
-
-
-#include <tf/transform_listener.h>
-#include <image_transport/image_transport.h>
-#include <object_recognition_msgs/RecognizedObjectArray.h>
-#include <object_recognition_msgs/RecognizedObject.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
 #include <baxter_core_msgs/DigitalIOState.h>
 #include <baxter_core_msgs/AnalogIOState.h>
+
+
+
+
 
 
 #include "eigen_util.h"
