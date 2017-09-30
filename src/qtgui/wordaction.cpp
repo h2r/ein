@@ -1,5 +1,7 @@
 #include "wordaction.h"
 
+#include "word.h"
+
 WordAction::WordAction(QMenu * _menu, MachineState * _ms, shared_ptr<Word> _word) : QAction(_menu){
   ms = _ms;
   word = _word;
