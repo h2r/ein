@@ -4,6 +4,8 @@
 #include "ein_aibo.h"
 #include "ein_baxter.h"
 #include "gaussian_map.h"
+#include "ein_util.h"
+#include "eePose.h"
 
 class GaussianMap;
 class TransitionTable;
@@ -146,11 +148,6 @@ typedef enum {
   GRASP_3D
 } graspMode;
 
-typedef enum {
-  UNKNOWN = -1,
-  FAILURE = 0,
-  SUCCESS = 1
-} operationStatusType;
 
 typedef enum {
   STATIC_PRIOR = 1,
@@ -1645,6 +1642,11 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void einStateCallback(const ein::EinState & msg);
 
   void rosoutCallback(const rosgraph_msgs::Log& js);
+  void publishConsoleMessage(string msg);
+
+  int getStreamPoseAtTime(double tin, eePose * outArm, eePose * outBase);
+  int getStreamPoseAtTimeThreadSafe(double tin, eePose * outArm, eePose * outBase);
+
 };
 
 

@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "einwindow.h"
-#include "ein.h"
+#include "qt_util.h"
 
 DiscrepancyWindow::DiscrepancyWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),
@@ -47,9 +47,9 @@ void DiscrepancyWindow::update(Mat & _discrepancyImage, Mat & _densityImage)
 
 void DiscrepancyWindow::saveImage() {
   if (ui->tabs->currentIndex() == 0) {
-    doSaveImage(this, discrepancyImage);
+    doSaveImage(ms, this, discrepancyImage);
   } else if (ui->tabs->currentIndex() == 1) {
-    doSaveImage(this, densityImage);
+    doSaveImage(ms, this, densityImage);
   } else {
     cout << "Bad index: " << ui->tabs->currentIndex() << endl;
     assert(0);

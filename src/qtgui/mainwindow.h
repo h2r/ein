@@ -2,8 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <iostream>
-#include <ros/ros.h>
 class MachineState;
 
 #include "window_QT.h"

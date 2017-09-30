@@ -3,10 +3,8 @@
 
 #include "gaussianmapwidget.h"
 #include <QMainWindow>
-#include <iostream>
 #include <cv.h>
 
-#include "ein.h"
 #include "window_QT.h"
 
 using namespace std;

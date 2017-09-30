@@ -3,7 +3,7 @@
 
 #include <QTest>
 
-#include "ein.h"
+#include "config.h"
 #include "windowmanager.h"
 #include "wordaction.h"
 

@@ -4,8 +4,9 @@
 
 #include <QTest>
 #include <boost/algorithm/string.hpp>
-#include "ein.h"
+#include "config.h"
 #include "einwindow.h"
+#include "qt_util.h"
 
 GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),
@@ -22,7 +23,7 @@ GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :
 }
 
 void GaussianMapWindow::saveImage() {
-  doSaveImage(this, widget->selectedImage());
+  doSaveImage(ms, this, widget->selectedImage());
 }
 
 

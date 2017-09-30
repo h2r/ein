@@ -8,6 +8,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include "config.h"
+
 #include "compress.h"
 using namespace boost::filesystem;
 
@@ -130,29 +132,6 @@ bool isSketchyMat(Mat sketchy) {
 }
 
 
-
-gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
-  double min_x = b.top.px;
-  double min_y = b.top.py;
-  double max_x = b.bot.px;
-  double max_y = b.bot.py;
-  double width = max_x - min_x;
-  double height = max_y - min_y;
-
-  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
-  gsl_matrix_set(polygon, 0, 0, min_x);
-  gsl_matrix_set(polygon, 1, 0, min_y);
-
-  gsl_matrix_set(polygon, 0, 1, min_x + width);
-  gsl_matrix_set(polygon, 1, 1, min_y);
-
-  gsl_matrix_set(polygon, 0, 2, min_x + width);
-  gsl_matrix_set(polygon, 1, 2, min_y + height);
-
-  gsl_matrix_set(polygon, 0, 3, min_x);
-  gsl_matrix_set(polygon, 1, 3, min_y + height);
-  return polygon;
-}
 
 
 

@@ -4083,7 +4083,7 @@ virtual void execute(MachineState * ms) {
   //computePixelToGlobalCache(ms, z, thisPose, &data);
 
   eePose thisPose, basePose;
-  int success = getStreamPoseAtTime(ms, camera->lastImageStamp.toSec(), &thisPose, &basePose);
+  int success = ms->getStreamPoseAtTime(camera->lastImageStamp.toSec(), &thisPose, &basePose);
 
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
   //  imshow("image being used", camera->cam_ycrcb_img);
@@ -4143,7 +4143,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -5680,7 +5680,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -5885,7 +5885,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6052,7 +6052,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6278,7 +6278,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6504,7 +6504,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6738,7 +6738,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6971,7 +6971,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7206,7 +7206,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7451,8 +7451,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7704,8 +7704,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8022,8 +8022,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8340,8 +8340,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8658,8 +8658,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8922,7 +8922,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -9134,7 +9134,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -9396,7 +9396,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -9540,7 +9540,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -9995,7 +9995,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -11562,7 +11562,7 @@ virtual void execute(MachineState * ms) {
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
     eePose tArmP, tBaseP, tRelP;
-    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsr.time, &tArmP, &tBaseP);
 //XXX
     cout << tBaseP << endl;
     tBaseP = eePose::identity();
@@ -11642,7 +11642,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -11839,7 +11839,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -12006,7 +12006,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = -0.2;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;

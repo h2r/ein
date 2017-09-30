@@ -284,7 +284,7 @@ virtual void execute(MachineState * ms)
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
     eePose tArmP, tBaseP, tRelP;
-    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsr.time, &tArmP, &tBaseP);
     tRelP = tArmP.getPoseRelativeTo(tBaseP); 
     double tRange = tsr.range;
 
@@ -374,7 +374,7 @@ virtual void execute(MachineState * ms)
     }
 
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
@@ -404,7 +404,7 @@ virtual void execute(MachineState * ms)
     }
 
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
@@ -567,7 +567,7 @@ virtual void execute(MachineState * ms)       {
   }
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
@@ -624,7 +624,7 @@ virtual void execute(MachineState * ms)       {
   }
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
@@ -771,7 +771,7 @@ virtual void execute(MachineState * ms)       {
   double scaledHeight = ms->config.minHeight + ( (double(thisHeightIdx)/double(tNumHeights-1)) * (ms->config.maxHeight - ms->config.minHeight) ) ;
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   eePose thisServoPose = tBaseP;
   thisServoPose.pz = tBaseP.pz + scaledHeight;
 
@@ -1082,7 +1082,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   ms->pushWord(make_shared<EePoseWord>(tArmP));
 }
 END_WORD
@@ -1097,7 +1097,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   ms->pushWord(make_shared<EePoseWord>(tBaseP));
 }
 END_WORD

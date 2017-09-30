@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cv.h>
 
-#include "ein.h"
 #include "window_QT.h"
+class MachineState;
 
 using namespace std;
 

@@ -58,10 +58,7 @@
 
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
-#include "eePose.h"
-#include "eigen_util.h"
-#include "ein_util.h"
-
+#include "config.h"
 //#include "faces.h"
 
 using namespace std;
@@ -93,6 +90,7 @@ bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, do
 void markMapAsCompleted(MachineState * ms);
 
 
+gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx);
 vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx, int * memoryIdxOfFirst);
 int getBoxMemoryOfLabel(MachineState * ms, string label, int * idxOfLabel, BoxMemory * out);
@@ -160,8 +158,6 @@ void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
-int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
-int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
 void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
 void update2dRangeMaps(MachineState * ms, Vector3d castPoint);
 
@@ -438,8 +434,6 @@ void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int t
 void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void mapCallbackFunc(int event, int x, int y, int flags, void* userdata);
-
-void publishConsoleMessage(MachineState * ms, string msg);
 
 void loadConfig(MachineState * ms, string filename);
 void saveConfig(MachineState * ms, string outFileName);
