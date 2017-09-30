@@ -12,21 +12,8 @@
 
 #include <vector>
 #include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <ctime>
-
-#include <math.h>
-#include <signal.h>
-#include <sys/stat.h>
-
-
 
 #include <cv.h>
-#include <ml.h>
-/*#include <opencv2/nonfree/nonfree.hpp>*/
-#include <opencv2/gpu/gpu.hpp>
 
 
 // slu

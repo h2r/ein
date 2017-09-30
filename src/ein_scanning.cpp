@@ -6,6 +6,8 @@
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
 #include <highgui.h>
+#include <sys/stat.h>
+
 using namespace std;
 using namespace boost::filesystem;
 

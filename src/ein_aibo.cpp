@@ -5,6 +5,7 @@
 
 #include "ein_aibo.h"
 
+#include <sys/stat.h>
 #include <dirent.h>
 #include <signal.h>
 #include <arpa/inet.h>

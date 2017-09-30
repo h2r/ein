@@ -4,8 +4,11 @@
 #include "config.h"
 #include "camera.h"
 #include "ein_ik.h"
+
 #include <dirent.h>
+#include <sys/stat.h>
 #include <std_msgs/Float32.h>
+
 
 
 

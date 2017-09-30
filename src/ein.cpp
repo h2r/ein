@@ -28,6 +28,8 @@
 #include <QApplication>
 #include <QTimer>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <signal.h>
 
 //#define DEBUG_RING_BUFFER
 

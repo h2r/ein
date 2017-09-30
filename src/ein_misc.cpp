@@ -2,6 +2,9 @@
 #include "ein_words.h"
 #include "ein.h"
 #include <boost/filesystem.hpp>
+
+#include <sys/stat.h>
+
 using namespace boost::filesystem;
 #include "camera.h"
 
