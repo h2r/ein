@@ -4,8 +4,6 @@
 
 //#define DEBUG_RING_BUFFER // ring buffer
 
-#define EPSILON 1.0e-9
-#define VERYBIGNUMBER 1e12
 
 #define PROGRAM_NAME "ein"
 
@@ -20,7 +18,6 @@
 #include <ctime>
 
 #include <math.h>
-#include <dirent.h>
 #include <signal.h>
 #include <sys/stat.h>
 

@@ -27,6 +27,7 @@
 #include "qtgui/discrepancywindow.h"
 #include <QApplication>
 #include <QTimer>
+#include <dirent.h>
 
 //#define DEBUG_RING_BUFFER
 

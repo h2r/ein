@@ -1,4 +1,4 @@
-#include "ein.h"
+#include "config.h"
 #include "camera.h"
 #include <vector>
 #include <image_transport/image_transport.h>
@@ -7,7 +7,9 @@
 #include <boost/system/error_code.hpp>
 #include <highgui.h>
 
+#include <dirent.h>
 
+#include "ein.h"
 using namespace boost::filesystem;
 using namespace boost::system;
 

@@ -1,6 +1,10 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#define EPSILON 1.0e-9
+#define VERYBIGNUMBER 1e12
+
+
 #include "ein_aibo.h"
 #include "ein_baxter.h"
 #include "gaussian_map.h"

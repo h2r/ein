@@ -1,5 +1,7 @@
 #include "ein_words.h"
+
 #include "ein.h"
+#include <dirent.h>
 #include "camera.h"
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>

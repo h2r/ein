@@ -1,4 +1,3 @@
-#include "ein.h"
 #include "config.h"
 
 string pickModeToString(pickMode mode) {

@@ -1,11 +1,12 @@
 #include "ein_words.h"
+#include "config.h"
 #include "ein.h"
-
 #include "qtgui/einwindow.h"
 
 #include "ein_aibo.h"
 
-
+#include <dirent.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <sys/poll.h>
 #include <sys/socket.h>

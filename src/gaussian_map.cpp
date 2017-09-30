@@ -1,3 +1,6 @@
+
+#include <dirent.h>
+
 #include "gaussian_map.h"
 #include "ein_words.h"
 #include "ein.h"

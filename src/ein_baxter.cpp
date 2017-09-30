@@ -1,10 +1,11 @@
 #include "ein_baxter.h"
 #include "ein_baxter_config.h"
 #include "ein_words.h"
-#include "ein.h"
 #include "config.h"
 #include "camera.h"
 #include "ein_ik.h"
+#include <dirent.h>
+
 
 #include "ikfast/ikfast_wrapper_left.h"
 #undef IKFAST_NAMESPACE

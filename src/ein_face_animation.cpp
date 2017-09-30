@@ -4,6 +4,7 @@
 #include "qtgui/einwindow.h"
 #include "word.h"
 
+#include <dirent.h>
 #include <highgui.h>
 
 

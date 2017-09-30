@@ -1,7 +1,9 @@
 
 #include "ein_words.h"
-#include "ein.h"
+#include "config.h"
 #include "camera.h"
+
+#include "ein.h"
 
 namespace ein_words {
 
