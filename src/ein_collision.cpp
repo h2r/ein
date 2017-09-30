@@ -1,5 +1,5 @@
 #include "ein_words.h"
-#include "ein.h"
+#include "config.h"
 
 #include <kdl_parser/kdl_parser.hpp>
 

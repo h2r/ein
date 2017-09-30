@@ -1,4 +1,4 @@
-#include "ein.h"
+#include "config.h"
 #include "eigen_util.h"
 #include <tf_conversions/tf_kdl.h>
 #include <highgui.h>

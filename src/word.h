@@ -7,12 +7,9 @@
 using namespace std;
 #include <sstream>
 #include <map>
-#include <boost/algorithm/string.hpp>
 #include "eePose.h"
 
 class MachineState;
-
-using namespace boost::algorithm;
 
 class Word:  public enable_shared_from_this<Word> {
   

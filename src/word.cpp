@@ -1,6 +1,8 @@
 #include "word.h"
 #include "ein.h"
 
+#include <boost/algorithm/string.hpp>
+using namespace boost::algorithm;
 #include <boost/regex.hpp>
 #include "tokenizer.hpp"
 

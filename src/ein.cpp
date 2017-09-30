@@ -44,6 +44,10 @@
 
 #include <highgui.h>
 
+#include <boost/algorithm/string.hpp>
+using namespace boost::algorithm;
+
+
 
 MainWindow * einMainWindow;
 vector< MachineState * > machineStates;

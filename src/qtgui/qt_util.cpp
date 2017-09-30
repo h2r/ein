@@ -8,6 +8,10 @@
 #include <highgui.h>
 using namespace std;
 
+#include <boost/algorithm/string.hpp>
+using namespace boost::algorithm;
+
+
 void doSaveImage(MachineState * ms, QMainWindow * parent, const Mat & image) {
   cout << "Saving image." << endl;
   QString qFileName = QFileDialog::getSaveFileName(parent, "Save File",
