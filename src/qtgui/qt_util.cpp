@@ -5,7 +5,6 @@
 
 #include <highgui.h>
 
-
 void doSaveImage(MachineState * ms, QMainWindow * parent, const Mat & image) {
   cout << "Saving image." << endl;
   QString qFileName = QFileDialog::getSaveFileName(parent, "Save File",
