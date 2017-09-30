@@ -5,6 +5,9 @@
 #include "camera.h"
 #include "ein_ik.h"
 #include <dirent.h>
+#include <std_msgs/Float32.h>
+
+
 
 
 #include "ikfast/ikfast_wrapper_left.h"
