@@ -63,6 +63,7 @@ class EinBaxterConfig {
   std_msgs::UInt16 currentSonarCommand;
 
   ros::ServiceClient ikClient;
+  ros::ServiceClient cameraClient;
 
   ros::Subscriber gravity_comp_sub;
   ros::Subscriber torso_fan_sub;

@@ -17,7 +17,6 @@
 // end Header
 
 #include "ein.h"
-#include "ein_ik.h"
 #include "camera.h"
 
 #include "qtgui/mainwindow.h"
@@ -31,6 +30,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 
+#include <ros/package.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <object_recognition_msgs/RecognizedObjectArray.h>
 #include <sensor_msgs/image_encodings.h>
@@ -14157,9 +14157,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.tfListener = new tf::TransformListener();
   ms->config.tfListener->setUsingDedicatedThread(true);
-
-  ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
-
 
   string state_topic = "/ein/" + ms->config.left_or_right_arm + "/state";
   ms->config.einStatePub = n.advertise<EinState>(state_topic, 10);

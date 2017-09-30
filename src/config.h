@@ -346,7 +346,6 @@ class EinConfig {
   
   tf::TransformListener* tfListener;
   
-  ros::ServiceClient cameraClient;
   ros::Publisher einStatePub;
   ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;

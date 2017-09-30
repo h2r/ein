@@ -114,6 +114,7 @@ EinBaxterConfig::EinBaxterConfig(MachineState * myms): n("~") {
   stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
   ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
 
+  cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
 
   ms = myms;
   if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
@@ -1741,7 +1742,7 @@ virtual void execute(MachineState * ms) {
   ocMessage.request.settings.controls[6].id = 104;
   ocMessage.request.settings.controls[6].value = camera->cameraWhiteBalanceBlue;
 
-  int testResult = ms->config.cameraClient.call(ocMessage);
+  int testResult = ms->config.baxterConfig->cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
@@ -1909,7 +1910,7 @@ virtual void execute(MachineState * ms) {
   ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
   ocMessage.request.settings.controls[1].id = 106;
   ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
-  int testResult = ms->config.cameraClient.call(ocMessage);
+  int testResult = ms->config.baxterConfig->cameraClient.call(ocMessage);
 }
 END_WORD
 REGISTER_WORD(UnFixCameraLightingNoUpdate)
