@@ -1,6 +1,8 @@
 #ifndef _EIN_IK_H_
 #define _EIN_IK_H_
 
+#include "ein_baxter_config.h"
+
 ikMapState ikAtPose(MachineState * ms, eePose pose);
 vector<ikMapState> ikAtPoses(MachineState * ms, vector<eePose> poses);
 

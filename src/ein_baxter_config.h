@@ -18,6 +18,9 @@
 #include <baxter_core_msgs/SEAJointState.h>
 #include <baxter_core_msgs/DigitalIOState.h>
 #include <baxter_core_msgs/AnalogIOState.h>
+#include <baxter_core_msgs/DigitalOutputCommand.h>
+#include <baxter_core_msgs/AnalogOutputCommand.h>
+
 
 
 #include <std_msgs/Bool.h>
@@ -76,6 +79,21 @@ class EinBaxterConfig {
   ros::Publisher headPub;
   ros::Publisher nodPub;
   ros::Publisher joint_mover;
+  ros::Publisher digital_io_pub;
+  ros::Publisher analog_io_pub;
+
+  ros::Publisher sonar_pub;
+  ros::Publisher red_halo_pub;
+  ros::Publisher green_halo_pub;
+
+  ros::Publisher face_screen_pub;
+
+
+  int sonar_led_state = 0;
+  double red_halo_state = 100.0;
+  double green_halo_state = 100.0;
+  int repeat_halo = 1;
+
 
 
   ros::NodeHandle n;

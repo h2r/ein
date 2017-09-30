@@ -4,8 +4,8 @@
 #include <QMainWindow>
 #include <iostream>
 #include <ros/ros.h>
+class MachineState;
 
-#include "ein.h"
 #include "window_QT.h"
 #include "stackmodel.h"
 #include "windowmanager.h"

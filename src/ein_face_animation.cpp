@@ -1,4 +1,5 @@
 #include "ein_words.h"
+#include "ein_baxter_config.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
 #include "word.h"
@@ -167,7 +168,7 @@ virtual void execute(MachineState * ms) {
 		msg.is_bigendian = false;
 		msg.encoding = sensor_msgs::image_encodings::BGR8;
 		msg.data.assign(image.data, image.data + size_t(image.rows * msg.step));
-		ms->config.face_screen_pub.publish(msg);
+		ms->config.baxterConfig->face_screen_pub.publish(msg);
 	}
 
 	ms->config.currentAnimationState = nextState; 
@@ -202,7 +203,7 @@ virtual void execute(MachineState * ms) {
 		msg.is_bigendian = false;
 		msg.encoding = sensor_msgs::image_encodings::BGR8;
 		msg.data.assign(image.data, image.data + size_t(image.rows * msg.step));
-		ms->config.face_screen_pub.publish(msg);
+		ms->config.baxterConfig->face_screen_pub.publish(msg);
 	}
 }
 END_WORD

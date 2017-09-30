@@ -1,6 +1,7 @@
 #include "gaussianmapwidget.h"
 
-
+#include "ein.h"
+#include "gaussian_map.h"
 
 GaussianMapWidget::GaussianMapWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
                                                                            ms(_ms),

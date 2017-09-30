@@ -39,13 +39,7 @@ class Camera;
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 
-namespace baxter_core_msgs {
-  ROS_DECLARE_MESSAGE(DigitalIOState);
-  ROS_DECLARE_MESSAGE(AnalogIOState);
 
-}
-
-#include "eigen_util.h"
 #include <ein/EinState.h>
 #include "distributions.h"
 
@@ -450,19 +444,6 @@ class EinConfig {
   ros::Publisher markers_blue_memory;
   ros::Publisher ee_target_pub;
 
-  ros::Publisher digital_io_pub;
-  ros::Publisher analog_io_pub;
-
-  ros::Publisher sonar_pub;
-  ros::Publisher red_halo_pub;
-  ros::Publisher green_halo_pub;
-
-  ros::Publisher face_screen_pub;
-
-  int sonar_led_state = 0;
-  double red_halo_state = 100.0;
-  double green_halo_state = 100.0;
-  int repeat_halo = 1;
 
   int zero_g_toggle = 1;
   int publish_commands_mode = 1;

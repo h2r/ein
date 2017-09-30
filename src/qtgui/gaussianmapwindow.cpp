@@ -4,7 +4,7 @@
 
 #include <QTest>
 #include <boost/algorithm/string.hpp>
-
+#include "ein.h"
 #include "einwindow.h"
 
 GaussianMapWindow::GaussianMapWindow(QWidget *parent, MachineState * _ms) :

@@ -2,7 +2,9 @@
 #define ARMWIDGET_H
 
 #include <QWidget>
-#include "ein.h"
+
+class MachineState;
+
 #include "window_QT.h"
 #include "stackmodel.h"
 

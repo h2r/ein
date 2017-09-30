@@ -14113,13 +14113,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
 
-  ms->config.digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
-  ms->config.analog_io_pub = n.advertise<baxter_core_msgs::AnalogOutputCommand>("/robot/analog_io/command",10);
-
-  ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
-  ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
-  ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
-  ms->config.face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
 
 
 

@@ -47,20 +47,6 @@
 #include <cv_bridge/cv_bridge.h>
 
 
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/CollisionDetectionState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/SEAJointState.h>
-#include <baxter_core_msgs/DigitalOutputCommand.h>
-#include <baxter_core_msgs/AnalogOutputCommand.h>
-
-
 #include <cv.h>
 #include <highgui.h>
 #include <ml.h>

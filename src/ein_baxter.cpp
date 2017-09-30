@@ -64,6 +64,14 @@ EinBaxterConfig::EinBaxterConfig(MachineState * myms): n("~") {
   headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
   nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
   joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
+  digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
+  analog_io_pub = n.advertise<baxter_core_msgs::AnalogOutputCommand>("/robot/analog_io/command",10);
+
+  sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
+  red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
+  green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
+  face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
+
 
 
   ms = myms;
@@ -883,19 +891,19 @@ void EinBaxterConfig::update_baxter() {
       
       {
         std_msgs::UInt16 thisCommand;
-        thisCommand.data = ms->config.sonar_led_state;
-        ms->config.sonar_pub.publish(thisCommand);
+        thisCommand.data = ms->config.baxterConfig->sonar_led_state;
+        ms->config.baxterConfig->sonar_pub.publish(thisCommand);
       }
-      if (ms->config.repeat_halo) {
+      if (ms->config.baxterConfig->repeat_halo) {
         {
           std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.red_halo_state;
-          ms->config.red_halo_pub.publish(thisCommand);
+          thisCommand.data = ms->config.baxterConfig->red_halo_state;
+          ms->config.baxterConfig->red_halo_pub.publish(thisCommand);
         }
         {
           std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.green_halo_state;
-          ms->config.green_halo_pub.publish(thisCommand);
+          thisCommand.data = ms->config.baxterConfig->green_halo_state;
+          ms->config.baxterConfig->green_halo_pub.publish(thisCommand);
         }
       }
     }
@@ -1299,5 +1307,262 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(EePoseToArmPose)
 
+WORD(AnalogIOCommand)
+virtual void execute(MachineState * ms)
+{
+  string component;
+  double value;
+  GET_ARG(ms, StringWord, component);
+  GET_NUMERIC_ARG(ms, value);
+
+  baxter_core_msgs::AnalogOutputCommand thisCommand;
+
+  thisCommand.name = component;
+  thisCommand.value = value;
+
+  ms->config.baxterConfig->analog_io_pub.publish(thisCommand);
+}
+END_WORD
+REGISTER_WORD(AnalogIOCommand)
+
+
+WORD(DigitalIOCommand)
+virtual void execute(MachineState * ms)
+{
+  string component;
+  int value;
+  GET_ARG(ms, StringWord, component);
+  GET_ARG(ms, IntegerWord, value);
+
+  baxter_core_msgs::DigitalOutputCommand thisCommand;
+
+  thisCommand.name = component;
+  thisCommand.value = value;
+
+  ms->config.baxterConfig->digital_io_pub.publish(thisCommand);
+}
+END_WORD
+REGISTER_WORD(DigitalIOCommand)
+
+WORD(SetRedHalo)
+virtual void execute(MachineState * ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  ms->config.baxterConfig->red_halo_state = value;
+
+  {
+    std_msgs::Float32 thisCommand;
+    thisCommand.data = ms->config.baxterConfig->red_halo_state;
+    ms->config.baxterConfig->red_halo_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetRedHalo)
+
+WORD(SetGreenHalo)
+virtual void execute(MachineState * ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  ms->config.baxterConfig->green_halo_state = value;
+
+  {
+    std_msgs::Float32 thisCommand;
+    thisCommand.data = ms->config.baxterConfig->green_halo_state;
+    ms->config.baxterConfig->green_halo_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetGreenHalo)
+
+WORD(SetSonarLed)
+virtual void execute(MachineState * ms)
+{
+  int value;
+  GET_ARG(ms, IntegerWord, value);
+  ms->config.baxterConfig->sonar_led_state = value;
+
+  {
+    std_msgs::UInt16 thisCommand;
+    thisCommand.data = ms->config.baxterConfig->sonar_led_state;
+    ms->config.baxterConfig->sonar_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SetSonarLed)
+
+WORD(LightsOn)
+virtual void execute(MachineState * ms)
+{
+  std::stringstream program;
+  program << "100 setGreenHalo 100 setRedHalo 4095 setSonarLed ";
+  program << "1 \"left_itb_light_inner\" digitalIOCommand 1 \"right_itb_light_inner\" digitalIOCommand 1 \"torso_left_itb_light_inner\" digitalIOCommand 1 \"torso_right_itb_light_inner\" digitalIOCommand 1 \"left_itb_light_outer\" digitalIOCommand 1 \"right_itb_light_outer\" digitalIOCommand 1 \"torso_left_itb_light_outer\" digitalIOCommand 1 \"torso_right_itb_light_outer\" digitalIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(LightsOn)
+
+WORD(LightsOff)
+virtual void execute(MachineState * ms)
+{
+  std::stringstream program;
+  program << "0 setGreenHalo 0 setRedHalo 32768 setSonarLed ";
+  program << "0 \"left_itb_light_inner\" digitalIOCommand 0 \"right_itb_light_inner\" digitalIOCommand 0 \"torso_left_itb_light_inner\" digitalIOCommand 0 \"torso_right_itb_light_inner\" digitalIOCommand 0 \"left_itb_light_outer\" digitalIOCommand 0 \"right_itb_light_outer\" digitalIOCommand 0 \"torso_left_itb_light_outer\" digitalIOCommand 0 \"torso_right_itb_light_outer\" digitalIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(LightsOff)
+
+WORD(SwitchSonarLed)
+virtual void execute(MachineState * ms)
+{
+  int value;
+  int led;
+  GET_ARG(ms, IntegerWord, led);
+  GET_ARG(ms, IntegerWord, value);
+
+  int blanked_sls = (~(1<<led)) & ms->config.baxterConfig->sonar_led_state;
+
+  ms->config.baxterConfig->sonar_led_state = blanked_sls | (1<<15) | (value * (1<<led));
+
+  {
+    std_msgs::UInt16 thisCommand;
+    thisCommand.data = ms->config.baxterConfig->sonar_led_state;
+    ms->config.baxterConfig->sonar_pub.publish(thisCommand);
+  }
+}
+END_WORD
+REGISTER_WORD(SwitchSonarLed)
+
+WORD(PublishWristViewToFace)
+virtual void execute(MachineState * ms) {
+  Size toBecome(1024,600);
+  sensor_msgs::Image msg;
+
+  Mat toresize = ms->config.wristViewImage.clone();
+  Mat topub;
+  cv::resize(toresize, topub, toBecome);
+
+  msg.header.stamp = ros::Time::now();
+  msg.width = topub.cols;
+  msg.height = topub.rows;
+  msg.step = topub.cols * topub.elemSize();
+  msg.is_bigendian = false;
+  msg.encoding = sensor_msgs::image_encodings::BGR8;
+  msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+  ms->config.baxterConfig->face_screen_pub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PublishWristViewToFace)
+
+WORD(PublishImageFileToFace)
+virtual void execute(MachineState * ms) {
+  string imfilename_post;
+  GET_STRING_ARG(ms, imfilename_post);
+  
+  string imfilename = "src/ein/images/" + imfilename_post;
+  Mat topub = imread(imfilename);
+
+  if (isSketchyMat(topub)) {
+    CONSOLE_ERROR(ms, "publishImageFileToFace: cannot load file " << imfilename);
+    ms->pushWord("pauseStackExecution");
+    return;
+  } else {
+    sensor_msgs::Image msg;
+    msg.header.stamp = ros::Time::now();
+    msg.width = topub.cols;
+    msg.height = topub.rows;
+    msg.step = topub.cols * topub.elemSize();
+    msg.is_bigendian = false;
+    msg.encoding = sensor_msgs::image_encodings::BGR8;
+    msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+    ms->config.baxterConfig->face_screen_pub.publish(msg);
+  }
+}
+END_WORD
+REGISTER_WORD(PublishImageFileToFace)
+
+
+WORD(BlankFace)
+virtual void execute(MachineState * ms) {
+  std::stringstream program;
+  program << "\"black.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(BlankFace)
+
+
+WORD(HappyFace)
+virtual void execute(MachineState * ms) {
+  std::stringstream program;
+  program << "\"ursula_yes.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(HappyFace)
+
+
+WORD(SadFace)
+virtual void execute(MachineState * ms) {
+  std::stringstream program;
+  program << "\"ursula_no.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(SadFace)
+
+
+WORD(NeutralFace)
+virtual void execute(MachineState * ms) {
+  std::stringstream program;
+  program << "\"ursula_neutral.tif\" publishImageFileToFace";
+  ms->evaluateProgram(program.str());  
+}
+END_WORD
+REGISTER_WORD(NeutralFace)
+
+
+WORD(TorsoFanOn)
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("100 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOn)
+
+WORD(TorsoFanOff)
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("1 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanOff)
+
+WORD(TorsoFanAuto)
+virtual void execute(MachineState * ms)
+{
+  ms->evaluateProgram("0 \"torso_fan\" analogIOCommand");
+}
+END_WORD
+REGISTER_WORD(TorsoFanAuto)
+
+
+WORD(SetTorsoFanLevel)
+virtual void execute(MachineState * ms)
+{
+  double value;
+  GET_NUMERIC_ARG(ms, value);
+  std::stringstream program;
+  program << value << " \"torso_fan\" analogIOCommand";
+  ms->evaluateProgram(program.str());
+}
+END_WORD
+REGISTER_WORD(SetTorsoFanLevel)
+
+
+CONFIG_GETTER_INT(RepeatHalo, ms->config.baxterConfig->repeat_halo)
+CONFIG_SETTER_INT(SetRepeatHalo, ms->config.baxterConfig->repeat_halo)
 
 }

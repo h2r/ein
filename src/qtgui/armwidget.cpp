@@ -1,6 +1,6 @@
 #include "armwidget.h"
 
-
+#include "ein.h"
 
 ArmWidget::ArmWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
 								       ms(_ms),
