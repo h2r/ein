@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
+#include <highgui.h>
 using namespace std;
 using namespace boost::filesystem;
 

@@ -6,7 +6,7 @@
 #include "qtgui/discrepancywindow.h"
 #include "camera.h"
 #include <boost/filesystem.hpp>
-
+#include <highgui.h>
 using namespace boost::filesystem;
 
 

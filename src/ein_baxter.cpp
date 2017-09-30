@@ -12,6 +12,9 @@
 #undef MY_NAMESPACE
 #include "ikfast/ikfast_wrapper_right.h"
 
+#include <highgui.h>
+
+
 void happy(MachineState * ms) {
   std_msgs::Int32 msg;
   msg.data = 0;

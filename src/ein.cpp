@@ -35,6 +35,9 @@
 
 #include <boost/filesystem.hpp>
 
+#include <highgui.h>
+
+
 MainWindow * einMainWindow;
 vector< MachineState * > machineStates;
 MachineState * left_arm;

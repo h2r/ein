@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   message_generation
-  pcl_ros
   baxter_core_msgs
   control_msgs
   kdl_parser

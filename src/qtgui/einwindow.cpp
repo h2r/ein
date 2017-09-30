@@ -2,6 +2,7 @@
 #include "ui_einwindow.h"
 #include "mainwindow.h"
 
+#include <highgui.h>
 #include <QTest>
 #include <boost/algorithm/string.hpp>
 

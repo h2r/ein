@@ -4,6 +4,9 @@
 #include "qtgui/einwindow.h"
 #include "word.h"
 
+#include <highgui.h>
+
+
 namespace ein_words {
 CONFIG_SETTER_ENUM(FaceAnimationSetMode, ms->config.currentAnimationMode, (animationMode))
 CONFIG_GETTER_INT(FaceAnimationGetMode, ms->config.currentAnimationMode)

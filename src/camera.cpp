@@ -5,6 +5,8 @@
 #include <sensor_msgs/image_encodings.h>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
+#include <highgui.h>
+
 
 using namespace boost::filesystem;
 using namespace boost::system;

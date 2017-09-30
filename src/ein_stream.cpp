@@ -2,6 +2,7 @@
 #include "ein.h"
 #include "camera.h"
 #include "qtgui/streamviewerwindow.h"
+#include <highgui.h>
 
 
 int loadStreamImage(MachineState * ms, streamImage * tsi) {

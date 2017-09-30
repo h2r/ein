@@ -1,6 +1,6 @@
 #include "ein.h"
 #include <tf_conversions/tf_kdl.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <highgui.h>
 #include "ein_baxter_config.h"
 #include "ikfast/ikfast_wrapper_left.h"
 #undef IKFAST_NAMESPACE
