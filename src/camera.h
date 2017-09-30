@@ -2,6 +2,7 @@
 #define _CAMERA_H_
 
 
+#include <Eigen/Geometry> 
 
 #include <string>
 #include <memory>

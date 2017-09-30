@@ -4,6 +4,7 @@
 #include "config.h"
 #include "camera.h"
 #include "ein_ik.h"
+#include "eigen_util.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -43,6 +44,7 @@ void neutral(MachineState * ms) {
   msg.data = 50;
   ms->config.baxterConfig->facePub.publish(msg);
 }
+
 
 void baxterInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
@@ -1767,7 +1769,7 @@ virtual void execute(MachineState * ms) {
     Vector3d localUnitY;
     Vector3d localUnitZ;
     fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+    eePose retractedGraspPose = eePoseMinus(graspPose, p_backoffDistance * localUnitZ);
 
     int ikResultPassedBoth = 1;
     {
@@ -1912,6 +1914,69 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(UnFixCameraLightingNoUpdate)
 
+WORD(ZeroIROffset)
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
+  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
+  Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+}
+END_WORD
+REGISTER_WORD(ZeroIROffset)
+
+WORD(SetIROffsetA)
+virtual void execute(MachineState * ms) {
+  // find the maximum in the map
+  // find the coordinate of the maximum
+  // compare the coordinate to the root position
+  // adjust offset
+  // if adjustment was large, recommend running again
+  double minDepth = VERYBIGNUMBER;
+  double maxDepth = 0;
+  int minX=-1, minY=-1;
+  int maxX=-1, maxY=-1;
+
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      double thisDepth = ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth];
+      if (thisDepth < minDepth) {
+	minDepth = thisDepth;
+	minX = rx;
+	minY = ry;
+      }
+      if (thisDepth > maxDepth) {
+	maxDepth = thisDepth;
+	maxX = rx;
+	maxY = ry;
+      }
+    }
+  }
+
+  double offByX = ((minX-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
+  double offByY = ((minY-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
+
+  cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+  camera->gear0offset = Eigen::Quaternionf(0.0, 
+    camera->gear0offset.x()+offByX, 
+    camera->gear0offset.y()+offByY, 
+    0.0167228); // z is from TF, good for depth alignment
+
+  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
+  Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+}
+END_WORD
+REGISTER_WORD(SetIROffsetA)
 
 CONFIG_GETTER_INT(RepeatHalo, ms->config.baxterConfig->repeat_halo)
 CONFIG_SETTER_INT(SetRepeatHalo, ms->config.baxterConfig->repeat_halo)

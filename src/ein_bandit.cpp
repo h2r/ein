@@ -3,6 +3,8 @@
 #include "config.h"
 #include "camera.h"
 
+#include "eigen_util.h"
+
 #include "ein.h"
 
 namespace ein_words {

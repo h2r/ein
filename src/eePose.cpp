@@ -1,5 +1,7 @@
 #include "eePose.h"
 #include <iostream>
+#include <Eigen/Geometry> 
+using namespace Eigen;
 
 using namespace std;
 
@@ -94,29 +96,6 @@ eePose _eePose::fromRectCentroid(Rect rect) {
   return result;
 }
 
-_eePose _eePose::plusP(const Vector3d& a) const {
-  _eePose toReturn;
-  toReturn.px = px + a.x();
-  toReturn.py = py + a.y();
-  toReturn.pz = pz + a.z();
-  toReturn.qx = qx;
-  toReturn.qy = qy;
-  toReturn.qz = qz;
-  toReturn.qw = qw;
-  return toReturn;
-}
-
-_eePose _eePose::minusP(const Vector3d& a) const {
-  _eePose toReturn;
-  toReturn.px = px - a.x();
-  toReturn.py = py - a.y();
-  toReturn.pz = pz - a.z();
-  toReturn.qx = qx;
-  toReturn.qy = qy;
-  toReturn.qz = qz;
-  toReturn.qw = qw;
-  return toReturn;
-}
 
 _eePose _eePose::plusP(const _eePose& a) const {
   _eePose toReturn;

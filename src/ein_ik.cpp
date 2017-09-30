@@ -1,4 +1,5 @@
 #include "ein.h"
+#include "eigen_util.h"
 #include <tf_conversions/tf_kdl.h>
 #include <highgui.h>
 #include "ein_baxter_config.h"
@@ -845,7 +846,7 @@ virtual void execute(MachineState * ms) {
     Vector3d localUnitY;
     Vector3d localUnitZ;
     fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+    eePose retractedGraspPose = eePoseMinus(graspPose, p_backoffDistance * localUnitZ);
 
     int ikResultPassedBoth = 1;
     {
@@ -1021,7 +1022,7 @@ virtual void execute(MachineState * ms) {
     Vector3d localUnitY;
     Vector3d localUnitZ;
     fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+    eePose retractedGraspPose = eePoseMinus(graspPose, p_backoffDistance * localUnitZ);
 
     int ikResultPassedBoth = 1;
     {

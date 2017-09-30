@@ -35,7 +35,6 @@
 #include <object_recognition_msgs/RecognizedObjectArray.h>
 #include <sensor_msgs/image_encodings.h>
 
-
 //#define DEBUG_RING_BUFFER
 
 #define stringer(token) #token
@@ -555,9 +554,13 @@ void recordReadyRangeReadings(MachineState * ms) {
 
 	{
 	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+          Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+	  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+	  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+	  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+	  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
 						  0.0,
 						 (thisPose.position.x - irSensorStartLocal.x()),
@@ -1230,9 +1233,14 @@ void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d
 
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
   Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
-  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
   Eigen::Quaternionf irSensorStartGlobal(
 					  0.0,
 					 (thisPose.px - irSensorStartLocal.x()),
@@ -3102,10 +3110,9 @@ void publishVolumetricMap(MachineState * ms) {
 void MachineState::accelerometerCallback(const sensor_msgs::Imu& moment) {
   MachineState * ms = this;
   ms->config.lastAccelerometerCallbackReceived = ros::Time::now();
-  ms->config.eeLinearAcceleration = Vector3d(
-    moment.linear_acceleration.x,
-    moment.linear_acceleration.y,
-    moment.linear_acceleration.z );
+  ms->config.eeLinearAcceleration[0] = moment.linear_acceleration.x;
+  ms->config.eeLinearAcceleration[1] = moment.linear_acceleration.y;
+  ms->config.eeLinearAcceleration[2] = moment.linear_acceleration.z;
 }
 
 void MachineState::rangeCallback(const sensor_msgs::Range& range) {
@@ -3233,9 +3240,15 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
       Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
       Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+      Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+      
+      ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+      ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+      ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+      ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
       Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+      Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
       Eigen::Quaternionf irSensorStartGlobal(
 					      0.0,
 					     (ms->config.trueEEPose.position.x - irSensorStartLocal.x()),
@@ -3943,10 +3956,15 @@ void renderWristViewImage(MachineState * ms) {
         Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
 	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+        Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+        ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+        ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+        ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+        ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
 	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
 	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
                                                0.0,
 					       (thisPose.position.x - irSensorStartLocal.x()),
@@ -5358,7 +5376,13 @@ void pilotInit(MachineState * ms) {
     Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
     Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+    Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+    ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+    ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+    ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
+    
 
     //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
     //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;

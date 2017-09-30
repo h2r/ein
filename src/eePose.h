@@ -2,7 +2,6 @@
 #define _EEPOSEH_
 
 #include <iostream>
-#include "eigen_util.h"
 #include <cv.h>
 #include <ml.h>
 #include <opencv2/gpu/gpu.hpp>
@@ -22,8 +21,6 @@ typedef struct _eePose{
   double qz;
   double qw;
 
-  _eePose plusP(const Vector3d& a) const;
-  _eePose minusP(const Vector3d& a) const;
 
   _eePose plusP(const _eePose& a) const;
   _eePose minusP(const _eePose& a) const;

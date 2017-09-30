@@ -2,6 +2,7 @@
 #include "ein_words.h"
 #include "ein.h"
 #include "camera.h"
+#include "eigen_util.h"
 
 namespace ein_words {
 
@@ -465,7 +466,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitX);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXDown)
@@ -477,7 +478,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitX);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXUp)
@@ -488,7 +489,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitY);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYDown)
@@ -500,7 +501,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitY);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYUp)
@@ -513,7 +514,7 @@ virtual void execute(MachineState * ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitZ);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZUp)
@@ -525,7 +526,7 @@ virtual void execute(MachineState * ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitZ);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZDown)

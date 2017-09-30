@@ -2,6 +2,9 @@
 #define _EIN_BAXTER_CONFIG_H_
 
 
+#include <Eigen/Geometry> 
+using namespace Eigen;
+
 #include <ros/package.h>
 #include <ros/ros.h>
 
@@ -101,8 +104,6 @@ class EinBaxterConfig {
   double red_halo_state = 100.0;
   double green_halo_state = 100.0;
   int repeat_halo = 1;
-
-
 
   ros::NodeHandle n;
 

@@ -7,6 +7,9 @@
 
 #define PROGRAM_NAME "ein"
 
+#include <Eigen/Geometry> 
+using namespace Eigen;
+
 #include <ein/EinState.h>
 #include <ein/EinConsole.h>
 
@@ -16,6 +19,7 @@
 #include <string>
 
 #include <cv.h>
+#include <Eigen/Geometry> 
 
 
 // slu
@@ -33,6 +37,75 @@ using namespace ein;
 
 
 
+typedef struct pixelToGlobalCache {
+  eePose givenEEPose;
+  double gZ;
+  int x1;
+  int x2;
+  int x3;
+  int x4;
+
+  int y1;
+  int y2;
+  int y3;
+  int y4;
+
+  double z1;
+  double z2;
+  double z3;
+  double z4;
+
+  double reticlePixelX;
+  double reticlePixelY;
+  double reticlePixelXOffset;
+  double reticlePixelYOffset;
+
+  double x_thisZ;
+  double y_thisZ;
+
+  double gXFactor;
+  double gYFactor;
+  double finalXOffset;
+  double finalYOffset;
+
+  Mat un_rot_mat;
+  double rotx[3];
+  double roty[3];
+
+  double dx;
+  double cx;
+  double b42x;
+  double b31x;
+  double bDiffx;
+  double bx;
+
+
+  double dy;
+  double cy;
+  double b42y;
+  double b31y;
+  double bDiffy;
+  double by;
+
+  Eigen::Matrix4f p2gComposedZBuilt;
+  Eigen::Matrix4f g2pComposedZBuilt;
+  Eigen::Matrix4f p2gComposedZNotBuilt;
+  Eigen::Matrix4f g2pComposedZNotBuilt;
+
+  Eigen::Matrix4f ap;
+  Eigen::Matrix4f apInv;
+  Eigen::Matrix4f ccpRot;
+  Eigen::Matrix4f ccpRotInv;
+  Eigen::Matrix4f ccpTrans;
+  Eigen::Matrix4f ccpTransInv;
+
+  double mu_x;
+  double mu_y;
+  double kappa_x;
+  double kappa_y;
+
+  Vec4d target_plane;
+} pixelToGlobalCache;
 
 
 int ARE_GENERIC_PICK_LEARNING(MachineState * ms);
