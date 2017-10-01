@@ -1,5 +1,7 @@
 #include "ikfast_wrapper.h"
 
+#include <tf_conversions/tf_kdl.h>
+
 #define isnan std::isnan
 #define IKFAST_NO_MAIN // Don't include main() from IKFast
 

@@ -29,5 +29,5 @@ int register_word(std::shared_ptr<Word> word) {
 // only vision, scanning, misc: 22s
 // only bandit, render, movement, servo: 22s
 
-#include "config.h"
+
 

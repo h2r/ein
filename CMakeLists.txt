@@ -3,6 +3,15 @@ cmake_minimum_required(VERSION 2.8.3)
 project(ein)
 
 
+#SET (CMAKE_CXX_COMPILER             "/home/stefie10/dev/pidrone/src/ein/timecpp.sh")
+#SET (CMAKE_CXX_COMPILER             "/usr/bin/clang++-5.0")
+#SET (CMAKE_C_COMPILER             "/usr/bin/clang-5.0")
+#SET (CMAKE_AR      "/usr/bin/llvm-ar-5.0")
+#SET (CMAKE_LINKER  "/usr/bin/llvm-ld-5.0")
+#SET (CMAKE_NM      "/usr/bin/llvm-nm-5.0")
+#SET (CMAKE_OBJDUMP "/usr/bin/llvm-objdump-5.0")
+#SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib-5.0")
+
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake") 
 MESSAGE(CMAKE_MODULE_PATH)
@@ -23,9 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   message_generation
-  baxter_core_msgs
   control_msgs
-  kdl_parser
 )
 
 
@@ -58,20 +65,18 @@ generate_messages(
 
 catkin_package(CATKIN_DEPENDS 
   eigen
-  message_runtime)
+  message_runtime
+)
 
-link_directories(${PCL_LIBRARY_DIRS})
 
-add_definitions(${PCL_DEFINITIONS})
 
-string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
-add_definitions(-DRETHINK_SDK_${happy_version})
+
+
 
 
 include_directories(include
 	${catkin_INCLUDE_DIRS}
 	${EIGEN_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
 )
 
 set(OPENMP_FLAG "-fopenmp")
@@ -111,10 +116,13 @@ add_library (EinQtLib SHARED
 )
 
 
+
+
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp src/camera.cpp  
+src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
+src/ein_stream.cpp src/camera.cpp  
 src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp 
-src/ein_face_animation.cpp src/ein_baxter.cpp 
+src/ein_face_animation.cpp 
 src/opencl/ein_opencl.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
@@ -141,7 +149,6 @@ src/cephes/expn.c    src/cephes/k1.c      src/cephes/round.c
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
-#	opencv_nonfree
         ${GSL_LIBRARIES}
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
@@ -150,10 +157,6 @@ target_link_libraries(ein
 
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
-message("OpenGL" ${OpenGL})
-message("OpenGL_FOUND" ${OpenGL_FOUND})
-message("OpenGL" ${OPENGL})
-message("OpenGL_FOUND" ${OPENGL_FOUND})
 if (OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND AND OpenCL_FOUND)
 MESSAGE("Building openCL with hardware acceleration.")
 add_definitions(-DUSE_OPENCL)
@@ -207,7 +210,31 @@ else()
 MESSAGE("Not building openCL with hardware accelleration.")
 endif()
 
+find_package(catkin REQUIRED COMPONENTS baxter_core_msgs kdl_parser kdl_conversions)
+if (baxter_core_msgs_FOUND)
+MESSAGE("Building Baxter.")
 
+string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
+add_definitions(-DRETHINK_SDK_${happy_version})
+add_library(EinBaxter SHARED
+src/ein_baxter.cpp 
+src/ikfast/ikfast_wrapper_left.cpp 
+src/ikfast/ikfast_wrapper_right.cpp 
+src/ein_ik.cpp 
+)
+target_link_libraries(EinBaxter
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+        ${LAPACK_LIBRARIES}
+)
+
+
+target_link_libraries(ein EinBaxter)
+
+
+else()
+MESSAGE("Not building Baxter.")
+endif()
 
 # Add a top-level "tags" target which includes all files in both
 # the build and source versions of src/*.
