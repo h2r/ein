@@ -22,7 +22,6 @@
 
 #include <highgui.h>
 
-
 void happy(MachineState * ms) {
   std_msgs::Int32 msg;
   msg.data = 0;
