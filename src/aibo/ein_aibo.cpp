@@ -1,11 +1,10 @@
 #include "ein_words.h"
 #include "config.h"
-#include "ein_aibo_config.h"
 #include "ein.h"
 #include "qtgui/einwindow.h"
 
 #include "ein_aibo.h"
-
+#include "ein_aibo_config.h"
 #include <sys/stat.h>
 #include <dirent.h>
 #include <signal.h>
@@ -99,7 +98,7 @@ class EinAiboSensors {
   double backTouchF;
 };
 
-class EinAiboConfig {
+class EinAiboDog {
 
   public:
   ros::Publisher aibo_snout_pub;
@@ -303,6 +302,24 @@ SSDP_ENABLE=1
 
 */
 
+void robotInitializeConfig(MachineState * ms) {
+ ms->config.aiboConfig = new EinAiboConfig(ms);
+}
+void robotInitializeMachine(MachineState * ms) {
+}
+
+EinAiboConfig::EinAiboConfig(MachineState * myms) {
+  ms = myms;
+}
+
+void robotEndPointCallback(MachineState * ms){}
+void robotSetCurrentJointPositions(MachineState * ms){}
+
+void robotActivateSensorStreaming(MachineState * ms){}
+void robotDeactivateSensorStreaming(MachineState * ms){}
+void robotUpdate(MachineState * ms){}
+
+
 #define DOG_READ_VAR(x) \
   nextCoreMessage = findStringInDogBuffer(ms, this_dog, string("] "), nextCoreMessage); \
   if (nextCoreMessage == -1) {\
@@ -311,34 +328,6 @@ SSDP_ENABLE=1
   r = stod(&(ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[nextCoreMessage]), &idx);  \
   x = r; \
   cout << "dgbi got: " << r << " for " << #x << endl; 
-
-
-void robotInitializeConfig(MachineState * ms) {
-  CONSOLE(ms, "Initializing Aibo.");
-  ms->config.aiboConfig = new EinAiboConfig(ms);
-}
-
-void robotEndPointCallback(MachineState * ms) {
-}
-
-void robotSetCurrentJointPositions(MachineState * ms) {
-}
-
-void robotActivateSensorStreaming(MachineState * ms) {
-}
-void robotDeactivateSensorStreaming(MachineState * ms) {
-}
-
-void robotUpdate(MachineState * ms) {
-}
-
-void robotHappy(MachineState * ms) {
-}
-void robotSad(MachineState * ms) {
-}
-void robotNeutral(MachineState * ms) {
-}
-
 
 void dogReconnect(MachineState * ms) {
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 0;
@@ -391,7 +380,7 @@ string EinAiboJoints::toString() {
   return buf.str();
 }
 bool dogIsStopped(MachineState * ms, int member) {
-  EinAiboConfig * dog = ms->config.aiboConfig->pack[member];
+  EinAiboDog * dog = ms->config.aiboConfig->pack[member];
   cout << "Intended joints: " << dog->targetJoints.toString() << endl;
   cout << "True joints: " << dog->trueJoints.toString() << endl;
 
@@ -666,7 +655,7 @@ virtual void execute(MachineState * ms) {
   } else {
     cout << "dogSetPackSize: invalid size..." << endl;
   }
-  ms->stoppedJoints = new EinAiboJoints();
+  ms->config.aiboConfig->stoppedJoints = new EinAiboJoints();
 }
 END_WORD
 REGISTER_WORD(DogSetPackSize)
@@ -3246,7 +3235,7 @@ REGISTER_WORD(DogVoiceToPCM)
 WORD(DogWriteIntendedFromTrue)
 virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
-  EinAiboConfig * dog = ms->config.aiboConfig->pack[this_dog];
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
 
   dog->intendedPose = dog->truePose;
   memcpy(dog->intendedGain, dog->trueGain, 3 * sizeof(EinAiboJoints));
@@ -3298,11 +3287,11 @@ virtual void execute(MachineState * ms) {
   ms->pushWord("endStackCollapseNoop");
 
   int this_dog = ms->config.aiboConfig->focusedMember;
-  EinAiboConfig * dog = ms->config.aiboConfig->pack[this_dog];
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
 
-  ms->aiboStoppedTime = ros::Time(0,0);
-  *ms->stoppedJoints = dog->truePose;
-  ms->aiboComeToStopTime = ros::Time::now();
+  ms->config.aiboConfig->aiboStoppedTime = ros::Time(0,0);
+  *ms->config.aiboConfig->stoppedJoints = dog->truePose;
+  ms->config.aiboConfig->aiboComeToStopTime = ros::Time::now();
 }
 END_WORD
 REGISTER_WORD(DogComeToStop)
@@ -3310,24 +3299,24 @@ REGISTER_WORD(DogComeToStop)
 
 WORD(DogComeToStopA)
 virtual void execute(MachineState * ms) {
-  ros::Duration comeToStopLength = ros::Time::now() - ms->aiboComeToStopTime;
+  ros::Duration comeToStopLength = ros::Time::now() - ms->config.aiboConfig->aiboComeToStopTime;
   cout << "Length: " << comeToStopLength << endl;
   if (comeToStopLength > ros::Duration(10, 0)) {
     return;
   }
 
   int this_dog = ms->config.aiboConfig->focusedMember;
-  EinAiboConfig * dog = ms->config.aiboConfig->pack[this_dog];
-  cout << "Dist: " << ms->stoppedJoints->dist(dog->truePose) << endl;
-  if (ms->stoppedJoints->dist(dog->truePose) < 6.0) {
-    ros::Duration stoppedTime = ros::Time::now()- ms->aiboStoppedTime;
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
+  cout << "Dist: " << ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) << endl;
+  if (ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) < 6.0) {
+    ros::Duration stoppedTime = ros::Time::now()- ms->config.aiboConfig->aiboStoppedTime;
     if (stoppedTime < ros::Duration(1, 0)) {
       ms->pushWord("dogComeToStopA");
     }
   } else {
     ms->pushWord("dogComeToStopA");
-    ms->aiboStoppedTime = ros::Time::now();
-    *ms->stoppedJoints = dog->truePose;
+    ms->config.aiboConfig->aiboStoppedTime = ros::Time::now();
+    *ms->config.aiboConfig->stoppedJoints = dog->truePose;
   }
   ms->pushWord("dogGetSensoryMotorStates");
   ms->pushWord("endStackCollapseNoop");

@@ -45,6 +45,31 @@ void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
 }
 
+void robotInitializeMachine(MachineState * ms) {
+    ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
+  if (ms->config.currentRobotMode == PHYSICAL) {
+
+    ms->pushWord("zeroGOff"); 
+    ms->pushWord("waitUntilEndpointCallbackReceived"); 
+    
+    ms->pushCopies("zUp", 15);
+    ms->pushWord("incrementTargetClass"); 
+    ms->pushWord("synchronicServoTakeClosest");
+
+    ms->pushWord("silenceSonar");
+    ms->pushWord("exportWords");
+    ms->pushWord("openGripper");
+    ms->pushWord("calibrateGripper");
+    ms->pushWord("shiftIntoGraspGear1"); 
+    
+    ms->pushWord("fillClearanceMap"); 
+  }
+
+  ms->pushWord("loadIkMap"); 
+  ms->pushWord("loadGripperMask"); 
+
+}
+
 void robotSetCurrentJointPositions(MachineState * ms) {
   if ( (ms->config.baxterConfig->currentJointPositions.response.joints.size() > 0) && (ms->config.baxterConfig->currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
     for (int j = 0; j < NUM_JOINTS; j++) {

@@ -141,7 +141,7 @@ void initializeMachine(MachineState * ms) {
 
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
-  ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
+
 
   stringstream s;
   s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
@@ -149,29 +149,10 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
-
-  if (ms->config.currentRobotMode == PHYSICAL) {
-
-    ms->pushWord("zeroGOff"); 
-    ms->pushWord("waitUntilEndpointCallbackReceived"); 
-    
-    ms->pushCopies("zUp", 15);
-    ms->pushWord("incrementTargetClass"); 
-    ms->pushWord("synchronicServoTakeClosest");
-
-    ms->pushWord("silenceSonar");
-    ms->pushWord("exportWords");
-    ms->pushWord("openGripper");
-    ms->pushWord("calibrateGripper");
-    ms->pushWord("shiftIntoGraspGear1"); 
-    
-    ms->pushWord("fillClearanceMap"); 
-  }
+  robotInitializeMachine();
 
 
   ms->pushWord("loadCalibration"); 
-  ms->pushWord("loadIkMap"); 
-  ms->pushWord("loadGripperMask"); 
   ms->pushWord("loadConfig"); 
   ms->pushWord("initializeConfig");
   ms->pushWord("guiCustom1"); 

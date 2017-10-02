@@ -4,6 +4,7 @@
 class EinBaxterConfig;
 class MachineState;
 void robotInitializeConfig(MachineState * ms);
+void robotInitializeMachine(MachineState * ms);
 void robotEndPointCallback(MachineState * ms);
 void robotSetCurrentJointPositions(MachineState * ms);
 
