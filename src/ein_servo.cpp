@@ -295,7 +295,7 @@ virtual void execute(MachineState * ms) {
 
   pushGridSign(ms, GRID_COARSE);    
   if (isGripperGripping(ms)) {
-    happy(ms);
+    ms->pushWord("happyFace");
     ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
     ms->pushWord('5');  // assume pose at register 5
       
@@ -466,7 +466,7 @@ virtual void execute(MachineState * ms)       {
   }
   if ((ms->config.thisGraspPicked == SUCCESS) && (ms->config.thisGraspReleased == SUCCESS)) {
     ms->config.graspSuccessCounter++;
-    happy(ms);
+    ms->pushWord("happyFace");
     if (ARE_GENERIC_PICK_LEARNING(ms)) {
       //ms->config.graspMemoryPicks[j+0*ms->config.rmWidth*ms->config.rmWidth]++;
       //ms->config.graspMemoryPicks[j+1*ms->config.rmWidth*ms->config.rmWidth]++;
@@ -519,7 +519,7 @@ virtual void execute(MachineState * ms)       {
     double thisPickRate = double(ms->config.graspMemoryPicks[i]) / double(ms->config.graspMemoryTries[i]);
     int thisNumTries = ms->config.graspMemoryTries[i];
     cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-    sad(ms);
+    ms->pushWord("sadFace");
     if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
       recordBoundingBoxFailure(ms);
     }
@@ -553,12 +553,12 @@ virtual void execute(MachineState * ms)       {
     if (!isGripperGripping(ms)) {
       cout << "Failed to pick." << endl;
       ms->config.thisGraspPicked = FAILURE;
-      sad(ms);
+      ms->pushWord("sadFace");
       ms->pushCopies("beep", 15); // beep
     } else {
       cout << "Successful pick." << endl;
       ms->config.thisGraspPicked = SUCCESS;
-      happy(ms);
+      ms->pushWord("happyFace");
     }
   }
 }
@@ -576,7 +576,7 @@ virtual void execute(MachineState * ms)       {
     cout << "gripperGripping: " << ms->config.gripperGripping << endl;
     if (isGripperGripping(ms)) {
       cout << "STUCK!!!!!!" << endl;
-      sad(ms);
+      ms->pushWord("sadFace");
 
       ms->pushWord("pauseStackExecution");
       ms->pushCopies("beep", 15); // beep
@@ -593,7 +593,7 @@ virtual void execute(MachineState * ms)       {
 
     } else {
       cout << "Not stuck :)" << endl;
-      happy(ms);
+      ms->pushWord("happyFace");
     }
   }
 }
@@ -1415,7 +1415,8 @@ CODE(131141) // capslock + e
 virtual void execute(MachineState * ms) {
   ms->config.thisGraspPicked = UNKNOWN;
   ms->config.thisGraspReleased = UNKNOWN;
-  neutral(ms);
+  ms->pushWord("neutralFace");
+
   
   if (ARE_GENERIC_PICK_LEARNING(ms)) {
     if (ms->config.thompsonHardCutoff) {

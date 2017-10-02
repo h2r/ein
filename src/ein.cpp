@@ -1988,7 +1988,7 @@ void activateSensorStreaming(MachineState * ms) {
     mkdir(this_calibration_path.c_str(), 0777);
     ms->config.sensorStreamOn = 1;
 
-    baxterActivateSensorStreaming(ms);
+    robotActivateSensorStreaming(ms);
 
     for (int i = 0; i < ms->config.cameras.size(); i++) {
       ms->config.cameras[i]->activateSensorStreaming();
@@ -2010,7 +2010,7 @@ void deactivateSensorStreaming(MachineState * ms) {
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
 
-  baxterDeactivateSensorStreaming(ms);
+  robotDeactivateSensorStreaming(ms);
 
   for (int i = 0; i < ms->config.cameras.size(); i++) {
     ms->config.cameras[i]->deactivateSensorStreaming();
@@ -3731,7 +3731,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if (!ms->config.zero_g_toggle) {
-    baxterUpdate(ms);
+    robotUpdate(ms);
   }
   else {
     ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
@@ -3743,7 +3743,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
 
 
-    baxterSetCurrentJointPositions(ms);
+    robotSetCurrentJointPositions(ms);
   }
 
   if (ms->config.coreViewWindow->isVisible()) {
@@ -10211,7 +10211,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
     myRange.header.stamp = ros::Time::now();
     rangeCallback(myRange);
   }
-  baxterEndPointCallback(ms);
+  robotEndPointCallback(ms);
   {
     double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
 
@@ -14136,7 +14136,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-  baxterInitializeConfig(ms);
+  robotInitializeConfig(ms);
 
   ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, &MachineState::pickObjectUnderEndEffectorCommandCallback, ms);
   ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, &MachineState::placeObjectInEndEffectorCommandCallback, ms);

@@ -42,11 +42,11 @@ void neutral(MachineState * ms) {
 }
 
 
-void baxterInitializeConfig(MachineState * ms) {
+void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
 }
 
-void baxterSetCurrentJointPositions(MachineState * ms) {
+void robotSetCurrentJointPositions(MachineState * ms) {
   if ( (ms->config.baxterConfig->currentJointPositions.response.joints.size() > 0) && (ms->config.baxterConfig->currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
     for (int j = 0; j < NUM_JOINTS; j++) {
       ms->config.baxterConfig->currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
@@ -58,7 +58,7 @@ void baxterSetCurrentJointPositions(MachineState * ms) {
   }
 }
 
-void baxterEndPointCallback(MachineState * ms) {
+void robotEndPointCallback(MachineState * ms) {
     baxter_core_msgs::EndpointState myEPS;
 
     myEPS.header.stamp = ros::Time::now();
@@ -656,10 +656,10 @@ void EinBaxterConfig::endpointCallback(const baxter_core_msgs::EndpointState& _e
   }
 }
 
-void baxterActivateSensorStreaming(MachineState * ms) {
+void robotActivateSensorStreaming(MachineState * ms) {
   ms->config.baxterConfig->activateSensorStreaming();
 }
-void baxterDeactivateSensorStreaming(MachineState * ms) {
+void robotDeactivateSensorStreaming(MachineState * ms) {
   ms->config.baxterConfig->deactivateSensorStreaming();
 }
 
@@ -686,7 +686,7 @@ void EinBaxterConfig::gripStateCallback(const baxter_core_msgs::EndEffectorState
   ms->config.gripperGripping = ees.gripping;
 }
 
-void baxterUpdate(MachineState * ms) {
+void robotUpdate(MachineState * ms) {
   ms->config.baxterConfig->update_baxter();
 }
 

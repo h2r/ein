@@ -517,7 +517,7 @@ virtual void execute(MachineState * ms)
 
   ms->config.thisGraspPicked = UNKNOWN;
   ms->config.thisGraspReleased = UNKNOWN;
-  neutral(ms);
+  ms->pushWord("neutralFace");
   
   ms->pushWord("focusedGraspLearningA");
   ms->pushWord("setPlaceModeToShake");

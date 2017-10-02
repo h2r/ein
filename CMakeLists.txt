@@ -106,7 +106,6 @@ qt5_wrap_cpp(EinQtLib_hdr_moc ${EinQtLib_hdr})
 qt5_wrap_ui (EinQtLib_ui_moc  ${EinQtLib_ui})
 
 include_directories (${PROJECT_SOURCE_DIR}/src)
-include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 include_directories (${PROJECT_BINARY_DIR})
 
 add_library (EinQtLib SHARED 
@@ -121,7 +120,7 @@ add_library (EinQtLib SHARED
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
 src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
 src/ein_stream.cpp src/camera.cpp  
-src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp 
+src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/opencl/ein_opencl.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
@@ -157,7 +156,9 @@ target_link_libraries(ein
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 if (OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND AND OpenCL_FOUND)
+
 MESSAGE("Building openCL with hardware acceleration.")
+include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 add_definitions(-DUSE_OPENCL)
 add_library(EinOpenCLLib SHARED
 src/opencl/oclNbody/src/cmd_arg_reader.cpp
@@ -178,6 +179,7 @@ target_link_libraries(EinOpenCLLib
         ${GLEW_LIBRARIES}
         ${GLUT_LIBRARIES}
         ${OpenCL_LIBRARY}
+        EinQtLib
 )
 
 
@@ -211,8 +213,14 @@ endif()
 
 find_package(catkin COMPONENTS baxter_core_msgs)
 find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
+
+
+
+# you must pick one robot. 
+
 if (baxter_core_msgs_FOUND)
 MESSAGE("Building Baxter.")
+add_definitions(-DUSE_ROBOT_BAXTER)
 
 string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
 add_definitions(-DRETHINK_SDK_${happy_version})
@@ -234,53 +242,23 @@ target_link_libraries(ein EinBaxter)
 
 
 else()
-MESSAGE("Not building Baxter.")
+MESSAGE("Not building Baxter.  Building Aibo")
+MESSAGE("Building Aibo.")
+add_definitions(-DUSE_ROBOT_AIBO)
+
+add_library(EinAibo SHARED
+src/aibo/ein_aibo.cpp 
+)
+
+qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
+
+target_link_libraries(EinAibo
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+        )
+
+target_link_libraries(ein EinAibo)
+
+else()
+MESSAGE("Not building Aibo.")
 endif()
-
-# Add a top-level "tags" target which includes all files in both
-# the build and source versions of src/*.
-#set_source_files_properties(tags PROPERTIES GENERATED true)
-#add_custom_target(tags
-#    COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  -e --exclude='.\#*'
-#        ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
-#    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/tags ${CMAKE_BINARY_DIR}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-
-# ...but only make it a dependency of the project if the ctags program
-# is available, else it will fail to build on Windows.
-#find_program(CTAGS_PATH ctags)
-#if(CTAGS_PATH)
-#    message(STATUS "Found ctags: ${CTAGS_PATH}")
-#    add_dependencies(ein tags)
-#endif(CTAGS_PATH)
-
-
-
-
-
-
-
-# # Find includes in corresponding build directories
-# set(CMAKE_INCLUDE_CURRENT_DIR ON)
-# # Instruct CMake to run moc automatically when needed.
-
-# # Find the QtWidgets library
-# find_package(Qt5Widgets)
-
-# qt5_wrap_ui(Cmake_form_hdr mainwindow.ui)
-
-
-# qt5_wrap_cpp(helloworld_hdr_moc src/qtgui/mainwindow.h)
-# qt5_wrap_ui (helloworld_ui_moc  src/qtgui/mainwindow.ui)
-                                
-
-# include_directories (${PROJECT_SOURCE_DIR})
-# include_directories (${PROJECT_BINARY_DIR})
-
-
-# # Tell CMake to create the helloworld executable
-# add_executable(helloworld src/qtgui/main.cpp src/qtgui/mainwindow.cpp)
-
-# # Use the Widgets module from Qt 5.
-# target_link_libraries(helloworld Qt5::Widgets)
-

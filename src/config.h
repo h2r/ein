@@ -5,8 +5,14 @@
 #define VERYBIGNUMBER 1e12
 
 
-#include "ein_aibo.h"
+#if defined(USE_ROBOT_AIBO)
+#include "aibo/ein_aibo.h"
+#elif defined(USE_ROBOT_BAXTER)
 #include "baxter/ein_baxter.h"
+#else
+#include "defaultrobot/ein_robot.h"
+#endif
+
 #include "gaussian_map.h"
 #include "ein_util.h"
 #include "eePose.h"
@@ -338,10 +344,15 @@ typedef struct streamLabel {
 class Word;
 class CompoundWord;
 
+class EinBaxterConfig;
+class EinAiboConfig;
+
 class EinConfig {
  public:
 
   EinBaxterConfig * baxterConfig;
+  EinAiboConfig * aiboConfig;
+
 
   
   tf::TransformListener* tfListener;
@@ -1506,12 +1517,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   EinConfig config;
 
-  int focusedMember = 0;
-  std::vector<EinAiboConfig*> pack;
-
-  ros::Time aiboStoppedTime;
-  EinAiboJoints * stoppedJoints;
-  ros::Time aiboComeToStopTime;
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
