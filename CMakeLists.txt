@@ -217,11 +217,11 @@ MESSAGE("Building Baxter.")
 string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
 add_definitions(-DRETHINK_SDK_${happy_version})
 add_library(EinBaxter SHARED
-src/ein_baxter.cpp 
-src/ein_face_animation.cpp 
-src/ikfast/ikfast_wrapper_left.cpp 
-src/ikfast/ikfast_wrapper_right.cpp 
-src/ein_ik.cpp 
+src/baxter/ein_baxter.cpp 
+src/baxter/ein_face_animation.cpp 
+src/baxter/ikfast/ikfast_wrapper_left.cpp 
+src/baxter/ikfast/ikfast_wrapper_right.cpp 
+src/baxter/ein_ik.cpp 
 )
 target_link_libraries(EinBaxter
 	${catkin_LIBRARIES}

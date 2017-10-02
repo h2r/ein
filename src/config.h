@@ -6,7 +6,7 @@
 
 
 #include "ein_aibo.h"
-#include "ein_baxter.h"
+#include "baxter/ein_baxter.h"
 #include "gaussian_map.h"
 #include "ein_util.h"
 #include "eePose.h"

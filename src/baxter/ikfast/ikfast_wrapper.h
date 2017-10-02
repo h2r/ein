@@ -1,5 +1,5 @@
 #include "ein.h"
-#include "ein_baxter_config.h"
+#include "baxter/ein_baxter_config.h"
 #include <geometry_msgs/PoseStamped.h>
 
 
