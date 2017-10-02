@@ -1484,6 +1484,7 @@ virtual void execute(MachineState * ms)
   ofstream wordFile;
   wordFile.open(wordFileName);
 
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   for (int i = 0; i < words.size(); i++) {
     vector<string> names = words[i]->names();
     for (int j = 0; j < names.size(); j++) {

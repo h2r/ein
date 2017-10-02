@@ -566,7 +566,9 @@ std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::sh
 std::shared_ptr<Word> parseToken(MachineState * ms, string token);
 std::shared_ptr<Word> nameToWord(string name);
 
-extern std::vector<std::shared_ptr<Word> > words;
+std::vector<std::shared_ptr<Word> > register_word(std::shared_ptr<Word> word);
+
+//extern std::vector<std::shared_ptr<Word> > words;
 extern std::map<int, std::shared_ptr<Word> > character_code_to_word;
 extern std::map<string, std::shared_ptr<Word> > name_to_word;
 

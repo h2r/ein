@@ -35,6 +35,8 @@ ArmWidget::ArmWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
     wristView.setMouseCallBack(pilotCallbackFunc, ms);
 
     QStringList wordList;
+    std::vector<std::shared_ptr<Word> > words = register_word(NULL);
+
     for (int i = 0; i < words.size(); i++) {
       wordList.push_back(QString::fromStdString(words[i]->name()));
     }

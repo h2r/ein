@@ -14022,6 +14022,8 @@ void promoteBlueBoxes(MachineState * ms) {
   }
 }
 
+
+
 void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   stateOut->zero_g = ms->config.zero_g_toggle;
 
@@ -14053,7 +14055,7 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
     stateOut->words.push_back(iter->first);
   }
-
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   for (int i = 0; i < words.size(); i++) {
     vector<string> names = words[i]->names();
     for (int j = 0; j < names.size(); j++) {
@@ -14414,8 +14416,6 @@ void signalHandler( int signo )
 int main(int argc, char **argv) {
 
   QApplication a(argc, argv);
-
-
 
   initializeWords();
 

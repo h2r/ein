@@ -15,4 +15,6 @@ void happy(MachineState * ms);
 void sad(MachineState * ms);
 void neutral(MachineState * ms);
 
+#include <vector>
+#include <memory>
 #endif /* _EIN_BAXTER_H_ */
