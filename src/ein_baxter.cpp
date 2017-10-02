@@ -14,10 +14,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 
-
-
-
-
 #include "ikfast/ikfast_wrapper_left.h"
 #undef IKFAST_NAMESPACE
 #undef IKFAST_SOLVER_CPP
