@@ -149,7 +149,7 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
-  robotInitializeMachine();
+  robotInitializeMachine(ms);
 
 
   ms->pushWord("loadCalibration"); 
