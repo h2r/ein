@@ -9,6 +9,8 @@
 #include "aibo/ein_aibo.h"
 #elif defined(USE_ROBOT_BAXTER)
 #include "baxter/ein_baxter.h"
+#elif defined(USE_ROBOT_PIDRONE)
+#include "pidrone/ein_pidrone.h"
 #else
 #include "defaultrobot/ein_robot.h"
 #endif
@@ -346,12 +348,14 @@ class CompoundWord;
 
 class EinBaxterConfig;
 class EinAiboConfig;
+class EinPidroneConfig;
 
 class EinConfig {
  public:
 
   EinBaxterConfig * baxterConfig;
   EinAiboConfig * aiboConfig;
+  EinPidroneConfig * pidroneConfig;
 
 
   

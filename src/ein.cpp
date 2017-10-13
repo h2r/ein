@@ -14083,10 +14083,12 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
 
   initializeMachine(ms);
-#ifdef defined(USE_ROBOT_BAXTER)
+#ifdef USE_ROBOT_BAXTER
   ms->config.robot_type = "baxter";
 #elif defined(USE_ROBOT_AIBO)
-  ms->config.robot_type = "aibo";
+  ms->config.robot_type = "aibo123";
+#elif defined(USE_ROBOT_PIDRONE)
+  ms->config.robot_type = "pidrone";
 #else
   ms->config.robot_type = "none";
 #endif

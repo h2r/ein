@@ -212,8 +212,8 @@ MESSAGE("Not building openCL with hardware accelleration.")
 endif()
 
 find_package(catkin COMPONENTS baxter_core_msgs)
-find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
 
+find_package(catkin COMPONENTS pidrone_pkg)
 
 
 # you must pick one robot. 
@@ -221,6 +221,7 @@ find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
 if (baxter_core_msgs_FOUND)
 MESSAGE("Building Baxter.")
 add_definitions(-DUSE_ROBOT_BAXTER)
+find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
 
 string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
 add_definitions(-DRETHINK_SDK_${happy_version})
@@ -240,10 +241,18 @@ target_link_libraries(EinBaxter
 
 target_link_libraries(ein EinBaxter)
 
+elseif (pidrone_pkg_FOUND)
+
+MESSAGE("Building Pidrone")
+add_definitions(-DUSE_ROBOT_PIDRONE)
+add_library(EinPidrone SHARED
+src/pidrone/ein_pidrone.cpp 
+)
+target_link_libraries(ein EinPidrone)
+
 
 else()
-MESSAGE("Not building Baxter.  Building Aibo")
-MESSAGE("Building Aibo.")
+MESSAGE("Building Aibo")
 add_definitions(-DUSE_ROBOT_AIBO)
 
 add_library(EinAibo SHARED
@@ -259,6 +268,5 @@ target_link_libraries(EinAibo
 
 target_link_libraries(ein EinAibo)
 
-else()
-MESSAGE("Not building Aibo.")
 endif()
+
