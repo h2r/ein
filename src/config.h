@@ -629,6 +629,8 @@ class EinConfig {
   string robot_description;
   string robot_software_version;
   string ein_software_version;
+  string robot_type;
+
 
 
   geometry_msgs::Pose trueEEPose;

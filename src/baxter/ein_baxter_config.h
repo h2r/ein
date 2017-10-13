@@ -107,9 +107,6 @@ class EinBaxterConfig {
   int repeat_halo = 1;
 
   ros::NodeHandle n;
-
-
-  EinBaxterConfig();
 };
 
 #endif /* _EIN_BAXTER_CONFIG_H_ */

@@ -3405,6 +3405,15 @@ END_WORD
 REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 
+WORD(MoveCropToProperValueNoUpdate)
+virtual void execute(MachineState * ms) {
+  CONSOLE_ERROR(ms, "Ignore camera config for AIBO!");
+
+}
+END_WORD
+REGISTER_WORD(MoveCropToProperValueNoUpdate)
+
+
 
 }
 

@@ -3276,6 +3276,8 @@ CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 
 CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory)
 
+CONFIG_GETTER_STRING(RobotType, ms->config.robot_type)
+
 CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
 CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version)
 CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version)
