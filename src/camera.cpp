@@ -1011,3 +1011,22 @@ void Camera::setHandCameraOffsetFromTf(ros::Time time)
 {
   
 }
+
+
+void Camera::initializeConfig(int rows, int cols)
+{
+  if (!isSketchyMat(cam_img)) {
+    if (cam_img.cols != cols || cam_img.rows != rows) {
+      CONSOLE_ERROR(ms, "Given rows and cols does not match image!");
+    }
+  }
+
+  cropUpperLeftCorner = eePose(cols, rows, 0.0,
+                               0.0, 1.0, 0.0, 0.0);
+  centerReticle = eePose(cols/2, rows/2, 0.0,
+                         0.0, 0.0, 0.0, 0.0);
+  
+  defaultReticle = centerReticle;
+  probeReticle = centerReticle;
+  vanishingPointReticle = centerReticle;
+}

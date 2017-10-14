@@ -22,6 +22,8 @@
 
 #include <highgui.h>
 
+void pilotInit(MachineState * ms);
+
 void happy(MachineState * ms) {
   std_msgs::Int32 msg;
   msg.data = 0;
@@ -43,6 +45,16 @@ void neutral(MachineState * ms) {
 
 void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
+ pilotInit(ms);
+
+ ms->config.cameras.clear();
+ if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
+   string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
+   Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic, ms->config.left_or_right_arm + "_hand", ms->config.left_or_right_arm + "_hand_camera");
+   ms->config.cameras.push_back(c);
+   ms->config.focused_camera = 0;
+ }
+
 }
 
 void robotInitializeMachine(MachineState * ms) {
@@ -975,6 +987,337 @@ void EinBaxterConfig::update_baxter() {
 }
 
 
+void pilotInit(MachineState * ms) {
+
+  if (0 == ms->config.left_or_right_arm.compare("left")) {
+    ms->config.joint_min[0] = -1.70168;
+    ms->config.joint_min[1] = -2.147;
+    ms->config.joint_min[2] = -3.05418;
+    ms->config.joint_min[3] = -0.05;
+    ms->config.joint_min[4] = -3.059;
+    ms->config.joint_min[5] = -1.5708;
+    ms->config.joint_min[6] = -3.059;
+
+
+    ms->config.joint_max[0] = 1.70168;
+    ms->config.joint_max[1] = 1.047;
+    ms->config.joint_max[2] = 3.05418;
+    ms->config.joint_max[3] = 2.618;
+    ms->config.joint_max[4] = 3.059;
+    ms->config.joint_max[5] = 2.094;
+    ms->config.joint_max[6] = 3.059;
+
+    ms->config.backScanningPose = eePose(-0.304942, 0.703968, 0.186738,
+                                         0.0, 1, 0.0, 0.0);
+
+    ms->config.beeHome = eePose(0.334217, 0.75386, 0.0362593,
+                                -0.00125253, 0.999999, -0.000146851, 0.000236656);
+    
+    ms->config.eepReg4 = ms->config.beeHome;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    camera->defaultReticle = eePose(334, 100, 0.0,
+                                       0.0, 0.0, 0.0, 0.0);
+    camera->reticle = camera->defaultReticle;
+
+    ms->config.crane1 = eePose(-0.0155901, 0.981296, 0.71078,
+                               0.709046, -0.631526, -0.226613, -0.216967);
+
+    double ystart = 0.1;
+    double yend = 0.7;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
+                          0, 1, 0, 0);
+    for (int i = 0; i < numposes; i++) {
+      ms->config.deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      ms->config.deliveryPoses[i].py = ystart + i * ystep;
+    }
+
+    ms->config.ik_reset_eePose = eePose(0.334217, 0.75386, 0.0362593,
+                                        -0.00125253, 0.999999, -0.000146851, 0.000236656);
+
+    ms->config.currentTableZ = ms->config.leftTableZ;
+    ms->config.bagTableZ = ms->config.leftTableZ;
+    ms->config.counterTableZ = ms->config.leftTableZ;
+    ms->config.pantryTableZ  = ms->config.leftTableZ;
+
+    ms->config.eepReg1 = ms->config.beeHome; 
+    ms->config.eepReg2 = ms->config.beeHome; 
+
+    ms->config.mapSearchFenceXMin = -0.75;
+    //ms->config.mapSearchFenceXMin = 0.25;
+    //ms->config.mapSearchFenceXMax = 0.25;
+    ms->config.mapSearchFenceXMax = 0.9; //1.0;
+    ms->config.mapSearchFenceYMin = -0.5; //0.1;//-1.25;
+    ms->config.mapSearchFenceYMax = 1.25;
+
+    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
+
+    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
+    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
+    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
+    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
+
+    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
+
+    // left arm
+    // (313, 163)
+
+    camera->vanishingPointReticle.px = 313;
+    camera->vanishingPointReticle.py = 163;
+    camera->probeReticle = camera->vanishingPointReticle;
+
+    // ATTN 16
+    camera->heightReticles[0] = camera->defaultReticle;
+    camera->heightReticles[1] = camera->defaultReticle;
+    camera->heightReticles[2] = camera->defaultReticle;
+    camera->heightReticles[3] = camera->defaultReticle;
+
+    camera->heightReticles[3].px = 323;
+    camera->heightReticles[2].px = 326;
+    camera->heightReticles[1].px = 329;
+    camera->heightReticles[0].px = 336;
+
+    camera->heightReticles[3].py = 135;
+    camera->heightReticles[2].py = 128;
+    camera->heightReticles[1].py = 117;
+    camera->heightReticles[0].py = 94;
+
+    /* color reticle init */
+    /* XXX TODO needs recalibrating */
+    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    camera->xCR[0] = 462;
+    camera->xCR[1] = 450;
+    camera->xCR[2] = 439;
+    camera->xCR[3] = 428;
+    camera->xCR[4] = 419;
+    camera->xCR[5] = 410;
+    camera->xCR[6] = 405;
+    camera->xCR[7] = 399;
+    camera->xCR[8] = 394;
+    camera->xCR[9] = 389;
+    camera->xCR[10] = 383;
+    camera->xCR[11] = 381;
+    camera->xCR[12] = 379;
+    camera->xCR[13] = 378;
+
+    /* left arm */
+    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    camera->yCR[0] = 153;
+    camera->yCR[1] = 153;
+    camera->yCR[2] = 153;
+    camera->yCR[3] = 153;
+    camera->yCR[4] = 153;
+    camera->yCR[5] = 154;
+    camera->yCR[6] = 154;
+    camera->yCR[7] = 154;
+    camera->yCR[8] = 154;
+    camera->yCR[9] = 154;
+    camera->yCR[10] = 155;
+    camera->yCR[11] = 155;
+    camera->yCR[12] = 155;
+    camera->yCR[13] = 155;
+
+    /* lens correction */
+    camera->m_x_h[0] = 1.2;
+    camera->m_x_h[1] = 1.06;
+    camera->m_x_h[2] = 0.98;
+    camera->m_x_h[3] = 0.94;
+
+    camera->m_y_h[0] = 0.95;
+    camera->m_y_h[1] = 0.93;
+    camera->m_y_h[2] = 0.92;
+    camera->m_y_h[3] = 0.92;
+
+    //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
+    //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
+    ms->config.handingPose = eePose(1.0858369, 0.0495844, 0.2052459,
+                                    0.5398360, -0.5294786, 0.4481372, -0.4768674);
+
+    ms->config.eepReg3 = ms->config.handingPose;
+
+    // ir offset
+    camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+
+    ms->config.calibrationPose = eePose(0.434176, 0.633423, 0.48341,
+                                        0.000177018, 1, -0.000352912, -0.000489087);
+    ms->config.shrugPose = eePose(0.0354772, 1.20633, 0.150562,
+                                  -0.370521, 0.381345, 0.578528, 0.618544);
+  } else if (0 == ms->config.left_or_right_arm.compare("right")) {
+    ms->config.joint_min[0] = -1.70168;
+    ms->config.joint_min[1] = -2.147;
+    ms->config.joint_min[2] = -3.05418;
+    ms->config.joint_min[3] = -0.05;
+    ms->config.joint_min[4] = -3.059;
+    ms->config.joint_min[5] = -1.5708;
+    ms->config.joint_min[6] = -3.059;
+
+
+    ms->config.joint_max[0] = 1.70168;
+    ms->config.joint_max[1] = 1.047;
+    ms->config.joint_max[2] = 3.05418;
+    ms->config.joint_max[3] = 2.618;
+    ms->config.joint_max[4] = 3.059;
+    ms->config.joint_max[5] = 2.094;
+    ms->config.joint_max[6] = 3.059;
+
+
+
+    ms->config.backScanningPose = eePose(-0.304942, -0.703968, 0.186738,
+                                         0.0, 1, 0.0, 0.0);
+
+    ms->config.beeHome = eePose(0.525866, -0.710611, 0.0695764,
+                                -0.00122177, 0.999998, 0.00116169, -0.001101);
+
+    ms->config.eepReg4 = ms->config.beeHome;
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    camera->defaultReticle = eePose(325, 127, 0.0,
+                                       0.0, 0.0, 0.0, 0.0);
+    camera->reticle = camera->defaultReticle;
+
+    ms->config.crane1 = eePose(0.0448714, -1.04476, 0.698522,
+                               0.631511, 0.68929, -0.25435, 0.247748);
+
+    double ystart = -0.7;
+    double yend = -0.1;
+    int numposes = 4;
+    double ystep = (yend - ystart) / numposes;
+    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
+                          0, 1, 0, 0);
+    for (int i = 0; i < numposes; i++) {
+      ms->config.deliveryPoses.push_back(pose1);
+    }
+    for (int i = 0; i < numposes; i++) {
+      ms->config.deliveryPoses[i].py = ystart + i * ystep;
+    }
+
+
+    ms->config.ik_reset_eePose = ms->config.beeHome;
+
+    ms->config.currentTableZ = ms->config.rightTableZ;
+    ms->config.bagTableZ = ms->config.rightTableZ;
+    ms->config.counterTableZ = ms->config.rightTableZ;
+    ms->config.pantryTableZ  = ms->config.rightTableZ;
+
+
+    ms->config.eepReg1 = ms->config.beeHome;
+    ms->config.eepReg2 = ms->config.beeHome;
+
+    // raw fence values (from John estimating arm limits)
+    // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
+    // True EE Position (x,y,z): 0.525236 -0.841226 0.217111
+
+    // full workspace
+    ms->config.mapSearchFenceXMin = -0.75;
+    ms->config.mapSearchFenceXMax = 0.9;
+    ms->config.mapSearchFenceYMin = -1.25;
+    ms->config.mapSearchFenceYMax = 0.5; //-0.1;//1.25;
+    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
+    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
+    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
+    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
+
+    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
+    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
+
+    // right arm
+    camera->vanishingPointReticle.px = 313;
+    camera->vanishingPointReticle.py = 185;
+    camera->probeReticle = camera->vanishingPointReticle;
+
+    // ATTN 16
+    camera->heightReticles[0] = camera->defaultReticle;
+    camera->heightReticles[1] = camera->defaultReticle;
+    camera->heightReticles[2] = camera->defaultReticle;
+    camera->heightReticles[3] = camera->defaultReticle;
+    
+    camera->heightReticles[3].px = 314;
+    camera->heightReticles[2].px = 317;
+    camera->heightReticles[1].px = 320;
+    camera->heightReticles[0].px = 328;
+
+    camera->heightReticles[3].py = 154;
+    camera->heightReticles[2].py = 149;
+    camera->heightReticles[1].py = 139;
+    camera->heightReticles[0].py = 120;
+
+    /* color reticle init */
+    /* XXX TODO needs recalibrating */
+    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
+    camera->xCR[0] = 462;
+    camera->xCR[1] = 450;
+    camera->xCR[2] = 439;
+    camera->xCR[3] = 428;
+    camera->xCR[4] = 419;
+    camera->xCR[5] = 410;
+    camera->xCR[6] = 405;
+    camera->xCR[7] = 399;
+    camera->xCR[8] = 394;
+    camera->xCR[9] = 389;
+    camera->xCR[10] = 383;
+    camera->xCR[11] = 381;
+    camera->xCR[12] = 379;
+    camera->xCR[13] = 378;
+
+    /* right arm */
+    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
+    camera->yCR[0] = 153;
+    camera->yCR[1] = 153;
+    camera->yCR[2] = 153;
+    camera->yCR[3] = 153;
+    camera->yCR[4] = 153;
+    camera->yCR[5] = 154;
+    camera->yCR[6] = 154;
+    camera->yCR[7] = 154;
+    camera->yCR[8] = 154;
+    camera->yCR[9] = 154;
+    camera->yCR[10] = 155;
+    camera->yCR[11] = 155;
+    camera->yCR[12] = 155;
+    camera->yCR[13] = 155;
+
+    /* lens correction */
+    camera->m_x_h[0] = 1.18;
+    camera->m_x_h[1] = 1.12;
+    camera->m_x_h[2] = 1.09;
+    camera->m_x_h[3] = 1.08;
+
+    camera->m_y_h[0] = 1.16;
+    camera->m_y_h[1] = 1.17;
+    camera->m_y_h[2] = 1.16;
+    camera->m_y_h[3] = 1.2;
+
+    ms->config.handingPose = eePose(0.879307, -0.0239328, 0.223839,
+                                    0.459157, 0.527586, 0.48922, 0.521049);
+    ms->config.eepReg3 = ms->config.handingPose;
+
+    // ir offset
+    camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+
+    ms->config.calibrationPose = eePose(0.562169, -0.348055, 0.493231,
+                                        0.00391311, 0.999992, -0.00128095, 8.18951e-05);
+    ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
+                                  0.392321, 0.324823, -0.555039, 0.657652);
+
+
+  } else {
+    cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
+    exit(0);
+  }
+  ms->config.pilotTarget = ms->config.beeHome;
+  ms->config.lastGoodEEPose = ms->config.beeHome;
+  ms->config.currentEEPose = ms->config.beeHome;
+
+}
 
 
 namespace ein_words {

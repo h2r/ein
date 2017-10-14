@@ -4953,481 +4953,6 @@ void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata)
   }
 }
 
-void pilotInit(MachineState * ms) {
-
-  if (0 == ms->config.left_or_right_arm.compare("left")) {
-    ms->config.joint_min[0] = -1.70168;
-    ms->config.joint_min[1] = -2.147;
-    ms->config.joint_min[2] = -3.05418;
-    ms->config.joint_min[3] = -0.05;
-    ms->config.joint_min[4] = -3.059;
-    ms->config.joint_min[5] = -1.5708;
-    ms->config.joint_min[6] = -3.059;
-
-
-    ms->config.joint_max[0] = 1.70168;
-    ms->config.joint_max[1] = 1.047;
-    ms->config.joint_max[2] = 3.05418;
-    ms->config.joint_max[3] = 2.618;
-    ms->config.joint_max[4] = 3.059;
-    ms->config.joint_max[5] = 2.094;
-    ms->config.joint_max[6] = 3.059;
-
-    ms->config.backScanningPose = eePose(-0.304942, 0.703968, 0.186738,
-                                         0.0, 1, 0.0, 0.0);
-
-    ms->config.beeHome = eePose(0.334217, 0.75386, 0.0362593,
-                                -0.00125253, 0.999999, -0.000146851, 0.000236656);
-    
-    ms->config.eepReg4 = ms->config.beeHome;
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    camera->defaultReticle = eePose(334, 100, 0.0,
-                                       0.0, 0.0, 0.0, 0.0);
-    camera->reticle = camera->defaultReticle;
-
-    ms->config.crane1 = eePose(-0.0155901, 0.981296, 0.71078,
-                               0.709046, -0.631526, -0.226613, -0.216967);
-
-    double ystart = 0.1;
-    double yend = 0.7;
-    int numposes = 4;
-    double ystep = (yend - ystart) / numposes;
-    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
-                          0, 1, 0, 0);
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses.push_back(pose1);
-    }
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses[i].py = ystart + i * ystep;
-    }
-
-    ms->config.ik_reset_eePose = eePose(0.334217, 0.75386, 0.0362593,
-                                        -0.00125253, 0.999999, -0.000146851, 0.000236656);
-
-    ms->config.currentTableZ = ms->config.leftTableZ;
-    ms->config.bagTableZ = ms->config.leftTableZ;
-    ms->config.counterTableZ = ms->config.leftTableZ;
-    ms->config.pantryTableZ  = ms->config.leftTableZ;
-
-    ms->config.eepReg1 = ms->config.beeHome; 
-    ms->config.eepReg2 = ms->config.beeHome; 
-
-    ms->config.mapSearchFenceXMin = -0.75;
-    //ms->config.mapSearchFenceXMin = 0.25;
-    //ms->config.mapSearchFenceXMax = 0.25;
-    ms->config.mapSearchFenceXMax = 0.9; //1.0;
-    ms->config.mapSearchFenceYMin = -0.5; //0.1;//-1.25;
-    ms->config.mapSearchFenceYMax = 1.25;
-
-    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
-
-    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
-    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
-    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
-    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
-
-    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
-
-    // left arm
-    // (313, 163)
-
-    camera->vanishingPointReticle.px = 313;
-    camera->vanishingPointReticle.py = 163;
-    camera->probeReticle = camera->vanishingPointReticle;
-
-    // ATTN 16
-    camera->heightReticles[0] = camera->defaultReticle;
-    camera->heightReticles[1] = camera->defaultReticle;
-    camera->heightReticles[2] = camera->defaultReticle;
-    camera->heightReticles[3] = camera->defaultReticle;
-
-    camera->heightReticles[3].px = 323;
-    camera->heightReticles[2].px = 326;
-    camera->heightReticles[1].px = 329;
-    camera->heightReticles[0].px = 336;
-
-    camera->heightReticles[3].py = 135;
-    camera->heightReticles[2].py = 128;
-    camera->heightReticles[1].py = 117;
-    camera->heightReticles[0].py = 94;
-
-    /* color reticle init */
-    /* XXX TODO needs recalibrating */
-    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    camera->xCR[0] = 462;
-    camera->xCR[1] = 450;
-    camera->xCR[2] = 439;
-    camera->xCR[3] = 428;
-    camera->xCR[4] = 419;
-    camera->xCR[5] = 410;
-    camera->xCR[6] = 405;
-    camera->xCR[7] = 399;
-    camera->xCR[8] = 394;
-    camera->xCR[9] = 389;
-    camera->xCR[10] = 383;
-    camera->xCR[11] = 381;
-    camera->xCR[12] = 379;
-    camera->xCR[13] = 378;
-
-    /* left arm */
-    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    camera->yCR[0] = 153;
-    camera->yCR[1] = 153;
-    camera->yCR[2] = 153;
-    camera->yCR[3] = 153;
-    camera->yCR[4] = 153;
-    camera->yCR[5] = 154;
-    camera->yCR[6] = 154;
-    camera->yCR[7] = 154;
-    camera->yCR[8] = 154;
-    camera->yCR[9] = 154;
-    camera->yCR[10] = 155;
-    camera->yCR[11] = 155;
-    camera->yCR[12] = 155;
-    camera->yCR[13] = 155;
-
-    /* lens correction */
-    camera->m_x_h[0] = 1.2;
-    camera->m_x_h[1] = 1.06;
-    camera->m_x_h[2] = 0.98;
-    camera->m_x_h[3] = 0.94;
-
-    camera->m_y_h[0] = 0.95;
-    camera->m_y_h[1] = 0.93;
-    camera->m_y_h[2] = 0.92;
-    camera->m_y_h[3] = 0.92;
-
-    //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-    //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-    ms->config.handingPose = eePose(1.0858369, 0.0495844, 0.2052459,
-                                    0.5398360, -0.5294786, 0.4481372, -0.4768674);
-
-    ms->config.eepReg3 = ms->config.handingPose;
-
-    // ir offset
-    camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-
-    ms->config.calibrationPose = eePose(0.434176, 0.633423, 0.48341,
-                                        0.000177018, 1, -0.000352912, -0.000489087);
-    ms->config.shrugPose = eePose(0.0354772, 1.20633, 0.150562,
-                                  -0.370521, 0.381345, 0.578528, 0.618544);
-  } else if (0 == ms->config.left_or_right_arm.compare("right")) {
-    ms->config.joint_min[0] = -1.70168;
-    ms->config.joint_min[1] = -2.147;
-    ms->config.joint_min[2] = -3.05418;
-    ms->config.joint_min[3] = -0.05;
-    ms->config.joint_min[4] = -3.059;
-    ms->config.joint_min[5] = -1.5708;
-    ms->config.joint_min[6] = -3.059;
-
-
-    ms->config.joint_max[0] = 1.70168;
-    ms->config.joint_max[1] = 1.047;
-    ms->config.joint_max[2] = 3.05418;
-    ms->config.joint_max[3] = 2.618;
-    ms->config.joint_max[4] = 3.059;
-    ms->config.joint_max[5] = 2.094;
-    ms->config.joint_max[6] = 3.059;
-
-
-
-    ms->config.backScanningPose = eePose(-0.304942, -0.703968, 0.186738,
-                                         0.0, 1, 0.0, 0.0);
-
-    ms->config.beeHome = eePose(0.525866, -0.710611, 0.0695764,
-                                -0.00122177, 0.999998, 0.00116169, -0.001101);
-
-    ms->config.eepReg4 = ms->config.beeHome;
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    camera->defaultReticle = eePose(325, 127, 0.0,
-                                       0.0, 0.0, 0.0, 0.0);
-    camera->reticle = camera->defaultReticle;
-
-    ms->config.crane1 = eePose(0.0448714, -1.04476, 0.698522,
-                               0.631511, 0.68929, -0.25435, 0.247748);
-
-    double ystart = -0.7;
-    double yend = -0.1;
-    int numposes = 4;
-    double ystep = (yend - ystart) / numposes;
-    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
-                          0, 1, 0, 0);
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses.push_back(pose1);
-    }
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses[i].py = ystart + i * ystep;
-    }
-
-
-    ms->config.ik_reset_eePose = ms->config.beeHome;
-
-    ms->config.currentTableZ = ms->config.rightTableZ;
-    ms->config.bagTableZ = ms->config.rightTableZ;
-    ms->config.counterTableZ = ms->config.rightTableZ;
-    ms->config.pantryTableZ  = ms->config.rightTableZ;
-
-
-    ms->config.eepReg1 = ms->config.beeHome;
-    ms->config.eepReg2 = ms->config.beeHome;
-
-    // raw fence values (from John estimating arm limits)
-    // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
-    // True EE Position (x,y,z): 0.525236 -0.841226 0.217111
-
-    // full workspace
-    ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 0.9;
-    ms->config.mapSearchFenceYMin = -1.25;
-    ms->config.mapSearchFenceYMax = 0.5; //-0.1;//1.25;
-    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
-    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
-    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
-    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
-
-    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
-
-    // right arm
-    camera->vanishingPointReticle.px = 313;
-    camera->vanishingPointReticle.py = 185;
-    camera->probeReticle = camera->vanishingPointReticle;
-
-    // ATTN 16
-    camera->heightReticles[0] = camera->defaultReticle;
-    camera->heightReticles[1] = camera->defaultReticle;
-    camera->heightReticles[2] = camera->defaultReticle;
-    camera->heightReticles[3] = camera->defaultReticle;
-    
-    camera->heightReticles[3].px = 314;
-    camera->heightReticles[2].px = 317;
-    camera->heightReticles[1].px = 320;
-    camera->heightReticles[0].px = 328;
-
-    camera->heightReticles[3].py = 154;
-    camera->heightReticles[2].py = 149;
-    camera->heightReticles[1].py = 139;
-    camera->heightReticles[0].py = 120;
-
-    /* color reticle init */
-    /* XXX TODO needs recalibrating */
-    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    camera->xCR[0] = 462;
-    camera->xCR[1] = 450;
-    camera->xCR[2] = 439;
-    camera->xCR[3] = 428;
-    camera->xCR[4] = 419;
-    camera->xCR[5] = 410;
-    camera->xCR[6] = 405;
-    camera->xCR[7] = 399;
-    camera->xCR[8] = 394;
-    camera->xCR[9] = 389;
-    camera->xCR[10] = 383;
-    camera->xCR[11] = 381;
-    camera->xCR[12] = 379;
-    camera->xCR[13] = 378;
-
-    /* right arm */
-    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    camera->yCR[0] = 153;
-    camera->yCR[1] = 153;
-    camera->yCR[2] = 153;
-    camera->yCR[3] = 153;
-    camera->yCR[4] = 153;
-    camera->yCR[5] = 154;
-    camera->yCR[6] = 154;
-    camera->yCR[7] = 154;
-    camera->yCR[8] = 154;
-    camera->yCR[9] = 154;
-    camera->yCR[10] = 155;
-    camera->yCR[11] = 155;
-    camera->yCR[12] = 155;
-    camera->yCR[13] = 155;
-
-    /* lens correction */
-    camera->m_x_h[0] = 1.18;
-    camera->m_x_h[1] = 1.12;
-    camera->m_x_h[2] = 1.09;
-    camera->m_x_h[3] = 1.08;
-
-    camera->m_y_h[0] = 1.16;
-    camera->m_y_h[1] = 1.17;
-    camera->m_y_h[2] = 1.16;
-    camera->m_y_h[3] = 1.2;
-
-    ms->config.handingPose = eePose(0.879307, -0.0239328, 0.223839,
-                                    0.459157, 0.527586, 0.48922, 0.521049);
-    ms->config.eepReg3 = ms->config.handingPose;
-
-    // ir offset
-    camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-
-    ms->config.calibrationPose = eePose(0.562169, -0.348055, 0.493231,
-                                        0.00391311, 0.999992, -0.00128095, 8.18951e-05);
-    ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
-                                  0.392321, 0.324823, -0.555039, 0.657652);
-
-
-  } else {
-    cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
-    exit(0);
-  }
-  ms->config.pilotTarget = ms->config.beeHome;
-  ms->config.lastGoodEEPose = ms->config.beeHome;
-  ms->config.currentEEPose = ms->config.beeHome;
-
-  for (int r = 0; r < ms->config.totalRangeHistoryLength; r++) {
-    ms->config.rangeHistory[r] = 0;
-  }
-
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
-
-      // ATTN 6 change initialization to determine speed of learning
-      for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-	ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
-	ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
-      }
-    }
-  }
-
-  ms->config.rangemapImage = Mat(ms->config.rmiHeight, 3*ms->config.rmiWidth, CV_8UC3);
-  ms->config.graspMemoryImage = Mat(ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
-  ms->config.graspMemorySampleImage = Mat(2*ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
-  ms->config.heightMemorySampleImage = Mat(ms->config.hmiHeight, 2*ms->config.hmiWidth, CV_8UC3);
-
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
-    }
-  }
-  ms->config.hiRangemapImage = Mat(ms->config.hrmiHeight, 3*ms->config.hrmiWidth, CV_8UC3);
-
-  ms->config.hiColorRangemapImage = Mat(ms->config.hrmiHeight, ms->config.hrmiWidth, CV_8UC3);
-
-  ms->config.rangeogramImage = Mat(ms->config.rggHeight, ms->config.rggWidth, CV_8UC3);
-
-  ms->config.rmcX = 0;
-  ms->config.rmcY = 0;
-  ms->config.rmcZ = 0;
-
-  for (int g = 0; g < ms->config.totalGraspGears; g++) {
-    ms->config.ggX[g] = 0;
-    ms->config.ggY[g] = 0;
-    ms->config.ggT[g] = double(g)*2.0*3.1415926/double(ms->config.totalGraspGears);
-  }
-  // old orientation
-  //ms->config.ggX[0] =  0.03;
-  //ggY[0] =  0.02;
-  //ms->config.ggX[1] =  0.04;
-  //ms->config.ggY[1] =  0.00;
-  //ms->config.ggX[2] =  0.03;
-  //ms->config.ggY[2] = -0.02;
-  //ms->config.ggX[3] =  0.00;
-  //ms->config.ggY[3] = -0.03; //-0.04
-
-  // new orientation
-  // verticle calibration
-  ms->config.ggX[0] =  0.02;
-  ms->config.ggY[0] =  0.02;
-  ms->config.ggX[1] =  0.03;
-  ms->config.ggY[1] =  0.00;
-  ms->config.ggX[2] =  0.02;
-  ms->config.ggY[2] = -0.02;
-  ms->config.ggX[3] =  0.00;
-  ms->config.ggY[3] = -0.03;//-0.03; //-0.04
-
-  ms->config.ggX[4] = -0.02;
-  ms->config.ggY[4] = -0.02;
-  ms->config.ggX[5] = -0.03;
-  ms->config.ggY[5] = -0.00;
-  ms->config.ggX[6] = -0.02;
-  ms->config.ggY[6] =  0.02;
-  ms->config.ggX[7] = -0.00;
-  ms->config.ggY[7] =  0.03;//-0.03; //-0.04
-
-  // XXX set this to be arm-generic
-  // XXX add symbols to change register sets
-  //ms->config.eepReg3 = crane4right;
-
-  initializeParzen(ms);
-  //l2NormalizeParzen();
-  initialize3DParzen(ms);
-  //l2Normalize3DParzen();
-
-  {
-    //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //if (0 == ms->config.left_or_right_arm.compare("left")) {
-      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
-      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //}
-
-    // invert the transformation
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-    ms->config.irGlobalPositionEEFrame[0] = irpos.w();
-    ms->config.irGlobalPositionEEFrame[1] = irpos.x();
-    ms->config.irGlobalPositionEEFrame[2] = irpos.y();
-    ms->config.irGlobalPositionEEFrame[3] = irpos.z();
-
-    
-
-    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
-    //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
-  }
-
-  for (int h = 0; h < ms->config.hrmWidth; h++) {
-    for (int i = 0; i < ms->config.hrmWidth; i++) {
-      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
-      for (int j = 0; j < 3; j++) {
-	ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
-      }
-    }
-  }
-  
-  ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
-  ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
-
-  ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
-  ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
-
-  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
-    for (int py = 0; py < ms->config.vmWidth; py++) {
-      for (int px = 0; px < ms->config.vmWidth; px++) {
-	ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	for (int pc = 0; pc < 3; pc++) {
-	  ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	}
-      }
-    }
-  }
-}
-
-void spinlessPilotMain(MachineState * ms) {
-  pilotInit(ms);
-}
 
 int shouldIPick(MachineState * ms, int classToPick) {
 
@@ -12505,11 +12030,154 @@ void loadROSParamsFromArgs(MachineState * ms) {
 }
 
 
+void irInit(MachineState * ms) {
 
-void spinlessNodeMain(MachineState * ms) {
-  nodeInit(ms);
-  detectorsInit(ms);
+  {
+    //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //if (0 == ms->config.left_or_right_arm.compare("left")) {
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //}
+
+    // invert the transformation
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
+    Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+    ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+    ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+    ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
+    
+
+    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
+    //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
+  }
+
+
+  for (int h = 0; h < ms->config.hrmWidth; h++) {
+    for (int i = 0; i < ms->config.hrmWidth; i++) {
+      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
+      for (int j = 0; j < 3; j++) {
+	ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
+      }
+    }
+  }
+
+
+  ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
+  ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
+
+  ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
+  ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
+
+
+  for (int r = 0; r < ms->config.totalRangeHistoryLength; r++) {
+    ms->config.rangeHistory[r] = 0;
+  }
+
+  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
+      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
+      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
+
+      // ATTN 6 change initialization to determine speed of learning
+      for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
+	ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
+	ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
+      }
+    }
+  }
+
+  ms->config.rangemapImage = Mat(ms->config.rmiHeight, 3*ms->config.rmiWidth, CV_8UC3);
+  ms->config.graspMemoryImage = Mat(ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
+  ms->config.graspMemorySampleImage = Mat(2*ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
+  ms->config.heightMemorySampleImage = Mat(ms->config.hmiHeight, 2*ms->config.hmiWidth, CV_8UC3);
+
+  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
+    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
+      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
+      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
+    }
+  }
+  ms->config.hiRangemapImage = Mat(ms->config.hrmiHeight, 3*ms->config.hrmiWidth, CV_8UC3);
+
+  ms->config.hiColorRangemapImage = Mat(ms->config.hrmiHeight, ms->config.hrmiWidth, CV_8UC3);
+
+  ms->config.rangeogramImage = Mat(ms->config.rggHeight, ms->config.rggWidth, CV_8UC3);
+
+  ms->config.rmcX = 0;
+  ms->config.rmcY = 0;
+  ms->config.rmcZ = 0;
+
+  for (int g = 0; g < ms->config.totalGraspGears; g++) {
+    ms->config.ggX[g] = 0;
+    ms->config.ggY[g] = 0;
+    ms->config.ggT[g] = double(g)*2.0*3.1415926/double(ms->config.totalGraspGears);
+  }
+  // old orientation
+  //ms->config.ggX[0] =  0.03;
+  //ggY[0] =  0.02;
+  //ms->config.ggX[1] =  0.04;
+  //ms->config.ggY[1] =  0.00;
+  //ms->config.ggX[2] =  0.03;
+  //ms->config.ggY[2] = -0.02;
+  //ms->config.ggX[3] =  0.00;
+  //ms->config.ggY[3] = -0.03; //-0.04
+
+  // new orientation
+  // verticle calibration
+  ms->config.ggX[0] =  0.02;
+  ms->config.ggY[0] =  0.02;
+  ms->config.ggX[1] =  0.03;
+  ms->config.ggY[1] =  0.00;
+  ms->config.ggX[2] =  0.02;
+  ms->config.ggY[2] = -0.02;
+  ms->config.ggX[3] =  0.00;
+  ms->config.ggY[3] = -0.03;//-0.03; //-0.04
+
+  ms->config.ggX[4] = -0.02;
+  ms->config.ggY[4] = -0.02;
+  ms->config.ggX[5] = -0.03;
+  ms->config.ggY[5] = -0.00;
+  ms->config.ggX[6] = -0.02;
+  ms->config.ggY[6] =  0.02;
+  ms->config.ggX[7] = -0.00;
+  ms->config.ggY[7] =  0.03;//-0.03; //-0.04
+
+  // XXX set this to be arm-generic
+  // XXX add symbols to change register sets
+  //ms->config.eepReg3 = crane4right;
+
+  initializeParzen(ms);
+  //l2NormalizeParzen();
+  initialize3DParzen(ms);
+  //l2Normalize3DParzen();
+
+  
+  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
+    for (int py = 0; py < ms->config.vmWidth; py++) {
+      for (int px = 0; px < ms->config.vmWidth; px++) {
+	ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	for (int pc = 0; pc < 3; pc++) {
+	  ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
+	}
+      }
+    }
+  }
 }
+
 
 void nodeInit(MachineState * ms) {
   ms->config.gBoxStrideX = ms->config.gBoxW / 2.0;
@@ -14122,13 +13790,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
-  ms->config.cameras.clear();
-  if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
-    string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
-    Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic, ms->config.left_or_right_arm + "_hand", ms->config.left_or_right_arm + "_hand_camera");
-    ms->config.cameras.push_back(c);
-    ms->config.focused_camera = 0;
-  }
+
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color", ms->config.left_or_right_arm + "_hand", "k2rgb_tf_link");
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color", ms->config.left_or_right_arm + "_hand", "kinect2_link");
   //ms->config.cameras.push_back(k2rgb);
@@ -14178,10 +13840,11 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   initializeMap(ms);
 
 
+  nodeInit(ms);
+  detectorsInit(ms);
+  irInit(ms);
 
 
-  spinlessNodeMain(ms);
-  spinlessPilotMain(ms);
 
   ms->config.lastMovementStateSet = ros::Time::now();
 

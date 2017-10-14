@@ -135,6 +135,8 @@ class Camera {
   streamImage * setIsbIdxNoLoadNoKick(int idx);
   streamImage * getIsbIdxNoLoadNoKick(int idx);
   streamImage * currentImage();
+  void initializeConfig(int rows, int cols);
+
   void resetAccumulatedStreamImage();
   void populateStreamImageBuffer();
   void clearStreamBuffer();

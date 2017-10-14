@@ -3256,6 +3256,24 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(CameraCreate)
 
+WORD(CameraInitializeConfig)
+virtual string description() {
+  return "Initialize the configuration of the camera (reticles) with reasonable default values based on image size.";
+}
+virtual void execute(MachineState * ms)
+{
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  if (!isSketchyMat(camera->cam_img)) {
+    camera->initializeConfig(camera->cam_img.rows, camera->cam_img.cols);
+  } else {
+    CONSOLE_ERROR(ms, "No camera image!");
+  }
+}
+END_WORD
+REGISTER_WORD(CameraInitializeConfig)
+
+
+
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
 CONFIG_SETTER_INT(SetGradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -3340,6 +3358,8 @@ CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_ca
 
 CONFIG_GETTER_POSE(HandEndEffectorOffset, ms->config.handEndEffectorOffset);
 CONFIG_SETTER_POSE(SetHandEndEffectorOffset, ms->config.handEndEffectorOffset);
+
+CONFIG_GETTER_INT(FocusedCamera, ms->config.focused_camera);
 
 CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
 CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)

@@ -8,6 +8,8 @@ class EinPidroneConfig {
  public:
   MachineState * ms;
 
+  ros::Subscriber eeRanger;
+
   EinPidroneConfig(MachineState * ms);
 
   ros::NodeHandle n;

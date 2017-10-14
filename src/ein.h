@@ -283,8 +283,6 @@ void renderAccumulatedImageAndDensity(MachineState * ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
 gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
 
-void pilotInit(MachineState * ms);
-void spinlessPilotMain(MachineState * ms);
 
 int doCalibrateGripper(MachineState * ms);
 int calibrateGripper(MachineState * ms);
@@ -442,7 +440,7 @@ void substituteLatestImageQuantities(MachineState * ms);
 
 void loadROSParamsFromArgs(MachineState * ms);
 
-void spinlessNodeMain(MachineState * ms);
+void irInit(MachineState * ms);
 void nodeInit(MachineState * ms);
 void detectorsInit(MachineState * ms);
 void initRedBoxes();

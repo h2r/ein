@@ -373,7 +373,7 @@ class EinConfig {
   int publish_commands_mode = 1;
 
 
-  const int epRingBufferSize = 10000;
+  const int epRingBufferSize = 50000;
   const int rgRingBufferSize = 100;
 
   // we make use of a monotonicity assumption
