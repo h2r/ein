@@ -12,6 +12,9 @@ class EinPidroneConfig {
 
   EinPidroneConfig(MachineState * ms);
 
+  void endPointCallback(const ros::TimerEvent&);
+  ros::Timer eeTimer;
+
   ros::NodeHandle n;
 };
 

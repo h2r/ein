@@ -1,6 +1,7 @@
 #include "ein_pidrone.h"
 #include "ein_pidrone_config.h"
 #include "ein_words.h"
+#include "ein.h"
 #include "config.h"
 #include "camera.h"
 
@@ -15,24 +16,6 @@ void robotDeactivateSensorStreaming(MachineState * ms) {
 }
 
 void robotUpdate(MachineState * ms) {
-
-
-
-  geometry_msgs::PoseStamped basePose;
-  pose.header.stamp = ros::Time::now();
-  pose.header.frame_id =  "base";
-
-  pose.pose.position.x = 0;
-  pose.pose.position.y = 0;
-  pose.pose.position.z = 0;
-  pose.pose.orientation.x = 0;
-  pose.pose.orientation.y = 0;
-  pose.pose.orientation.z = 0;
-  pose.pose.orientation.w = 1;
-
-  geometry_msgs::PoseStamped worldPose;
-
-  ms->config.tfListener->transformPose("world", pose.header.stamp, basePose, worldPose);
 
 
 }
@@ -53,6 +36,8 @@ void robotInitializeConfig(MachineState * ms) {
   
   ms->config.beeHome = eePose(0, 0, 0,
                               0, 0, 0, 1);
+
+  ms->config.currentEEPose = ms->config.beeHome;
     
   ms->config.eepReg4 = ms->config.beeHome;
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
@@ -154,7 +139,7 @@ void robotInitializeConfig(MachineState * ms) {
 }
 
 void robotInitializeMachine(MachineState * ms) {
-  ms->evaluateProgram("waitUntilImageCallbackReceived cameraInitializeConfig");
+  ms->evaluateProgram("waitUntilImageCallbackReceived cameraInitializeConfig zeroGOff");
 }
 
 void robotSetCurrentJointPositions(MachineState * ms) {
@@ -163,18 +148,39 @@ void robotSetCurrentJointPositions(MachineState * ms) {
 
 void robotEndPointCallback(MachineState * ms) {
 
-  
+  geometry_msgs::PoseStamped basePose;
+  basePose.header.stamp = ros::Time(0);
+  basePose.header.frame_id =  "base";
+
+  basePose.pose.position.x = 0;
+  basePose.pose.position.y = 0;
+  basePose.pose.position.z = 0;
+  basePose.pose.orientation.x = 0;
+  basePose.pose.orientation.y = 0;
+  basePose.pose.orientation.z = 0;
+  basePose.pose.orientation.w = 1;
+
+  geometry_msgs::PoseStamped worldPose;
+
+  ms->config.tfListener->transformPose("world", basePose, worldPose);
+
+  ms->config.trueEEPose = worldPose.pose;
+  ms->config.trueEEPoseEEPose = rosPoseToEEPose(worldPose.pose);
+  setRingPoseAtTime(ms, worldPose.header.stamp, worldPose.pose);
+
 
 }
 
 
-
+void EinPidroneConfig::endPointCallback(const ros::TimerEvent&) {
+  robotEndPointCallback(ms);
+}
 
 EinPidroneConfig::EinPidroneConfig(MachineState * myms): n("~") {
   ms = myms;
 
-  eeRanger =  n.subscribe("/pidrone/infrared", 1, &MachineState::rangeCallback, ms);
-
+  eeRanger = n.subscribe("/pidrone/infrared", 1, &MachineState::rangeCallback, ms);
+  eeTimer = n.createTimer(ros::Duration(0.001), &EinPidroneConfig::endPointCallback, this);
 }
 
 namespace ein_words {

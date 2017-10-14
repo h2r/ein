@@ -3732,8 +3732,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
 
   if (!ms->config.zero_g_toggle) {
     robotUpdate(ms);
-  }
-  else {
+  } else {
     ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
     ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
     ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
@@ -13750,7 +13749,6 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   time(&ms->config.firstTimeRange);
 
 
-  initializeMachine(ms);
 #ifdef USE_ROBOT_BAXTER
   ms->config.robot_type = "baxter";
 #elif defined(USE_ROBOT_AIBO)
@@ -13860,6 +13858,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   } 
 
 
+  initializeMachine(ms);
 
 }
 
