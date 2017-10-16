@@ -22,7 +22,7 @@
 
 #include <highgui.h>
 
-void pilotInit(MachineState * ms);
+void baxterCameraInit(MachineState * ms);
 
 void happy(MachineState * ms) {
   std_msgs::Int32 msg;
@@ -45,7 +45,6 @@ void neutral(MachineState * ms) {
 
 void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
- pilotInit(ms);
 
  ms->config.cameras.clear();
  if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
@@ -53,8 +52,10 @@ void robotInitializeConfig(MachineState * ms) {
    Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic, ms->config.left_or_right_arm + "_hand", ms->config.left_or_right_arm + "_hand_camera");
    ms->config.cameras.push_back(c);
    ms->config.focused_camera = 0;
+ } else {
+   CONSOLE_ERROR(ms, "Could not find camear for arm: " << ms->config.left_or_right_arm);
  }
-
+ baxterCameraInit(ms);
 }
 
 void robotInitializeMachine(MachineState * ms) {
@@ -987,7 +988,7 @@ void EinBaxterConfig::update_baxter() {
 }
 
 
-void pilotInit(MachineState * ms) {
+void baxterCameraInit(MachineState * ms) {
 
   if (0 == ms->config.left_or_right_arm.compare("left")) {
     ms->config.joint_min[0] = -1.70168;
