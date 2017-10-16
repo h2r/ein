@@ -5,8 +5,10 @@
 #include "config.h"
 #include "camera.h"
 
+#include <std_msgs/Empty.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+#include <pidrone_pkg/Mode.h>
 
 #include <highgui.h>
 
@@ -16,7 +18,7 @@ void robotDeactivateSensorStreaming(MachineState * ms) {
 }
 
 void robotUpdate(MachineState * ms) {
-
+  
 
 }
 
@@ -162,12 +164,32 @@ void robotEndPointCallback(MachineState * ms) {
 
   geometry_msgs::PoseStamped worldPose;
 
-  ms->config.tfListener->transformPose("world", basePose, worldPose);
-
-  ms->config.trueEEPose = worldPose.pose;
-  ms->config.trueEEPoseEEPose = rosPoseToEEPose(worldPose.pose);
-  setRingPoseAtTime(ms, worldPose.header.stamp, worldPose.pose);
-
+  try {
+    ms->config.tfListener->transformPose("world", basePose, worldPose);
+    
+    ms->config.trueEEPose = worldPose.pose;
+    ms->config.trueEEPoseEEPose = rosPoseToEEPose(worldPose.pose);
+    //CONSOLE(ms, "Stamp: " << worldPose.header.stamp);
+    setRingPoseAtTime(ms, worldPose.header.stamp, worldPose.pose);
+    int cfClass = ms->config.focusedClass;
+    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
+      //cout << "Pose now: " << worldPose.header.stamp << endl;
+      double thisNow = worldPose.header.stamp.toSec();
+      eePose tempPose;
+      {
+        tempPose.px = worldPose.pose.position.x;
+        tempPose.py = worldPose.pose.position.y;
+        tempPose.pz = worldPose.pose.position.z;
+        tempPose.qx = worldPose.pose.orientation.x;
+        tempPose.qy = worldPose.pose.orientation.y;
+        tempPose.qz = worldPose.pose.orientation.z;
+        tempPose.qw = worldPose.pose.orientation.w;
+      }
+      streamPoseAsClass(ms, tempPose, cfClass, thisNow); 
+    }
+  } catch (tf::TransformException ex){
+    CONSOLE_ERROR(ms, "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__);
+  }
 
 }
 
@@ -181,9 +203,234 @@ EinPidroneConfig::EinPidroneConfig(MachineState * myms): n("~") {
 
   eeRanger = n.subscribe("/pidrone/infrared", 1, &MachineState::rangeCallback, ms);
   eeTimer = n.createTimer(ros::Duration(0.001), &EinPidroneConfig::endPointCallback, this);
+
+  modePub = n.advertise<pidrone_pkg::Mode>("/pidrone/set_mode", 10);
+  resetTransformPub = n.advertise<std_msgs::Empty>("/pidrone/reset_transform", 10);
+  toggleTransformPub = n.advertise<std_msgs::Empty>("/pidrone/toggle_transform", 10);
+
 }
 
 namespace ein_words {
+
+WORD (PiDroneResetTransform)
+virtual string description() {
+  return "Reset the transform used for position hold (the saved image).";
+}
+virtual void execute(MachineState * ms) {
+  std_msgs::Empty msg;
+  ms->config.pidroneConfig->resetTransformPub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneResetTransform)
+
+WORD (PiDroneToggleTransform)
+virtual string description() {
+  return "Toggle whether flow_pub_transform should use position or velocity mode.";
+}
+virtual void execute(MachineState * ms) {
+  std_msgs::Empty msg;
+  ms->config.pidroneConfig->toggleTransformPub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneToggleTransform)
+
+
+WORD (PiDroneArm)
+virtual string description() {
+  return "Arm the drone.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_ARM;
+
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneArm)
+
+WORD (PiDroneDisarm)
+virtual string description() {
+  return "Disarm the drone.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_DISARM;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneDisarm)
+
+WORD (PiDroneYawRight)
+virtual string description() {
+  return "Yaw right.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 50;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneYawRight)
+
+
+WORD (PiDroneYawLeft)
+virtual string description() {
+  return "Yaw left.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = -50;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneYawLeft)
+
+
+
+WORD (PiDroneTranslateDown)
+virtual string description() {
+  return "Translate down.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = -0.05;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateDown)
+
+
+WORD (PiDroneTranslateUp)
+virtual string description() {
+  return "Translate up.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0.05;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateUp)
+
+
+WORD (PiDroneTranslateBackward)
+virtual string description() {
+  return "Translate backwards.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = -10;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateBackward)
+
+
+
+WORD (PiDroneTranslateForward)
+virtual string description() {
+  return "Translate forwards.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 10;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateForward)
+
+
+WORD (PiDroneTranslateRight)
+virtual string description() {
+  return "Translate right.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 10;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateRight)
+
+
+WORD (PiDroneTranslateLeft)
+virtual string description() {
+  return "Translate left.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = -10;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTranslateLeft)
+
+WORD (PiDroneTakeoff)
+virtual string description() {
+  return "Takeoff.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneTakeoff)
+
+
+WORD (PiDroneZeroVelocity)
+virtual string description() {
+  return "Zero velocity.";
+}
+virtual void execute(MachineState * ms) {
+  pidrone_pkg::Mode msg;
+  msg.mode = pidrone_pkg::Mode::MODE_FLY;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
+  msg.z_velocity = 0;
+  msg.yaw_velocity = 0;
+  ms->config.pidroneConfig->modePub.publish(msg);
+}
+END_WORD
+REGISTER_WORD(PiDroneZeroVelocity)
+
+
 
 WORD(MoveCropToProperValueNoUpdate)
 virtual void execute(MachineState * ms) {

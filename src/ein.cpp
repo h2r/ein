@@ -418,8 +418,9 @@ void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet) {
   }
 }
 void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet) {
+  //#define DEBUG_RING_BUFFER
 #ifdef DEBUG_RING_BUFFER
-  //cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
+  cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -428,22 +429,23 @@ void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToS
     ms->config.epRingBufferEnd = 1;
     ms->config.epRingBuffer[0] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-    //cout << epToSet << endl;
-    //cout << "11111 " << ms->config.epRingBuffer[0] << endl;
+    cout << epToSet << endl;
+    cout << "11111 " << ms->config.epRingBuffer[0] << endl;
 #endif
     ms->config.epRBTimes[0] = t;
   } else {
     ros::Duration deltaTdur = t - ms->config.epRBTimes[ms->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      //cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
+
     } else {
       int slot = ms->config.epRingBufferEnd;
       ms->config.epRingBuffer[slot] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-      //cout << epToSet << endl;
-      //cout << "22222" << ms->config.epRingBuffer[slot] << endl;
+      cout << epToSet << endl;
+      cout << "22222" << ms->config.epRingBuffer[slot] << endl;
 #endif
       ms->config.epRBTimes[slot] = t;
 

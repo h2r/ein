@@ -303,8 +303,10 @@ SSDP_ENABLE=1
 */
 
 void robotInitializeConfig(MachineState * ms) {
- ms->config.aiboConfig = new EinAiboConfig(ms);
+  ms->config.aiboConfig = new EinAiboConfig(ms);
+  ms->config.cameras.clear();
 }
+
 void robotInitializeMachine(MachineState * ms) {
 }
 

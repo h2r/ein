@@ -15,6 +15,11 @@ class EinPidroneConfig {
   void endPointCallback(const ros::TimerEvent&);
   ros::Timer eeTimer;
 
+  ros::Publisher modePub;
+  ros::Publisher resetTransformPub;
+  ros::Publisher toggleTransformPub;
+
+
   ros::NodeHandle n;
 };
 

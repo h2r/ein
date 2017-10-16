@@ -3880,6 +3880,17 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, p_width);
   GET_NUMERIC_ARG(ms, gridSize);
 
+  if (p_width <= 0) {
+    CONSOLE_ERROR(ms, "p_width must be positive.  Received: " << p_width);
+    ms->pushWord("pauseStackExecution");
+    return;
+  }
+  if (p_height <= 0) {
+    CONSOLE_ERROR(ms, "p_height must be positive.  Received: " << p_height);
+    ms->pushWord("pauseStackExecution");
+    return;
+  }
+
   double p_cell_width = gridSize;
 
   destPose = destPose.multQ(ms->config.straightDown.invQ());

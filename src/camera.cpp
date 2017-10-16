@@ -89,6 +89,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     int cfClass = ms->config.focusedClass;
     if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
       double thisNow = msg->header.stamp.toSec();
+      //cout << "     Now: " << msg->header.stamp << endl;
       streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
     }
   }
