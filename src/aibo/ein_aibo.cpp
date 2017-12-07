@@ -1,6 +1,7 @@
 #include "ein_words.h"
 #include "config.h"
 #include "ein.h"
+#include "camera.h"
 #include "qtgui/einwindow.h"
 
 #include "ein_aibo.h"
@@ -12,8 +13,11 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
+using namespace cv;
 
 class EinAiboJoints {
   public:
@@ -305,6 +309,10 @@ SSDP_ENABLE=1
 void robotInitializeConfig(MachineState * ms) {
   ms->config.aiboConfig = new EinAiboConfig(ms);
   ms->config.cameras.clear();
+
+  Camera * c = new Camera(ms, "", "", "", "");
+  ms->config.cameras.push_back(c);
+  ms->config.focused_camera = 0;
 }
 
 void robotInitializeMachine(MachineState * ms) {
@@ -652,10 +660,17 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, toSet);
 
   if (toSet >= 0) {
-    cout << "dogSetPackSize setting pack size: " << toSet << endl;
     ms->config.aiboConfig->pack.resize(toSet);
+    for (int i = 0; i < ms->config.aiboConfig->pack.size(); i ++) {
+      if (ms->config.aiboConfig->pack[i] == NULL) {
+        ms->config.aiboConfig->pack[i] = new EinAiboDog();
+      }
+    }
+    
   } else {
-    cout << "dogSetPackSize: invalid size..." << endl;
+    CONSOLE_ERROR(ms, "dogSetPackSize: invalid size: " << "toSet");
+    ms->pushWord("pauseStackExecution"); 
+    return;
   }
   ms->config.aiboConfig->stoppedJoints = new EinAiboJoints();
 }
@@ -680,9 +695,9 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, toSet);
   if ((toSet >= 0) && (toSet < ms->config.aiboConfig->pack.size())) {
     ms->config.aiboConfig->focusedMember = toSet;
-    cout << "dogSetFocusedMember focusedMember: " << ms->config.aiboConfig->focusedMember << endl;
   } else {
-    cout << "dogSetFocusedMember invalid selection: " << toSet << endl;
+    CONSOLE_ERROR(ms, "dogSetFocusedMember invalid selection: " << toSet);
+    ms->pushWord("pauseStackExecution"); 
   }
 }
 END_WORD
@@ -733,14 +748,13 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, t_port);
   GET_STRING_ARG(ms, t_ip);
 
-  cout << "opening socket to IP, port: " << t_ip << " " << t_port << endl;
-
   // destroy old socket
   close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
   // create socket
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
   if (ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc == -1) {
-    cout <<("could not create socket");
+    CONSOLE_ERROR(ms, "Could not create socket.");
+    ms->pushWord("pauseStackExecution"); 
     return;
   }
 

@@ -11211,7 +11211,7 @@ virtual void execute(MachineState * ms) {
       << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
     return;
   } else {
-    CONSOLE(ms, cout << "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
+    CONSOLE(ms, "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
   }
   
   double meters_scene_x, meters_scene_y;
