@@ -1,0 +1,123 @@
+#
+# various settings suggested by other users
+#
+# derived from the Paradox pair programming screenrc, UChicago 2010
+#   ~ yes, we are all total newbs ~
+#
+
+startup_message off
+
+#defscrollback 5000
+defscrollback 5000
+
+escape ``
+
+# this hard status was stolen from the net, all credit goes to its originator
+hardstatus             alwayslastline
+#hardstatus string '%{= mK}%-Lw%{= KW}%50>%n%f* %t%{= mK}%+Lw%< %{= kG}%-=%D %d %M %Y %c:%s%{-}'
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %d/%m %{W}%c %{g}]'
+
+# A hint for using multiuser mode:  make sure that both parties have identically
+# sized terminals, otherwise there could be graphical mismatches and undrawn text
+# for one party :(  .
+
+# turn multiuser mode on so others can connect.
+multiuser on
+
+# add the specified user to this screen session so that they can connect.
+# the initiating user is allowed automatically, but add both so either can
+# run this script without modification.
+
+#acladd gen
+acladd oberlin
+acladd stefie10 
+
+# Starts a new screen with title " MAKE"
+# this is basically equivalent to pressing the following from within screen:
+# `c (starts a new window)
+# `:title " MAKE" (sets the title to " MAKE")
+#screen -t " MAKE"
+
+#stuff "unset STY"
+#stuff "screen"
+
+screen -t " einR"
+stuff "./baxter.sh"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
+screen -t " replR"
+#stuff "./baxter.sh"
+#stuff "rosrun ein ein_client.py right"
+stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
+#######
+#screen -t " subscreenR" 
+#stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
+#######
+screen -t " free"
+stuff "./baxter.sh"
+# subscreen voodoo
+#stuff "screen -t \" ss2\""
+#stuff "./baxter.sh"
+#meta
+#stuff "1"
+#stuff "in a subscreen you must double meta / escape characters"
+#meta
+#stuff "c"
+## meta n meta p forces redraw of internal screen
+#meta
+#stuff "n"
+#meta
+#stuff "p"
+#######
+screen -t " vim"
+stuff "./baxter.sh"
+stuff "cd $(rospack find ein)/src"
+#stuff "vim -p ../ein_baxter.screenrc ein.cpp ein.h config.h word.h ein_pick_place.cpp ein_stream.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp eePose.h"
+stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ../back/scene.back ../back/scan.back"
+screen -t " git"
+stuff "./baxter.sh"
+stuff "cd $(rospack find ein)/src"
+screen -t " emacs"
+stuff "./baxter.sh"
+stuff "cd $(rospack find ein)"
+stuff "emacs -nw src/ein.cpp"
+#######
+#screen -t " subscreenL" 
+#stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
+#######
+screen -t " free"
+stuff "./baxter.sh"
+#######
+screen -t " replL"
+#stuff "./baxter.sh"
+#stuff "rosrun ein ein_client.py left"
+stuff "ARM=left screen -m -c src/ein/ein_client.screenrc"
+screen -t " einL"
+stuff "./baxter.sh"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left"
+screen -t " website"
+stuff "cd src/ein/doc && jekyll serve"
+
+
+# Now the focus is in the newly created screen.
+# The stuff command issues the stuff between the quotes to the terminal.
+# Note that the ^M character issues an 'enter' to the terminal, which is
+# necessary if you want this command to go through.  You can write 
+# in vim by entering -- INSERT -- mode, pressing ctrl+v (transforming your
+# cursor to a ^ temporarily), and finally pressing enter.  You can do this
+# with other special characters in the analogous fashion.
+#stuff "cd ~
+#"
+# You can do almost anything you want with the stuff command, even connect 
+# to another multi-user screen session within this particular screen, resulting 
+# in nested screen sessions with two status bars.  Note that you would have to press `` 
+# to activate meta in the sub-screen and ```` to write ` in the subscreen.
+# For instance, suppose you consistently need to open the same set of files
+# for a given project.  You can summon them automatically and with elegance.
+# screen -t " ourImportantFile"
+# stuff "cd ~
+#"
+# stuff "vi -O ourImportantFile.c ourImportantFile.h
+#"
+#
+# Note the -O command followed by two files when starting vim.  This starts the files
+# in a vertical split configuration.
