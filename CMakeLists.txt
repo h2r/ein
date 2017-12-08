@@ -216,6 +216,8 @@ find_package(catkin COMPONENTS baxter_core_msgs)
 
 find_package(catkin COMPONENTS pidrone_pkg)
 
+find_package(catkin COMPONENTS kinova_msgs)
+
 
 # you must pick one robot. 
 
@@ -251,6 +253,13 @@ src/pidrone/ein_pidrone.cpp
 )
 target_link_libraries(ein EinPidrone)
 
+elseif (kinova_msgs_FOUND)
+MESSAGE("Building jaco")
+add_definitions(-DUSE_ROBOT_JACO)
+add_library(EinJaco SHARED
+src/jaco/ein_jaco.cpp 
+)
+target_link_libraries(ein EinJaco)
 
 else()
 MESSAGE("Building Aibo")
