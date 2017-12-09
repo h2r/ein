@@ -37,6 +37,7 @@ void EinJacoConfig::endpointCallback(const geometry_msgs::PoseStamped& p) {
 
   setRingPoseAtTime(ms, ms->config.lastEndpointCallbackReceived, p.pose);
   ms->config.trueEEPose = p.pose;
+  ms->config.trueEEPoseEEPose = ep;
 }
 
 
@@ -67,10 +68,21 @@ void robotInitializeConfig(MachineState * ms) {
  Camera * c = new Camera(ms, "stub", image_topic, "stub", "stub");
  ms->config.cameras.push_back(c);
  ms->config.focused_camera = 0;
+
+ ms->config.beeHome = eePose(0.211652, -0.267056, 0.503267,
+			     0.648415, 0.314313, 0.422213, 0.550001);
+
+ ms->config.crane1 = eePose(0.211652, -0.267056, 0.503267, 
+			    0.648415, 0.314313, 0.422213, 0.550001);
+
+
+ ms->config.jacoConfig->candleLikePose = eePose(-0.002073, -0.009800, 1.260297, 
+						 -0.001499, -0.001493, 0.708971, 0.705234);
 }
 
 
 void robotInitializeMachine(MachineState * ms) {
+    ms->pushWord("zeroGOff"); 
 }
 
 void robotSetCurrentJointPositions(MachineState * ms) {
@@ -78,7 +90,11 @@ void robotSetCurrentJointPositions(MachineState * ms) {
 }
 
 void robotEndPointCallback(MachineState * ms) {
-  
+  geometry_msgs::PoseStamped p;
+  p.header.frame_id = "";
+  p.header.stamp = ros::Time::now();
+  p.pose = eePoseToRosPose(ms->config.currentEEPose);
+  ms->config.jacoConfig->endpointCallback(p);
 }
 
 
@@ -117,7 +133,7 @@ END_WORD
 REGISTER_WORD(SetFingers)
 
 
-WORD(WaitUntilFingersCurrentPosition)
+WORD(WaitUntilFingersAtCurrentPosition)
 virtual string description() {
   return "Waits until the fingers stop moving.";
 }
@@ -129,7 +145,22 @@ virtual void execute(MachineState * ms) {
   }
 }
 END_WORD
-REGISTER_WORD(WaitUntilFingersCurrentPosition)
+REGISTER_WORD(WaitUntilFingersAtCurrentPosition)
+
+
+WORD(WaitUntilArmAtCurrentPosition)
+virtual string description() {
+  return "Waits until the fingers stop moving.";
+}
+virtual void execute(MachineState * ms) {
+  bool finished_before_timeout = ms->config.jacoConfig->kinova_arm_pose_action.waitForResult(ros::Duration(60.0));
+  if (!finished_before_timeout) {
+    CONSOLE_ERROR(ms, "Arm movement wait timed out.");
+    ms->pushWord("pauseStackExecution");
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilArmAtCurrentPosition)
 
 
 
@@ -154,7 +185,12 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(CloseGripper)
 
-
+WORD(AssumeCandleLikePose)
+virtual void execute(MachineState * ms) {
+  ms->config.currentEEPose = ms->config.jacoConfig->candleLikePose;
+}
+END_WORD
+REGISTER_WORD(AssumeCandleLikePose)
 
 CONFIG_GETTER_DOUBLE(Finger1, ms->config.jacoConfig->finger1)
 CONFIG_GETTER_DOUBLE(Finger2, ms->config.jacoConfig->finger2)

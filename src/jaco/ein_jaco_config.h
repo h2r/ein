@@ -27,6 +27,9 @@ class EinJacoConfig {
   void endpointCallback(const geometry_msgs::PoseStamped& _p);
   void fingerCallback(const kinova_msgs::FingerPosition p);
 
+  eePose candleLikePose;
+
+
   double finger1;
   double finger2;
   double finger3;
