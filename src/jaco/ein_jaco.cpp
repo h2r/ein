@@ -15,40 +15,17 @@ EinJacoConfig::EinJacoConfig(MachineState * myms): n("~"),
 						   kinova_arm_pose_action("/j2n6s300_driver/pose_action/tool_pose", true)
  {
   ms = myms;
-  kinova_pose_sub = n.subscribe("/j2n6s300_driver/out/cartesian_command", 1, &EinJacoConfig::endpointCallback, this);
+  kinova_pose_sub = n.subscribe("/j2n6s300_driver/out/tool_pose", 1, &EinJacoConfig::endpointCallback, this);
   kinova_arm_pose_action.waitForServer();
 }
 
-void EinJacoConfig::endpointCallback(const kinova_msgs::KinovaPose& p) {
-  eePose ep = eePose::identity();
-  ep = ep.applyRPYTo(p.ThetaX, p.ThetaY, p.ThetaZ);
-  ep.px = p.X;
-  ep.py = p.Y;
-  ep.pz = p.Z;
-
+void EinJacoConfig::endpointCallback(const geometry_msgs::PoseStamped& p) {
+  eePose ep = eePose::fromGeometryMsgPose(p.pose);
 
   ms->config.lastEndpointCallbackReceived = ros::Time::now();
-  geometry_msgs::PoseStamped hand_pose;
-  hand_pose.pose.position.x = ep.px;
-  hand_pose.pose.position.y = ep.py;
-  hand_pose.pose.position.z = ep.pz;
-  hand_pose.pose.orientation.x = ep.qx;
-  hand_pose.pose.orientation.y = ep.qy;
-  hand_pose.pose.orientation.z = ep.qz;
-  hand_pose.pose.orientation.w = ep.qw;
 
-  setRingPoseAtTime(ms, ms->config.lastEndpointCallbackReceived, hand_pose.pose);
-  ms->config.trueEEPose = hand_pose.pose;
-
-  ms->config.trueEEPoseEEPose.px = hand_pose.pose.position.x;
-  ms->config.trueEEPoseEEPose.py = hand_pose.pose.position.y;
-  ms->config.trueEEPoseEEPose.pz = hand_pose.pose.position.z;
-  ms->config.trueEEPoseEEPose.qx = hand_pose.pose.orientation.x;
-  ms->config.trueEEPoseEEPose.qy = hand_pose.pose.orientation.y;
-  ms->config.trueEEPoseEEPose.qz = hand_pose.pose.orientation.z;
-  ms->config.trueEEPoseEEPose.qw = hand_pose.pose.orientation.w;
-
-
+  setRingPoseAtTime(ms, ms->config.lastEndpointCallbackReceived, p.pose);
+  ms->config.trueEEPose = p.pose;
 }
 
 

@@ -4,7 +4,6 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 
-#include <kinova_msgs/KinovaPose.h>
 #include <kinova_msgs/ArmPoseAction.h>
 #include "ein_words.h"
 #include "config.h"
@@ -20,7 +19,7 @@ class EinJacoConfig {
   actionlib::SimpleActionClient<kinova_msgs::ArmPoseAction> kinova_arm_pose_action;
 
   ros::NodeHandle n;
-  void endpointCallback(const kinova_msgs::KinovaPose& _p);
+  void endpointCallback(const geometry_msgs::PoseStamped& _p);
 
 };
 
