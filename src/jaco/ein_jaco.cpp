@@ -8,15 +8,26 @@
 
 #include <kinova_msgs/ArmPoseAction.h>
 #include <kinova_msgs/ArmPoseGoal.h>
+#include <kinova_msgs/SetFingersPositionAction.h>
 
 using namespace std;
 
 EinJacoConfig::EinJacoConfig(MachineState * myms): n("~"),
-						   kinova_arm_pose_action("/j2n6s300_driver/pose_action/tool_pose", true)
+						   kinova_arm_pose_action("/j2n6s300_driver/pose_action/tool_pose", true),
+						   kinova_fingers_position_action("/j2n6s300_driver/fingers_action/finger_positions", true)
  {
   ms = myms;
   kinova_pose_sub = n.subscribe("/j2n6s300_driver/out/tool_pose", 1, &EinJacoConfig::endpointCallback, this);
-  kinova_arm_pose_action.waitForServer();
+  kinova_finger_pose_sub = n.subscribe("/j2n6s300_driver/out/finger_position", 1, &EinJacoConfig::fingerCallback, this);
+}
+
+void EinJacoConfig::fingerCallback(const kinova_msgs::FingerPosition p) {
+  ms->config.jacoConfig->finger1 = p.finger1 / 6400.0;
+  ms->config.jacoConfig->finger2 = p.finger2 / 6400.0;
+  ms->config.jacoConfig->finger3 = p.finger3 / 6400.0;
+
+  ms->config.lastGripperCallbackReceived = ros::Time::now();
+  ms->config.gripperLastUpdated = ros::Time::now();
 }
 
 void EinJacoConfig::endpointCallback(const geometry_msgs::PoseStamped& p) {
@@ -81,5 +92,72 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
+
+WORD(SetFingers)
+virtual string description() {
+  return "Set finger position.  Takes 3 arguments, ranging from 0-1.  0 is open, 1 is closed, controlling each of the three fingers.";
+}
+virtual void execute(MachineState * ms) {
+  double f3;
+  GET_NUMERIC_ARG(ms, f3);
+  double f2;
+  GET_NUMERIC_ARG(ms, f2);
+  double f1;
+  GET_NUMERIC_ARG(ms, f1);
+
+  
+  kinova_msgs::SetFingersPositionGoal goal;
+  goal.fingers.finger1 = f1 * 6400;
+  goal.fingers.finger2 = f2 * 6400;
+  goal.fingers.finger3 = f3 * 6400;
+
+    ms->config.jacoConfig->kinova_fingers_position_action.sendGoal(goal);
+}
+END_WORD
+REGISTER_WORD(SetFingers)
+
+
+WORD(WaitUntilFingersCurrentPosition)
+virtual string description() {
+  return "Waits until the fingers stop moving.";
+}
+virtual void execute(MachineState * ms) {
+  bool finished_before_timeout = ms->config.jacoConfig->kinova_fingers_position_action.waitForResult(ros::Duration(30.0));
+  if (!finished_before_timeout) {
+    CONSOLE_ERROR(ms, "Finger movement wait timed out.");
+    ms->pushWord("pauseStackExecution");
+  }
+}
+END_WORD
+REGISTER_WORD(WaitUntilFingersCurrentPosition)
+
+
+
+WORD(OpenGripper)
+virtual string description() {
+  return "Opens the gripper.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("0 0 0 setFingers");
+}
+END_WORD
+REGISTER_WORD(OpenGripper)
+
+
+WORD(CloseGripper)
+virtual string description() {
+  return "Closes the gripper.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("1 1 1 setFingers");
+}
+END_WORD
+REGISTER_WORD(CloseGripper)
+
+
+
+CONFIG_GETTER_DOUBLE(Finger1, ms->config.jacoConfig->finger1)
+CONFIG_GETTER_DOUBLE(Finger2, ms->config.jacoConfig->finger2)
+CONFIG_GETTER_DOUBLE(Finger3, ms->config.jacoConfig->finger3)
 
 }
