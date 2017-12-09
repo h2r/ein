@@ -7,31 +7,31 @@ split
 split -v
 
 screen -t " state" 
-stuff "./baxter.sh"
+stuff "source src/ein/setup.sh"
 stuff "rosrun ein ein_print_state.py $ARM"
 
 split -v
 focus
 screen -t " call_stack" 
-stuff "./baxter.sh"
+stuff "source src/ein/setup.sh"
 stuff "rosrun ein ein_print_stack.py $ARM call"
 
 split -v
 focus
 screen -t " data_stack" 
-stuff "./baxter.sh"
+stuff "source src/ein/setup.sh"
 stuff "rosrun ein ein_print_stack.py $ARM data"
 
 
 focus
 screen -t " console"
-stuff "./baxter.sh"
+stuff "source src/ein/setup.sh"
 stuff "rosrun ein ein_print_console.py $ARM"
 
 
 focus
 screen -t " repl"
-stuff "./baxter.sh"
+stuff "source src/ein/setup.sh"
 stuff "rosrun ein ein_client.py --silence-console-messages --silence-stacks $ARM"
 
 

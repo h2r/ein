@@ -23,6 +23,9 @@ _eePose _eePose::zero() {
   return zeroOut;
 }
 
+double _eePose::qmagnitude() {
+  return sqrt(pow(this->qx, 2) + pow(this->qy, 2) + pow(this->qz, 2) + pow(this->qw, 2));
+}
 _eePose _eePose::identity() {
   _eePose idOut = eePose(0.0, 0.0, 0.0,
                          0.0, 0.0, 0.0, 1.0);
@@ -474,7 +477,17 @@ void _armPose::writeToFileStorage(FileStorage& fsvO) const {
 
 
 
-
+geometry_msgs::Pose eePoseToRosPose(eePose p) {
+  geometry_msgs::Pose result;
+  result.position.x = p.px;
+  result.position.y = p.py;
+  result.position.z = p.pz;
+  result.orientation.x = p.qx;
+  result.orientation.y = p.qy;
+  result.orientation.z = p.qz;
+  result.orientation.w = p.qw;
+  return result;
+}
 
 eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
   eePose result;

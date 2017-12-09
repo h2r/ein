@@ -1,14 +1,22 @@
 #include "ein_jaco.h"
 #include "ein_jaco_config.h"
 
+#include <actionlib/client/simple_action_client.h>
+
 #include "config.h"
 #include "ein.h"
+
+#include <kinova_msgs/ArmPoseAction.h>
+#include <kinova_msgs/ArmPoseGoal.h>
+
 using namespace std;
 
-EinJacoConfig::EinJacoConfig(MachineState * myms): n("~") {
+EinJacoConfig::EinJacoConfig(MachineState * myms): n("~"),
+						   kinova_arm_pose_action("/j2n6s300_driver/pose_action/tool_pose", true)
+ {
   ms = myms;
   kinova_pose_sub = n.subscribe("/j2n6s300_driver/out/cartesian_command", 1, &EinJacoConfig::endpointCallback, this);
-
+  kinova_arm_pose_action.waitForServer();
 }
 
 void EinJacoConfig::endpointCallback(const kinova_msgs::KinovaPose& p) {
@@ -50,6 +58,15 @@ void robotDeactivateSensorStreaming(MachineState * ms) {
 }
 
 void robotUpdate(MachineState * ms) {
+
+  //CONSOLE(ms, "State: " << ms->config.jacoConfig->kinova_arm_pose_action.getState().toString());
+  if (ms->config.jacoConfig->kinova_arm_pose_action.getState().isDone()) {
+    kinova_msgs::ArmPoseGoal goal;
+    goal.pose.header.frame_id = "j2n6s300_link_base";
+    goal.pose.header.stamp = ros::Time::now();
+    goal.pose.pose = eePoseToRosPose(ms->config.currentEEPose);
+    ms->config.jacoConfig->kinova_arm_pose_action.sendGoal(goal);
+  }
   
 
 }
