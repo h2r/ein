@@ -69,15 +69,18 @@ void robotInitializeConfig(MachineState * ms) {
  ms->config.cameras.push_back(c);
  ms->config.focused_camera = 0;
 
- ms->config.beeHome = eePose(0.211652, -0.267056, 0.503267,
-			     0.648415, 0.314313, 0.422213, 0.550001);
+ ms->config.beeHome = eePose(0.287482, -0.271737, 0.176811, -1, 0, 0, 0);
 
  ms->config.crane1 = eePose(0.211652, -0.267056, 0.503267, 
 			    0.648415, 0.314313, 0.422213, 0.550001);
 
-
  ms->config.jacoConfig->candleLikePose = eePose(-0.002073, -0.009800, 1.260297, 
 						 -0.001499, -0.001493, 0.708971, 0.705234);
+
+ // ms->config.jacoConfig->calibrationPose = eePose(0.211652, -0.267056, 0.503267, 
+ // 						 0.648415, 0.314313, 0.422213, 0.550001);
+ ms->config.jacoConfig->calibrationPose = ms->config.crane1;
+
 }
 
 
@@ -191,6 +194,13 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(AssumeCandleLikePose)
+
+WORD(AssumeCalibrationPose)
+virtual void execute(MachineState * ms) {
+  ms->config.currentEEPose = ms->config.jacoConfig->calibrationPose;
+}
+END_WORD
+REGISTER_WORD(AssumeCalibrationPose)
 
 CONFIG_GETTER_DOUBLE(Finger1, ms->config.jacoConfig->finger1)
 CONFIG_GETTER_DOUBLE(Finger2, ms->config.jacoConfig->finger2)
