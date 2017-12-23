@@ -327,7 +327,11 @@ void robotSetCurrentJointPositions(MachineState * ms){}
 
 void robotActivateSensorStreaming(MachineState * ms){}
 void robotDeactivateSensorStreaming(MachineState * ms){}
-void robotUpdate(MachineState * ms){}
+void robotUpdate(MachineState * ms)
+{
+  
+  
+}
 
 
 #define DOG_READ_VAR(x) \
@@ -777,6 +781,7 @@ virtual void execute(MachineState * ms) {
   }
    
   //cout << "connected!" << endl;
+
 }
 END_WORD
 REGISTER_WORD(SocketOpen)
@@ -1059,8 +1064,11 @@ virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
   ros::NodeHandle n("~");
   stringstream ss;
-  ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout"; 
-  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(ss.str(),10);
+  ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout";
+  string s = ss.str();
+  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(s,10);
+  Camera * c = new Camera(ms, s, s, s, s);
+  ms->config.cameras.push_back(c);
 
   ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
 }
