@@ -242,7 +242,8 @@ virtual string description() {
 virtual void execute(MachineState * ms) {
   pidrone_pkg::Mode msg;
   msg.mode = pidrone_pkg::Mode::MODE_ARM;
-
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
   ms->config.pidroneConfig->modePub.publish(msg);
 }
 END_WORD
@@ -255,6 +256,8 @@ virtual string description() {
 virtual void execute(MachineState * ms) {
   pidrone_pkg::Mode msg;
   msg.mode = pidrone_pkg::Mode::MODE_DISARM;
+  msg.x_velocity = 0;
+  msg.y_velocity = 0;
   ms->config.pidroneConfig->modePub.publish(msg);
 }
 END_WORD
@@ -304,7 +307,7 @@ virtual void execute(MachineState * ms) {
   msg.mode = pidrone_pkg::Mode::MODE_FLY;
   msg.x_velocity = 0;
   msg.y_velocity = 0;
-  msg.z_velocity = -0.05;
+  msg.z_velocity = -2.5;
   msg.yaw_velocity = 0;
   ms->config.pidroneConfig->modePub.publish(msg);
 }
@@ -321,7 +324,7 @@ virtual void execute(MachineState * ms) {
   msg.mode = pidrone_pkg::Mode::MODE_FLY;
   msg.x_velocity = 0;
   msg.y_velocity = 0;
-  msg.z_velocity = 0.05;
+  msg.z_velocity = 2.5;
   msg.yaw_velocity = 0;
   ms->config.pidroneConfig->modePub.publish(msg);
 }

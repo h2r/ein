@@ -11,6 +11,8 @@
 #include "baxter/ein_baxter.h"
 #elif defined(USE_ROBOT_PIDRONE)
 #include "pidrone/ein_pidrone.h"
+#elif defined(USE_ROBOT_JACO)
+#include "jaco/ein_jaco.h"
 #else
 #include "defaultrobot/ein_robot.h"
 #endif
@@ -349,6 +351,7 @@ class CompoundWord;
 class EinBaxterConfig;
 class EinAiboConfig;
 class EinPidroneConfig;
+class EinJacoConfig;
 
 class EinConfig {
  public:
@@ -356,7 +359,7 @@ class EinConfig {
   EinBaxterConfig * baxterConfig;
   EinAiboConfig * aiboConfig;
   EinPidroneConfig * pidroneConfig;
-
+  EinJacoConfig * jacoConfig;
 
   
   tf::TransformListener* tfListener;

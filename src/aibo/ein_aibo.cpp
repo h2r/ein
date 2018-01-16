@@ -327,7 +327,11 @@ void robotSetCurrentJointPositions(MachineState * ms){}
 
 void robotActivateSensorStreaming(MachineState * ms){}
 void robotDeactivateSensorStreaming(MachineState * ms){}
-void robotUpdate(MachineState * ms){}
+void robotUpdate(MachineState * ms)
+{
+  
+  
+}
 
 
 #define DOG_READ_VAR(x) \
@@ -336,8 +340,8 @@ void robotUpdate(MachineState * ms){}
     return;\
   }\
   r = stod(&(ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[nextCoreMessage]), &idx);  \
-  x = r; \
-  cout << "dgbi got: " << r << " for " << #x << endl; 
+  x = r; 
+
 
 void dogReconnect(MachineState * ms) {
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 0;
@@ -391,11 +395,11 @@ string EinAiboJoints::toString() {
 }
 bool dogIsStopped(MachineState * ms, int member) {
   EinAiboDog * dog = ms->config.aiboConfig->pack[member];
-  cout << "Intended joints: " << dog->targetJoints.toString() << endl;
-  cout << "True joints: " << dog->trueJoints.toString() << endl;
+  //cout << "Intended joints: " << dog->targetJoints.toString() << endl;
+  //cout << "True joints: " << dog->trueJoints.toString() << endl;
 
-  cout << "Intended pose: " << dog->intendedPose.toString() << endl;
-  cout << "True pose: " << dog->truePose.toString() << endl;
+  //cout << "Intended pose: " << dog->intendedPose.toString() << endl;
+  //cout << "True pose: " << dog->truePose.toString() << endl;
 
   return false;
 }
@@ -403,21 +407,21 @@ bool dogIsStopped(MachineState * ms, int member) {
 void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
   if (ms->config.aiboConfig->pack.size() == 0) {
-    ROS_ERROR_STREAM("No pack; need to initialize.");
+    CONSOLE_ERROR(ms, "No pack; need to initialize.");
     return;
   }
   struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
-    ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
     dogReconnect(ms);
     return;
   } else {
     if( send(ms->config.aiboConfig->pack[member]->aibo_socket_desc, message.c_str(), message.size(), 0) != message.size() ) {
-      ROS_ERROR_STREAM("send failed..." << endl);
+      CONSOLE_ERROR(ms, "send failed..." << endl);
       dogReconnect(ms);
       return;
     } else {
-      cout << "sent: " << endl << message << endl;
+      //cout << "sent: " << endl << message << endl;
       //cout << "sent: " << message.size() << endl;
     }
   }
@@ -427,16 +431,16 @@ void sendOnDogSocket(MachineState * ms, int member, char *buf, int size) {
   int p_send_poll_timeout = 5000;
   struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
-    ROS_ERROR_STREAM("poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
     dogReconnect(ms);
     return;
   } else {
     if( send(ms->config.aiboConfig->pack[member]->aibo_socket_desc, buf, size, 0) != size ) {
-      ROS_ERROR_STREAM("send failed..." << endl);
+      CONSOLE_ERROR(ms, "send failed..." << endl);
       dogReconnect(ms);
       return;
     } else {
-      cout << "sent: " << endl << size << " bytes." << endl;
+      //cout << "sent: " << endl << size << " bytes." << endl;
       //cout << "sent: " << message.size() << endl;
     }
   }
@@ -457,23 +461,23 @@ void flushDogBuffer(MachineState * ms, int member) {
     switch (ret) {
       case -1:
 	// Error
-	cout << "file descriptor error during poll in flush..." << endl;
+	CONSOLE_ERROR(ms, "file descriptor error during poll in flush...");
 	read_size = -1;
 	break;
       case 0:
 	// Timeout 
-	cout << "timeout during poll in flush..." << endl;
+	//CONSOLE_ERROR(ms, "timeout during poll in flush...");
 	read_size = 0;
 	break;
       default:
 	// read from dog
 	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, ms->config.aiboConfig->pack[member]->aibo_sock_buf, ms->config.aiboConfig->pack[member]->aibo_sock_buf_size);
 	if (read_size <= 0) {
-	  cout << "oops, read failed, closing socket..." << endl;
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
 	  dogReconnect(ms);
 	  return;
 	} else {
-	  cout << "read " << read_size << " bytes during poll in flush..." << endl;
+	  CONSOLE_ERROR(ms, "read " << read_size << " bytes during poll in flush...");
 	  break;
 	}
     }
@@ -496,12 +500,12 @@ int getBytesFromDog(MachineState * ms, int member, int bytesToGet, int timeout) 
     switch (ret) {
       case -1:
 	// Error
-	cout << "file descriptor error during poll in gbfd..." << endl;
+	CONSOLE_ERROR(ms, "file descriptor error during poll in gbfd...");
 	read_size = -1;
 	break;
       case 0:
 	// Timeout 
-	cout << "timeout during poll in gbfd..." << endl;
+	CONSOLE_ERROR(ms, "timeout during poll in gbfd...");
 	read_size = 0;
 	break;
       default:
@@ -509,14 +513,14 @@ int getBytesFromDog(MachineState * ms, int member, int bytesToGet, int timeout) 
 	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
 	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[sbStart]), ms->config.aiboConfig->pack[member]->aibo_sock_buf_size-sbStart);
 	if (read_size <= 0) {
-	  cout << "oops, read failed, closing socket..." << endl;
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
 	  dogReconnect(ms);
 	  return ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
 	} else {
 	  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes += read_size;
 	}
 	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
-	cout << "read " << read_size << " bytes during poll in gbfd..." << endl;
+	//cout << "read " << read_size << " bytes during poll in gbfd..." << endl;
 	break;
     }
   }
@@ -537,7 +541,7 @@ int readBytesFromDogUntilString(MachineState * ms, int member, int timeout, stri
       //cout << searchedBytes << " " << ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes] << " " << ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes << " " << toFind.size() << " " << (ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes - int(toFind.size()) + 1) << endl;
       if (toFind.compare(0, toFind.size(), &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
 	searchedBytes += toFind.size();
-	cout << "readBytesFromDogUntilString found " << toFind << " at " << searchedBytes << endl;
+	//cout << "readBytesFromDogUntilString found " << toFind << " at " << searchedBytes << endl;
 	return searchedBytes;
       } else {
       }
@@ -553,12 +557,12 @@ int readBytesFromDogUntilString(MachineState * ms, int member, int timeout, stri
     switch (ret) {
       case -1:
 	// Error
-	cout << "file descriptor error during poll in rbfdus..." << endl;
+	CONSOLE_ERROR(ms, "file descriptor error during poll in rbfdus...");
 	read_size = -1;
 	break;
       case 0:
 	// Timeout 
-	cout << "timeout during poll in rbfdus..." << endl;
+	//cout << "timeout during poll in rbfdus..." << endl;
 	read_size = 0;
 	break;
       default:
@@ -566,13 +570,13 @@ int readBytesFromDogUntilString(MachineState * ms, int member, int timeout, stri
 	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
 	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[sbStart]), ms->config.aiboConfig->pack[member]->aibo_sock_buf_size-sbStart);
 	if (read_size <= 0) {
-	  cout << "oops, read failed, closing socket..." << endl;
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
 	  dogReconnect(ms);
 	  return -1;
 	} else {
 	  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes += read_size;
 	}
-	cout << "read " << read_size << " bytes during poll in rbfdus..." << endl;
+	//cout << "read " << read_size << " bytes during poll in rbfdus..." << endl;
 	break;
     }
   }
@@ -585,15 +589,15 @@ int findStringInDogBuffer(MachineState * ms, int member, string toFind, int star
   for (searchedBytes = start; searchedBytes < (ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
     if (toFind.compare(0, toFind.size(), &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
       searchedBytes += toFind.size();
-      cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
+      //cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
       return searchedBytes;
     } else {
     }
   }
 
-  cout << "findStringInDogBuffer failed to find " << toFind << " at " << searchedBytes << endl;
+  CONSOLE_ERROR(ms, "findStringInDogBuffer failed to find " << toFind << " at " << searchedBytes);
   string searchedText(ms->config.aiboConfig->pack[member]->aibo_sock_buf, searchedBytes);
-  cout << "  searched: " << endl << searchedText << endl;
+  CONSOLE_ERROR(ms, "  searched: " << endl << searchedText);
 
   return -1;
 }
@@ -758,7 +762,7 @@ virtual void execute(MachineState * ms) {
     return;
   }
 
-  cout << "created socket..." << endl;
+  //cout << "created socket..." << endl;
        
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->ip_string = t_ip;
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server.sin_addr.s_addr = inet_addr(t_ip.c_str());
@@ -767,7 +771,7 @@ virtual void execute(MachineState * ms) {
 
   //Connect to remote aibo_server
   if (connect(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc , (struct sockaddr *)&ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server , sizeof(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server)) < 0) {
-    cout << "connect error" << endl;
+    CONSOLE_ERROR(ms, "connect error");
     ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 0;
     ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->dog_needs_reinit = 1;
     close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
@@ -776,7 +780,8 @@ virtual void execute(MachineState * ms) {
     ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 1;
   }
    
-  cout << "connected!" << endl;
+  //cout << "connected!" << endl;
+
 }
 END_WORD
 REGISTER_WORD(SocketOpen)
@@ -822,11 +827,11 @@ virtual void execute(MachineState * ms) {
   switch (ret) {
     case -1:
       // Error
-      cout << "file descriptor error during poll..." << endl;
+      CONSOLE_ERROR(ms, "file descriptor error during poll...");
       return;
     case 0:
       // Timeout 
-      cout << "timeout during poll..." << endl;
+      //cout << "timeout during poll..." << endl;
       return;
     default:
       break;
@@ -835,7 +840,7 @@ virtual void execute(MachineState * ms) {
   // read from dog
   int read_size = read(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc, ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf, ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf_size);
   if (read_size <= 0) {
-    cout << "oops, read failed, closing socket..." << endl;
+    CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
     dogReconnect(ms);
     return;
   }
@@ -844,7 +849,7 @@ virtual void execute(MachineState * ms) {
 
   string message(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf);
 
-  cout << "socketRead read " << read_size << " bytes and contained: " << endl << message << endl;
+  //cout << "socketRead read " << read_size << " bytes and contained: " << endl << message << endl;
 }
 END_WORD
 REGISTER_WORD(SocketRead)
@@ -1059,8 +1064,11 @@ virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
   ros::NodeHandle n("~");
   stringstream ss;
-  ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout"; 
-  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(ss.str(),10);
+  ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout";
+  string s = ss.str();
+  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(s,10);
+  Camera * c = new Camera(ms, s, s, s, s);
+  ms->config.cameras.push_back(c);
 
   ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
 }
@@ -1094,11 +1102,11 @@ virtual void execute(MachineState * ms) {
 
   int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, p_get_image_timeout);
   if (dogGottenBytes >= chosenFormatLength) {
-    cout << "dogGetImage: got " << dogGottenBytes << endl;
+    //cout << "dogGetImage: got " << dogGottenBytes << endl;
 
     if (dogGottenBytes > chosenFormatLength) {
-      cout << "dogGetImage: got " << dogGottenBytes << " bytes, so the message index is probably more than eight digits. This dog must be tired." << endl;
-    } else {}
+      //cout << "dogGetImage: got " << dogGottenBytes << " bytes, so the message index is probably more than eight digits. This dog must be tired." << endl;
+    } 
 
     // start immediately before the good stuff
     int dataIdx = dogGottenBytes - (rows * cols * 3);
@@ -1125,7 +1133,7 @@ virtual void execute(MachineState * ms) {
     cv::resize(ms->config.aiboConfig->pack[this_dog]->snoutImage, ms->config.aiboConfig->pack[this_dog]->snoutCamImage, p_toBecome);
     ms->config.dogSnoutViewWindow->updateImage(ms->config.aiboConfig->pack[this_dog]->snoutCamImage);
   } else {
-    ROS_ERROR_STREAM("dogGetImage: Failed to get dog image... got " << dogGottenBytes << " bytes." << endl);
+    CONSOLE_ERROR(ms, "dogGetImage: Failed to get dog image... got " << dogGottenBytes << " bytes." << endl);
   }
 }
 END_WORD
@@ -1171,7 +1179,7 @@ virtual void execute(MachineState * ms) {
   if (startCoreMessage == -1) {
     return;
   }
-  cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
+  //cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
 
   size_t idx;
   int nextCoreMessage = startCoreMessage; 
@@ -1269,7 +1277,7 @@ virtual void execute(MachineState * ms) {
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchM);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchF);
   ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = ros::Time::now();
-  cout << "dogGetSensoryMotorStates: finished" << endl;
+  //cout << "dogGetSensoryMotorStates: finished" << endl;
 }
 END_WORD
 REGISTER_WORD(DogGetSensoryMotorStates)
@@ -1292,7 +1300,7 @@ virtual void execute(MachineState * ms) {
   if (startCoreMessage == -1) {
     return;
   }
-  cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
+  //cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
 
   size_t idx;
   int nextCoreMessage = startCoreMessage; 
@@ -1328,7 +1336,7 @@ virtual void execute(MachineState * ms) {
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.earL);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.earR);
 
-  cout << "dogGetIndicators: finished" << endl;
+  //cout << "dogGetIndicators: finished" << endl;
   // parse the info
 }
 END_WORD
@@ -1809,7 +1817,7 @@ virtual void execute(MachineState * ms) {
   double newgrid = 0.0;
   GET_NUMERIC_ARG(ms, newgrid);
   ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize = newgrid;
-  cout << "dogSetPoseGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize << endl;
+  //cout << "dogSetPoseGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize << endl;
 }
 END_WORD
 REGISTER_WORD(DogSetPoseGridSize)
@@ -1821,7 +1829,7 @@ virtual void execute(MachineState * ms) {
   double newgrid = 0.0;
   GET_NUMERIC_ARG(ms, newgrid);
   ms->config.aiboConfig->pack[this_dog]->dogGainGridSize = newgrid;
-  cout << "dogSetGainGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogGainGridSize << endl;
+  //cout << "dogSetGainGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogGainGridSize << endl;
 }
 END_WORD
 REGISTER_WORD(DogSetGainGridSize)
@@ -1941,7 +1949,7 @@ virtual void execute(MachineState * ms) {
       ms->config.wristCamImage = tobo;
     }
   } else {
-    ROS_ERROR_STREAM("dogReplaceWristImageWithSnoutImage: snoutCamImage was sketchy..." << ms->config.aiboConfig->pack[this_dog]->snoutCamImage.size() << endl);
+    CONSOLE_ERROR(ms, "dogReplaceWristImageWithSnoutImage: snoutCamImage was sketchy..." << ms->config.aiboConfig->pack[this_dog]->snoutCamImage.size() << endl);
   }
 }
 END_WORD
@@ -1976,7 +1984,7 @@ virtual void execute(MachineState * ms) {
   for (int i = 0; i < tone_samples; i++) {
     int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2053,7 +2061,7 @@ virtual void execute(MachineState * ms) {
   for (int i = 0; i < tone_samples; i++) {
     int16_t intended = int16_t(v * squareWave(i * f * 2.0 * M_PI / 16000) );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2191,7 +2199,7 @@ virtual void execute(MachineState * ms) {
     } else if (binarized[this_slot] == '1') {
       v = _v;
     } else {
-      ROS_ERROR_STREAM("Oops, dogMorse encountered an error during encoding." << endl);
+      CONSOLE_ERROR(ms, "Oops, dogMorse encountered an error during encoding." << endl);
     }
 
     int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
@@ -2236,7 +2244,7 @@ virtual void execute(MachineState * ms) {
   for (int i = 0; i < tone_samples; i++) {
     int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2278,7 +2286,7 @@ virtual void execute(MachineState * ms) {
   for (int i = 0; i < tone_samples; i++) {
     int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2327,7 +2335,7 @@ virtual void execute(MachineState * ms) {
     int sample_idx = i % warb_width_samples;
     int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2375,7 +2383,7 @@ virtual void execute(MachineState * ms) {
     int sample_idx = i % warb_width_samples;
     int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
     currentSample[i] = intended;
-    cout << int(currentSample[i]) << " " << intended << endl;;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
   }
 
   sendOnDogSocket(ms, this_dog, buf, buf_size);
@@ -2400,7 +2408,7 @@ virtual void execute(MachineState * ms) {
   ms->config.aiboConfig->pack[this_dog]->voice_buffer_size = 16000*seconds;
   ms->config.aiboConfig->pack[this_dog]->voice_buffer = new double[ms->config.aiboConfig->pack[this_dog]->voice_buffer_size];
 
-  cout << "dogVoiceInit made buffer of " << ms->config.aiboConfig->pack[this_dog]->voice_buffer_size << " samples." << endl;
+  //cout << "dogVoiceInit made buffer of " << ms->config.aiboConfig->pack[this_dog]->voice_buffer_size << " samples." << endl;
 }
 END_WORD
 REGISTER_WORD(DogVoiceInit)
@@ -2414,7 +2422,7 @@ virtual void execute(MachineState * ms) {
       ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] = 0.0;
     }
   }
-  cout << "dogVoiceClear: clearing." << endl;
+  //cout << "dogVoiceClear: clearing." << endl;
 }
 END_WORD
 REGISTER_WORD(DogVoiceClear)

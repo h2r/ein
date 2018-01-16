@@ -63,12 +63,13 @@ typedef struct _eePose{
   static void distanceXYZAndAngle(_eePose pose1, _eePose pose2, double * distance, double * angleDistance);
 
   void getRollPitchYaw(double * roll, double * pitch, double * yaw);
-
+  double qmagnitude();
 
   static _eePose fromRectCentroid(Rect rect);
   static _eePose zero();
   static _eePose identity();
   static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
+  
 
   friend ostream & operator<<(ostream &, const _eePose &);
 
@@ -139,5 +140,6 @@ typedef struct _armPose{
 } armPose;
 
 eePose rosPoseToEEPose(geometry_msgs::Pose pose);
+geometry_msgs::Pose eePoseToRosPose(eePose);
 
 #endif /* _EEPOSEH_ */
