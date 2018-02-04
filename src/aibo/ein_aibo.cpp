@@ -21,6 +21,7 @@
 #include <ros/package.h>
 #include <iostream>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2/LinearMath/Quaternion.h>
 
@@ -157,6 +158,7 @@ class EinAiboDog {
 
   void jointsDeg2Rad();
   void publishJoints();
+  void publishMapToBaseLink();
 };
 
 
@@ -354,7 +356,7 @@ void robotInitializeConfig(MachineState * ms) {
   static_transformStamped.transform.rotation.y = quat.y();
   static_transformStamped.transform.rotation.z = quat.z();
   static_transformStamped.transform.rotation.w = quat.w();
-  static_broadcaster.sendTransform(static_transformStamped);
+  //static_broadcaster.sendTransform(static_transformStamped);
 
 
 }
@@ -406,7 +408,33 @@ void EinAiboDog::publishJoints() {
   joint_state.position[16] = truePose.tailPan;
   joint_state.header.stamp = lastSensoryMotorUpdateTime;
   joint_state_pub.publish(joint_state);
+
     
+}
+
+void EinAiboDog::publishMapToBaseLink() {
+  static tf2_ros::TransformBroadcaster broadcaster;
+  geometry_msgs::TransformStamped t;
+  t.header.stamp = ros::Time::now();
+  t.header.frame_id = "map";
+  t.child_frame_id = "base_link";
+  t.transform.translation.x = 0;
+  t.transform.translation.y = 0;
+  t.transform.translation.z = 0;
+  tf2::Quaternion quat;
+  
+  quat.setRPY(-atan2(-trueSensors.accelerometer[0]/9.8,
+                    trueSensors.accelerometer[2]/9.8) - 3.1415926,
+              atan2(trueSensors.accelerometer[1]/9.8,
+                    sqrt(pow(trueSensors.accelerometer[0]/9.8, 2) +
+                         pow(trueSensors.accelerometer[2]/9.8, 2))),              
+              0);
+  t.transform.rotation.x = quat.x();
+  t.transform.rotation.y = quat.y();
+  t.transform.rotation.z = quat.z();
+  t.transform.rotation.w = quat.w();
+  broadcaster.sendTransform(t);
+
 }
 
 void robotEndPointCallback(MachineState * ms){}
@@ -1392,6 +1420,7 @@ virtual void execute(MachineState * ms) {
   ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = ros::Time::now();
   //cout << "dogGetSensoryMotorStates: finished" << endl;
   ms->config.aiboConfig->pack[this_dog]->publishJoints();
+  ms->config.aiboConfig->pack[this_dog]->publishMapToBaseLink();
 }
 END_WORD
 REGISTER_WORD(DogGetSensoryMotorStates)
