@@ -14,6 +14,9 @@
 using namespace boost::filesystem;
 
 
+double deg2rad (double degrees) {
+  return degrees * 4.0 * atan (1.0) / 180.0;
+}
 
 Mat readMatFromYaml(FileNode & fs) {
   int rows = fs["rows"];
