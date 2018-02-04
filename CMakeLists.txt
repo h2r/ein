@@ -266,7 +266,8 @@ MESSAGE("Building Aibo")
 add_definitions(-DUSE_ROBOT_AIBO)
 
 add_library(EinAibo SHARED
-src/aibo/ein_aibo.cpp 
+  src/aibo/ein_aibo.cpp
+  src/aibo/ein_aibo_reactive.cpp 
 )
 
 qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
