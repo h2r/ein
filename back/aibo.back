@@ -28,10 +28,17 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonElla" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonPluto" store
 
 (
   1 dogSetPackSize
