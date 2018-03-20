@@ -1,4 +1,6 @@
 <launch>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="aibo_state_publisher" >
+  <rosparam command="load" param="tf_prefix">""</rosparam>
+   
   </node>
 </launch>
