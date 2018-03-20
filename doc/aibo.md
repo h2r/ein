@@ -7,7 +7,7 @@ order: 98
 
 Ein contains an interface to connect to and program Sony [AIBO](https://en.wikipedia.org/wiki/AIBO) robots.
 
-To see the AIBO in RViz URDF, you need to launch aibo.launch, and also
+To see the AIBO in RViz URDF, you need to launch aibo.launch with `roslaunch ein aibo.launch`, and also
 have the [aibo_ros](https://github.com/dkotfis/aibo_ros) package
 installed.  This package contains the URDF for the Sony AIBO.  To
 update joints, you need to run `dogGetSensoryMotorStates` in Ein.
