@@ -1466,6 +1466,16 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DogPushIntendedPose)
 
+WORD(DogPushTruePose)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->config.aiboConfig->pack[this_dog]->truePose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogPushTruePose)
+
 WORD(DogPushIntendedGain)
 virtual void execute(MachineState * ms) {
   int t_gain= 0;
@@ -3274,6 +3284,8 @@ REGISTER_WORD(DogComeToStop)
 WORD(DogComeToStopA)
 virtual void execute(MachineState * ms) {
   ros::Duration comeToStopLength = ros::Time::now() - ms->config.aiboConfig->aiboComeToStopTime;
+  ms->pushWord("dogGetSensoryMotorStates");
+
   cout << "Length: " << comeToStopLength << endl;
   if (comeToStopLength > ros::Duration(10, 0)) {
     return;
@@ -3292,7 +3304,6 @@ virtual void execute(MachineState * ms) {
     ms->config.aiboConfig->aiboStoppedTime = ros::Time::now();
     *ms->config.aiboConfig->stoppedJoints = dog->truePose;
   }
-  ms->pushWord("dogGetSensoryMotorStates");
   ms->pushWord("endStackCollapseNoop");
 }
 END_WORD

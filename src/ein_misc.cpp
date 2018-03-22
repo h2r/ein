@@ -556,6 +556,19 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Sum)
 
+WORD(Abs)
+virtual string description() {
+  return "Returns the absolute value of its argument.";
+}
+virtual void execute(MachineState * ms) {
+  double val = 0.0;
+  GET_NUMERIC_ARG(ms, val);
+  ms->pushWord(make_shared<DoubleWord>(fabs(val)));
+}
+END_WORD
+REGISTER_WORD(Abs)
+
+
 WORD(Prod)
 virtual string description() {
   return "Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -> 1.";

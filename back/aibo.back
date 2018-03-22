@@ -529,4 +529,68 @@ dogComeToStop
 demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDown   demoDogStandUp demoDogSit demoDogLieDown  demoDogStandUp demoDogLieDown  demoDogSit
 ) "dogAllStaticPoses" store
 
+(
+( 1 ) ( dogGetSensoryMotorStates 1 waitForSeconds ) while
+) "dogGetSensoryMotorStatesInfinite" store
 
+1 "walkMultiplier" store
+
+(
+walkMultiplier * dogWalkSeconds
+1 "walkMultiplier" store
+) "Needs a non-negative time argument." "dogWalkForwardSeconds" define
+
+(
+-1 walkMultiplier * "walkMultiplier" store
+walkMultiplier * dogWalkSeconds
+-1 walkMultiplier * "walkMultiplier" store
+) "Needs a non-negative time argument." "dogWalkBackwardSeconds" define
+
+1 "turnMultiplier" store
+
+(
+turnMultiplier * dogTurnSeconds
+1 "turnMultiplier" store
+) "Needs a non-negative time argument." "dogTurnRightSeconds" define
+
+(
+-1 turnMultiplier * "turnMultiplier" store
+turnMultiplier * dogTurnSeconds
+-1 turnMultiplier * "turnMultiplier" store
+) "Needs a non-negative time argument." "dogTurnLeftSeconds" define
+
+
+
+(
+/*
+First two words:  push the true pose on the stack, and grab the joint angle for the left front leg, first joint.
+Second word:  magic number (I used the current joint angle when the robot is lying down; it's nto the right magic number for standing)
+-: subtract the current joint angle from the magic number
+fabs:  take the absolute value of that.
+0.005: magic number, threshold
+<: less than; return 1 if the number on the stack is less than 0.005. 
+In all this checks that the left front leg first joint is within 0.005 of 0.268.
+*/
+dogPushTruePose aiboPoseLegLF1  0.268 - abs 0.005 <
+dogPushTruePose aiboPoseLegRF1  0.268 - abs 0.005 <
+and
+
+/*
+* You can do a compound and like so:
+*
+* ( 1 1 1 ) ( and ) accumulate  
+*
+* This applies ( and ) to all the arguments in the compound word.   So above returns 1 on the stack.
+* Below returns zero:
+* ( 0 1 1 ) ( and ) accumulate  
+*
+* However above does not evaluate the symbols in a compound word.  So if you want to do a compound and with the results, you do it with
+* square brackets, like so:
+* [ dogPushTruePose aiboPoseLegLF1  0.268 - abs 0.005 <   dogPushTruePose aiboPoseLegRF1  0.268 - abs 0.005 >   ] ( and ) accumulate
+* The square bracket construction evaluates the contents and makes a compound word from what's inside.  Then the and/accumulate construction returns the and of
+* all the results.
+* If you could put this in the docs, that would be amaaaaazing.  
+* Hope this helps!
+*/
+
+) "Returns true if the true pose is standing." isStanding define
