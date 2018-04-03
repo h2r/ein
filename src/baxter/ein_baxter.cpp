@@ -1970,6 +1970,9 @@ REGISTER_WORD(SetTorsoFanLevel)
 
 
 WORD(SetGripperMovingForce)
+  virtual string description() {
+  return "Set the moving force of the gripper.  Takes an integer between 0-100. ";
+}
 virtual void execute(MachineState * ms) {
 // velocity - Velocity at which a position move will execute 
 // moving_force - Force threshold at which a move will stop 
