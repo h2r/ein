@@ -67,6 +67,8 @@ generate_messages(
 catkin_package(CATKIN_DEPENDS 
   eigen
   message_runtime
+  std_msgs
+  object_recognition_msgs
 )
 
 
@@ -114,7 +116,7 @@ add_library (EinQtLib SHARED
     ${EinQtLib_hdr_moc}
     ${EinQtLib_ui_moc}
 )
-
+add_dependencies(EinQtLib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
 
 
 
@@ -144,7 +146,6 @@ src/cephes/exp2.c    src/cephes/k0.c      src/cephes/rgamma.c      src/cephes/ze
 src/cephes/expn.c    src/cephes/k1.c      src/cephes/round.c
 )
 
-
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
@@ -153,6 +154,7 @@ target_link_libraries(ein
 	${ZLIB_LIBRARIES}
         EinQtLib
 )
+add_dependencies(ein ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
 
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
@@ -266,8 +268,10 @@ MESSAGE("Building Aibo")
 add_definitions(-DUSE_ROBOT_AIBO)
 
 add_library(EinAibo SHARED
-src/aibo/ein_aibo.cpp 
+  src/aibo/ein_aibo.cpp
+  src/aibo/ein_aibo_reactive.cpp 
 )
+add_dependencies(EinAibo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
 

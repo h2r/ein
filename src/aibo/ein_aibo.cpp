@@ -6,207 +6,21 @@
 
 #include "ein_aibo.h"
 #include "ein_aibo_config.h"
-#include <sys/stat.h>
-#include <dirent.h>
-#include <signal.h>
-#include <arpa/inet.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/JointState.h>
 #include <sensor_msgs/image_encodings.h>
+#include <ros/package.h>
+#include <iostream>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2/LinearMath/Quaternion.h>
+
+
 using namespace cv;
-
-class EinAiboJoints {
-  public:
-  double legLF1;
-  double legLF2;
-  double legLF3;
-  double legLH1;
-  double legLH2;
-  double legLH3;
-  double legRH1;
-  double legRH2;
-  double legRH3;
-  double legRF1;
-  double legRF2;
-  double legRF3;
-  double neck;
-  double headPan;
-  double headTilt;
-  double tailPan;
-  double tailTilt;
-  double mouth;
-
-  string toString();
-
-  double dist(EinAiboJoints & other);
-};
-
-class EinAiboIndicators {
-  public:
-  // indicator lights
-  double ledBFC;
-  double ledBFW;
-  double ledBMC;
-  double ledBMW;
-  double ledBRC;
-  double ledBRW;
-  double ledF1;
-  double ledF2;
-  double ledF3;
-  double ledF4;
-  double ledF5;
-  double ledF6;
-  double ledF7;
-  double ledF8;
-  double ledF9;
-  double ledF10;
-  double ledF11;
-  double ledF12;
-  double ledF13;
-  double ledF14;
-  double ledHC;
-  double modeR;
-  double modeG;
-  double modeB;
-
-  // indicator motors
-  double earL;
-  double earR;
-};
-
-class EinAiboSensors {
-  public:
-  // IR sensors
-  double distanceNearSnout = 0;
-  double distanceFarSnout = 0;
-  double distanceChest = 0;
-
-  // 3-axis accelerometer
-  Vector3d accelerometer;
-
-  // pressure sensors
-  double pawLF;
-  double pawLH;
-  double pawRF;
-  double pawRH;
-  double chinSensor;
-
-  // continuous pressure sensors
-  double headTouch;
-  double backTouchR;
-  double backTouchM;
-  double backTouchF;
-};
-
-class EinAiboDog {
-
-  public:
-  ros::Publisher aibo_snout_pub;
-  ros::Time lastSensoryMotorUpdateTime;
-
-  EinAiboJoints targetJoints;
-  EinAiboJoints trueJoints;
-
-  // socket stuff for AIBO
-  string ip_string;
-  int dog_needs_reinit = 0;
-  int aibo_socket_desc;
-  int aibo_socket_did_connect = 0;
-  struct sockaddr_in aibo_server;
-  const static int aibo_sock_buf_size = 1024*1024*3;
-  char aibo_sock_buf[aibo_sock_buf_size];
-  int aibo_sock_buf_valid_bytes = 0;
-
-
-  // parameter for relative movements
-  double dogPoseGridSize = 2.0;
-  double dogGainGridSize = 0.1;
-
-  EinAiboJoints intendedPose;
-  EinAiboJoints truePose;
-
-  // copies for P, I, and D in that order
-  EinAiboJoints intendedGain[3];
-  EinAiboJoints trueGain[3];
-
-  // indicator lights and motors
-  EinAiboIndicators intendedIndicators;
-  EinAiboIndicators trueIndicators;
-
-  EinAiboSensors trueSensors;
-  Mat snoutImage;
-  Mat snoutCamImage;
-
-  double * voice_buffer = NULL;
-  int voice_buffer_size = -1;
-};
-
-
-class AiboPoseWord: public Word
-{
-private:
-  EinAiboJoints pose;
-
-public:
-  EinAiboJoints value() {
-    return pose;
-  }
-
-  virtual bool is_value() {
-    return true;
-  }
-
-  static std::shared_ptr<AiboPoseWord> parse(string token) {
-    EinAiboJoints pose;
-    return std::make_shared<AiboPoseWord>(pose);
-  }
-  virtual bool is_static() {
-    return false;
-  }
-  static bool isInteger(string token) {
-    if (token.substr(0,5) == "EinAiboJoints") {
-      return true;
-    } else {
-      return false;
-    }
-  }
-  
-  AiboPoseWord(EinAiboJoints _pose) {
-    pose = _pose;
-  }
-
-  virtual string repr();
-
-  string name() {
-    stringstream ss;
-    //ss << pose;
-    return ss.str();
-    // XXX need to overload << 
-  }
-
-  bool equals(shared_ptr<Word> word) {
-    shared_ptr<AiboPoseWord> w1 = dynamic_pointer_cast<AiboPoseWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      //return w1->value().equals(this->value());
-      // XXX not done
-      return false;
-    }
-  }
-  
-  virtual bool to_bool() {
-    return true;
-  }
-  virtual int to_int() {
-    return 1;
-  }
-};
-
 
 /*
 
@@ -313,6 +127,36 @@ void robotInitializeConfig(MachineState * ms) {
   Camera * c = new Camera(ms, "", "", "", "");
   ms->config.cameras.push_back(c);
   ms->config.focused_camera = 0;
+
+  ros::NodeHandle n("~");
+
+  string description_fname = ros::package::getPath("aibo_description") + "/urdf/Aibo.urdf";
+  std::ifstream input(description_fname);
+  std::stringstream sstr;
+
+  while(input >> sstr.rdbuf());
+  
+
+  n.setParam("/robot_description", sstr.str());
+
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  geometry_msgs::TransformStamped static_transformStamped;
+
+  static_transformStamped.header.stamp = ros::Time::now();
+  static_transformStamped.header.frame_id = "map";
+  static_transformStamped.child_frame_id = "base_link";
+  static_transformStamped.transform.translation.x = 0;
+  static_transformStamped.transform.translation.y = 0;
+  static_transformStamped.transform.translation.z = 0;
+  tf2::Quaternion quat;
+  quat.setRPY(0, 0, 0);
+  static_transformStamped.transform.rotation.x = quat.x();
+  static_transformStamped.transform.rotation.y = quat.y();
+  static_transformStamped.transform.rotation.z = quat.z();
+  static_transformStamped.transform.rotation.w = quat.w();
+  //static_broadcaster.sendTransform(static_transformStamped);
+
+
 }
 
 void robotInitializeMachine(MachineState * ms) {
@@ -322,6 +166,102 @@ EinAiboConfig::EinAiboConfig(MachineState * myms) {
   ms = myms;
 }
 
+EinAiboDog::EinAiboDog() {
+  ros::NodeHandle n("~");
+
+  joint_state_pub = n.advertise<sensor_msgs::JointState>("/joint_states",10);
+  joint_state.name.resize(17);
+  joint_state.name[0] = "legRF1";
+  joint_state.name[1] = "legRF2";
+  joint_state.name[2] = "legRF3";
+  joint_state.name[3] = "legLF1";
+  joint_state.name[4] = "legLF2";
+  joint_state.name[5] = "legLF3";
+  joint_state.name[6] = "legRB1";
+  joint_state.name[7] = "legRB2";
+  joint_state.name[8] = "legRB3";
+  joint_state.name[9] = "legLB1";
+  joint_state.name[10] = "legLB2";
+  joint_state.name[11] = "legLB3";
+  joint_state.name[12] = "neck";
+  joint_state.name[13] = "headPan";
+  joint_state.name[14] = "headTilt";
+  joint_state.name[15] = "tailTilt";
+  joint_state.name[16] = "tailPan";
+  joint_state.position.resize(17);
+}
+    
+
+
+void EinAiboDog::jointsDeg2Rad() {
+  truePose.legRF1 = deg2rad(truePose.legRF1);
+  truePose.legRF2 = deg2rad(truePose.legRF2);
+  truePose.legRF3 = deg2rad(truePose.legRF3);
+  truePose.legLF1 = deg2rad(truePose.legLF1);
+  truePose.legLF2 = deg2rad(truePose.legLF2);
+  truePose.legLF3 = deg2rad(truePose.legLF3);
+  truePose.legRH1 = deg2rad(truePose.legRH1);
+  truePose.legRH2 = deg2rad(truePose.legRH2);
+  truePose.legRH3 = deg2rad(truePose.legRH3);
+  truePose.legLH1 = deg2rad(truePose.legLH1);
+  truePose.legLH2 = deg2rad(truePose.legLH2);
+  truePose.legLH3 = deg2rad(truePose.legLH3);
+  truePose.neck = deg2rad(truePose.neck);
+  truePose.headPan = deg2rad(truePose.headPan);
+  truePose.headTilt = deg2rad(truePose.headTilt);
+  truePose.tailTilt = deg2rad(truePose.tailTilt);
+  truePose.tailPan = deg2rad(truePose.tailPan);
+  
+}  
+void EinAiboDog::publishJoints() {
+  joint_state.position[0] = truePose.legRF1;
+  joint_state.position[1] = truePose.legRF2;
+  joint_state.position[2] = truePose.legRF3;
+  joint_state.position[3] = truePose.legLF1;
+  joint_state.position[4] = truePose.legLF2;
+  joint_state.position[5] = truePose.legLF3;
+  joint_state.position[6] = truePose.legRH1;
+  joint_state.position[7] = truePose.legRH2;
+  joint_state.position[8] = truePose.legRH3;
+  joint_state.position[9] = truePose.legLH1;
+  joint_state.position[10] = truePose.legLH2;
+  joint_state.position[11] = truePose.legLH3;
+  joint_state.position[12] = truePose.neck;
+  joint_state.position[13] = truePose.headPan;
+  joint_state.position[14] = truePose.headTilt;
+  joint_state.position[15] = truePose.tailTilt;
+  joint_state.position[16] = truePose.tailPan;
+  joint_state.header.stamp = lastSensoryMotorUpdateTime;
+  joint_state_pub.publish(joint_state);
+
+    
+}
+
+void EinAiboDog::publishMapToBaseLink() {
+  static tf2_ros::TransformBroadcaster broadcaster;
+  geometry_msgs::TransformStamped t;
+  t.header.stamp = ros::Time::now();
+  t.header.frame_id = "map";
+  t.child_frame_id = "base_link";
+  t.transform.translation.x = 0;
+  t.transform.translation.y = 0;
+  t.transform.translation.z = 0;
+  tf2::Quaternion quat;
+  
+  quat.setRPY(-atan2(-trueSensors.accelerometer[0]/9.8,
+                    trueSensors.accelerometer[2]/9.8) - 3.1415926,
+              atan2(trueSensors.accelerometer[1]/9.8,
+                    sqrt(pow(trueSensors.accelerometer[0]/9.8, 2) +
+                         pow(trueSensors.accelerometer[2]/9.8, 2))),              
+              0);
+  t.transform.rotation.x = quat.x();
+  t.transform.rotation.y = quat.y();
+  t.transform.rotation.z = quat.z();
+  t.transform.rotation.w = quat.w();
+  broadcaster.sendTransform(t);
+
+}
+
 void robotEndPointCallback(MachineState * ms){}
 void robotSetCurrentJointPositions(MachineState * ms){}
 
@@ -329,7 +269,9 @@ void robotActivateSensorStreaming(MachineState * ms){}
 void robotDeactivateSensorStreaming(MachineState * ms){}
 void robotUpdate(MachineState * ms)
 {
-  
+  for (int i = 0; i < ms->config.aiboConfig->pack.size(); i++) {
+    ms->config.aiboConfig->pack[i]->robotUpdate();
+  }
   
 }
 
@@ -1064,11 +1006,14 @@ virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
   ros::NodeHandle n("~");
   stringstream ss;
+
+
   ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout";
   string s = ss.str();
   ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(s,10);
   Camera * c = new Camera(ms, s, s, s, s);
   ms->config.cameras.push_back(c);
+
 
   ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
 }
@@ -1203,6 +1148,7 @@ virtual void execute(MachineState * ms) {
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.tailPan);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.tailTilt);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.mouth);
+  ms->config.aiboConfig->pack[this_dog]->jointsDeg2Rad();
 
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLF1);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLF2);
@@ -1278,9 +1224,13 @@ virtual void execute(MachineState * ms) {
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchF);
   ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = ros::Time::now();
   //cout << "dogGetSensoryMotorStates: finished" << endl;
+  ms->config.aiboConfig->pack[this_dog]->publishJoints();
+  ms->config.aiboConfig->pack[this_dog]->publishMapToBaseLink();
 }
 END_WORD
 REGISTER_WORD(DogGetSensoryMotorStates)
+
+  
 
 WORD(DogGetIndicators)
 virtual void execute(MachineState * ms) {

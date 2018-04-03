@@ -28,10 +28,17 @@ dogBark
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.0.101" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonElla" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonPluto" store
 
 (
   1 dogSetPackSize
@@ -39,13 +46,6 @@ dogBark
   dogMotorsOn
   dogFormatImageDefault
 ) "dogSummonEars" store
-
-(
-  1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.160.143" 54000 socketOpen
-  dogMotorsOn
-  dogFormatImageDefault
-) "dogSummonMars" store
 
 
 (
@@ -104,22 +104,9 @@ dogBark
 
   sceneClearObservedMap 
   dogGetImage
-
-  /*
   dogReplaceWristImageWithSnoutImage
   sceneUpdateObservedFromWrist
-  */
-
-    0.388
-  sceneUpdateObservedFromSnout
-
-  /*
   60 sceneSetBackgroundStdDevY
-  */
-
-  1 sceneSetCellCountThreshold
-  60 sceneSetBackgroundStdDevY
-
   sceneComposePredictedMap
   sceneUpdateDiscrepancy
   sceneDensityFromDiscrepancy
@@ -177,7 +164,7 @@ dogBark
 
 (
   dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
-  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground sceneRenderBackgroundMap now minus print endStackCollapseNoop ) while
+  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground now minus print endStackCollapseNoop ) while
 ) "dogWatchForAveragedChanges" store
 
 
@@ -452,70 +439,15 @@ Snare
   0 dogHeadPanTo 
   0 dogHeadTiltTo 
   dogSendMotorState
-) "dogHeadCenter" store
+) "dogHeadLowerLeft" store
 
 (
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   100 dogHeadPanTo 
-  100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadUpperLeft" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  -100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerRight" store
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  -100 dogHeadPanTo 
   100 dogHeadTiltTo 
   dogSendMotorState
 ) "dogHeadUpperRight" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerLeft" store
-
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerLeft" store
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  10 dogSetIntendedEarL
-  10 dogSetIntendedEarR
-  dogSendIndicators
-) "dogEarsOut" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  0 dogSetIntendedEarL
-  0 dogSetIntendedEarR
-  dogSendIndicators
-) "dogEarsBack" store
 
 
 
@@ -598,40 +530,3 @@ demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDo
 ) "dogAllStaticPoses" store
 
 
-(
-
-dogLocalXUp dogLocalXUp
-) "demoDogWalkForward" store
-
-
-(
-
-dogLocalXDown dogLocalXDown
-) "demoDogWalkBackward" store
-
-(
-
-dogOXUp dogOXUp
-) "demoDogTurnRight" store
-
-
-(
-  ( dogEarsOut 0.15 waitForSeconds
-    dogEarsBack 0.15 waitForSeconds ) 5 replicateWord
-) "demoDogEarWiggle" store
-
-
-(
-
-dogOXDown dogOXDown
-) "demoDogTurnLeft" store
-
-/*
-Fix snout view
-Demo dog turn left,m right, forward, backward, turn around
-Ears
-Dance?
-
-Lie down then turn right leads to a bug
-
-*/
