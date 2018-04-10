@@ -399,16 +399,35 @@ Snare
 ) "dogLocalXUp" store
 
 (
+2 dogWalkSeconds
+) "Walk forward."  "demoDogWalkForward" define
+
+
+(
 -2 dogWalkSeconds
 ) "dogLocalXDown" store
+
+(
+-2 dogWalkSeconds
+) "Walk backward."  "demoDogWalkBackward" define
+
 
 (
 -2 dogTurnSeconds
 ) "dogOXDown" store
 
 (
+-2 dogTurnSeconds
+) "Turn left."  "demoDogTurnLeft" define
+
+
+(
 2 dogTurnSeconds
 ) "dogOXUp" store
+
+(
+2 dogTurnSeconds
+) "Turn right."  "demoDogTurnRight" define
 
 
 (
@@ -593,4 +612,4 @@ and
 * Hope this helps!
 */
 
-) "Returns true if the true pose is standing." isStanding define
+) "Returns true if the true pose is standing." "isStanding" define
