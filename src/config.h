@@ -546,6 +546,8 @@ class EinConfig {
 
   double bDelta = GRID_COARSE;
 
+  bool showgui = true;
+
   EinWindow * dogSnoutViewWindow;
 
   EinWindow * rangeogramWindow;

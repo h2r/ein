@@ -3647,7 +3647,9 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.armWidget->update();
     ms->config.renderedWristViewWindow->updateImage(ms->config.wristViewImage);
   }
-  einMainWindow->update();
+  if (einMainWindow != NULL) {
+    einMainWindow->update();
+  }
 
   // XXX is heartBeatCounter even used?
 
@@ -3747,17 +3749,19 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     robotSetCurrentJointPositions(ms);
   }
 
-  if (ms->config.coreViewWindow->isVisible()) {
-    renderCoreView(ms);
-    ms->config.coreViewWindow->updateImage(ms->config.coreViewImage);
-  }
-
-  if (ms->config.rangeogramWindow->isVisible()) {
-    renderRangeogramView(ms);
-  }
-
-  if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    renderObjectMapView(left_arm, right_arm);
+  if (ms->config.showgui) {
+    if (ms->config.coreViewWindow->isVisible()) {
+      renderCoreView(ms);
+      ms->config.coreViewWindow->updateImage(ms->config.coreViewImage);
+    }
+    
+    if (ms->config.rangeogramWindow->isVisible()) {
+      renderRangeogramView(ms);
+    }
+    
+    if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
+      renderObjectMapView(left_arm, right_arm);
+    }
   }
 }
 
@@ -14088,26 +14092,24 @@ void signalHandler( int signo )
 
 int main(int argc, char **argv) {
 
-  QApplication a(argc, argv);
-
   initializeWords();
 
   srand(time(NULL));
 
-  if (argc < 3) {
-    cout << "Must pass at least three arguments.  Received " << argc;
-    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both>");
+  if (argc < 4) {
+    cout << "Must pass at least four arguments.  Received " << argc;
+    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both> <gui|nogui>");
     return -1;
   }
 
-  string robot_mode = argv[argc-2];
+  string robot_mode = argv[1];
   if (robot_mode != "simulated" && robot_mode != "physical" && robot_mode != "snoop")  {
     cout << "Invalid mode: " << robot_mode << endl;
-    ROS_ERROR("Must pass ein <physical|simulated|snoop> <left|right|both>");
+    ROS_ERROR("Must pass ein <physical|simulated|snoop> <left|right|both> <gui|nogui>");
     return -1;
   }
 
-  string left_or_right_arm = argv[argc-1];
+  string left_or_right_arm = argv[2];
 
   vector<string> arm_names;
 
@@ -14121,7 +14123,24 @@ int main(int argc, char **argv) {
   } else {
     ROS_ERROR("Must pass left, right, or both.");
   }
-  
+  bool showgui;
+  string gui_or_nogui = argv[3];
+  if (gui_or_nogui == "gui") {
+    showgui = true;
+  } else if (gui_or_nogui == "nogui") {
+    showgui = false;
+  } else {
+    ROS_ERROR("Must pass gui or nogui");
+  }
+
+  QCoreApplication * a;
+
+  if (showgui) {
+    a = new QApplication(argc, argv);
+  } else {
+    a = new QCoreApplication(argc, argv);
+  }
+
 
 
   string programName;
@@ -14177,20 +14196,20 @@ int main(int argc, char **argv) {
     initializeArm(ms, left_or_right);
 
     ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms);
+    ms->config.showgui = showgui;
   }
 
-  
+  if (showgui) {
+    einMainWindow = new MainWindow(NULL, right_arm, left_arm);
 
-  einMainWindow = new MainWindow(NULL, right_arm, left_arm);
+    for(int i = 0; i < machineStates.size(); i++) {
+      initializeArmGui(machineStates[i], einMainWindow);
+    }
 
-  for(int i = 0; i < machineStates.size(); i++) {
-    initializeArmGui(machineStates[i], einMainWindow);
+    einMainWindow->show();
+    einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
+    einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ein_software_version + " Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
   }
-
-  einMainWindow->show();
-  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ein_software_version + " Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
-
 
 
   //timer->start(0);

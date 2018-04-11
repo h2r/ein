@@ -3246,6 +3246,9 @@ REGISTER_WORD(SceneInitDefaultBackgroundMap)
 
 WORD(SceneRenderBackgroundMap)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }      
   Mat backgroundImage;
   ms->config.scene->background_map->rgbMuToBgrMat(backgroundImage);
   ms->config.backgroundWindow->updateImage(backgroundImage);
@@ -4292,6 +4295,9 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
 
 WORD(SceneRenderObservedMap)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
   {
     Mat image;
     ms->config.scene->observed_map->rgbMuToBgrMat(image);
@@ -4331,6 +4337,9 @@ REGISTER_WORD(SceneComposePredictedMapThreshed)
 WORD(SceneRenderPredictedMap)
 virtual void execute(MachineState * ms) {
   {
+    if (!ms->config.showgui) {
+      return;
+    }    
     Mat image;
     ms->config.scene->predicted_map->rgbMuToMat(image);
     Mat rgb = image.clone();  
@@ -4374,6 +4383,11 @@ REGISTER_WORD(SceneUpdateAllClassDiscrepancies)
 
 WORD(SceneRenderDiscrepancy)
 virtual void execute(MachineState * ms) {
+
+  if (!ms->config.showgui) {
+    return;
+  }    
+  
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   ms->config.discrepancyWindow->updateImage(image);
@@ -4401,6 +4415,10 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneRenderZ)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
+  
   Mat toShow;
   ms->config.scene->observed_map->zMuToScaledMat(toShow);
   ms->config.zWindow->updateImage(toShow);

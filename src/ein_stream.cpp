@@ -1068,6 +1068,9 @@ virtual string description() {
   return "Render the stream buffer window.";
 }
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
   ms->config.streamViewerWindow->update();
 }
 END_WORD

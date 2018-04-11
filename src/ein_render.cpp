@@ -155,6 +155,10 @@ REGISTER_WORD(DrawMapRegisters)
 WORD(GuiShowAll)
 virtual void execute(MachineState * ms)
 {
+
+  if (!ms->config.showgui) {
+    return;
+  }  
   ms->config.dogSnoutViewWindow->setVisible(true);
 
   ms->config.rangeogramWindow->setVisible(true);
@@ -188,6 +192,10 @@ REGISTER_WORD(GuiShowAll)
 WORD(GuiHideAll)
 virtual void execute(MachineState * ms)
 {
+
+  if (!ms->config.showgui) {
+    return;
+  }
   ms->config.dogSnoutViewWindow->setVisible(false);
 
   ms->config.rangeogramWindow->setVisible(false);
@@ -223,6 +231,11 @@ REGISTER_WORD(GuiHideAll)
 WORD(GuiCustom1)
 virtual void execute(MachineState * ms)
 {
+
+    
+  if (!ms->config.showgui) {
+    return;
+  }    
   ms->config.rangeogramWindow->setVisible(false);
 
   ms->config.dogSnoutViewWindow->setVisible(false);
