@@ -363,7 +363,8 @@ class EinConfig {
 
   
   tf::TransformListener* tfListener;
-  
+
+  ros::Time lastStatePubTime;
   ros::Publisher einStatePub;
   ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;

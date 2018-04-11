@@ -3726,10 +3726,12 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     
   }
 
-  {
+
+  if (ros::Time::now() - ms->config.lastStatePubTime > ros::Duration(0.1)) {
     EinState state;
     fillEinStateMsg(ms, &state);
     ms->config.einStatePub.publish(state);
+    ms->config.lastStatePubTime = ros::Time::now();
   }
 
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
@@ -14195,7 +14197,7 @@ int main(int argc, char **argv) {
 
     initializeArm(ms, left_or_right);
 
-    ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms);
+    ms->config.timer1 = n.createTimer(ros::Duration(0.001), &MachineState::timercallback1, ms);
     ms->config.showgui = showgui;
   }
 
