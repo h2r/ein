@@ -43,7 +43,7 @@ acladd stefie10
 
 screen -t " einR"
 stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 #stuff "./baxter.sh"
 #stuff "rosrun ein ein_client.py right"
@@ -93,7 +93,7 @@ screen -t " replL"
 stuff "ARM=left screen -m -c src/ein/ein_client.screenrc"
 screen -t " einL"
 stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left gui"
 screen -t " website"
 stuff "cd src/ein/doc && jekyll serve"
 
