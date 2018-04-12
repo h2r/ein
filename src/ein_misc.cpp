@@ -1490,10 +1490,13 @@ END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
 
 WORD(ExportWords)
+virtual string description() {
+  return "Export words to a text file for documentation purposes.";
+}
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.txt";
-  cout << "Writing words to " << wordFileName << endl;
+  CONSOLE(ms, "Writing words to " << wordFileName);
   ofstream wordFile;
   wordFile.open(wordFileName);
 
@@ -1510,6 +1513,9 @@ END_WORD
 REGISTER_WORD(ExportWords)
 
 WORD(ExportDoc)
+virtual string description() {
+  return "Export words to an html file which is displayed on the website.";
+}
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.html";
@@ -1523,12 +1529,10 @@ virtual void execute(MachineState * ms)
   for (iter = words.begin(); iter != words.end(); ++iter) {
     vector<string> names = iter->second->names();
     wordFile << "<tr><td>";
-    //for (int j = 0; j < names.size(); j++) {
-    wordFile << xmlEncode(iter->first);
-      //if (j != names.size() - 1) {
-      //  wordFile << ", ";
-      //}
-    //}
+    for (int j = 0; j < names.size(); j++) {
+      wordFile << xmlEncode(iter->first);
+      wordFile << "<br/>";
+    }
     wordFile << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
 
   }
