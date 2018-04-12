@@ -15,5 +15,8 @@ export ROS_HOSTNAME=`hostname`
 export ROS_MASTER_URI=http://$ROBOT:11311
 export PS1="\[\033[00;33m\][jaco - ${ROS_MASTER_URI}]\[\033[00m\] $PS1"
 
-# If you are using baxter, make this file source baxter.sh
+# If you are using baxter, make this file source baxter.sh and remove
+# the othe rstuff above, which is redundant if you are using
+# baxter.sh.  
+
 # source baxter.sh

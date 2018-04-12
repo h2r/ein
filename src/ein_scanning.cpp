@@ -1807,7 +1807,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   p << camera->observedCameraExposure << " " << camera->observedCameraGain << " " << camera->observedCameraWhiteBalanceRed << " " << camera->observedCameraWhiteBalanceGreen << " " << camera->observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
-  cout << p.str() << endl;
+  CONSOLE(ms, p.str());
   ms->evaluateProgram(p.str());
 }
 END_WORD
@@ -1817,7 +1817,7 @@ REGISTER_WORD(FixCameraLightingToObservedValues)
 
 WORD(FixCameraLightingNoUpdate)
 virtual void execute(MachineState * ms) {
-  cout << "fixCameraLighting...";
+  CONSOLE(ms, "fixCameraLighting...");
 
   int gain = 0;
   int exposure = 0;
@@ -1859,6 +1859,9 @@ REGISTER_WORD(FixCameraLighting)
 
 
 WORD(SubscribeCameraParameterTrackerToRosOut)
+virtual string description() {
+  return "Subscribe to rosout.  We don't want to do this for long periods since it's very noisy, but this is how we see the current camera parameters, since they aren't published any other way.";
+}
 virtual void execute(MachineState * ms) {
   // there are lots of messages sent, and we're interested in the
   // camera tracker messages.  So we need a big message buffer to make
@@ -1871,6 +1874,9 @@ REGISTER_WORD(SubscribeCameraParameterTrackerToRosOut)
 
 
 WORD(UnsubscribeCameraParameterTrackerToRosOut)
+virtual string description() {
+  return "Unsubscribe from rosout.  We don't want to stay plugged into rosut for very long since it's so noisy.";
+}
 virtual void execute(MachineState * ms) {
   //ms->config.rosout_sub.shutdown();
 }
@@ -1880,6 +1886,9 @@ REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
 
 
 WORD(UnFixCameraLighting)
+virtual string description() {
+  return "Let the camera parmeters automatically update (this is the Baxter default).";
+}
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram("subscribeCameraParameterTrackerToRosOut 0.5 waitForSeconds unFixCameraLightingNoUpdate 0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut");
 
@@ -1890,6 +1899,9 @@ REGISTER_WORD(UnFixCameraLighting)
 
 
 WORD(MoveCropToCenterVanishingPoint)
+virtual string description() {
+  return "Move the crop to the center/vanishing point of the camera.";
+}
 virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
@@ -1904,7 +1916,7 @@ virtual void execute(MachineState * ms) {
   camera->vanishingPointReticle.px -= Vx;
   camera->vanishingPointReticle.py -= Vy;
 
-  cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
+  CONSOLE(ms, "moveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy);
   ms->pushWord("moveCropToProperValue");
 }
 END_WORD
