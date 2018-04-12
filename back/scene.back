@@ -1262,7 +1262,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
   0.0 sceneSetScoreThresh
   0.0 "tableDefaultScoreThresh" store
-) "tableSwapToBlocks" store
+) "swap to the generic block grasping model" "tableSwapToBlocks" define
 
 (
   tableBlockUsingBlocks (
@@ -1283,7 +1283,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   ) (
     "tableRestoreFromBlocks: restoring from blocks but not holding blocks." print    
   ) ifte
-) "tableRestoreFromBlocks" store
+) "Switch back to the targeted picking mode."  "tableRestoreFromBlocks" define
 
 (
   0 sceneMapSceneObject
