@@ -3231,7 +3231,10 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
+
+  if (ms->config.showgui) {
+    ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
+  }
 
   if (!ms->config.shouldIRangeCallback) {
     return;
@@ -3419,7 +3422,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
     }
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.rangemapWindow->updateImage(ms->config.rangemapImage);
     ms->config.graspMemoryWindow->updateImage(ms->config.graspMemoryImage);
     ms->config.graspMemorySampleWindow->updateImage(ms->config.graspMemorySampleImage);
@@ -3761,7 +3764,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
       renderRangeogramView(ms);
     }
     
-    if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
+    if (ms->config.shouldIRender && ms->config.showgui) { // && ms->config.objectMapViewerWindow->isVisible()) {
       renderObjectMapView(left_arm, right_arm);
     }
   }
@@ -4248,7 +4251,7 @@ void MachineState::imageCallback(Camera * camera) {
   accumulateImage(ms);
 
   renderWristViewImage(ms);
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(camera->cam_img);
@@ -4655,7 +4658,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     }
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
   }
 
@@ -10696,7 +10699,7 @@ void renderAccumulatedImageAndDensity(MachineState * ms) {
      }
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
   }
 
@@ -11272,7 +11275,7 @@ void goCalculateDensity(MachineState * ms) {
     }
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
     ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
   }
@@ -11582,7 +11585,7 @@ void goFindBlueBoxes(MachineState * ms) {
 
 //cout << "Here 4" << endl;
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 
@@ -12000,7 +12003,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     ms->config.pilotClosestBlueBoxNumber = -1;
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 

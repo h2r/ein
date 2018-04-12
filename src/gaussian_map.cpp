@@ -3944,7 +3944,9 @@ virtual void execute(MachineState * ms) {
   //observedImage = observedImage / 255.0;
   Mat rgb = observedImage.clone();  
   cvtColor(observedImage, rgb, CV_YCrCb2BGR);
-  ms->config.observedWindow->updateImage(rgb);
+  if (ms->config.showgui) {
+    ms->config.observedWindow->updateImage(rgb);
+  }
 }
 END_WORD
 REGISTER_WORD(SceneClearObservedMap)
