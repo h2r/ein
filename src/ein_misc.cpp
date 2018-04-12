@@ -329,6 +329,9 @@ REGISTER_WORD(DecrementTargetClass)
 
 WORD(Or)
 CODE('|') 
+virtual string description() {
+  return "Returns logical or of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -355,6 +358,9 @@ virtual vector<string> names() {
   result.push_back(name());
   result.push_back("&&");
   return result;
+}
+virtual string description() {
+  return "Returns logical and of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.";
 }
 virtual void execute(MachineState * ms) {
   double v1;
@@ -741,6 +747,9 @@ REGISTER_WORD(Cmp)
 
 WORD(Times)
 CODE('*') 
+virtual string description() {
+  return "Multiply two numeric arguments.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -761,6 +770,9 @@ REGISTER_WORD(Times)
 
 WORD(Divide)
 CODE('/') 
+virtual string description() {
+  return "Divide two numeric arguments.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -1029,6 +1041,9 @@ END_WORD
 REGISTER_WORD(Swap)
 
 WORD(Slide)
+virtual string description() {
+  return "Moves a word from the call stack to the data stack.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -1047,6 +1062,9 @@ END_WORD
 REGISTER_WORD(Slide)
 
 WORD(Slip)
+virtual string description() {
+  return "Moves a word from the data stack to the call stack.";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word == NULL) {
@@ -1530,7 +1548,7 @@ virtual void execute(MachineState * ms)
     vector<string> names = iter->second->names();
     wordFile << "<tr><td>";
     for (int j = 0; j < names.size(); j++) {
-      wordFile << xmlEncode(iter->first);
+      wordFile << xmlEncode(names[j]);
       wordFile << "<br/>";
     }
     wordFile << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
@@ -2395,6 +2413,9 @@ END_WORD
 REGISTER_WORD(ClearData)
 
 WORD(CP)
+virtual string description() {
+  return "Close paren; end a compound word.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -2410,6 +2431,9 @@ END_WORD
 REGISTER_WORD(CP)
 
 WORD(OP)
+virtual string description() {
+  return "Open paren; begin a compound word.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
