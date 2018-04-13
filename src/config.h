@@ -13,7 +13,10 @@
 #include "pidrone/ein_pidrone.h"
 #elif defined(USE_ROBOT_JACO)
 #include "jaco/ein_jaco.h"
+#elif defined(USE_ROBOT_MOVO)
+#include "movo/ein_movo.h"
 #else
+
 #include "defaultrobot/ein_robot.h"
 #endif
 

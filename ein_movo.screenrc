@@ -43,7 +43,7 @@ acladd stefie10
 
 screen -t " einR"
 stuff "source src/ein/setup.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right nogui"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 screen -t " free"

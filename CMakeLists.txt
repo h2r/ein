@@ -220,6 +220,8 @@ find_package(catkin COMPONENTS pidrone_pkg)
 
 find_package(catkin COMPONENTS kinova_msgs)
 
+find_package(catkin COMPONENTS movo_msgs)
+
 
 # you must pick one robot. 
 
@@ -254,7 +256,13 @@ add_library(EinPidrone SHARED
 src/pidrone/ein_pidrone.cpp 
 )
 target_link_libraries(ein EinPidrone)
-
+elseif (movo_msgs_FOUND)
+MESSAGE("Building movo")
+add_definitions(-DUSE_ROBOT_MOVO)
+add_library(EinMovo SHARED
+src/movo/ein_movo.cpp
+)
+target_link_libraries(ein EinMovo)
 elseif (kinova_msgs_FOUND)
 MESSAGE("Building jaco")
 add_definitions(-DUSE_ROBOT_JACO)
