@@ -431,6 +431,7 @@ virtual void execute(MachineState * ms)  {
       ms->config.classPoseModels.push_back("B");
     }
     ms->config.numClasses = ms->config.classLabels.size();
+    initRangeMaps(ms);
     changeTargetClass(ms, 0);
   } else {
     CONSOLE_ERROR(ms, "didn't get any valid labels, are you sure this is what you want?");
@@ -439,10 +440,9 @@ virtual void execute(MachineState * ms)  {
     ms->pushWord("clearBlueBoxMemories");
     ms->config.numClasses = ms->config.classLabels.size();
     changeTargetClass(ms, 0);
+    initRangeMaps(ms);
     return;
   }
-
-  initRangeMaps(ms);
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)
