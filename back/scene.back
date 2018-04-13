@@ -1949,9 +1949,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     min
   "tableRSTSSMax" store
 
-  "XXX: " tableReconstructStreamTakeSceneSamples + print
+  "XXXY: " tableReconstructStreamTakeSceneSamples + print
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   /* find the right stride */
       streamImageBufferSize tableRSTSSMax divide 
@@ -2057,7 +2057,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ) whileCollapsed
 
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
 
 /*
@@ -2248,7 +2248,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     " " 
   + + + + + print
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
@@ -2344,7 +2344,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     " " 
   + + + + + print
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier tableReconstructLightSlabGridMultiplier times times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier tableReconstructLightSlabGridMultiplier times times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   sceneClearObservedMap
   rewindImageStreamBufferNLNK 
@@ -2424,7 +2424,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
   "XXX: " tableReconstructStreamTakeSceneSamples + print
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier tableReconstructLightSlabGridMultiplier times times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier tableReconstructLightSlabGridMultiplier times times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
   /* sceneInitRegisterZero */
   sceneInitRegisterMax 
 
@@ -2460,9 +2460,9 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
       + + + + + print
 
     /*
-    tableReconstructWithZThisZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    tableReconstructWithZThisZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
     */
-    tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+    tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
     sceneClearObservedMap
     rewindImageStreamBufferNLNK 
@@ -2532,7 +2532,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
   ) whileCollapsed
 
 
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
 /*
   sceneMarginalizeDepthStackIntoRegister
@@ -2546,7 +2546,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 ) "tableReconstructLenticularWithoutZ" store
 
 (
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  1.0 times "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  1.0 times "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   sceneClearObservedMap
 
@@ -2590,7 +2590,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 
 
 (
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
   tableReconstructMarginalsFromStackCore
 )  "tableReconstructMarginalsFromStack" store
 
@@ -2605,7 +2605,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 )  "tableReconstructMarginalsFromStackCore" store
 
 (
-  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide tableReconstructGridMultiplier times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   tableReconstructMaxLikelihoodFromStackCore
 )  "tableReconstructMaxLikelihoodFromStack" store
@@ -2624,7 +2624,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 )  "tableReconstructMaxLikelihoodFromStackCore" store
 
 (
-  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   0 0 phasedArrayApertureWidthCells phasedArrayPhase phasedArrayWavelength tableReconstructArrayZ tableReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray
 
@@ -2633,7 +2633,7 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
 )  "tableReconstructFromPhasedArrayRegister" store
 
 (
-  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebase
+  tableReconstructWithZTopZ 0.388 divide 0.001 times  "slfgRebaseCellWidth" store slfgRebaseNoBackground
 
   phasedArrayPlaneScale phasedArrayZoneWidthCells 0 0 phasedArrayGain phasedArrayPhase phasedArrayWavelength tableReconstructArrayZ tableReconstructWithZTopZ sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel
 
@@ -3259,6 +3259,8 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     slfgRebaseCalculatedCellDimension
     currentPose 
   sceneInitFromEePoseScaleDimensions 
+  currentScene bgRAM sceneCopyGaussianMap sceneSetBackgroundMap sceneRenderScene
+
 ) "slfgRebaseCore" store
 
 (
