@@ -363,6 +363,7 @@ class EinConfig {
   EinAiboConfig * aiboConfig;
   EinPidroneConfig * pidroneConfig;
   EinJacoConfig * jacoConfig;
+  EinMovoConfig * movoConfig;
 
   
   tf::TransformListener* tfListener;
