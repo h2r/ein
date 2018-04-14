@@ -355,6 +355,7 @@ class EinBaxterConfig;
 class EinAiboConfig;
 class EinPidroneConfig;
 class EinJacoConfig;
+class EinMovoConfig;
 
 class EinConfig {
  public:
