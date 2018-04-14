@@ -38,31 +38,31 @@ multiuser on
 #stuff "screen"
 
 screen -t " ein"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 screen -t " free"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 screen -t " vim"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "cd src/ein/src"
 stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ../back/scene.back ../back/scan.back"
 screen -t " git"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "cd $(rospack find ein)"
 screen -t " emacs"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "cd $(rospack find ein)"
 stuff "emacs -nw src/ein.cpp"
 
 screen -t " state publisher"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "roslaunch ein aibo.launch"
 
 
 screen -t " roscore"
-stuff "source src/ein/setup.sh"
+stuff "source ./setup.sh"
 stuff "roscore"
 
 screen -t " website"

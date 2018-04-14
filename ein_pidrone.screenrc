@@ -24,28 +24,11 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 # turn multiuser mode on so others can connect.
 multiuser on
 
-# add the specified user to this screen session so that they can connect.
-# the initiating user is allowed automatically, but add both so either can
-# run this script without modification.
-
-#acladd gen
-acladd oberlin
-acladd stefie10 
-
-# Starts a new screen with title " MAKE"
-# this is basically equivalent to pressing the following from within screen:
-# `c (starts a new window)
-# `:title " MAKE" (sets the title to " MAKE")
-#screen -t " MAKE"
-
-#stuff "unset STY"
-#stuff "screen"
-
 screen -t " einR"
-stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
+stuff "source ./setup.sh"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
-#stuff "./baxter.sh"
+#stuff "./setup.sh"
 #stuff "rosrun ein ein_client.py right"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 #######
@@ -53,10 +36,10 @@ stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
 screen -t " free"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 # subscreen voodoo
 #stuff "screen -t \" ss2\""
-#stuff "./baxter.sh"
+#stuff "./setup.sh"
 #meta
 #stuff "1"
 #stuff "in a subscreen you must double meta / escape characters"
@@ -69,15 +52,15 @@ stuff "./baxter.sh"
 #stuff "p"
 #######
 screen -t " vim"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 stuff "cd $(rospack find ein)/src"
 #stuff "vim -p ../ein_baxter.screenrc ein.cpp ein.h config.h word.h ein_pick_place.cpp ein_stream.cpp ein_vision_cycle.cpp ein_misc.cpp ein_servo.cpp ein_scanning.cpp ein_movement.cpp eePose.h"
 stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ../back/scene.back ../back/scan.back"
 screen -t " git"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 stuff "cd $(rospack find ein)/src"
 screen -t " emacs"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 stuff "cd $(rospack find ein)"
 stuff "emacs -nw src/ein.cpp"
 #######
@@ -85,14 +68,14 @@ stuff "emacs -nw src/ein.cpp"
 #stuff "subscreen disabled, uncomment in screenrc. in a subscreen you must double meta / escape characters. remember to quit subscreens, too."
 #######
 screen -t " free"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 #######
 screen -t " replL"
-#stuff "./baxter.sh"
+#stuff "./setup.sh"
 #stuff "rosrun ein ein_client.py left"
 stuff "ARM=left screen -m -c src/ein/ein_client.screenrc"
 screen -t " einL"
-stuff "./baxter.sh"
+stuff "./setup.sh"
 stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left"
 screen -t " website"
 stuff "cd src/ein/doc && jekyll serve"
