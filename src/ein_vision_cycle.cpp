@@ -462,49 +462,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Density)
 
-WORD(DensityA)
-CODE(131121)     // capslock + 1
-virtual void execute(MachineState * ms) {
-  substituteLatestImageQuantities(ms);
-  goCalculateDensity(ms);
-}
-END_WORD
-REGISTER_WORD(DensityA)
-
-WORD(StreamedDensity)
-virtual void execute(MachineState * ms) {
-  substituteStreamImageQuantities(ms);
-  goCalculateDensity(ms);
-  renderAccumulatedImageAndDensity(ms);
-}
-END_WORD
-REGISTER_WORD(StreamedDensity)
-
-WORD(StreamedAccumulatedDensity)
-virtual void execute(MachineState * ms) {
-  substituteStreamAccumulatedImageQuantities(ms);
-  goCalculateDensity(ms);
-  renderAccumulatedImageAndDensity(ms);
-}
-END_WORD
-REGISTER_WORD(StreamedAccumulatedDensity)
-
-WORD(AccumulatedDensity)
-virtual void execute(MachineState * ms) {
-  substituteAccumulatedImageQuantities(ms);
-  goCalculateDensity(ms);
-  renderAccumulatedImageAndDensity(ms);
-}
-END_WORD
-REGISTER_WORD(AccumulatedDensity)
-
-WORD(ResetAccumulatedDensity)
-virtual void execute(MachineState * ms) {
-  resetAccumulatedImageAndMass(ms);
-}
-END_WORD
-REGISTER_WORD(ResetAccumulatedDensity)
-
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
 virtual void execute(MachineState * ms) {

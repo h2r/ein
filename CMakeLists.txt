@@ -121,7 +121,7 @@ add_dependencies(EinQtLib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
+src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
 src/ein_stream.cpp src/camera.cpp  
 src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/opencl/ein_opencl.cpp 

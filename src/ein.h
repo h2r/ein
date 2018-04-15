@@ -108,10 +108,6 @@ typedef struct pixelToGlobalCache {
 } pixelToGlobalCache;
 
 
-int ARE_GENERIC_PICK_LEARNING(MachineState * ms);
-int ARE_GENERIC_HEIGHT_LEARNING(MachineState * ms);
-
-
 int getColorReticleX(MachineState * ms);
 int getColorReticleY(MachineState * ms);
 
@@ -188,15 +184,12 @@ int classIdxForName(MachineState * ms, string name);
 void initClassFolders(MachineState * ms, string folderName);
 void writeClassToFolder(MachineState * ms, int idx, string folderName);
 void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName);
-void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path);
 void writeThumbnail(MachineState * ms, int idx, string servoCrop_file_path);
-void writeIr2D(MachineState * ms, int idx, string this_range_path);
 void write3dGrasps(MachineState * ms, int idx, string this_grasp_path);
-void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
-void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
+void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * rayDirectionOut);
 void update2dRangeMaps(MachineState * ms, Vector3d castPoint);
 
 bool streamRangeComparator(streamRange i, streamRange j);
@@ -244,11 +237,6 @@ bool isInGripperMask(MachineState * ms, int x, int y);
 bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
 bool isGripperGripping(MachineState * ms);
 bool isGripperMoving(MachineState * ms);
-void initialize3DParzen(MachineState * ms);
-void l2Normalize3DParzen(MachineState * ms);
-void initializeParzen(MachineState * ms);
-void l2NormalizeParzen(MachineState * ms);
-void l2NormalizeFilter(MachineState * ms);
 
 
 cv::Vec3b getCRColor(MachineState * ms);
@@ -257,15 +245,11 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 
 
 
-void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
-void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
-
 Eigen::Quaternionf getGGRotation(MachineState * ms, int givenGraspGear);
 void setGGRotation(MachineState * ms, int thisGraspGear);
 
 Eigen::Quaternionf getCCRotation(MachineState * ms, int givenGraspGear, double angle);
 void setCCRotation(MachineState * ms, int thisGraspGear);
-void publishVolumetricMap(MachineState * ms);
 
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
@@ -279,7 +263,6 @@ void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms);
 
 
-void renderAccumulatedImageAndDensity(MachineState * ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
 gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
 
@@ -287,78 +270,26 @@ gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
 int doCalibrateGripper(MachineState * ms);
 int calibrateGripper(MachineState * ms);
 int shouldIPick(MachineState * ms, int classToPick);
-int getLocalGraspGear(MachineState * ms, int globalGraspGearIn);
-int getGlobalGraspGear(MachineState * ms, int localGraspGearIn);
-void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry, 
-                                  int * localX, int * localY);
-
-void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int localY,
-                                  int * rx, int * ry);
 
 void changeTargetClass(MachineState * ms, int);
 void changeCamera(MachineState * ms, int);
 
-void zeroGraspMemoryAndRangeMap(MachineState * ms);
-void zeroClassGraspMemory(MachineState * ms);
 void guard3dGrasps(MachineState * ms);
 void guardSceneModels(MachineState * ms);
-void guardGraspMemory(MachineState * ms);
-void loadSampledGraspMemory(MachineState * ms);
-void loadMarginalGraspMemory(MachineState * ms);
-void loadPriorGraspMemory(MachineState * ms, priorType);
-void estimateGlobalGraspGear();
 void drawMapRegisters(MachineState * ms);
 
 
-void guardHeightMemory(MachineState * ms);
-void loadSampledHeightMemory(MachineState * ms);
-void loadMarginalHeightMemory(MachineState * ms);
-void loadPriorHeightMemory(MachineState * ms, priorType);
 double convertHeightIdxToGlobalZ(MachineState * ms, int);
 double convertHeightIdxToLocalZ(MachineState * ms, int);
 void convertHeightGlobalZToIdx(MachineState * ms, double);
 void testHeightConversion(MachineState * ms);
-void drawHeightMemorySample(MachineState * ms);
-void copyHeightMemoryTriesToClassHeightMemoryTries(MachineState * ms);
-
-void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void prepareGraspFilter(MachineState * ms, int i);
-void prepareGraspFilter1(MachineState * ms);
-void prepareGraspFilter2(MachineState * ms);
-void prepareGraspFilter3(MachineState * ms);
-void prepareGraspFilter4(MachineState * ms);
-
-void copyRangeMapRegister(MachineState * ms, double * src, double * target);
-void copyGraspMemoryRegister(MachineState * ms, double * src, double * target);
-void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void loadLocalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void copyGraspMemoryTriesToClassGraspMemoryTries(MachineState * ms);
-void copyClassGraspMemoryTriesToGraspMemoryTries(MachineState * ms);
 
 void selectMaxTarget(MachineState * ms, double minDepth);
 void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth);
 
-void recordBoundingBoxSuccess(MachineState * ms);
-void recordBoundingBoxFailure(MachineState * ms);
 
-void restartBBLearning(MachineState * ms);
-
-eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms);
 Mat makeGCrop(MachineState * ms, int etaX, int etaY);
-void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
-void gradientServo(MachineState * ms);
-void gradientServoLatentClass(MachineState * ms);
-void continuousServo(MachineState * ms);
-void synchronicServo(MachineState * ms);
-void darkServo(MachineState * ms);
-void faceServo(MachineState * ms, vector<Rect> faces);
-int simulatedServo();
-
-void initRangeMaps(MachineState * ms);
-void initRangeMapsNoLoad(MachineState * ms);
-
-int isThisGraspMaxedOut(MachineState * ms, int i);
 
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
@@ -425,18 +356,9 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
-void drawDensity(MachineState * ms, double scale);
-void goCalculateDensity(MachineState * ms);
 void goFindBlueBoxes(MachineState * ms);
 void goClassifyBlueBoxes(MachineState * ms);
 void goFindRedBoxes();
-
-void resetAccumulatedImageAndMass(MachineState * ms);
-void substituteStreamAccumulatedImageQuantities(MachineState * ms);
-void substituteStreamImageQuantities(MachineState * ms);
-
-void substituteAccumulatedImageQuantities(MachineState * ms);
-void substituteLatestImageQuantities(MachineState * ms);
 
 void loadROSParamsFromArgs(MachineState * ms);
 

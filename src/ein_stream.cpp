@@ -291,9 +291,6 @@ virtual void execute(MachineState * ms)
     //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
 
     if (success) {
-      ms->config.rmcX = tBaseP.px;
-      ms->config.rmcY = tBaseP.py;
-      ms->config.rmcZ = tBaseP.pz;
 
       // this allows us to stitch together readings from different scans
       //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
@@ -305,13 +302,7 @@ virtual void execute(MachineState * ms)
       eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
 
       Eigen::Vector3d rayDirection;
-      Eigen::Vector3d castPoint;
-      castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
-      update2dRangeMaps(ms, castPoint);
-      if ((i % p_printSkip) == 0) {
-	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
-      } else {
-      }
+      castRangeRay(ms, tRange, rebasedArm, &rayDirection);
     } else {
       cout << "ray " << i << " failed to get pose, not casting." << endl;
     }
@@ -672,52 +663,6 @@ cout << "  saving to " << buf.str() << " with this_crops_path " << this_crops_pa
 END_WORD
 REGISTER_WORD(StreamCenterCropAsFocusedClass)
 
-WORD(SaveAccumulatedStreamToServoImage)
-virtual void execute(MachineState * ms)       {
-  cout << "saveAccumulatedStreamToServoImage ";
-  if ((ms->config.focusedClass > -1) && (ms->config.accumulatedStreamImageBytes.rows >1) && (ms->config.accumulatedStreamImageBytes.cols > 1)) {
-    string thisLabelName = ms->config.classLabels[ms->config.focusedClass];
-
-    string folderPath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoImages/";
-    string filePath;
-
-    // ATTN 16
-    switch (ms->config.currentThompsonHeightIdx) {
-    case 0:
-      {
-        filePath = "aerialHeight0PreGradients.png";
-      }
-      break;
-    case 1:
-      {
-        filePath = "aerialHeight1PreGradients.png";
-      }
-      break;
-    case 2:
-      {
-        filePath = "aerialHeight2PreGradients.png";
-      }
-      break;
-    case 3:
-      {
-        filePath = "aerialHeight3PreGradients.png";
-      }
-      break;
-    default:
-      {
-        assert(0);
-        break;
-      }
-    }
-    string servoImagePath = folderPath + filePath;
-    cout << "saving to " << servoImagePath << endl;
-    saveAccumulatedStreamToPath(ms, servoImagePath);
-  } else {
-    cout << "FAILED." << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(SaveAccumulatedStreamToServoImage)
 
 WORD(IntegrateImageStreamBufferServoImages)
 virtual void execute(MachineState * ms)       {

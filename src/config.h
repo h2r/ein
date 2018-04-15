@@ -560,28 +560,13 @@ class EinConfig {
   EinWindow * wristViewWindow;
   EinWindow * renderedWristViewWindow;
   EinWindow * coreViewWindow;
-  EinWindow * rangemapWindow;
-  EinWindow * hiRangemapWindow;
-  EinWindow * hiColorRangemapWindow;
-  EinWindow * graspMemoryWindow;
-  EinWindow * graspMemorySampleWindow;
   EinWindow * mapBackgroundViewWindow;
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
-  //EinWindow * gripperMaskFirstContrastWindow;
-  //EinWindow * gripperMaskSecondContrastWindow;
-  //EinWindow * gripperMaskDifferenceWindow;
-  //EinWindow * gripperMaskMeanWindow;
-  //EinWindow * gripperMaskVarianceWindow;
-  //EinWindow * gripperMaskSquaresWindow;
-
-
   EinWindow * densityViewerWindow;
   EinWindow * objectViewerWindow;
   EinWindow * objectMapViewerWindow;
-  EinWindow * gradientViewerWindow;
-  EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
@@ -686,12 +671,6 @@ class EinConfig {
 
   Mat coreViewImage;
   Mat rangeogramImage;
-  Mat rangemapImage;
-  Mat hiRangemapImage;
-  Mat hiColorRangemapImage;
-  Mat graspMemoryImage;
-  Mat graspMemorySampleImage;
-  Mat heightMemorySampleImage;
 
   Mat wristCamImage;
   int wristCamInit = 0;
@@ -708,51 +687,6 @@ class EinConfig {
 
   double rangeHistory[totalRangeHistoryLength];
   int currentRangeHistoryIndex = 0;
-
-  const static int rmWidth = 21; // must be odd
-  const static int rmHalfWidth = (rmWidth-1)/2; // must be odd
-  const static int rmiCellWidth = 20;
-  const static int rmiHeight = rmiCellWidth*rmWidth;
-  const static int rmiWidth = rmiCellWidth*rmWidth;
-
-
-  constexpr static double rmDelta = 0.01; 
-  int rangeMapTargetSearchPadding = 3;
-  double rangeMap[rmWidth*rmWidth];
-  double rangeMapAccumulator[rmWidth*rmWidth];
-  double rangeMapMass[rmWidth*rmWidth];
-  
-  double rangeMapReg1[rmWidth*rmWidth];
-  double rangeMapReg2[rmWidth*rmWidth];
-  double rangeMapReg3[rmWidth*rmWidth];
-  double rangeMapReg4[rmWidth*rmWidth];
-
-  constexpr static int pfmWidth = 70;
-  double pickFixMap[pfmWidth];
-  eePose pfmAnchorPose;
-
-  // grasp Thompson parameters
-  double graspMemoryTries[4*rmWidth*rmWidth];
-  double graspMemoryPicks[4*rmWidth*rmWidth];
-  double graspMemorySample[4*rmWidth*rmWidth];
-  double graspMemoryReg1[4*rmWidth*rmWidth];
-
-  pickMode currentPickMode = STATIC_MARGINALS;
-  pickMode currentBoundingBoxMode = STATIC_MARGINALS;
-  
-
-  const static int hrmWidth = 211; // must be odd
-  const static int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
-  constexpr static double hrmDelta = 0.001;
-  double hiRangeMap[hrmWidth*hrmWidth];
-  double hiRangeMapAccumulator[hrmWidth*hrmWidth];
-  double hiRangeMapMass[hrmWidth*hrmWidth];
-  
-  double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
-  double hiColorRangeMapMass[hrmWidth*hrmWidth];
-  
-  double hiRangeMapReg1[hrmWidth*hrmWidth];
-  double hiRangeMapReg2[hrmWidth*hrmWidth];
 
 
   double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
@@ -778,81 +712,23 @@ class EinConfig {
   
   // assumptions are made here so if these values changes, the code must
   //  be audited.
-  const static int vmWidth = hrmWidth;
-  const static int vmHalfWidth = hrmHalfWidth;
-  const double vmDelta = hrmDelta;
-  double volumeMap[vmWidth*vmWidth*vmWidth];
-  double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
-  double volumeMapMass[vmWidth*vmWidth*vmWidth];
-  
-  double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
-  double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
-  
-  const static int parzen3DKernelHalfWidth = 9;
-  const static int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
-  double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
-  double parzen3DKernelSigma = 2.0; 
-  
-  // range map center
-  double rmcX;
-  double rmcY;
-  double rmcZ;
   
   double lastiX = 0;
   double lastiY = 0;
   double thisiX = 0;
   double thisiY = 0;
   
-  
-  int hrmiHeight = hrmWidth;
-  int hrmiWidth = hrmWidth;
-  
-  const static int hmWidth = 4; 
-  int hmiCellWidth = 100;
-  int hmiWidth = hmiCellWidth;
-  int hmiHeight = hmiCellWidth*hmWidth;
-
-
 
   // height Thompson parameters
   constexpr static double minHeight = 0.255;//0.09;//-0.10;
   constexpr static double maxHeight = 0.655;//0.49;//0.3;
-  double heightMemoryTries[hmWidth];
-  double heightMemoryPicks[hmWidth];
-  double heightMemorySample[hmWidth];
+
   
-  double heightAttemptCounter = 0;
-  double heightSuccessCounter = 0;
-  double thompsonTries = 50;
-
-
-  int heightLearningServoTimeout = 10;
+  
+  const static int hmWidth = 4;
   double currentThompsonHeight = 0;
   int currentThompsonHeightIdx = 0;
-
-  int bbLearningMaxTries = 15;
-  int graspLearningMaxTries = 10;
   
-  int thompsonHardCutoff = 0;
-  int thompsonMinTryCutoff = 5;
-  double thompsonMinPassRate = 0.80;
-  int thompsonAdaptiveCutoff = 1;
-  int thompsonPickHaltFlag = 0;
-  int thompsonHeightHaltFlag = 0;
-
-
-  double pickEccentricity = 100.0;
-  double heightEccentricity = 1.0;
-
-
-  // algorithmC accecpt and reject thresholds
-  double algorithmCEPS = 0.2;
-  double algorithmCTarget = 0.7;
-  double algorithmCAT = 0.7;
-  double algorithmCRT = 0.95;
-
-
-
   // the currently equipped depth reticle
   double drX = .02; //.01;
   double drY = .02;
@@ -1150,8 +1026,6 @@ class EinConfig {
   Mat objectMapViewerImage;
   Mat densityViewerImage;
   Mat wristViewImage;
-  Mat gradientViewerImage;
-  Mat aerialGradientViewerImage;
   Mat faceViewImage;
 
   int mask_gripper_blocks = 0;

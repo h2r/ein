@@ -4445,35 +4445,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneGrabDiscrepantCropAsClass)
 
-WORD(SceneDensityFromDiscrepancy)
-virtual void execute(MachineState * ms) {
-// this enables denisty based models to use the new channel
-// XXX this does not take the rotation of the wrist into account
-  Size sz = ms->config.wristCamImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-  pixelToGlobalCache data;
-  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->anchor_pose, &data);
-  for (int y = 0; y < imH; y++) {
-    for (int x = 0; x < imW; x++) {
-      double meter_x = 0;
-      double meter_y = 0;
-      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
-      int cell_x = 0;
-      int cell_y = 0;
-      ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
-      if (ms->config.scene->discrepancy->safeAt(cell_x, cell_y)) {
-        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_x,cell_y);
-      }
-    }
-  }
-  drawDensity(ms, 1);
-}
-END_WORD
-REGISTER_WORD(SceneDensityFromDiscrepancy)
-
 WORD(SceneCountDiscrepantCells)
 virtual void execute(MachineState * ms) {
   int width = ms->config.scene->width;
@@ -11590,73 +11561,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(RayBufferSaveRaw)
-
-WORD(RayBufferPopulateFromRangeBuffer)
-virtual void execute(MachineState * ms) {
-  int p_printSkip = 1000; 
-
-  for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
-    streamRange &tsr = ms->config.streamRangeBuffer[i];
-    eePose tArmP, tBaseP, tRelP;
-    int success = ms->getStreamPoseAtTime(tsr.time, &tArmP, &tBaseP);
-//XXX
-    cout << tBaseP << endl;
-    tBaseP = eePose::identity();
-
-    tRelP = tArmP.getPoseRelativeTo(tBaseP); 
-    double tRange = tsr.range;
-    cout << tsr.range << endl;
-
-    //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
-
-    if (success) {
-
-      ms->config.rmcX = tBaseP.px;
-      ms->config.rmcY = tBaseP.py;
-      ms->config.rmcZ = tBaseP.pz;
-
-      // this allows us to stitch together readings from different scans
-      //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
-      eePose thisCrane = tBaseP;
-      thisCrane.copyQ(ms->config.straightDown); 
-      eePose thisCraneRelativeThisBase = thisCrane.getPoseRelativeTo(tBaseP);
-
-      eePose rebasedRelative = tRelP.applyAsRelativePoseTo(thisCraneRelativeThisBase);
-      eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
-
-      Eigen::Vector3d rayDirection;
-      Eigen::Vector3d castPoint;
-
-      //castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
-      castRangeRay(ms, tRange, tArmP, &castPoint, &rayDirection);
-
-
-      int newIdx = ms->config.rayBuffer.size();
-      ms->config.rayBuffer.resize(newIdx+1);
-
-      OrientedRay * newRay =  &(ms->config.rayBuffer[newIdx]);
-      newRay->pa = eePose::identity();
-      newRay->pa.px = castPoint[0];
-      newRay->pa.py = castPoint[1];
-      newRay->pa.pz = castPoint[2];
-      newRay->pb = newRay->pa;
-      newRay->r = 0;
-      newRay->g = 0;
-      newRay->b = 0;
-      newRay->a = 1;
-      newRay->t = RAY_A;
-
-      if ((i % p_printSkip) == 0) {
-	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
-      } else {
-      }
-    } else {
-      cout << "ray " << i << " failed to get pose, not casting." << endl;
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(RayBufferPopulateFromRangeBuffer)
 
 WORD(RayBufferPopulateFromImageBuffer)
 virtual void execute(MachineState * ms) {
