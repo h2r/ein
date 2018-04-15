@@ -497,10 +497,8 @@ void EinBaxterConfig::endpointCallback(const baxter_core_msgs::EndpointState& _e
         ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
         ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", hand_pose);
       } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
+        CONSOLE_ERROR(ms, "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__);
+        CONSOLE_ERROR(ms, ex.what())
       }
     } else {
       //pose = ms->config.currentEEPose;

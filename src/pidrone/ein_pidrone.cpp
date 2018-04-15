@@ -189,6 +189,7 @@ void robotEndPointCallback(MachineState * ms) {
     }
   } catch (tf::TransformException ex){
     CONSOLE_ERROR(ms, "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__);
+    CONSOLE_ERROR(ms, ex.what());
   }
 
 }
