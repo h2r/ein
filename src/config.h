@@ -1482,6 +1482,9 @@ class EinConfig {
   int sceneDiscrepancySearchDepth = 3000;
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
 
+  int sceneInitWidth  = 901;
+  int sceneInitHeight = 901;
+
   vector<shared_ptr<Scene> > class_scene_models;
   double scene_score_thresh = 0.01;
 

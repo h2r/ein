@@ -24,12 +24,13 @@ void robotUpdate(MachineState * ms) {
 
 void robotInitializeConfig(MachineState * ms) {
   ms->config.pidroneConfig = new EinPidroneConfig(ms);
-
+  ms->config.sceneInitWidth = 3;
+  ms->config.sceneInitHeight = 3;
 
   ms->config.cameras.clear();
   string image_topic = "/pidrone/picamera/image_raw";
   Camera * c = new Camera(ms, "picamera", image_topic, "/base", "/base");
-  c->
+  c->imRingBufferSize = 10;
   ms->config.cameras.push_back(c);
   ms->config.focused_camera = 0;
 

@@ -3822,8 +3822,9 @@ REGISTER_WORD(SceneIsNewConfiguration)
 WORD(SceneInit)
 virtual void execute(MachineState * ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
-  int p_width = 901; //1001; //1501; // 1001 // 601;
-  int p_height = 901; //1001; //1501; // 1001 / 601;
+  cout << "Initializing scene with " << ms->config.sceneInitWidth << endl;
+  int p_width = ms->config.sceneInitWidth; //1001; //1501; // 1001 // 601;
+  int p_height = ms->config.sceneInitHeight; //1001; //1501; // 1001 / 601;
   eePose scenePose = eePose::identity();
   scenePose.pz = -ms->config.currentTableZ;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
