@@ -8,7 +8,7 @@ namespace ein_words {
 CONFIG_SETTER_ENUM(SetGradientServoMode, ms->config.currentGradientServoMode, (gradientServoMode))
 CONFIG_GETTER_INT(GradientServoMode, ms->config.currentGradientServoMode)
 
-CONFIG_GETTER_DOUBLE(PickFlushFactor, ms->config.pickFlushFactor)
+CONFIG_GETTER_DOUBLE(PickFlushFactor, ms->config.pickFlushFactor, "How close we get when picking.")
 CONFIG_SETTER_DOUBLE(SetPickFlushFactor, ms->config.pickFlushFactor)
 
 WORD(SetSnapToFlushGrasp)
