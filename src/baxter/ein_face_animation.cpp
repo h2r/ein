@@ -16,7 +16,7 @@ CONFIG_SETTER_ENUM(FaceAnimationSetMode, ms->config.currentAnimationMode, (anima
 CONFIG_GETTER_INT(FaceAnimationGetMode, ms->config.currentAnimationMode)
 
 CONFIG_SETTER_DOUBLE(FaceAnimationSetRate, ms->config.animationRate); 
-CONFIG_GETTER_DOUBLE(FaceAnimationGetRate, ms->config.animationRate); 
+CONFIG_GETTER_DOUBLE(FaceAnimationGetRate, ms->config.animationRate, "Rate of the face animation in hz"); 
 
 
 WORD(FaceAnimationFindEmotions)

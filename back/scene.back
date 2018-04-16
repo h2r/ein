@@ -1166,7 +1166,6 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
     setPlaceModeToHold
     clearMapForPatrol
 
-    setPickModeToLearningAlgorithmC
     tableMapBestAndPickInPlace
     writeFocusedClassGrasps
 
@@ -1193,7 +1192,6 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
 
     /* tablePickWithAddedGrasp */
-    setPickModeToLearningAlgorithmC
     tableMapBestAndPickInPlace
     writeFocusedClassGrasps
 
@@ -2971,7 +2969,6 @@ tableReconstructWithZTotalZDefault "tableReconstructWithZTotalZ" store
     "/home/aibo/catkin_ws/src/ein/default/objects/scene_eval_set"
   setClassLabelsObjectFolderAbsolute
 
-  setPickModeToStaticMarginals
   setPlaceModeToHold
 
   (
