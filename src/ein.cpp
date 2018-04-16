@@ -586,6 +586,14 @@ void recordReadyRangeReadings(MachineState * ms) {
 				       (thisPose.position.z - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
 				      );
 
+	  thisZmeasurement = -irSensorEnd.z();
+	  // ATTN 25
+	  ms->config.mostRecentUntabledZ = thisZmeasurement;
+	  //mostRecentUntabledZ = ((1.0-ms->config.mostRecentUntabledZDecay)*thisZmeasurement) + (ms->config.mostRecentUntabledZDecay*mostRecentUntabledZ);
+	  // ATTN 1 currently accounting for table models
+	  thisZmeasurement = thisZmeasurement - ms->config.currentTableZ;
+
+	  rayDirection = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
         }
         
 	rgRingBufferAdvance(ms);
