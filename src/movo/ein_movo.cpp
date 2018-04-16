@@ -6,13 +6,26 @@
 #include "config.h"
 #include "ein.h"
 
+#define MC ms->config.movoConfig
+
 
 using namespace std;
 
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
  {
    ms = myms;
+   torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
+   torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
 }
+
+void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
+{
+  cout << "joints: " << js.position.size() << endl;
+  assert(js.position.size() == 1);
+  MC->trueTorsoJointPosition = js.position[0];
+  MC->trueTorsoJointVelocity = js.velocity[0];
+}
+
 
 void robotActivateSensorStreaming(MachineState * ms) {
 }
@@ -20,12 +33,14 @@ void robotDeactivateSensorStreaming(MachineState * ms) {
 }
 
 void robotUpdate(MachineState * ms) {
-
-
+  MC->torsoCmd.header.stamp = ros::Time::now();
+  MC->torsoCmd.desired_position_m = MC->targetTorsoJointPosition;
+  MC->torsoCmd.fdfwd_vel_mps = 0;
+  MC->torsoJointCmdPub.publish(MC->torsoCmd);
 }
 
 void robotInitializeConfig(MachineState * ms) {
- ms->config.movoConfig = new EinMovoConfig(ms);
+ MC = new EinMovoConfig(ms);
  ms->config.cameras.clear();
 
  string image_topic = "/cameras/stub/image";
@@ -37,6 +52,8 @@ void robotInitializeConfig(MachineState * ms) {
 
 
 void robotInitializeMachine(MachineState * ms) {
+  ms->evaluateProgram("zeroGOff"); 
+
 }
 
 void robotSetCurrentJointPositions(MachineState * ms) {
@@ -61,5 +78,36 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
+WORD(TUp)
+virtual string description() {
+  return "Move the torso up.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetTorsoJointPosition += MC->torsoGridSize;
+}
+END_WORD
+REGISTER_WORD(TUp)
+
+WORD(TDown)
+virtual string description() {
+  return "Move the torso down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetTorsoJointPosition -= MC->torsoGridSize;
+}
+END_WORD
+REGISTER_WORD(TDown)
+
+
+
+CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
+CONFIG_GETTER_DOUBLE(TrueTorsoJointVelocity, MC->trueTorsoJointVelocity, "The true torso velocity from the topic.")
+
+CONFIG_GETTER_DOUBLE(TargetTorsoJointPosition, MC->targetTorsoJointPosition, "The target torso position from the topic.")
+CONFIG_SETTER_DOUBLE(SetTargetTorsoJointPosition, MC->targetTorsoJointPosition)
+
+
+CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when moving the torso up and down.  Default 1cm.")
+CONFIG_SETTER_DOUBLE(SetTorsoGridSize, MC->torsoGridSize)
 
 }
