@@ -401,4 +401,99 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Blur)
 
+
+WORD(RecordPostTargetLock)
+virtual void execute(MachineState * ms) {
+  if (ms->config.blueBoxMemories.size() > 0) {
+    BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
+    lastAdded->cameraTime = ros::Time::now();
+    lastAdded->aimedPose = ms->config.currentEEPose;
+    lastAdded->trZ  = ms->config.trZ;
+    cout << "recordPostTargetLock saving pickedPose..." << endl;
+    cout << "trZ = " << ms->config.trZ << endl;
+    cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
+    cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
+    lastAdded->lockStatus = POSE_LOCK;
+  }
+}
+END_WORD
+REGISTER_WORD(RecordPostTargetLock)
+
+WORD(RecordPreTargetLock)
+virtual void execute(MachineState * ms) {
+  if (ms->config.blueBoxMemories.size() > 0) {
+    BoxMemory *lastAdded = &(ms->config.blueBoxMemories[ms->config.blueBoxMemories.size()-1]);
+    lastAdded->lockedPose = ms->config.currentEEPose;
+    cout << "recordPreTargetLock saving lockedPose..." << endl;
+
+    int thisTargetClassIdx = ms->config.targetClass;
+
+    // calculate the affordance poses post-lock
+cout << "about to calc 3d poses" << endl;
+    {
+      int tnc = ms->config.class3dGrasps.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.class3dGrasps[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->aff3dGraspPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.class3dGrasps[thisTargetClassIdx][i].grasp_pose;  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
+	  lastAdded->aff3dGraspPoses[i] = toWhichWasApplied;
+	}
+      }
+    }
+cout << "about to calc pup poses" << endl;
+    {
+      int tnc = ms->config.classPlaceUnderPoints.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceUnderPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->affPlaceUnderPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceUnderPoints[thisTargetClassIdx][i];  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
+	  lastAdded->affPlaceUnderPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
+	}
+      }
+    }
+cout << "about to calc pop poses" << endl;
+    {
+      int tnc = ms->config.classPlaceOverPoints.size();
+      if ( (thisTargetClassIdx > -1) && (thisTargetClassIdx < tnc) ) {
+	int tnp = ms->config.classPlaceOverPoints[thisTargetClassIdx].size();
+cout << "tnc, tnp: " << tnc << " " << tnp << endl;
+	lastAdded->affPlaceOverPoses.resize(tnp);
+	for (int i = 0; i < tnp; i++) {
+	  eePose toApply = ms->config.classPlaceOverPoints[thisTargetClassIdx][i];  
+	  eePose toWhichWasApplied = ms->config.currentEEPose;
+	  toWhichWasApplied.pz = -ms->config.currentTableZ;
+	  // this order is important because quaternion multiplication is not commutative
+	  //toWhichWasApplied = toWhichWasApplied.plusP(toWhichWasApplied.applyQTo(toApply));
+	  //toWhichWasApplied = toWhichWasApplied.multQ(toApply);
+	  toWhichWasApplied = toApply.applyAsRelativePoseTo(toWhichWasApplied);
+	  lastAdded->affPlaceOverPoses[i] = toWhichWasApplied;
+cout << "added " << lastAdded->affPlaceUnderPoses[i] << endl << " and current is " << endl << ms->config.currentEEPose << endl;
+	}
+      }
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(RecordPreTargetLock)
+
+
+
+
 }

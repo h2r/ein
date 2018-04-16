@@ -182,7 +182,6 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
   /* spiral scan pattern */
   tableSpiralMoveSpeed setSpeed
   tableSpiralGridSize setGridSize
-  /* shiftIntoGraspGear1 waitUntilAtCurrentPosition */
 
   1 "tableUpdateSpiralIdx" store
 
@@ -997,7 +996,7 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
 (
   zeroGOff
-  setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
+  setPlaceModeToHold setIdleModeToEmpty 
 
   /*
   tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
@@ -1129,8 +1128,8 @@ tableSpiralStreamTakeSceneSamplesDefault "tableSpiralStreamTakeSceneSamples" sto
 
     /* tableFullScan */
     zeroGOff
-    setPlaceModeToHold setIdleModeToEmpty setBoundingBoxModeToMapping
-    tenthImpulse 1 changeToHeight shiftIntoGraspGear1 waitUntilAtCurrentPosition
+    setPlaceModeToHold setIdleModeToEmpty 
+    tenthImpulse 1 changeToHeight waitUntilAtCurrentPosition
 
     initializeAndFocusOnNewClass
 

@@ -16,6 +16,46 @@ void targetBoxMemory(MachineState * ms, int memoryIdx) {
 
 namespace ein_words {
 
+
+WORD(PrepareForAndExecuteGraspFromMemory)
+virtual void execute(MachineState * ms) {
+  ms->pushWord("executePreparedGrasp"); 
+  ms->pushWord("prepareForGraspFromMemory"); 
+}
+END_WORD
+REGISTER_WORD(PrepareForAndExecuteGraspFromMemory)
+
+WORD(ExecutePreparedGrasp)
+virtual void execute(MachineState * ms)       {
+  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
+
+  //ms->pushWord("quarterImpulse"); 
+  ms->pushWord("cruisingSpeed"); 
+  ms->pushWord("comeToHover"); 
+  ms->pushWord("waitUntilGripperNotMoving");
+
+  if (ms->config.currentGraspMode == GRASP_CRANE || ms->config.class3dGrasps[ms->config.targetClass].size() == 0) {
+    if (ms->config.currentGraspMode == GRASP_3D) {
+      CONSOLE_ERROR(ms, "executePreparedGrasp: grasp mode GRASP_3D but class3dGrasps[*].size() = 0!");
+      ms->pushWord("pauseStackExecution");
+    } 
+    ms->pushWord("moveToTargetZAndGrasp"); 
+  } else if (ms->config.currentGraspMode == GRASP_3D) {
+    ms->pushWord("closeGripper"); 
+    //ms->pushWord("assumeCurrent3dGrasp"); 
+    //ms->pushWord("assumeAny3dGrasp"); 
+    ms->pushWord("assumeBest3dGrasp"); 
+  } else {
+    assert(0);
+  }
+
+  ms->pushWord("approachSpeed"); 
+  ms->pushWord("openGripper"); 
+}
+END_WORD
+REGISTER_WORD(ExecutePreparedGrasp)
+
+
 WORD(TwoPartPlaceObjectOnObject)
 virtual void execute(MachineState * ms) {
   
@@ -348,7 +388,7 @@ virtual void execute(MachineState * ms) {
   // we need to remove this from the blue box memories later
   vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, ms->config.focusedClass, &idxOfFirst);
   if (focusedClassMemories.size() == 0) {
-    cout << "No memories of the focused class. " << endl;
+    CONSOLE(ms, "No memories of the focused class. ");
 
     if (ms->config.currentPlaceMode == PLACE_REGISTER) {
       ms->pushWord("idler"); 
@@ -433,12 +473,11 @@ virtual void execute(MachineState * ms) {
   
   ms->pushWord("waitUntilAtCurrentPosition");
 
-  ms->pushWord("sampleHeight"); 
   ms->pushWord("assumeAimedPose"); 
 
   ms->pushWord("moveAndStreamAimedShot"); 
 
-  ms->pushWord("setBoundingBoxModeToMapping"); 
+
   ms->pushWord("openGripper");
   ms->pushWord("setPatrolStateToPicking");
 }
@@ -1234,204 +1273,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(StayZOnly)
 
-WORD(RockInit)
-virtual void execute(MachineState * ms)
-{
-
-  ms->pushWord("setSpeed");
-  ms->pushWord("0.07");
-  //ms->pushWord("setEffortHere");
-  ms->pushWord("saveRegister1");
-}
-END_WORD
-REGISTER_WORD(RockInit)
-
-WORD(Rock)
-virtual void execute(MachineState * ms)
-{
-
-  ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("replicateWord");
-  //ms->pushWord("5");
-  //ms->pushData("zUp");
-  ms->pushWord("tenthImpulse");
-  ms->pushWord("rockD");
-
-  ms->pushWord("rockC");
-
-  ms->pushWord("replicateWord");
-  ms->pushWord("10");
-  ms->pushData("oXUp");
-  ms->pushWord("setGridSizeCoarse");
-
-
-  //ms->pushWord("replicateWord");
-  //ms->pushWord("10");
-  //ms->pushData("oXDown");
-
-  ms->pushWord("rockB");
-  //ms->pushWord("waitUntilAtCurrentPosition");
-
-  ms->pushWord("waitForSeconds");
-  ms->pushWord("1.0");
-
-  ms->pushWord("replicateWord");
-  ms->pushWord("20");
-  ms->pushData("oXDown");
-  ms->pushWord("setGridSizeCoarse");
-
-  ms->pushWord("stayNoRoll");
-  ms->pushWord("pressUntilEffort");
-  ms->pushWord("pressUntilEffortInit");
-
-  ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("replicateWord");
-  //ms->pushWord("5");
-  //ms->pushData("zUp");
-  ms->pushWord("tenthImpulse");
-  ms->pushWord("rockD");
-
-  //ms->pushWord("replicateWord");
-  //ms->pushWord("10");
-  //ms->pushData("oXUp");
-
-  ms->pushWord("rockA");
-  //ms->pushWord("waitUntilAtCurrentPosition");
-
-  ms->pushWord("waitForSeconds");
-  ms->pushWord("1.0");
-
-  ms->pushWord("replicateWord");
-  ms->pushWord("10");
-  ms->pushData("oXUp");
-  ms->pushWord("setGridSizeCoarse");
-  
-
-  ms->pushWord("stayNoRoll");
-  ms->pushWord("pressUntilEffort");
-  ms->pushWord("pressUntilEffortInit");
-
-  ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushWord("replicateWord");
-  //ms->pushWord("5");
-  //ms->pushData("zUp");
-  ms->pushWord("tenthImpulse");
-  ms->pushWord("rockD");
-
-  if (eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) < ms->config.w1GoThresh) {
-    cout << "nudging" << endl;
-//    ms->pushWord("localZUp");
-    //ms->pushWord("setEffortHere");
-    //ms->pushWord("setGridSize");
-    //   ms->pushWord("0.004");
-
-  } else {
-  }
-}
-END_WORD
-REGISTER_WORD(Rock)
-
-WORD(RockA)
-virtual void execute(MachineState * ms)
-{
-  double totalDiff = 0.0;
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
-    totalDiff = totalDiff + (thisDiff * thisDiff);
-  }
-
-//  double rockAmp= 2.0 * 0.01;
-//  double rockMax = 200.0;
-//
-//  double rockSnapped = min( max(0.0, totalDiff), rockMax);
-//
-//  ms->config.bDelta = min( max(0.0, rockAmp * (rockMax - rockSnapped) / rockMax), 0.02);
-//
-//
-//  cout << "rockA set bDelta to " << ms->config.bDelta << endl << "  totalDiff: " << totalDiff << endl;;
-  ms->config.rockDiffA = totalDiff;
-
-  cout << "rockA totalDiff: " << totalDiff << endl;
-}
-END_WORD
-REGISTER_WORD(RockA)
-
-WORD(RockB)
-virtual void execute(MachineState * ms)
-{
-  double totalDiff = 0.0;
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
-    totalDiff = totalDiff + (thisDiff * thisDiff);
-  }
-
-  ms->config.rockDiffB = totalDiff;
-  cout << "rockB totalDiff: " << totalDiff << endl;
-}
-END_WORD
-REGISTER_WORD(RockB)
-
-WORD(RockC)
-virtual void execute(MachineState * ms)
-{
-  if (ms->config.rockDiffB  > ms->config.rockDiffA) {
-    ms->pushWord("waitUntilAtCurrentPosition");
-
-    ms->pushWord("waitForSeconds");
-    ms->pushWord("1.0");
-
-    ms->pushWord("replicateWord");
-    ms->pushWord("5");
-    ms->pushData("oXUp");
-    ms->pushWord("setGridSizeCoarse");
-
-    cout << "rockC: A won" << endl;
-  } else {
-    ms->pushWord("waitUntilAtCurrentPosition");
-
-    ms->pushWord("waitForSeconds");
-    ms->pushWord("1.0");
-
-    ms->pushWord("replicateWord");
-    ms->pushWord("5");
-    ms->pushData("oXDown");
-    ms->pushWord("setGridSizeCoarse");
-
-    cout << "rockC: B won" << endl;
-  }
-
-}
-END_WORD
-REGISTER_WORD(RockC)
-
-WORD(RockDA)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentEEPose.copyP(ms->config.eepReg1);
-}
-END_WORD
-REGISTER_WORD(RockDA)
-
-WORD(RockD)
-virtual void execute(MachineState * ms)
-{
-  ms->pushWord("rockDA");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("replicateWord");
-  ms->pushWord("7");
-  ms->pushData("zUp");
-  ms->pushWord("tenthImpulse");
-}
-END_WORD
-REGISTER_WORD(RockD)
-
-WORD(Roll)
-virtual void execute(MachineState * ms)
-{
-}
-END_WORD
-REGISTER_WORD(Roll)
-
 
 WORD(PickClosestBlueBox)
 virtual void execute(MachineState * ms) {
@@ -1460,6 +1301,63 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(PickClosestBlueBox)
 
+WORD(CheckAndCountGrasp)
+
+virtual void execute(MachineState * ms) {
+  REQUIRE_FOCUSED_CLASS(ms,tfc);
+
+  if (ms->config.currentGraspMode == GRASP_3D) {
+    int t3dgi = ms->config.current3dGraspIndex;
+    if ( (t3dgi > -1) && (t3dgi < ms->config.class3dGrasps[tfc].size()) ) {
+      cout << "checkAndCountGrasp: using t3dgi " << t3dgi << endl;
+    } else {
+      cout << "checkAndCountGrasp: bad t3dgi, returning... " << t3dgi << endl;
+      return;
+    }
+
+    Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][t3dgi]);
+
+    if (ms->config.gripperMoving) {
+      cout << "checkAndCountGrasp: repushing because gripper is moving." << endl;
+
+      ms->pushWord("checkAndCountGrasp"); 
+      ms->pushWord("waitUntilGripperNotMoving");
+    } else {
+      ms->config.graspAttemptCounter++;
+      if (thisGrasp->tries <= 1.0) {
+	thisGrasp->tries = 1.001;
+	thisGrasp->successes = 0.0;
+	thisGrasp->failures = 0.0;
+      } else {
+	thisGrasp->tries++;
+      }
+      cout << "gripperPosition: " << ms->config.gripperPosition << " gripperThresh: " << ms->config.gripperThresh << endl;
+      if (!isGripperGripping(ms)) {
+	thisGrasp->failures++;
+	CONSOLE_ERROR(ms, "3D !!! Failed grasp.");
+      } else {
+	ms->config.graspSuccessCounter++;
+	CONSOLE(ms, "3D !!! Successful grasp.");
+	thisGrasp->successes++;
+      }
+      
+      double thisPickRate = double(thisGrasp->successes) / double(thisGrasp->tries);
+      int thisNumTries = thisGrasp->tries;
+      CONSOLE(ms, "3D !!! thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries);
+      
+      ms->config.graspSuccessRate = ms->config.graspSuccessCounter / ms->config.graspAttemptCounter;
+      ros::Time thisTime = ros::Time::now();
+      ros::Duration sinceStartOfTrial = thisTime - ms->config.graspTrialStart;
+      CONSOLE(ms, "<><><><> Grasp attempts rate time gripperPosition currentPickMode: " << ms->config.graspSuccessCounter << "/" << ms->config.graspAttemptCounter << " " << ms->config.graspSuccessRate << " " << sinceStartOfTrial.toSec() << " seconds " << ms->config.gripperPosition);
+    }
+
+  } else {
+      CONSOLE_ERROR(ms, "bad grasp mode...");
+      assert(0); 
+    }
+}
+END_WORD
+REGISTER_WORD(CheckAndCountGrasp)
 
 }
 
