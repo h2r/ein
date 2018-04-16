@@ -57,6 +57,7 @@ void robotInitializeMachine(MachineState * ms) {
 }
 
 void robotSetCurrentJointPositions(MachineState * ms) {
+  MC->targetTorsoJointPosition = MC->trueTorsoJointPosition;
 
 }
 
