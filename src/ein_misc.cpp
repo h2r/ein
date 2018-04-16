@@ -3326,10 +3326,10 @@ CONFIG_GETTER_INT(MappingServoTimeout, ms->config.mappingServoTimeout)
 CONFIG_SETTER_INT(SetMappingServoTimeout, ms->config.mappingServoTimeout)
 
 
-CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh)
+CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh, "")
 CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
-CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh);
+CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh, "");
 CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 
 
@@ -3344,28 +3344,28 @@ CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version)
 CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
 CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 
-CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
+CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight, "Start height at which we make the IK map.")
 
-CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
+CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight, "End height for making the IP map.")
 
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin)
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin, "Xmin for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMin, ms->config.mapSearchFenceXMin)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin, "Ymin for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMin, ms->config.mapSearchFenceYMin)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax, "Xmax for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax, "YMax for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 
-CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
+CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh, "Threshold for the gripper mask bmp.")
 CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
 
 
-CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)
+CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ, "Current location of the table at z in base.")
 CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
 
 
@@ -3402,15 +3402,15 @@ CONFIG_SETTER_POSE(SetHandEndEffectorOffset, ms->config.handEndEffectorOffset);
 
 CONFIG_GETTER_INT(FocusedCamera, ms->config.focused_camera);
 
-CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
-CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
-CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
-CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+  CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x, "")
+  CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y, "")
+  CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x, "")
+  CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y, "")
 
-CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
-CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
-CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
-CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+  CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00, "")
+  CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01, "")
+  CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10, "")
+  CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11, "")
 
 CONFIG_SETTER_DOUBLE(SetCameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
 CONFIG_SETTER_DOUBLE(SetCameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
@@ -3444,14 +3444,14 @@ CONFIG_GETTER_INT(ArmOkButtonState, ms->config.lastArmOkButtonState)
 CONFIG_GETTER_INT(ArmShowButtonState, ms->config.lastArmShowButtonState)
 CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
 
-CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
+CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState, "")
 
 CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 
-CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
-CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
+CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange, "Range reading.")
+CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue, "Range max value.")
 
-CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
+  CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ, "")
 
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 

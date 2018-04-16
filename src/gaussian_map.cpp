@@ -718,7 +718,7 @@ void GaussianMap::loadFromFile(string filename) {
 }
 
 CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());
-CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared)
+CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared, "Variance on scene")
 CONFIG_SETTER_DOUBLE(SceneSetMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 
 void GaussianMapChannel::recalculateMusAndSigmas(MachineState * ms) {
@@ -1881,8 +1881,8 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
-CONFIG_GETTER_DOUBLE(SceneCellWidth, ms->config.scene->cell_width)
-CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
+CONFIG_GETTER_DOUBLE(SceneCellWidth, ms->config.scene->cell_width, "Cell width of scene.")
+CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh, "Score threshold for discrepancy.")
 CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
 
 void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i) {

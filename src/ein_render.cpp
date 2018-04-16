@@ -90,7 +90,7 @@ END_WORD
 REGISTER_WORD(GuiCustom1)
 
 
-CONFIG_GETTER_DOUBLE(RenderWristViewBrightnessScalar, ms->config.wristViewBrightnessScalar)
+CONFIG_GETTER_DOUBLE(RenderWristViewBrightnessScalar, ms->config.wristViewBrightnessScalar, "")
 CONFIG_SETTER_DOUBLE(RenderSetWristViewBrightnessScalar, ms->config.wristViewBrightnessScalar)
 
 

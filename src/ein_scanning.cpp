@@ -1594,24 +1594,24 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetMagnificationA)
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx], "") 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx], "") 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px, "Vanishing point of camera.") 
 CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py, "Vanishing point of camera.") 
 CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px, "Height reticle x") 
 CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py, "Height reticle y") 
 CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
 WORD(SetMagnificationB)
@@ -4072,7 +4072,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(AddPlaceOverPoint)
 
-CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance) 
+CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance, "") 
 CONFIG_SETTER_DOUBLE(SetGraspBackoffDistance, ms->config.graspBackoffDistance) 
 
 

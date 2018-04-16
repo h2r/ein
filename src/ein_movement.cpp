@@ -6,13 +6,13 @@
 
 namespace ein_words {
 
-CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta)
+CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta, "")
 CONFIG_SETTER_DOUBLE(SetGridSize, ms->config.bDelta)
 
 
-CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh)
+CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh, "When we do wait until at current position")
 CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
-CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh)
+CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh, "When we do wait until at current position")
 CONFIG_SETTER_DOUBLE(SetW1AngleThresh, ms->config.w1AngleThresh)
 
 CONFIG_GETTER_INT(CurrentIKBoundaryMode, ms->config.currentIKBoundaryMode)
@@ -871,7 +871,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
 
-CONFIG_GETTER_DOUBLE(GetSpeed, ms->config.currentEESpeedRatio)
+CONFIG_GETTER_DOUBLE(GetSpeed, ms->config.currentEESpeedRatio, "")
 WORD(SetSpeed)
 virtual void execute(MachineState * ms) {
   double v1;
@@ -1224,11 +1224,11 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DecrementTargetMasterSprite)
 
-CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold)
+CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold, "")
 CONFIG_SETTER_DOUBLE(SetArmedThreshold, ms->config.armedThreshold)
-CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold)
+CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold, "")
 CONFIG_SETTER_DOUBLE(SetMovingThreshold, ms->config.movingThreshold)
-CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold)
+CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold, "")
 CONFIG_SETTER_DOUBLE(SetHoverThreshold, ms->config.hoverThreshold)
 
 WORD(ComeToStop)
