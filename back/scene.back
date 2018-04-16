@@ -8,7 +8,7 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 
 
 (
-  sceneClearPredictedObjects 0.26 0.795 1.5 sceneAddPredictedFocusedObject sceneClearObservedMap sceneUpdateObservedFromWrist 30 sceneSetBackgroundStdDev sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy
+  sceneClearPredictedObjects 0.26 0.795 1.5 sceneAddPredictedFocusedObject sceneClearObservedMap sceneUpdateObservedFromWrist 30 sceneSetBackgroundStdDev sceneComposePredictedMap sceneUpdateDiscrepancy 
 
   60 20 fixCameraLightingExposureGain
 
@@ -24,7 +24,7 @@ currentBackgroundMap sceneCopyGaussianMap "bgRAM" store
 
 0.5 "sceneGrabDiscrepantCropAsClassDefaultThresh" store
 ( 
-  sceneComposePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass 
+  sceneComposePredictedMap sceneUpdateDiscrepancy  sceneGrabDiscrepantCropAsClassDefaultThresh sceneGrabDiscrepantCropAsClass 
 ) "tableCaptureCore" store
 
 (
@@ -97,7 +97,7 @@ table2DCellCountThreshold "tableCellCountThreshold" store
 0.5 "scenePredictedMapThreshDefault" store
 scenePredictedMapThreshDefault "scenePredictedMapThresh" store
 (
-  sceneScoreThresh sceneComposePredictedMapThreshed tableRegularizePredictedMap sceneUpdateDiscrepancy sceneDensityFromDiscrepancy  
+  sceneScoreThresh sceneComposePredictedMapThreshed tableRegularizePredictedMap sceneUpdateDiscrepancy   
 ) "tableUpdateMaps" store
 
 (
