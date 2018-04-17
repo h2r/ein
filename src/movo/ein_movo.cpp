@@ -20,7 +20,6 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
 
 void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
 {
-  cout << "joints: " << js.position.size() << endl;
   assert(js.position.size() == 1);
   MC->trueTorsoJointPosition = js.position[0];
   MC->trueTorsoJointVelocity = js.velocity[0];
