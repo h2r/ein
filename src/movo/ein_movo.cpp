@@ -16,6 +16,14 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    ms = myms;
    torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
    torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
+
+   panTiltFdbkSubscriber = n.subscribe("/movo/", 1, &EinMovoConfig::panTiltFdbkCallback, this);
+   panTiltCmdPub = n.advertise<movo_msgs::PanTiltCmd>("/movo/", 10);
+}
+
+void panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& m)
+{
+  ptaFdbkMsg = m;
 }
 
 void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
@@ -110,5 +118,26 @@ CONFIG_SETTER_DOUBLE(SetTargetTorsoJointPosition, MC->targetTorsoJointPosition)
 
 CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when moving the torso up and down.  Default 1cm.")
 CONFIG_SETTER_DOUBLE(SetTorsoGridSize, MC->torsoGridSize)
+
+
+CONFIG_GETTER_DOUBLE(PanCurrent, MC->ptaFdbkMsg.pan.current, "The current pan.")
+
+CONFIG_GETTER_DOUBLE(PanPos, MC->ptaFdbkMsg.pan.pos_rad, "The current position in radians.")
+
+CONFIG_GETTER_DOUBLE(PanVel, MC->ptaFdbkMsg.pan.vel_rad, "The current velocity in rps.")
+
+CONFIG_GETTER_DOUBLE(PanTorque, MC->ptaFdbkMsg.pan.torque_nm, "The current torque in Newton-meters.")
+
+CONFIG_GETTER_DOUBLE(PanPwm, MC->ptaFdbkMsg.pan.pwm, "The PWM value.")
+
+CONFIG_GETTER_DOUBLE(PanEncoder, MC->ptaFdbkMsg.pan.encoder, "The joint encoder value.")
+
+CONFIG_GETTER_DOUBLE(PanAx, MC->ptaFdbkMsg.pan.accel.x, "The x accelleration.")
+CONFIG_GETTER_DOUBLE(PanAy, MC->ptaFdbkMsg.pan.accel.x, "The y accelleration.")
+CONFIG_GETTER_DOUBLE(PanAz, MC->ptaFdbkMsg.pan.accel.x, "The z accelleration.")
+
+CONFIG_GETTER_DOUBLE(PanTemperature, MC->ptaFdbkMsg.pan.temperature_degC, "The temperature in Celcius.")
+
+
 
 }
