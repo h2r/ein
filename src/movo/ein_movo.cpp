@@ -23,6 +23,10 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    upperBody = new MoveGroup("upper_body");
    leftArm = new MoveGroup("left_arm");
    rightArm = new MoveGroup("right_arm");
+   upperBody->setPlannerId("RRTConnectkConfigDefault");
+   leftArm->setPlannerId("RRTConnectkConfigDefault");
+   rightArm->setPlannerId("RRTConnectkConfigDefault");
+
    
    batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
@@ -195,6 +199,28 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(PanUp)
+
+WORD(TiltUp)
+virtual string description() {
+  return "Move the tilt angle up.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetTiltPos += MC->panTiltGridSize;
+}
+END_WORD
+REGISTER_WORD(TiltUp)
+
+WORD(TiltDown)
+virtual string description() {
+  return "Move the tilt angle down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetTiltPos -= MC->panTiltGridSize;
+}
+END_WORD
+REGISTER_WORD(TiltDown)
+
+
 
 WORD(BaseGoCfg)
 virtual string description() {
