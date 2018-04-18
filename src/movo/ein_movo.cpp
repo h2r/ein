@@ -3,6 +3,7 @@
 
 #include <actionlib/client/simple_action_client.h>
 
+
 #include "config.h"
 #include "ein.h"
 
@@ -11,13 +12,17 @@
 #define TRACTOR_REQUEST 5
 #define STANDBY_REQUEST 4
 #define POWERDOWN_REQUEST 6
-
+#define ESTOP_REQUEST 1
 
 using namespace std;
 
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
  {
    ms = myms;
+
+   upperBody = new MoveGroup("upper_body");
+   leftArm = new MoveGroup("left_arm");
+   rightArm = new MoveGroup("right_arm");
    
    batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
@@ -70,11 +75,11 @@ void robotUpdate(MachineState * ms) {
 
   MC->ptaCmdMsg.header.stamp = ros::Time::now();
   MC->ptaCmdMsg.pan_cmd.pos_rad = MC->targetPanPos;
-  MC->ptaCmdMsg.pan_cmd.vel_rps = 10000.0;
+  MC->ptaCmdMsg.pan_cmd.vel_rps = 0.87;
   MC->ptaCmdMsg.pan_cmd.acc_rps2 = 0.0;
 
   MC->ptaCmdMsg.tilt_cmd.pos_rad = MC->targetTiltPos;
-  MC->ptaCmdMsg.tilt_cmd.vel_rps = 10000;
+  MC->ptaCmdMsg.tilt_cmd.vel_rps = 0.87; 
   MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
   MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
 
@@ -295,6 +300,23 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(BaseSendYVel)
+
+
+WORD(MovoKill)
+virtual string description() {
+  return "Send a kill command to estop the robot.";
+}
+virtual void execute(MachineState * ms) {
+  MC->configMsg.gp_cmd = "GENERAL_PURPOSE_CMD_SET_OPERATIONAL_MODE";
+  MC->configMsg.gp_param = ESTOP_REQUEST;
+  MC->configMsg.header.stamp = ros::Time::now();
+  MC->configCmdPub.publish(MC->configMsg);
+
+}
+END_WORD
+REGISTER_WORD(MovoKill)
+
+
 
 
 WORD(BaseSendTwist)

@@ -13,6 +13,11 @@
 #include <movo_msgs/PanTiltCmd.h>
 #include <movo_msgs/Battery.h>
 
+#include <moveit/move_group_interface/move_group.h>
+using namespace moveit;
+using namespace planning_interface;
+
+
 #include "ein_words.h"
 #include "config.h"
 #include "camera.h"
@@ -37,6 +42,9 @@ class EinMovoConfig {
   bool batteryCharging;
   
   
+  MoveGroup * upperBody;
+  MoveGroup * leftArm;
+  MoveGroup * rightArm;
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;

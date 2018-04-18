@@ -258,11 +258,21 @@ src/pidrone/ein_pidrone.cpp
 target_link_libraries(ein EinPidrone)
 elseif (movo_msgs_FOUND)
 MESSAGE("Building movo")
+
+find_package(catkin REQUIRED COMPONENTS
+    moveit_core
+    moveit_ros_planning
+    moveit_ros_planning_interface
+)
 add_definitions(-DUSE_ROBOT_MOVO)
 add_library(EinMovo SHARED
 src/movo/ein_movo.cpp
 )
-target_link_libraries(ein EinMovo)
+target_link_libraries(ein EinMovo
+${catkin_LIBRARIES}
+)
+add_dependencies(EinMovo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 elseif (kinova_msgs_FOUND)
 MESSAGE("Building jaco")
 add_definitions(-DUSE_ROBOT_JACO)

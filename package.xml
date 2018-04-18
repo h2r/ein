@@ -50,6 +50,9 @@
   <build_depend>pidrone_pkg</build_depend>
   <build_depend>kinova_msgs</build_depend>
   <build_depend>movo_msgs</build_depend>
+  <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_ros_planning_interface</build_depend>
+  <build_depend>moveit_ros_perception</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>object_recognition_msgs</build_depend>
 
@@ -60,6 +63,9 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>object_recognition_msgs</run_depend>
 
+
+  <run_depend>moveit_ros_planning_interface</run_depend>
+  <run_depend>moveit_core</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
