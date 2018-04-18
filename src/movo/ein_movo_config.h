@@ -56,7 +56,7 @@ class EinMovoConfig {
   movo_msgs::PanTiltFdbk ptaFdbkMsg;
   movo_msgs::PanTiltCmd ptaCmdMsg;
   void panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& js);  
-  double panTiltGridSize=0.01;
+  double panTiltGridSize=0.1;
 
   double torsoGridSize=0.01;
   double targetTorsoJointPosition=0;

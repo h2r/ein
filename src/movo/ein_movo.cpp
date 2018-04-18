@@ -383,6 +383,9 @@ CONFIG_SETTER_DOUBLE(SetTargetTorsoJointPosition, MC->targetTorsoJointPosition)
 CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when moving the torso up and down.  Default 1cm.")
 CONFIG_SETTER_DOUBLE(SetTorsoGridSize, MC->torsoGridSize)
 
+CONFIG_GETTER_DOUBLE(PanTiltGridSize, MC->panTiltGridSize, "The grid size when moving the panTilt up and down.  Default 0.1 radians.")
+CONFIG_SETTER_DOUBLE(SetPanTiltGridSize, MC->panTiltGridSize)
+
 
 CONFIG_GETTER_DOUBLE(TargetPanPos, MC->targetPanPos, "The target pan.")
 CONFIG_SETTER_DOUBLE(SetTargetPanPos, MC->targetPanPos)
