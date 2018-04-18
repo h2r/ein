@@ -18,6 +18,10 @@ using namespace std;
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
  {
    ms = myms;
+   
+   batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
+   
+
    torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
    torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
 
@@ -32,6 +36,16 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
 void EinMovoConfig::panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& m)
 {
   MC->ptaFdbkMsg = m;
+}
+
+void EinMovoConfig::batteryCallback(const movo_msgs::Battery& b) 
+{
+  MC->batteryMsg = b;
+  if (0x1000 == (b.battery_status & 0x1000)) {
+    MC->batteryCharging = true;
+  } else {
+    MC->batteryCharging = false;
+  }
 }
 
 void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
@@ -322,6 +336,11 @@ CONFIG_GETTER_DOUBLE(TiltAx, MC->ptaFdbkMsg.tilt.accel.x, "The x accelleration."
 CONFIG_GETTER_DOUBLE(TiltAy, MC->ptaFdbkMsg.tilt.accel.x, "The y accelleration.")
 CONFIG_GETTER_DOUBLE(TiltAz, MC->ptaFdbkMsg.tilt.accel.x, "The z accelleration.")
 CONFIG_GETTER_DOUBLE(TiltTemperature, MC->ptaFdbkMsg.tilt.temperature_degC, "The temperature in Celcius.")
+
+CONFIG_GETTER_INT(BatteryCharging, MC->batteryCharging)
+CONFIG_GETTER_DOUBLE(BatteryVoltage, MC->batteryMsg.battery_voltage_VDC, "Is the battery charging?")
+CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of charge.")
+
 
 
 

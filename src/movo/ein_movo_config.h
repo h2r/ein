@@ -11,6 +11,7 @@
 #include <movo_msgs/ConfigCmd.h>
 #include <movo_msgs/PanTiltFdbk.h>
 #include <movo_msgs/PanTiltCmd.h>
+#include <movo_msgs/Battery.h>
 
 #include "ein_words.h"
 #include "config.h"
@@ -29,6 +30,13 @@ class EinMovoConfig {
 
   ros::Publisher cmdVelPub;
   geometry_msgs::Twist twistMsg;
+
+  ros::Subscriber batterySubscriber;
+  void batteryCallback(const movo_msgs::Battery& js);
+  movo_msgs::Battery batteryMsg;
+  bool batteryCharging;
+  
+  
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
