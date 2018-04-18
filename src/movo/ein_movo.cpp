@@ -297,6 +297,32 @@ END_WORD
 REGISTER_WORD(BaseSendYVel)
 
 
+WORD(BaseSendTwist)
+virtual string description() {
+  return "Send a twist command.  linearX linearY linearZ angularX angularY angularZ baseSendTwist";
+}
+virtual void execute(MachineState * ms) {
+  double lx, ly, lz;
+  double ax, ay, az;
+  GET_NUMERIC_ARG(ms, lx);
+  GET_NUMERIC_ARG(ms, ly);
+  GET_NUMERIC_ARG(ms, lz);
+  GET_NUMERIC_ARG(ms, ax);
+  GET_NUMERIC_ARG(ms, ay);
+  GET_NUMERIC_ARG(ms, az);
+
+  MC->twistMsg.linear.x = lx;
+  MC->twistMsg.linear.y = ly;
+  MC->twistMsg.linear.z = lz;
+  MC->twistMsg.angular.x = ax;
+  MC->twistMsg.angular.y = ay;
+  MC->twistMsg.angular.z = az;
+  MC->cmdVelPub.publish(MC->twistMsg);
+}
+END_WORD
+REGISTER_WORD(BaseSendTwist)
+
+
 
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
