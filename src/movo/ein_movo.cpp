@@ -8,6 +8,10 @@
 
 #define MC ms->config.movoConfig
 
+#define TRACTOR_REQUEST 5
+#define STANDBY_REQUEST 4
+#define POWERDOWN_REQUEST 6
+
 
 using namespace std;
 
@@ -17,8 +21,12 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
    torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
 
+   configCmdPub = n.advertise<movo_msgs::ConfigCmd>("/movo/gp_command", 10);
+
    panTiltFdbkSubscriber = n.subscribe("/movo/head/data", 1, &EinMovoConfig::panTiltFdbkCallback, this);
    panTiltCmdPub = n.advertise<movo_msgs::PanTiltCmd>("/movo/head/cmd", 10);
+
+   cmdVelPub = n.advertise<geometry_msgs::Twist>("/movo/cmd_vel", 10);
 }
 
 void EinMovoConfig::panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& m)
@@ -168,6 +176,73 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(PanUp)
+
+WORD(BaseGoCfg)
+virtual string description() {
+  return "Configure the base to start moving.";
+}
+virtual void execute(MachineState * ms) {
+  MC->configMsg.gp_cmd = "GENERAL_PURPOSE_CMD_SET_OPERATIONAL_MODE";
+  MC->configMsg.gp_param = TRACTOR_REQUEST;
+  MC->configMsg.header.stamp = ros::Time::now();
+  MC->configCmdPub.publish(MC->configMsg);
+}
+END_WORD
+REGISTER_WORD(BaseGoCfg)
+
+
+WORD(BaseStopCfg)
+virtual string description() {
+  return "Configure the base to stop moving.";
+}
+virtual void execute(MachineState * ms) {
+  MC->configMsg.gp_cmd = "GENERAL_PURPOSE_CMD_NONE";
+  MC->configMsg.gp_param = 0;
+  MC->configMsg.header.stamp = ros::Time::now();
+  MC->configCmdPub.publish(MC->configMsg);
+}
+END_WORD
+REGISTER_WORD(BaseStopCfg)
+
+
+WORD(BaseStopTwist)
+virtual string description() {
+  return "Send a zero twist command.";
+}
+virtual void execute(MachineState * ms) {
+  MC->twistMsg.linear.x = 0;
+  MC->twistMsg.linear.y = 0;
+  MC->twistMsg.linear.z = 0;
+  MC->twistMsg.angular.x = 0;
+  MC->twistMsg.angular.y = 0;
+  MC->twistMsg.angular.z = 0;
+  MC->cmdVelPub.publish(MC->twistMsg);
+}
+END_WORD
+REGISTER_WORD(BaseStopTwist)
+
+
+
+
+WORD(BaseOZUp)
+virtual string description() {
+  return "Rotate the base at a velocity.";
+}
+virtual void execute(MachineState * ms) {
+  double angularspeed;
+  GET_NUMERIC_ARG(ms, angularspeed);
+
+  MC->twistMsg.linear.x = 0;
+  MC->twistMsg.linear.y = 0;
+  MC->twistMsg.linear.z = 0;
+  MC->twistMsg.angular.x = 0;
+  MC->twistMsg.angular.y = 0;
+  MC->twistMsg.angular.z = angularspeed;
+  MC->cmdVelPub.publish(MC->twistMsg);
+}
+END_WORD
+REGISTER_WORD(BaseOZUp)
+
 
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")

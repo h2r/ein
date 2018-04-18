@@ -8,6 +8,7 @@
 #include <movo_msgs/LinearActuatorCmd.h>
 #include <movo_msgs/PanTiltActuatorFdbk.h>
 #include <movo_msgs/PVA.h>
+#include <movo_msgs/ConfigCmd.h>
 #include <movo_msgs/PanTiltFdbk.h>
 #include <movo_msgs/PanTiltCmd.h>
 
@@ -23,7 +24,11 @@ class EinMovoConfig {
   EinMovoConfig(MachineState * ms);
   ros::NodeHandle n;
 
+  movo_msgs::ConfigCmd configMsg;
+  ros::Publisher configCmdPub;  
+
   ros::Publisher cmdVelPub;
+  geometry_msgs::Twist twistMsg;
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
