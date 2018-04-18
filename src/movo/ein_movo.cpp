@@ -224,7 +224,7 @@ REGISTER_WORD(BaseStopTwist)
 
 
 
-WORD(BaseOZUp)
+WORD(BaseSendOZVel)
 virtual string description() {
   return "Rotate the base at a velocity.";
 }
@@ -241,7 +241,47 @@ virtual void execute(MachineState * ms) {
   MC->cmdVelPub.publish(MC->twistMsg);
 }
 END_WORD
-REGISTER_WORD(BaseOZUp)
+REGISTER_WORD(BaseSendOZVel)
+
+WORD(BaseSendXVel)
+virtual string description() {
+  return "Move the base in X at a velocity.";
+}
+virtual void execute(MachineState * ms) {
+  double speed;
+  GET_NUMERIC_ARG(ms, speed);
+
+  MC->twistMsg.linear.x = speed;
+  MC->twistMsg.linear.y = 0;
+  MC->twistMsg.linear.z = 0;
+  MC->twistMsg.angular.x = 0;
+  MC->twistMsg.angular.y = 0;
+  MC->twistMsg.angular.z = 0;
+  MC->cmdVelPub.publish(MC->twistMsg);
+}
+END_WORD
+REGISTER_WORD(BaseSendXVel)
+
+
+WORD(BaseSendYVel)
+virtual string description() {
+  return "Move the base in Y at a velocity.";
+}
+virtual void execute(MachineState * ms) {
+  double speed;
+  GET_NUMERIC_ARG(ms, speed);
+
+  MC->twistMsg.linear.x = 0;
+  MC->twistMsg.linear.y = speed;
+  MC->twistMsg.linear.z = 0;
+  MC->twistMsg.angular.x = 0;
+  MC->twistMsg.angular.y = 0;
+  MC->twistMsg.angular.z = 0;
+  MC->cmdVelPub.publish(MC->twistMsg);
+}
+END_WORD
+REGISTER_WORD(BaseSendYVel)
+
 
 
 
