@@ -55,7 +55,37 @@ void robotUpdate(MachineState * ms) {
   MC->ptaCmdMsg.tilt_cmd.vel_rps = 10000;
   MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
   MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
+
+
+
+  geometry_msgs::PoseStamped id;
+  id.header.frame_id = "base_link";
+  id.header.stamp = ros::Time(0);
+  id.pose.position.x = 0;
+  id.pose.position.y = 0;
+  id.pose.position.z = 0;
+  id.pose.orientation.x = 0;
+  id.pose.orientation.y = 0;
+  id.pose.orientation.z = 0;
+  id.pose.orientation.w = 1;
+  
+  geometry_msgs::PoseStamped odom_pose;
+
+  ms->config.tfListener->transformPose("odom", id, odom_pose);
+  MC->odomPose = rosPoseToEEPose(odom_pose.pose);
 }
+
+WORD(OdomPose)
+virtual string description() {
+  return "The odom pose, transformed from base.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->odomPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(OdomPose)
+
 
 void robotInitializeConfig(MachineState * ms) {
  MC = new EinMovoConfig(ms);

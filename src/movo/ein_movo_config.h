@@ -23,6 +23,8 @@ class EinMovoConfig {
   EinMovoConfig(MachineState * ms);
   ros::NodeHandle n;
 
+  ros::Publisher cmdVelPub;
+
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
   movo_msgs::LinearActuatorCmd torsoCmd;
@@ -42,6 +44,10 @@ class EinMovoConfig {
 
   double targetPanPos;
   double targetTiltPos;
+
+  eePose odomPose;
+  eePose mapPose;
+
 };
 
 #endif /* _EIN_MOVO_CONFIG_H_ */
