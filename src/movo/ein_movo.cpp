@@ -44,6 +44,17 @@ void robotUpdate(MachineState * ms) {
   MC->torsoCmd.desired_position_m = MC->targetTorsoJointPosition;
   MC->torsoCmd.fdfwd_vel_mps = 0;
   MC->torsoJointCmdPub.publish(MC->torsoCmd);
+
+
+  MC->ptaCmdMsg.header.stamp = ros::Time::now();
+  MC->ptaCmdMsg.pan_cmd.pos_rad = MC->targetPanPos;
+  MC->ptaCmdMsg.pan_cmd.vel_rps = 10000.0;
+  MC->ptaCmdMsg.pan_cmd.acc_rps2 = 0.0;
+
+  MC->ptaCmdMsg.tilt_cmd.pos_rad = MC->targetTiltPos;
+  MC->ptaCmdMsg.tilt_cmd.vel_rps = 10000;
+  MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
+  MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
 }
 
 void robotInitializeConfig(MachineState * ms) {
@@ -65,7 +76,8 @@ void robotInitializeMachine(MachineState * ms) {
 
 void robotSetCurrentJointPositions(MachineState * ms) {
   MC->targetTorsoJointPosition = MC->trueTorsoJointPosition;
-
+  MC->targetPanPos = MC->ptaFdbkMsg.pan.pos_rad;
+  MC->targetTiltPos = MC->ptaFdbkMsg.tilt.pos_rad;
 }
 
 void robotEndPointCallback(MachineState * ms) {
@@ -86,7 +98,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
-WORD(TUp)
+WORD(TorsoUp)
 virtual string description() {
   return "Move the torso up.";
 }
@@ -94,9 +106,9 @@ virtual void execute(MachineState * ms) {
   MC->targetTorsoJointPosition += MC->torsoGridSize;
 }
 END_WORD
-REGISTER_WORD(TUp)
+REGISTER_WORD(TorsoUp)
 
-WORD(TDown)
+WORD(TorsoDown)
 virtual string description() {
   return "Move the torso down.";
 }
@@ -104,8 +116,28 @@ virtual void execute(MachineState * ms) {
   MC->targetTorsoJointPosition -= MC->torsoGridSize;
 }
 END_WORD
-REGISTER_WORD(TDown)
+REGISTER_WORD(TorsoDown)
 
+
+WORD(PanDown)
+virtual string description() {
+  return "Move the pan angle down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetPanPos -= MC->panTiltGridSize;
+}
+END_WORD
+REGISTER_WORD(PanDown)
+
+WORD(PanUp)
+virtual string description() {
+  return "Move the pan angle up.";
+}
+virtual void execute(MachineState * ms) {
+  MC->targetPanPos += MC->panTiltGridSize;
+}
+END_WORD
+REGISTER_WORD(PanUp)
 
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
@@ -119,6 +151,8 @@ CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when movin
 CONFIG_SETTER_DOUBLE(SetTorsoGridSize, MC->torsoGridSize)
 
 
+CONFIG_GETTER_DOUBLE(TargetPanPos, MC->targetPanPos, "The target pan.")
+CONFIG_SETTER_DOUBLE(SetTargetPanPos, MC->targetPanPos)
 CONFIG_GETTER_DOUBLE(PanCurrent, MC->ptaFdbkMsg.pan.current, "The current pan.")
 CONFIG_GETTER_DOUBLE(PanPos, MC->ptaFdbkMsg.pan.pos_rad, "The current position in radians.")
 CONFIG_GETTER_DOUBLE(PanVel, MC->ptaFdbkMsg.pan.vel_rps, "The current velocity in rps.")
@@ -130,6 +164,9 @@ CONFIG_GETTER_DOUBLE(PanAy, MC->ptaFdbkMsg.pan.accel.x, "The y accelleration.")
 CONFIG_GETTER_DOUBLE(PanAz, MC->ptaFdbkMsg.pan.accel.x, "The z accelleration.")
 CONFIG_GETTER_DOUBLE(PanTemperature, MC->ptaFdbkMsg.pan.temperature_degC, "The temperature in Celcius.")
 
+
+CONFIG_GETTER_DOUBLE(TargetTiltPos, MC->targetTiltPos, "The target tilt.")
+CONFIG_SETTER_DOUBLE(SetTargetTilt, MC->targetTiltPos)
 CONFIG_GETTER_DOUBLE(TiltCurrent, MC->ptaFdbkMsg.tilt.current, "The current tilt.")
 CONFIG_GETTER_DOUBLE(TiltPos, MC->ptaFdbkMsg.tilt.pos_rad, "The current position in radians.")
 CONFIG_GETTER_DOUBLE(TiltVel, MC->ptaFdbkMsg.tilt.vel_rps, "The current velocity in rps.")
