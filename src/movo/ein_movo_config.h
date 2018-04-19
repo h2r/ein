@@ -66,6 +66,27 @@ class EinMovoConfig {
   double targetPanPos;
   double targetTiltPos;
 
+  const static unsigned int num_joints=17;  
+  const vector<double> homedJoints{-1.5,-0.2,-0.15,-2.0,2.0,-1.24,-1.1, 1.5,0.2,0.15,2.0,-2.0,1.24,1.1,0.35,0,0};
+  const vector<double> tuckedJoints{-1.6,-1.4,0.4,-2.7,0.0,0.5,-1.7, 1.6,1.4,-0.4,2.7,0.0,-0.5, 1.7, 0.04, 0, 0};
+  const vector<std::string> upperBodyJoints{"right_shoulder_pan_joint",
+					    "right_shoulder_lift_joint",
+					    "right_arm_half_joint",
+					    "right_elbow_joint",
+					    "right_wrist_spherical_1_joint",
+					    "right_wrist_spherical_2_joint",
+					    "right_wrist_3_joint",
+					    "left_shoulder_pan_joint",
+					    "left_shoulder_lift_joint",
+					    "left_arm_half_joint",
+					    "left_elbow_joint",
+					    "left_wrist_spherical_1_joint",
+					    "left_wrist_spherical_2_joint",
+					    "left_wrist_3_joint",
+					    "linear_joint",
+					    "pan_joint",
+					    "tilt_joint"};
+
   eePose odomPose;
   eePose mapPose;
 

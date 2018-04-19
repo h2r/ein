@@ -240,8 +240,11 @@ virtual void execute(MachineState * ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
-#define CONFIG_GETTER_STRING(backName, configName)	\
+#define CONFIG_GETTER_STRING(backName, configName, desc)	\
 WORD(backName) \
+virtual string description() {\
+  return desc;\
+}\
 virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<StringWord>(configName)); \
 } \

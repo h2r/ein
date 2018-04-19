@@ -281,7 +281,7 @@ virtual void execute(MachineState * ms)       {
 END_WORD
 REGISTER_WORD(PushClassLabelsReport)
 
-CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel)
+CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel, "The focused class.")
 
 WORD(PushClassLabels)
 virtual string description() {

@@ -3333,15 +3333,15 @@ CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh, "");
 CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 
 
-CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory)
+CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory, "The directory where data is stored.")
 
-CONFIG_GETTER_STRING(RobotType, ms->config.robot_type)
+CONFIG_GETTER_STRING(RobotType, ms->config.robot_type, "The type of the robot.")
 
-CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
-CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version)
-CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version)
+CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial, "The robot serial number, used for naming configuration files uniquely.")
+CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version, "The robot software version.  used for baxter sdk versions.")
+CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version, "Ein's version.")
 
-CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
+CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group, "The scan group, for saving groups of scans organized by objects.")
 CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 
 CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight, "Start height at which we make the IK map.")
@@ -3390,7 +3390,7 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_
 CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
 CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
 
-CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name);
+CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name, "The name of the focused camera.");
 
 
 

@@ -2,7 +2,7 @@
 #include "ein_movo_config.h"
 
 #include <actionlib/client/simple_action_client.h>
-
+#include <moveit_msgs/MoveItErrorCodes.h>
 
 #include "config.h"
 #include "ein.h"
@@ -19,6 +19,7 @@ using namespace std;
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
  {
    ms = myms;
+
 
    upperBody = new MoveGroup("upper_body");
    leftArm = new MoveGroup("left_arm");
@@ -131,7 +132,7 @@ void robotInitializeConfig(MachineState * ms) {
 
 
 void robotInitializeMachine(MachineState * ms) {
-  ms->evaluateProgram("zeroGOff"); 
+  ms->evaluateProgram("zeroGOff \"movo\" import"); 
 
 }
 
@@ -371,6 +372,37 @@ END_WORD
 REGISTER_WORD(BaseSendTwist)
 
 
+WORD(MoveToHome)
+virtual string description() {
+  return "Move to the home position.";
+}
+virtual void execute(MachineState * ms) {
+  CONSOLE(ms, "Move to home. Setting targets");
+  for (int i = 0; i < MC->homedJoints.size(); i++) {
+    bool result = MC->upperBody->setJointValueTarget(MC->upperBodyJoints[i], MC->homedJoints[i]);
+    if (!result) {
+      CONSOLE_ERROR(ms, "Invalid joint target: " << MC->upperBodyJoints[i] << " value: " << MC->homedJoints[i]);
+      return;
+    }
+  }
+  CONSOLE(ms, "Move to home making plan.");
+  MoveGroup::Plan plan;
+  MoveItErrorCode r_plan = MC->upperBody->plan(plan);
+  if (r_plan.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't plan.  Code:  " << r_plan.val);
+    return;
+  }
+  CONSOLE(ms, "Plan: " << r_plan);
+  CONSOLE(ms, "Async execute.");
+  MoveItErrorCode r_execute = MC->upperBody->asyncExecute(plan);
+  
+  if (r_execute.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r_execute.val);
+    return;
+  }
+}
+END_WORD
+REGISTER_WORD(MoveToHome)
 
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
@@ -418,7 +450,9 @@ CONFIG_GETTER_INT(BatteryCharging, MC->batteryCharging)
 CONFIG_GETTER_DOUBLE(BatteryVoltage, MC->batteryMsg.battery_voltage_VDC, "Is the battery charging?")
 CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of charge.")
 
+CONFIG_GETTER_DOUBLE(MoveitPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
 
+CONFIG_GETTER_STRING(MoveitPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
 
 
 }

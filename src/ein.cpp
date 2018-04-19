@@ -8922,7 +8922,7 @@ int main(int argc, char **argv) {
 
     initializeArm(ms, left_or_right);
 
-    ms->config.timer1 = n.createTimer(ros::Duration(0.001), &MachineState::timercallback1, ms);
+    ms->config.timer1 = n.createTimer(ros::Duration(0.01), &MachineState::timercallback1, ms);
     ms->config.showgui = showgui;
   }
 

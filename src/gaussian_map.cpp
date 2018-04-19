@@ -4816,9 +4816,9 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetAnnotatedClassNameToFocusedClass)
 
-CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name, "The predicted class.")
 CONFIG_SETTER_STRING(SceneSetPredictedClassName, ms->config.scene->predicted_class_name)
-CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name)
+CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name, "The annotated class, for evaluation purposes.")
 CONFIG_SETTER_STRING(SceneSetAnnotatedClassName, ms->config.scene->annotated_class_name)
 
 // count the number of equal digits
