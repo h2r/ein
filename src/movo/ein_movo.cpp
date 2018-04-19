@@ -385,7 +385,7 @@ virtual void execute(MachineState * ms) {
       return;
     }
   }
-  CONSOLE(ms, "Move to home making plan.");
+  /*  CONSOLE(ms, "Move to home making plan.");
   MoveGroup::Plan plan;
   MoveItErrorCode r_plan = MC->upperBody->plan(plan);
   if (r_plan.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
@@ -399,10 +399,46 @@ virtual void execute(MachineState * ms) {
   if (r_execute.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
     CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r_execute.val);
     return;
-  }
+    }*/
+  MC->upperBody->asyncMove();
 }
 END_WORD
 REGISTER_WORD(MoveToHome)
+
+
+WORD(MoveToTuck)
+virtual string description() {
+  return "Move to the tuck position.";
+}
+virtual void execute(MachineState * ms) {
+  CONSOLE(ms, "Move to home. Setting targets");
+  for (int i = 0; i < MC->tuckedJoints.size(); i++) {
+    bool result = MC->upperBody->setJointValueTarget(MC->upperBodyJoints[i], MC->tuckedJoints[i]);
+    if (!result) {
+      CONSOLE_ERROR(ms, "Invalid joint target: " << MC->upperBodyJoints[i] << " value: " << MC->homedJoints[i]);
+      return;
+    }
+  }
+  /*  CONSOLE(ms, "Move to home making plan.");
+  MoveGroup::Plan plan;
+  MoveItErrorCode r_plan = MC->upperBody->plan(plan);
+  if (r_plan.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't plan.  Code:  " << r_plan.val);
+    return;
+  }
+  CONSOLE(ms, "Plan: " << r_plan);
+  CONSOLE(ms, "Async execute.");
+  MoveItErrorCode r_execute = MC->upperBody->asyncExecute(plan);
+  
+  if (r_execute.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r_execute.val);
+    return;
+    }*/
+  MC->upperBody->asyncMove();
+}
+END_WORD
+REGISTER_WORD(MoveToTuck)
+
 
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
@@ -453,6 +489,21 @@ CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of c
 CONFIG_GETTER_DOUBLE(MoveitPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
 
 CONFIG_GETTER_STRING(MoveitPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+
+CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, MC->upperBody->getGoalJointTolerance(), "Moveit  goal joint tolerance.")
+WORD(MoveitSetGoalJointTolerance)
+virtual string description() {
+  return "Set movit goal joint tolerance.";
+}
+virtual void execute(MachineState * ms) {
+  double t;
+  GET_NUMERIC_ARG(ms, t);
+
+  MC->upperBody->setGoalJointTolerance(t);
+}
+END_WORD
+REGISTER_WORD(MoveitSetGoalJointTolerance)
+
 
 
 }
