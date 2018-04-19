@@ -90,6 +90,13 @@ class EinMovoConfig {
   eePose odomPose;
   eePose mapPose;
 
+  eePose leftPose;
+  eePose rightPose;
+
+  eePose leftTargetPose;
+  eePose rightTargetPose;
+
+
 };
 
 #endif /* _EIN_MOVO_CONFIG_H_ */

@@ -91,7 +91,6 @@ void robotUpdate(MachineState * ms) {
 
 
   geometry_msgs::PoseStamped id;
-  id.header.frame_id = "base_link";
   id.header.stamp = ros::Time(0);
   id.pose.position.x = 0;
   id.pose.position.y = 0;
@@ -102,9 +101,19 @@ void robotUpdate(MachineState * ms) {
   id.pose.orientation.w = 1;
   
   geometry_msgs::PoseStamped odom_pose;
-
+  id.header.frame_id = "base_link";
   ms->config.tfListener->transformPose("odom", id, odom_pose);
   MC->odomPose = rosPoseToEEPose(odom_pose.pose);
+
+  geometry_msgs::PoseStamped left_ee_pose;
+  id.header.frame_id = "left_gripper_base_link";
+  ms->config.tfListener->transformPose("base_link", id, left_ee_pose);
+  MC->leftPose = rosPoseToEEPose(left_ee_pose.pose);
+
+  geometry_msgs::PoseStamped right_ee_pose;
+  id.header.frame_id = "right_gripper_base_link";
+  ms->config.tfListener->transformPose("base_link", id, right_ee_pose);
+  MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
 }
 
 WORD(OdomPose)
@@ -117,6 +126,55 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(OdomPose)
+
+WORD(LeftPose)
+virtual string description() {
+  return "The left arm end effector pose.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->leftPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(LeftPose)
+
+
+WORD(RightPose)
+virtual string description() {
+  return "The right arm end effector pose.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->rightPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(RightPose)
+
+
+WORD(RightTargetPose)
+virtual string description() {
+  return "The right arm end effector target pose.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->rightTargetPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(RightTargetPose)
+
+
+WORD(LeftTargetPose)
+virtual string description() {
+  return "The left arm end effector target pose.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->leftTargetPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(LeftTargetPose)
+
+
 
 
 void robotInitializeConfig(MachineState * ms) {
@@ -132,7 +190,7 @@ void robotInitializeConfig(MachineState * ms) {
 
 
 void robotInitializeMachine(MachineState * ms) {
-  ms->evaluateProgram("zeroGOff \"movo\" import"); 
+  ms->evaluateProgram("\"movo\" import"); 
 
 }
 
@@ -140,6 +198,9 @@ void robotSetCurrentJointPositions(MachineState * ms) {
   MC->targetTorsoJointPosition = MC->trueTorsoJointPosition;
   MC->targetPanPos = MC->ptaFdbkMsg.pan.pos_rad;
   MC->targetTiltPos = MC->ptaFdbkMsg.tilt.pos_rad;
+
+  MC->leftTargetPose = MC->leftPose;
+  MC->rightTargetPose = MC->rightPose;
 }
 
 void robotEndPointCallback(MachineState * ms) {
@@ -377,7 +438,6 @@ virtual string description() {
   return "Move to the home position.";
 }
 virtual void execute(MachineState * ms) {
-  CONSOLE(ms, "Move to home. Setting targets");
   for (int i = 0; i < MC->homedJoints.size(); i++) {
     bool result = MC->upperBody->setJointValueTarget(MC->upperBodyJoints[i], MC->homedJoints[i]);
     if (!result) {
@@ -385,22 +445,10 @@ virtual void execute(MachineState * ms) {
       return;
     }
   }
-  /*  CONSOLE(ms, "Move to home making plan.");
-  MoveGroup::Plan plan;
-  MoveItErrorCode r_plan = MC->upperBody->plan(plan);
-  if (r_plan.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-    CONSOLE_ERROR(ms, "Couldn't plan.  Code:  " << r_plan.val);
-    return;
+  MoveItErrorCode r = MC->upperBody->asyncMove();
+  if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
   }
-  CONSOLE(ms, "Plan: " << r_plan);
-  CONSOLE(ms, "Async execute.");
-  MoveItErrorCode r_execute = MC->upperBody->asyncExecute(plan);
-  
-  if (r_execute.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r_execute.val);
-    return;
-    }*/
-  MC->upperBody->asyncMove();
 }
 END_WORD
 REGISTER_WORD(MoveToHome)
@@ -411,7 +459,6 @@ virtual string description() {
   return "Move to the tuck position.";
 }
 virtual void execute(MachineState * ms) {
-  CONSOLE(ms, "Move to home. Setting targets");
   for (int i = 0; i < MC->tuckedJoints.size(); i++) {
     bool result = MC->upperBody->setJointValueTarget(MC->upperBodyJoints[i], MC->tuckedJoints[i]);
     if (!result) {
@@ -419,22 +466,11 @@ virtual void execute(MachineState * ms) {
       return;
     }
   }
-  /*  CONSOLE(ms, "Move to home making plan.");
-  MoveGroup::Plan plan;
-  MoveItErrorCode r_plan = MC->upperBody->plan(plan);
-  if (r_plan.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-    CONSOLE_ERROR(ms, "Couldn't plan.  Code:  " << r_plan.val);
-    return;
+  MoveItErrorCode r = MC->upperBody->asyncMove();
+  if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
   }
-  CONSOLE(ms, "Plan: " << r_plan);
-  CONSOLE(ms, "Async execute.");
-  MoveItErrorCode r_execute = MC->upperBody->asyncExecute(plan);
-  
-  if (r_execute.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r_execute.val);
-    return;
-    }*/
-  MC->upperBody->asyncMove();
+
 }
 END_WORD
 REGISTER_WORD(MoveToTuck)
