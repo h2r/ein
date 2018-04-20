@@ -4,6 +4,8 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <sensor_msgs/JointState.h>
+#include <actionlib_msgs/GoalStatusArray.h>
+
 
 #include <movo_msgs/LinearActuatorCmd.h>
 #include <movo_msgs/PanTiltActuatorFdbk.h>
@@ -45,6 +47,12 @@ class EinMovoConfig {
   MoveGroup * upperBody;
   MoveGroup * leftArm;
   MoveGroup * rightArm;
+  ros::Subscriber moveitStatusSubscriber;
+  actionlib_msgs::GoalStatusArray moveitStatusMsg;
+  void moveitStatusCallback(const actionlib_msgs::GoalStatusArray&m);
+  map<string, actionlib_msgs::GoalStatus> goals;
+
+
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
@@ -87,6 +95,8 @@ class EinMovoConfig {
 					    "pan_joint",
 					    "tilt_joint"};
 
+
+  double gridSize=0.01;  
   eePose odomPose;
   eePose mapPose;
 

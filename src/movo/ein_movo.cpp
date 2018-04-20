@@ -1,7 +1,6 @@
 #include "ein_movo.h"
 #include "ein_movo_config.h"
 
-#include <actionlib/client/simple_action_client.h>
 #include <moveit_msgs/MoveItErrorCodes.h>
 
 #include "config.h"
@@ -28,6 +27,9 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    leftArm->setPlannerId("RRTConnectkConfigDefault");
    rightArm->setPlannerId("RRTConnectkConfigDefault");
 
+   moveitStatusSubscriber = n.subscribe("/move_group/status", 1, &EinMovoConfig::moveitStatusCallback, this);
+
+   batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
    batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
@@ -42,6 +44,14 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
 
    cmdVelPub = n.advertise<geometry_msgs::Twist>("/movo/cmd_vel", 10);
 }
+
+void EinMovoConfig::moveitStatusCallback(const actionlib_msgs::GoalStatusArray & m)
+{
+  for (int i = 0; i < m.status_list.size(); i++) {
+    MC->goals[m.status_list[i].goal_id.id] = m.status_list[i];
+  }
+}
+
 
 void EinMovoConfig::panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& m)
 {
@@ -63,32 +73,6 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   assert(js.position.size() == 1);
   MC->trueTorsoJointPosition = js.position[0];
   MC->trueTorsoJointVelocity = js.velocity[0];
-}
-
-
-void robotActivateSensorStreaming(MachineState * ms) {
-}
-void robotDeactivateSensorStreaming(MachineState * ms) {
-}
-
-void robotUpdate(MachineState * ms) {
-  MC->torsoCmd.header.stamp = ros::Time::now();
-  MC->torsoCmd.desired_position_m = MC->targetTorsoJointPosition;
-  MC->torsoCmd.fdfwd_vel_mps = 0;
-  MC->torsoJointCmdPub.publish(MC->torsoCmd);
-
-
-  MC->ptaCmdMsg.header.stamp = ros::Time::now();
-  MC->ptaCmdMsg.pan_cmd.pos_rad = MC->targetPanPos;
-  MC->ptaCmdMsg.pan_cmd.vel_rps = 0.87;
-  MC->ptaCmdMsg.pan_cmd.acc_rps2 = 0.0;
-
-  MC->ptaCmdMsg.tilt_cmd.pos_rad = MC->targetTiltPos;
-  MC->ptaCmdMsg.tilt_cmd.vel_rps = 0.87; 
-  MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
-  MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
-
-
 
   geometry_msgs::PoseStamped id;
   id.header.stamp = ros::Time(0);
@@ -116,6 +100,34 @@ void robotUpdate(MachineState * ms) {
   MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
 }
 
+
+void robotActivateSensorStreaming(MachineState * ms) {
+}
+void robotDeactivateSensorStreaming(MachineState * ms) {
+}
+
+void robotUpdate(MachineState * ms) {
+  MC->torsoCmd.header.stamp = ros::Time::now();
+  MC->torsoCmd.desired_position_m = MC->targetTorsoJointPosition;
+  MC->torsoCmd.fdfwd_vel_mps = 0;
+  MC->torsoJointCmdPub.publish(MC->torsoCmd);
+
+
+  MC->ptaCmdMsg.header.stamp = ros::Time::now();
+  MC->ptaCmdMsg.pan_cmd.pos_rad = MC->targetPanPos;
+  MC->ptaCmdMsg.pan_cmd.vel_rps = 0.87;
+  MC->ptaCmdMsg.pan_cmd.acc_rps2 = 0.0;
+
+  MC->ptaCmdMsg.tilt_cmd.pos_rad = MC->targetTiltPos;
+  MC->ptaCmdMsg.tilt_cmd.vel_rps = 0.87; 
+  MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
+  MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
+
+
+  
+
+}
+
 WORD(OdomPose)
 virtual string description() {
   return "The odom pose, transformed from base.";
@@ -126,6 +138,17 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(OdomPose)
+
+WORD(LXup)
+virtual string description() {
+  return "Move the left arm up in x.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.px += MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LXup)
+
 
 WORD(LeftPose)
 virtual string description() {
@@ -522,14 +545,14 @@ CONFIG_GETTER_INT(BatteryCharging, MC->batteryCharging)
 CONFIG_GETTER_DOUBLE(BatteryVoltage, MC->batteryMsg.battery_voltage_VDC, "Is the battery charging?")
 CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of charge.")
 
-CONFIG_GETTER_DOUBLE(MoveitPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
+CONFIG_GETTER_DOUBLE(MoveitUpperPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
 
-CONFIG_GETTER_STRING(MoveitPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+CONFIG_GETTER_STRING(MoveitUpperPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
 
-CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, MC->upperBody->getGoalJointTolerance(), "Moveit  goal joint tolerance.")
-WORD(MoveitSetGoalJointTolerance)
+CONFIG_GETTER_DOUBLE(MoveitUpperGoalJointTolerance, MC->upperBody->getGoalJointTolerance(), "Moveit goal joint tolerance.")
+WORD(MoveitUpperSetGoalJointTolerance)
 virtual string description() {
-  return "Set movit goal joint tolerance.";
+  return "Set moveit upper goal joint tolerance.";
 }
 virtual void execute(MachineState * ms) {
   double t;
@@ -538,7 +561,7 @@ virtual void execute(MachineState * ms) {
   MC->upperBody->setGoalJointTolerance(t);
 }
 END_WORD
-REGISTER_WORD(MoveitSetGoalJointTolerance)
+REGISTER_WORD(MoveitUpperSetGoalJointTolerance)
 
 
 
