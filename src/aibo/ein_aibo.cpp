@@ -120,6 +120,8 @@ SSDP_ENABLE=1
 
 */
 
+void flushDogBuffer(MachineState * ms, int member);
+
 void robotInitializeConfig(MachineState * ms) {
   ms->config.aiboConfig = new EinAiboConfig(ms);
   ms->config.cameras.clear();
@@ -160,6 +162,8 @@ void robotInitializeConfig(MachineState * ms) {
 }
 
 void robotInitializeMachine(MachineState * ms) {
+  ms->evaluateProgram("\"aibo\" import");
+
 }
 
 EinAiboConfig::EinAiboConfig(MachineState * myms) {
@@ -348,6 +352,7 @@ bool dogIsStopped(MachineState * ms, int member) {
 
 void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
+  CONSOLE(ms, "sending to " << member);
   if (ms->config.aiboConfig->pack.size() == 0) {
     CONSOLE_ERROR(ms, "No pack; need to initialize.");
     return;
@@ -533,7 +538,6 @@ int findStringInDogBuffer(MachineState * ms, int member, string toFind, int star
       searchedBytes += toFind.size();
       //cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
       return searchedBytes;
-    } else {
     }
   }
 
@@ -650,7 +654,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DogSetFocusedMember)
 
-CONFIG_GETTER_INT(FocusedCamera, ms->config.aiboConfig->focusedMember);
+CONFIG_GETTER_INT(DogFocusedMember, ms->config.aiboConfig->focusedMember);
 
 WORD(DogBark)
 virtual void execute(MachineState * ms) {
@@ -689,7 +693,7 @@ virtual void execute(MachineState * ms) {
 
   GET_INT_ARG(ms, t_port);
   GET_STRING_ARG(ms, t_ip);
-
+  CONSOLE(ms, "OPening " << ms->config.aiboConfig->focusedMember);
   // destroy old socket
   close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
   // create socket
@@ -1120,7 +1124,7 @@ virtual void execute(MachineState * ms) {
   if (startCoreMessage == -1) {
     return;
   }
-  //cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
+  CONSOLE(ms, "Dog buffer: " << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf);
 
   size_t idx;
   int nextCoreMessage = startCoreMessage; 
@@ -1288,7 +1292,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DogGetIndicators)
 
-#define DOG_SEND_JOINT_VAR(x) << " " << #x << ".val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.x << ","
+#define DOG_SEND_JOINT_VAR(x) << " " << #x << ".val = " << (ms->config.aiboConfig->pack[this_dog]->intendedPose.x *180/M_PI) << ","
 #define DOG_SEND_JOINT_PGAIN_VAR(x) << " " << #x << ".PGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[0].x << ","
 #define DOG_SEND_JOINT_IGAIN_VAR(x) << " " << #x << ".IGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[1].x << ","
 #define DOG_SEND_JOINT_DGAIN_VAR(x) << " " << #x << ".DGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[2].x << ","
@@ -1299,27 +1303,6 @@ virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
 
   stringstream ss;
-/*
-  ss <<
-  "legLF1.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF1 << "; " <<
-  "legLF2.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF2 << "; " <<
-  "legLF3.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF3 << "; " <<
-  "legLH1.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH1 << "; " <<
-  "legLH2.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH2 << "; " <<
-  "legLH3.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH3 << "; " <<
-  "legRH1.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH1 << "; " <<
-  "legRH2.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH2 << "; " <<
-  "legRH3.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH3 << "; " <<
-  "legRF1.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF1 << "; " <<
-  "legRF2.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF2  << "; " <<
-  "legRF3.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF3  << "; " <<
-  "neck.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.neck << "; " <<
-  "headPan.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.headPan << "; " <<
-  "headTilt.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.headTilt << "; " <<
-  "tailPan.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.tailPan << "; " <<
-  "tailTilt.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.tailTilt << "; " <<
-  "mouth.val = " << ms->config.aiboConfig->pack[this_dog]->intendedPose.mouth << "; "
-*/
   ss  
     DOG_SEND_JOINT_VAR(legLF1)
     DOG_SEND_JOINT_VAR(legLF2)
@@ -1396,6 +1379,7 @@ virtual void execute(MachineState * ms) {
   ;
 
   string message = ss.str();
+  CONSOLE(ms, "Sending" << message);
   sendOnDogSocket(ms, this_dog, message);
 }
 END_WORD
@@ -1452,7 +1436,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DogStay)
 
-WORD(DogPushIntendedPose)
+WORD(DogIntendedPose)
 virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
 
@@ -1460,9 +1444,9 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(DogPushIntendedPose)
+REGISTER_WORD(DogIntendedPose)
 
-WORD(DogPushTruePose)
+WORD(DogTruePose)
 virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
 
@@ -1470,9 +1454,9 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(DogPushTruePose)
+REGISTER_WORD(DogTruePose)
 
-WORD(DogPushIntendedGain)
+WORD(DogIntendedGain)
 virtual void execute(MachineState * ms) {
   int t_gain= 0;
   GET_INT_ARG(ms, t_gain);
@@ -1483,9 +1467,9 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(DogPushIntendedGain)
+REGISTER_WORD(DogIntendedGain)
 
-WORD(DogPushTrueGain)
+WORD(DogTrueGain)
 virtual void execute(MachineState * ms) {
   int t_gain= 0;
   GET_INT_ARG(ms, t_gain);
@@ -1496,7 +1480,7 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(word);
 }
 END_WORD
-REGISTER_WORD(DogPushTrueGain)
+REGISTER_WORD(DogTrueGain)
 
 WORD(DogCreatePose)
 virtual void execute(MachineState * ms) {
@@ -3280,7 +3264,7 @@ REGISTER_WORD(DogComeToStop)
 WORD(DogComeToStopA)
 virtual void execute(MachineState * ms) {
   ros::Duration comeToStopLength = ros::Time::now() - ms->config.aiboConfig->aiboComeToStopTime;
-  ms->pushWord("dogGetSensoryMotorStates");
+  //ms->pushWord("dogGetSensoryMotorStates");
 
   cout << "Length: " << comeToStopLength << endl;
   if (comeToStopLength > ros::Duration(10, 0)) {

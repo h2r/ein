@@ -447,6 +447,22 @@ Snare
 
 
 (
+  dogGetIndicators
+  0 dogSetIntendedEarL
+  0 dogSetIntendedEarR
+  dogSendIndicators
+) "dogEarsDown" store
+
+(
+  dogGetIndicators
+  1 dogSetIntendedEarL
+  1 dogSetIntendedEarR
+  dogSendIndicators
+) "dogEarsUp" store
+
+
+
+(
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   0 dogTailTiltTo 
@@ -606,8 +622,8 @@ fabs:  take the absolute value of that.
 <: less than; return 1 if the number on the stack is less than 0.005. 
 In all this checks that the left front leg first joint is within 0.005 of 0.268.
 */
-dogPushTruePose aiboPoseLegLF1  0.268 - abs 0.005 <
-dogPushTruePose aiboPoseLegRF1  0.268 - abs 0.005 <
+dogTruePose aiboPoseLegLF1  0.268 - abs 0.005 <
+dogTruePose aiboPoseLegRF1  0.268 - abs 0.005 <
 and
 
 /*
@@ -621,9 +637,9 @@ and
 *
 * However above does not evaluate the symbols in a compound word.  So if you want to do a compound and with the results, you do it with
 * square brackets, like so:
-* [ dogPushTruePose aiboPoseLegLF1  0.268 - abs 0.005 <   dogPushTruePose aiboPoseLegRF1  0.268 - abs 0.005 >   ] ( and ) accumulate
+* [ dogTruePose aiboPoseLegLF1  0.268 - abs 0.005 <   dogTruePose aiboPoseLegRF1  0.268 - abs 0.005 >   ] ( and ) accumulate
 * The square bracket construction evaluates the contents and makes a compound word from what's inside.  Then the and/accumulate construction returns the and of
-* all the results.
+p* all the results.
 * If you could put this in the docs, that would be amaaaaazing.  
 * Hope this helps!
 */

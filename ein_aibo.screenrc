@@ -39,7 +39,7 @@ multiuser on
 
 screen -t " ein"
 stuff "source ./setup.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 screen -t " free"
