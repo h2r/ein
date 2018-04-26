@@ -436,6 +436,11 @@ Snare
 -2 dogTurnSeconds
 ) "Turn left."  "demoDogTurnLeft" define
 
+(
+( dogEarsUp
+dogEarsDown 0.2 waitForSeconds ) 10 replicateWord
+) "Wiggle your ears."  "demoDogWiggleEars" define
+
 
 (
 2 dogTurnSeconds
@@ -447,19 +452,20 @@ Snare
 
 
 (
-  dogGetIndicators
-  0 dogSetIntendedEarL
-  0 dogSetIntendedEarR
-  dogSendIndicators
-) "dogEarsDown" store
+  0 dogEars
+) "Moves the dog ears down." "dogEarsDown" define
+
+(
+  1 dogEars
+) "Moves the dog ears up."  "dogEarsUp" define
 
 (
   dogGetIndicators
-  1 dogSetIntendedEarL
-  1 dogSetIntendedEarR
+  dup
+  dogSetIntendedEarL
+  dogSetIntendedEarR
   dogSendIndicators
-) "dogEarsUp" store
-
+) "Moves the dog ears to the indicated position, passed on the stack.  (0 or 1)." "dogEars" define
 
 
 (

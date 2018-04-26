@@ -352,7 +352,7 @@ bool dogIsStopped(MachineState * ms, int member) {
 
 void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
-  CONSOLE(ms, "sending to " << member);
+  //CONSOLE(ms, "sending to " << member);
   if (ms->config.aiboConfig->pack.size() == 0) {
     CONSOLE_ERROR(ms, "No pack; need to initialize.");
     return;
@@ -1124,7 +1124,7 @@ virtual void execute(MachineState * ms) {
   if (startCoreMessage == -1) {
     return;
   }
-  CONSOLE(ms, "Dog buffer: " << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf);
+  //CONSOLE(ms, "Dog buffer: " << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf);
 
   size_t idx;
   int nextCoreMessage = startCoreMessage; 
@@ -1379,7 +1379,7 @@ virtual void execute(MachineState * ms) {
   ;
 
   string message = ss.str();
-  CONSOLE(ms, "Sending" << message);
+  //CONSOLE(ms, "Sending" << message);
   sendOnDogSocket(ms, this_dog, message);
 }
 END_WORD
