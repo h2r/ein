@@ -566,6 +566,7 @@ WORD(DogDoPack)
 virtual void execute(MachineState * ms) {
   shared_ptr<Word> w1;
   GET_WORD_ARG(ms, Word, w1);
+  CONSOLE(ms, "doing pack (incrementing focused member)");
 
   for (int m = 0; m < ms->config.aiboConfig->pack.size(); m++) {
     ms->pushWord(w1);
@@ -649,12 +650,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DogSetFocusedMember)
 
-WORD(DogFocusedMember)
-virtual void execute(MachineState * ms) {
-  ms->pushWord(make_shared<IntegerWord>(ms->config.aiboConfig->focusedMember));
-}
-END_WORD
-REGISTER_WORD(DogFocusedMember)
+CONFIG_GETTER_INT(FocusedCamera, ms->config.aiboConfig->focusedMember);
 
 WORD(DogBark)
 virtual void execute(MachineState * ms) {
