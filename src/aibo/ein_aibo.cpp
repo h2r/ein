@@ -352,11 +352,12 @@ bool dogIsStopped(MachineState * ms, int member) {
 
 void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
-  //CONSOLE(ms, "sending to " << member);
+  CONSOLE(ms, "sending to " << member);
   if (ms->config.aiboConfig->pack.size() == 0) {
     CONSOLE_ERROR(ms, "No pack; need to initialize.");
     return;
   }
+  CONSOLE(ms, "Socket desc: " << ms->config.aiboConfig->pack[member]->aibo_socket_desc);
   struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
     CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
@@ -695,9 +696,14 @@ virtual void execute(MachineState * ms) {
   GET_STRING_ARG(ms, t_ip);
   CONSOLE(ms, "OPening " << ms->config.aiboConfig->focusedMember);
   // destroy old socket
-  close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+  if (ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect) {
+    close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+  }
   // create socket
   ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+
+  CONSOLE(ms, "Puppy: " << t_ip);
+  CONSOLE(ms, "Making socket: " << ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
   if (ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc == -1) {
     CONSOLE_ERROR(ms, "Could not create socket.");
     ms->pushWord("pauseStackExecution"); 
