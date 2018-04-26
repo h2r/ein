@@ -16,14 +16,16 @@ dogBark
 */
 
 
-
+"192.168.0.101" "Pluto" store
+"192.168.0.103" "Crystal" store
+"192.168.0.104" "Spot" store
 
 
 
 (
   2 dogSetPackSize
-  0 dogSetFocusedMember "192.168.1.130" 54000 socketOpen
-  1 dogSetFocusedMember "192.168.1.131" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.0.106" 54000 socketOpen
+  1 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
 ) "dogFormPack" store
 
 (
@@ -31,14 +33,28 @@ dogBark
   0 dogSetFocusedMember "192.168.0.101" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
-) "dogSummonElla" store
+) "dogSummonPluto" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.0.106" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonPeanut" store
 
 (
   1 dogSetPackSize
   0 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
-) "dogSummonPluto" store
+) "dogSummonSpot" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonDynamic" store
 
 (
   1 dogSetPackSize
@@ -593,4 +609,4 @@ and
 * Hope this helps!
 */
 
-) "Returns true if the true pose is standing." isStanding define
+) "Returns true if the true pose is standing." "isStanding" define
