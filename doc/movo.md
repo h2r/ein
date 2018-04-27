@@ -25,9 +25,23 @@ commands and packages.
 
 The relevant words are defined in ein_movo.cpp.
 
-
 Ein has a concept of a focused end effector (either the left or right
 arm).  You can change the focused end effector with
 `incrementEndEffector`.  Words such as `xUp` and the current and
 target pose displayed in the status bar affect only the focused end
-effector.
+effector.  All movement words, such as `xUp`, `localXUp`, `oXUp` and
+`waitUntilAtCurrentPosition` should work.
+
+TODO:
+
+* open and close the gripper; set joint targets.
+
+* light fields with the kinect 2 (Our kinect 2 frame rate is realllllly slow.)
+
+* interfacing with the speaker and text to speech system.
+
+* better base movement, so you can do it with the map.
+
+
+
+

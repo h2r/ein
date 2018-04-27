@@ -96,6 +96,12 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   ms->config.tfListener->transformPose("odom", id, odom_pose);
   MC->odomPose = rosPoseToEEPose(odom_pose.pose);
 
+  geometry_msgs::PoseStamped map_pose;
+  id.header.frame_id = "base_link";
+  ms->config.tfListener->transformPose("map", id, map_pose);
+  MC->mapPose = rosPoseToEEPose(map_pose.pose);
+
+
   geometry_msgs::PoseStamped left_ee_pose;
   id.header.frame_id = "left_ee_link";
   ms->config.tfListener->transformPose("base_link", id, left_ee_pose);
@@ -189,6 +195,18 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(OdomPose)
+
+
+WORD(MapPose)
+virtual string description() {
+  return "The pose in the map frame.";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<EePoseWord> word = std::make_shared<EePoseWord>(MC->mapPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(MapPose)
 
 
 WORD(LeftPose)
