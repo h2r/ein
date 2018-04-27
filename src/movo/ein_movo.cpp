@@ -26,6 +26,8 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    upperBody->setPlannerId("RRTConnectkConfigDefault");
    leftArm->setPlannerId("RRTConnectkConfigDefault");
    rightArm->setPlannerId("RRTConnectkConfigDefault");
+   //leftArm->setEndEffectorLink("left_gripper_base_link");
+   //rightArm->setEndEffectorLink("right_gripper_base_link");
 
    moveitStatusSubscriber = n.subscribe("/move_group/status", 1, &EinMovoConfig::moveitStatusCallback, this);
 
@@ -90,12 +92,12 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   MC->odomPose = rosPoseToEEPose(odom_pose.pose);
 
   geometry_msgs::PoseStamped left_ee_pose;
-  id.header.frame_id = "left_gripper_base_link";
+  id.header.frame_id = "left_ee_link";
   ms->config.tfListener->transformPose("base_link", id, left_ee_pose);
   MC->leftPose = rosPoseToEEPose(left_ee_pose.pose);
 
   geometry_msgs::PoseStamped right_ee_pose;
-  id.header.frame_id = "right_gripper_base_link";
+  id.header.frame_id = "right_ee_link";
   ms->config.tfListener->transformPose("base_link", id, right_ee_pose);
   MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
 }
@@ -138,16 +140,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(OdomPose)
-
-WORD(LXup)
-virtual string description() {
-  return "Move the left arm up in x.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.px += MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LXup)
 
 
 WORD(LeftPose)
@@ -460,6 +452,12 @@ WORD(MoveToHome)
 virtual string description() {
   return "Move to the home position.";
 }
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("goHome");
+  return result;
+}
 virtual void execute(MachineState * ms) {
   for (int i = 0; i < MC->homedJoints.size(); i++) {
     bool result = MC->upperBody->setJointValueTarget(MC->upperBodyJoints[i], MC->homedJoints[i]);
@@ -475,6 +473,31 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(MoveToHome)
+
+WORD(LxUp) 
+virtual string description() {
+  return "Move the left end effector up.";
+}
+virtual void execute(MachineState * ms) {
+
+  MC->leftTargetPose.px += MC->gridSize;
+  geometry_msgs::PoseStamped p;
+  p.pose = eePoseToRosPose(MC->leftTargetPose);
+  p.header.frame_id = "base_link";
+  bool result = MC->leftArm->setPoseTarget(p);
+  if (!result) {
+    CONSOLE_ERROR(ms, "Invalid pose target: " << p);
+    return;
+  }
+  
+  MoveItErrorCode r = MC->leftArm->asyncMove();
+  if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
+  }
+
+}
+END_WORD
+REGISTER_WORD(LxUp)
 
 
 WORD(MoveToTuck)
@@ -548,6 +571,18 @@ CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of c
 CONFIG_GETTER_DOUBLE(MoveitUpperPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
 
 CONFIG_GETTER_STRING(MoveitUpperPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+
+CONFIG_GETTER_STRING(MoveitPoseReferenceFrame, MC->upperBody->getPoseReferenceFrame(), "Moveit pose reference frame.")
+
+CONFIG_GETTER_STRING(MoveitPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+
+CONFIG_GETTER_STRING(MoveitEndEffectorLink, MC->upperBody->getEndEffectorLink(), "Moveit end effector TF link.")
+
+CONFIG_GETTER_STRING(MoveitLeftEndEffectorLink, MC->leftArm->getEndEffectorLink(), "Moveit left arm end effector TF link.")
+
+CONFIG_GETTER_DOUBLE(MoveitUpperGoalPositionTolerance, MC->upperBody->getGoalPositionTolerance(), "Moveit goal position tolerance.")
+
+CONFIG_GETTER_DOUBLE(MoveitUpperGoalOrientationTolerance, MC->upperBody->getGoalOrientationTolerance(), "Moveit goal orientation tolerance.")
 
 CONFIG_GETTER_DOUBLE(MoveitUpperGoalJointTolerance, MC->upperBody->getGoalJointTolerance(), "Moveit goal joint tolerance.")
 WORD(MoveitUpperSetGoalJointTolerance)

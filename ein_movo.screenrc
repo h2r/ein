@@ -9,7 +9,7 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 
 screen -t " einR"
 stuff "source ./setup.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right nogui"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 screen -t " free"
@@ -25,11 +25,6 @@ screen -t " emacs"
 stuff "source ./setup.sh"
 stuff "cd $(rospack find ein)"
 stuff "emacs -nw src/ein.cpp"
-
-screen -t " roscore"
-stuff "source ./setup.sh"
-stuff "roscore"
-
 
 screen -t " website"
 stuff "cd src/ein/doc && jekyll serve"
