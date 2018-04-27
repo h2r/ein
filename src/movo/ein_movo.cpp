@@ -138,12 +138,15 @@ void robotUpdate(MachineState * ms) {
   MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
   MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
 
-  if ((eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) > 0.001) && 
+  double distance, angleDistance;
+  eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
+		      
+  if ((sqrt(distance) > 0.001 || angleDistance > 0.001) && 
       (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1))) {
     MC->lastMoveitCallTime = ros::Time::now();
     CMG->stop();
     geometry_msgs::PoseStamped p;
-    p.pose = eePoseToRosPose(ms->config.trueEEPoseEEPose);
+    p.pose = eePoseToRosPose(ms->config.currentEEPose);
     p.header.frame_id = "base_link";
     bool result = CMG->setPoseTarget(p);
     if (!result) {
