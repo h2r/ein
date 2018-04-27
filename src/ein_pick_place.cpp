@@ -328,7 +328,7 @@ virtual void execute(MachineState * ms) {
   { // set the old box's lastMappedTime to moments after the start of time
     int iStart=-1, iEnd=-1, jStart=-1, jEnd=-1;
     int iTop=-1, iBot=-1, jTop=-1, jBot=-1;
-    double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+    double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
     {
       double x, y;
       int i, j;

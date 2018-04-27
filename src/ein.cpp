@@ -1932,8 +1932,8 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
       box.bBot.x = camera->vanishingPointReticle.px+probeBoxHalfWidthPixels;
       box.bBot.y = camera->vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1986,8 +1986,8 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
       box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2641,15 +2641,7 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
   if (!ms->config.zero_g_toggle) {
     robotUpdate(ms);
   } else {
-    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
-
-
+    ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
     robotSetCurrentJointPositions(ms);
   }
 
@@ -2818,9 +2810,9 @@ void renderWristViewImage(MachineState * ms) {
   // paint gripper reticle centerline
   if (1) {
     eePose teePose;
-    teePose.px = ms->config.trueEEPose.position.x;
-    teePose.py = ms->config.trueEEPose.position.y;
-    teePose.pz = ms->config.trueEEPose.position.z;
+    teePose.px = ms->config.trueEEPoseEEPose.px;
+    teePose.py = ms->config.trueEEPoseEEPose.py;
+    teePose.pz = ms->config.trueEEPoseEEPose.pz;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
     
@@ -2876,23 +2868,23 @@ void renderWristViewImage(MachineState * ms) {
         ms->config.irGlobalPositionEEFrame[2] = irpos.y();
         ms->config.irGlobalPositionEEFrame[3] = irpos.z();
 
-	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
-	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
+	eePose thisPose = ms->config.trueEEPoseEEPose;
+	Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
 	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
                                                0.0,
-					       (thisPose.position.x - irSensorStartLocal.x()),
-					       (thisPose.position.y - irSensorStartLocal.y()),
-					       (thisPose.position.z - irSensorStartLocal.z())
+					       (thisPose.px - irSensorStartLocal.x()),
+					       (thisPose.py - irSensorStartLocal.y()),
+					       (thisPose.pz - irSensorStartLocal.z())
                                                );
         
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
 	Eigen::Vector3d irSensorEnd(
-				     (thisPose.position.x - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
-				     (thisPose.position.y - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
-				     (thisPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
+				     (thisPose.px - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
+				     (thisPose.py - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
+				     (thisPose.pz - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				    );
 	irPose.px = irSensorEnd.x();
 	irPose.py = irSensorEnd.y();
@@ -3502,7 +3494,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     line(ms->config.objectMapViewerImage, center, orientation_point, color);
   }
   { // drawHand
-    eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
+    eePose tp = ms->config.trueEEPoseEEPose;
     double radius = 10;
     cv::Point handPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                        tp.px, tp.py);
@@ -3942,7 +3934,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     {
       Eigen::Quaternionf qin(0, 1, 0, 0);
       Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
       qout = eeqform * qin * eeqform.conjugate();
       localUnitX.x() = qout.x();
       localUnitX.y() = qout.y();
@@ -3953,7 +3945,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     {
       Eigen::Quaternionf qin(0, 0, 1, 0);
       Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
       qout = eeqform * qin * eeqform.conjugate();
       localUnitY.x() = qout.x();
       localUnitY.y() = qout.y();
@@ -3967,7 +3959,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     ms->config.currentEEPose.px += xToAdd;
     ms->config.currentEEPose.py += yToAdd;
   } else {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     Camera * camera  = ms->config.cameras[ms->config.focused_camera];
     pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
@@ -4190,7 +4182,7 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+    Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -4201,7 +4193,7 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
   {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+    Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -4617,7 +4609,7 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
-  result.pz = ms->config.trueEEPose.position.z - ms->config.currentTableZ;
+  result.pz = ms->config.trueEEPoseEEPose.pz - ms->config.currentTableZ;
   result.qx = 0;
   result.qy = 0;
   result.qz = 0;
@@ -5067,7 +5059,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
   // account for rotation of the end effector 
-  Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+  Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
@@ -5123,7 +5115,7 @@ void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor) 
   int lineLength = 5;
   int pXo = 0, pYo = 0;  
   int pX = 0, pY = 0;  
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
 
   globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
   pX = pXo - lineLength;
@@ -5210,7 +5202,7 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   for (double px = tbTop.x-ms->config.mapBlueBoxPixelSkirt; px <= tbBot.x+ms->config.mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-ms->config.mapBlueBoxPixelSkirt; py <= tbBot.y+ms->config.mapBlueBoxPixelSkirt; py++) {
       double x, y;
-      double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+      double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
@@ -5331,7 +5323,7 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
   }
   robotEndPointCallback(ms);
   {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
 
     ms->config.mapBackgroundImage = ms->config.originalMapBackgroundImage.clone();
     // draw sprites on background
@@ -7689,7 +7681,7 @@ bool isBoxMemoryIkPossible(MachineState * ms, BoxMemory b) {
 }
 
 bool isBlueBoxIkPossible(MachineState * ms, cv::Point tbTop, cv::Point tbBot) {
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
   int toReturn = 1;
   {
     double tbx, tby;

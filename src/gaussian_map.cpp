@@ -4100,7 +4100,7 @@ virtual void execute(MachineState * ms) {
   //for (int px = ; px < ; px++) 
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
-  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
   //computePixelToGlobalCache(ms, z, thisPose, &data);
 
   eePose thisPose, basePose;

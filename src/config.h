@@ -631,9 +631,6 @@ class EinConfig {
   string ein_software_version;
   string robot_type;
 
-
-
-  geometry_msgs::Pose trueEEPose;
   eePose trueEEWrench;
   double averagedWrechAcc = 0;
   double averagedWrechMass = 0;

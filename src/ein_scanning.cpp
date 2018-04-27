@@ -814,7 +814,7 @@ REGISTER_WORD(RgbScan)
 WORD(SetPhotoPinHere)
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -823,7 +823,7 @@ WORD(PutCameraOverPhotoPin)
 virtual void execute(MachineState * ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -1553,7 +1553,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -1630,7 +1630,7 @@ virtual void execute(MachineState * ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);

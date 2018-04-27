@@ -47,11 +47,14 @@ class EinMovoConfig {
   MoveGroup * upperBody;
   MoveGroup * leftArm;
   MoveGroup * rightArm;
+  vector<MoveGroup *> endEffectors;
+  int focused_ee = 0;
+
   ros::Subscriber moveitStatusSubscriber;
   actionlib_msgs::GoalStatusArray moveitStatusMsg;
   void moveitStatusCallback(const actionlib_msgs::GoalStatusArray&m);
   map<string, actionlib_msgs::GoalStatus> goals;
-
+  ros::Time lastMoveitCallTime;
 
 
   ros::Subscriber torsoJointSubscriber;
@@ -106,6 +109,7 @@ class EinMovoConfig {
   eePose leftTargetPose;
   eePose rightTargetPose;
 
+  
 
 };
 

@@ -24,3 +24,10 @@ will start a screen session that is initialized with the relevant
 commands and packages.
 
 The relevant words are defined in ein_movo.cpp.
+
+
+Ein has a concept of a focused end effector (either the left or right
+arm).  You can change the focused end effector with
+`incrementEndEffector`.  Words such as `xUp` and the current and
+target pose displayed in the status bar affect only the focused end
+effector.

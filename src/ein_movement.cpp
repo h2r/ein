@@ -60,15 +60,15 @@ virtual void execute(MachineState * ms) {
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
   ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPoseEEPose.px);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPoseEEPose.py);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPoseEEPose.pz);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
-  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
-  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
-  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
+  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
+  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
+  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
+  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
@@ -180,7 +180,7 @@ virtual void execute(MachineState * ms) {
 	  //cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
 	} else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
 	  cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
-	  ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	  ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
 	  cout << "  backing up just a little to dislodge, then waiting again." << endl;
 	} else {
 	  assert(0);
@@ -954,8 +954,8 @@ virtual void execute(MachineState * ms) {
     box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
     box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1258,7 +1258,7 @@ virtual void execute(MachineState * ms) {
 
       // waitUntilCurrentPosition will time out, make sure that there will
       //  be no cycles introduced
-      ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+      ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
       cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
@@ -2035,7 +2035,7 @@ virtual void execute(MachineState * ms) {
       } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
 	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_BACK_UP, so...";
 	cout << " doing nothing!" << endl;
-	//ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	//ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
 	//cout << "  backing up just a little to dislodge, then waiting again." << endl;
       } else {
 	assert(0);

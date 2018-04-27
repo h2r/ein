@@ -7,6 +7,9 @@
 #include "ein.h"
 
 #define MC ms->config.movoConfig
+#define CMG MC->endEffectors[MC->focused_ee]
+#define LEFT_ARM 0
+#define RIGHT_ARM 1
 
 #define TRACTOR_REQUEST 5
 #define STANDBY_REQUEST 4
@@ -26,6 +29,8 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    upperBody->setPlannerId("RRTConnectkConfigDefault");
    leftArm->setPlannerId("RRTConnectkConfigDefault");
    rightArm->setPlannerId("RRTConnectkConfigDefault");
+   endEffectors.push_back(leftArm);
+   endEffectors.push_back(rightArm);
    //leftArm->setEndEffectorLink("left_gripper_base_link");
    //rightArm->setEndEffectorLink("right_gripper_base_link");
 
@@ -100,6 +105,14 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   id.header.frame_id = "right_ee_link";
   ms->config.tfListener->transformPose("base_link", id, right_ee_pose);
   MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
+
+  if (MC->focused_ee == LEFT_ARM) {
+    ms->config.trueEEPoseEEPose = MC->leftPose;
+  } else if (MC->focused_ee == RIGHT_ARM) {
+    ms->config.trueEEPoseEEPose = MC->rightPose;
+  } else{
+    CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
+  }
 }
 
 
@@ -125,8 +138,41 @@ void robotUpdate(MachineState * ms) {
   MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
   MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
 
+  if ((eePose::distance(ms->config.currentEEPose, ms->config.trueEEPoseEEPose) > 0.001) && 
+      (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1))) {
+    MC->lastMoveitCallTime = ros::Time::now();
+    CMG->stop();
+    geometry_msgs::PoseStamped p;
+    p.pose = eePoseToRosPose(ms->config.trueEEPoseEEPose);
+    p.header.frame_id = "base_link";
+    bool result = CMG->setPoseTarget(p);
+    if (!result) {
+      CONSOLE_ERROR(ms, "Invalid pose target: " << p);
+      return;
+    }
+    MoveItErrorCode r = CMG->asyncMove();
+    if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+      CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
+    }
+  }
 
-  
+  /*  if (eePose::distance(MC->leftTargetPose, MC->leftPose) > 0.001 && (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1) )) {
+    MC->lastMoveitCallTime = ros::Time::now();
+    MC->leftArm->stop();
+    geometry_msgs::PoseStamped p;
+    p.pose = eePoseToRosPose(MC->leftTargetPose);
+    p.header.frame_id = "base_link";
+    bool result = MC->leftArm->setPoseTarget(p);
+    if (!result) {
+      CONSOLE_ERROR(ms, "Invalid pose target: " << p);
+      return;
+    }
+    
+    MoveItErrorCode r = MC->leftArm->asyncMove();
+    if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+      CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
+    }
+    }*/
 
 }
 
@@ -206,7 +252,7 @@ void robotInitializeConfig(MachineState * ms) {
 
 void robotInitializeMachine(MachineState * ms) {
   ms->evaluateProgram("\"movo\" import"); 
-
+  ms->evaluateProgram("zeroGToggle");
 }
 
 void robotSetCurrentJointPositions(MachineState * ms) {
@@ -479,25 +525,64 @@ virtual string description() {
   return "Move the left end effector up.";
 }
 virtual void execute(MachineState * ms) {
-
   MC->leftTargetPose.px += MC->gridSize;
-  geometry_msgs::PoseStamped p;
-  p.pose = eePoseToRosPose(MC->leftTargetPose);
-  p.header.frame_id = "base_link";
-  bool result = MC->leftArm->setPoseTarget(p);
-  if (!result) {
-    CONSOLE_ERROR(ms, "Invalid pose target: " << p);
-    return;
-  }
-  
-  MoveItErrorCode r = MC->leftArm->asyncMove();
-  if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-    CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
-  }
-
 }
 END_WORD
 REGISTER_WORD(LxUp)
+
+WORD(LxDown) 
+virtual string description() {
+  return "Move the left end effector down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.px -= MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LxDown)
+
+WORD(LyUp) 
+virtual string description() {
+  return "Move the left end effector up.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.py += MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LyUp)
+
+WORD(LyDown) 
+virtual string description() {
+  return "Move the left end effector down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.py -= MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LyDown)
+
+
+WORD(LzUp) 
+virtual string description() {
+  return "Move the left end effector up.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.pz += MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LzUp)
+
+WORD(LzDown) 
+virtual string description() {
+  return "Move the left end effector down.";
+}
+virtual void execute(MachineState * ms) {
+  MC->leftTargetPose.pz -= MC->gridSize;
+}
+END_WORD
+REGISTER_WORD(LzDown)
+
+
+
 
 
 WORD(MoveToTuck)
@@ -521,7 +606,25 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveToTuck)
 
+WORD(IncrementEndEffector)
+virtual void execute(MachineState * ms)
+{
+  MC->focused_ee = (MC->focused_ee + 1) % MC->endEffectors.size();
+}
+END_WORD
+REGISTER_WORD(IncrementEndEffector)
 
+WORD(DecrementEndEffector)
+virtual void execute(MachineState * ms)
+{
+  MC->focused_ee = (MC->focused_ee - 1) % MC->endEffectors.size();
+}
+END_WORD
+REGISTER_WORD(DecrementEndEffector)
+
+CONFIG_GETTER_STRING(FocusedEndEffectorName, CMG->getName(), "The name of the focused end effector.");
+CONFIG_GETTER_INT(FocusedEndEffector, MC->focused_ee);
+CONFIG_GETTER_INT(NumEndEffectors, MC->endEffectors.size());
 
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
 CONFIG_GETTER_DOUBLE(TrueTorsoJointVelocity, MC->trueTorsoJointVelocity, "The true torso velocity from the topic.")
@@ -568,36 +671,31 @@ CONFIG_GETTER_INT(BatteryCharging, MC->batteryCharging)
 CONFIG_GETTER_DOUBLE(BatteryVoltage, MC->batteryMsg.battery_voltage_VDC, "Is the battery charging?")
 CONFIG_GETTER_DOUBLE(BatterySoc, MC->batteryMsg.battery_soc, "Battery state of charge.")
 
-CONFIG_GETTER_DOUBLE(MoveitUpperPlanningTime, MC->upperBody->getPlanningTime(), "Moveit planning time.")
+CONFIG_GETTER_DOUBLE(MoveitPlanningTime, CMG->getPlanningTime(), "Moveit planning time.")
 
-CONFIG_GETTER_STRING(MoveitUpperPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+CONFIG_GETTER_STRING(MoveitPlanningFrame, CMG->getPlanningFrame(), "Moveit planning frame.")
 
-CONFIG_GETTER_STRING(MoveitPoseReferenceFrame, MC->upperBody->getPoseReferenceFrame(), "Moveit pose reference frame.")
+CONFIG_GETTER_STRING(MoveitPoseReferenceFrame, CMG->getPoseReferenceFrame(), "Moveit pose reference frame.")
 
-CONFIG_GETTER_STRING(MoveitPlanningFrame, MC->upperBody->getPlanningFrame(), "Moveit planning frame.")
+CONFIG_GETTER_STRING(MoveitEndEffectorLink, CMG->getEndEffectorLink(), "Moveit end effector TF link.")
 
-CONFIG_GETTER_STRING(MoveitEndEffectorLink, MC->upperBody->getEndEffectorLink(), "Moveit end effector TF link.")
+CONFIG_GETTER_DOUBLE(MoveitGoalPositionTolerance, CMG->getGoalPositionTolerance(), "Moveit goal position tolerance.")
 
-CONFIG_GETTER_STRING(MoveitLeftEndEffectorLink, MC->leftArm->getEndEffectorLink(), "Moveit left arm end effector TF link.")
+CONFIG_GETTER_DOUBLE(MoveitGoalOrientationTolerance, CMG->getGoalOrientationTolerance(), "Moveit goal orientation tolerance.")
 
-CONFIG_GETTER_DOUBLE(MoveitUpperGoalPositionTolerance, MC->upperBody->getGoalPositionTolerance(), "Moveit goal position tolerance.")
+CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, CMG->getGoalJointTolerance(), "Moveit goal joint tolerance.")
 
-CONFIG_GETTER_DOUBLE(MoveitUpperGoalOrientationTolerance, MC->upperBody->getGoalOrientationTolerance(), "Moveit goal orientation tolerance.")
-
-CONFIG_GETTER_DOUBLE(MoveitUpperGoalJointTolerance, MC->upperBody->getGoalJointTolerance(), "Moveit goal joint tolerance.")
-WORD(MoveitUpperSetGoalJointTolerance)
+WORD(MoveitSetGoalJointTolerance)
 virtual string description() {
-  return "Set moveit upper goal joint tolerance.";
+  return "Set moveit goal joint tolerance.";
 }
 virtual void execute(MachineState * ms) {
   double t;
   GET_NUMERIC_ARG(ms, t);
 
-  MC->upperBody->setGoalJointTolerance(t);
+  CMG->setGoalJointTolerance(t);
 }
 END_WORD
-REGISTER_WORD(MoveitUpperSetGoalJointTolerance)
-
-
+REGISTER_WORD(MoveitSetGoalJointTolerance)
 
 }

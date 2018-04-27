@@ -82,7 +82,6 @@ REGISTER_WORD(Now)
 WORD(Throw)
 virtual void execute(MachineState * ms) {
   throw runtime_error("test");
-  
 }
 END_WORD
 REGISTER_WORD(Throw)

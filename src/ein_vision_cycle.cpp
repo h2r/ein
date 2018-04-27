@@ -209,8 +209,8 @@ virtual void execute(MachineState * ms) {
     box.bTop = ms->config.bTops[c];
     box.bBot = ms->config.bBots[c];
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -285,7 +285,7 @@ virtual void execute(MachineState * ms) {
       
       if (blueBoxIdx == -1) {
         double x, y;
-        double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+        double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
 
         pixelToGlobal(ms, px, py, z, &x, &y);
         int i, j;
@@ -358,8 +358,8 @@ virtual void execute(MachineState * ms) {
   box.bTop = ms->config.bTops[c];
   box.bBot = ms->config.bBots[c];
   box.cameraPose = ms->config.currentEEPose;
-  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+  box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
   box.centroid.px = (box.top.px + box.bot.px) * 0.5;
   box.centroid.py = (box.top.py + box.bot.py) * 0.5;
   box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
