@@ -541,69 +541,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveToHome)
 
-WORD(LxUp) 
-virtual string description() {
-  return "Move the left end effector up.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.px += MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LxUp)
-
-WORD(LxDown) 
-virtual string description() {
-  return "Move the left end effector down.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.px -= MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LxDown)
-
-WORD(LyUp) 
-virtual string description() {
-  return "Move the left end effector up.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.py += MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LyUp)
-
-WORD(LyDown) 
-virtual string description() {
-  return "Move the left end effector down.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.py -= MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LyDown)
-
-
-WORD(LzUp) 
-virtual string description() {
-  return "Move the left end effector up.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.pz += MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LzUp)
-
-WORD(LzDown) 
-virtual string description() {
-  return "Move the left end effector down.";
-}
-virtual void execute(MachineState * ms) {
-  MC->leftTargetPose.pz -= MC->gridSize;
-}
-END_WORD
-REGISTER_WORD(LzDown)
-
-
-
 
 
 WORD(MoveToTuck)
