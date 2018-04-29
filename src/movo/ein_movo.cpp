@@ -40,6 +40,7 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    
    batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
+   gripperJointSubscriber = n.subscribe("/movo/right_gripper/joint_states", 1, &EinMovoConfig::gripperJointCallback, this);
 
    torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
    torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
@@ -75,6 +76,12 @@ void EinMovoConfig::batteryCallback(const movo_msgs::Battery& b)
   }
 }
 
+void EinMovoConfig::gripperJointCallback(const sensor_msgs::JointState& js)
+{
+  assert(js.position.size() == 3);
+  MC->fingerJointState = js;
+}
+
 void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
 {
   assert(js.position.size() == 1);
@@ -96,10 +103,17 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   ms->config.tfListener->transformPose("odom", id, odom_pose);
   MC->odomPose = rosPoseToEEPose(odom_pose.pose);
 
-  geometry_msgs::PoseStamped map_pose;
-  id.header.frame_id = "base_link";
-  ms->config.tfListener->transformPose("map", id, map_pose);
-  MC->mapPose = rosPoseToEEPose(map_pose.pose);
+  try {
+    geometry_msgs::PoseStamped map_pose;
+    id.header.frame_id = "base_link";
+    ms->config.tfListener->transformPose("map", id, map_pose);
+    MC->mapPose = rosPoseToEEPose(map_pose.pose);
+  } catch (tf2::LookupException e) {
+    if (MC->lastMapLookupPrintTime == ros::Time() || ros::Time::now()  - MC->lastMapLookupPrintTime > ros::Duration(20)) {
+      CONSOLE_ERROR(ms, "Warning, no map frame yet.");
+      MC->lastMapLookupPrintTime  = ros::Time::now();
+    }
+  }
 
 
   geometry_msgs::PoseStamped left_ee_pose;
@@ -642,6 +656,11 @@ CONFIG_GETTER_DOUBLE(MoveitGoalPositionTolerance, CMG->getGoalPositionTolerance(
 CONFIG_GETTER_DOUBLE(MoveitGoalOrientationTolerance, CMG->getGoalOrientationTolerance(), "Moveit goal orientation tolerance.")
 
 CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, CMG->getGoalJointTolerance(), "Moveit goal joint tolerance.")
+
+
+CONFIG_GETTER_DOUBLE(finger1JointPosition, MC->fingerJointState.position[0], "Position of finger 1.");
+CONFIG_GETTER_DOUBLE(finger1JointVelocity, MC->fingerJointState.velocity[0], "Velocity of finger 1.");
+CONFIG_GETTER_DOUBLE(finger1JointEffort, MC->fingerJointState.effort[0], "Effort of finger 1.");
 
 WORD(MoveitSetGoalJointTolerance)
 virtual string description() {

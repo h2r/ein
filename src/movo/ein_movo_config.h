@@ -42,6 +42,8 @@ class EinMovoConfig {
   void batteryCallback(const movo_msgs::Battery& js);
   movo_msgs::Battery batteryMsg;
   bool batteryCharging;
+
+  ros::Time lastMapLookupPrintTime;
   
   
   MoveGroup * upperBody;
@@ -56,11 +58,20 @@ class EinMovoConfig {
   map<string, actionlib_msgs::GoalStatus> goals;
   ros::Time lastMoveitCallTime;
 
+  ros::Subscriber gripperJointSubscriber;
+  void gripperJointCallback(const sensor_msgs::JointState& js);
+  sensor_msgs::JointState fingerJointState;
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
   movo_msgs::LinearActuatorCmd torsoCmd;
   void torsoJointCallback(const sensor_msgs::JointState& js);
+  double torsoGridSize=0.01;
+  double targetTorsoJointPosition=0;
+  double trueTorsoJointPosition=0;
+  double trueTorsoJointVelocity=0;
+
+
 
   ros::Subscriber panTiltFdbkSubscriber;
   ros::Publisher panTiltCmdPub;
@@ -68,12 +79,6 @@ class EinMovoConfig {
   movo_msgs::PanTiltCmd ptaCmdMsg;
   void panTiltFdbkCallback(const movo_msgs::PanTiltFdbk& js);  
   double panTiltGridSize=0.1;
-
-  double torsoGridSize=0.01;
-  double targetTorsoJointPosition=0;
-  double trueTorsoJointPosition=0;
-  double trueTorsoJointVelocity=0;
-
   double targetPanPos;
   double targetTiltPos;
 
