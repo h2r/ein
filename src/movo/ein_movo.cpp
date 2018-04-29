@@ -8,8 +8,8 @@
 
 #define MC ms->config.movoConfig
 #define CMG MC->endEffectors[MC->focused_ee]
-#define LEFT_ARM 0
-#define RIGHT_ARM 1
+#define EE_LEFT_ARM 0
+#define EE_RIGHT_ARM 1
 
 #define TRACTOR_REQUEST 5
 #define STANDBY_REQUEST 4
@@ -40,7 +40,8 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    
    batterySubscriber = n.subscribe("/movo/feedback/battery", 1, &EinMovoConfig::batteryCallback, this);
    
-   gripperJointSubscriber = n.subscribe("/movo/right_gripper/joint_states", 1, &EinMovoConfig::gripperJointCallback, this);
+   rightGripperJointSubscriber = n.subscribe("/movo/right_gripper/joint_states", 1, &EinMovoConfig::rightGripperJointCallback, this);
+   leftGripperJointSubscriber = n.subscribe("/movo/left_gripper/joint_states", 1, &EinMovoConfig::leftGripperJointCallback, this);
 
    torsoJointSubscriber = n.subscribe("/movo/linear_actuator/joint_states", 1, &EinMovoConfig::torsoJointCallback, this);
    torsoJointCmdPub = n.advertise<movo_msgs::LinearActuatorCmd>("/movo/linear_actuator_cmd", 10);
@@ -76,10 +77,22 @@ void EinMovoConfig::batteryCallback(const movo_msgs::Battery& b)
   }
 }
 
-void EinMovoConfig::gripperJointCallback(const sensor_msgs::JointState& js)
+void EinMovoConfig::rightGripperJointCallback(const sensor_msgs::JointState& js)
 {
   assert(js.position.size() == 3);
-  MC->fingerJointState = js;
+  MC->rightFingerJointState = js;
+  if (MC->focused_ee == EE_RIGHT_ARM) {
+    MC->fingerJointState = js;
+  }
+}
+
+void EinMovoConfig::leftGripperJointCallback(const sensor_msgs::JointState& js)
+{
+  assert(js.position.size() == 3);
+  MC->leftFingerJointState = js;
+  if (MC->focused_ee == EE_LEFT_ARM) {
+    MC->fingerJointState = js;
+  }
 }
 
 void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
@@ -126,9 +139,9 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   ms->config.tfListener->transformPose("base_link", id, right_ee_pose);
   MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
 
-  if (MC->focused_ee == LEFT_ARM) {
+  if (MC->focused_ee == EE_LEFT_ARM) {
     ms->config.trueEEPoseEEPose = MC->leftPose;
-  } else if (MC->focused_ee == RIGHT_ARM) {
+  } else if (MC->focused_ee == EE_RIGHT_ARM) {
     ms->config.trueEEPoseEEPose = MC->rightPose;
   } else{
     CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
@@ -658,9 +671,40 @@ CONFIG_GETTER_DOUBLE(MoveitGoalOrientationTolerance, CMG->getGoalOrientationTole
 CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, CMG->getGoalJointTolerance(), "Moveit goal joint tolerance.")
 
 
-CONFIG_GETTER_DOUBLE(finger1JointPosition, MC->fingerJointState.position[0], "Position of finger 1.");
-CONFIG_GETTER_DOUBLE(finger1JointVelocity, MC->fingerJointState.velocity[0], "Velocity of finger 1.");
-CONFIG_GETTER_DOUBLE(finger1JointEffort, MC->fingerJointState.effort[0], "Effort of finger 1.");
+CONFIG_GETTER_DOUBLE(finger1JointPosition, MC->fingerJointState.position[0], "Position of finger 1 for focused end effector.");
+CONFIG_GETTER_DOUBLE(finger1JointVelocity, MC->fingerJointState.velocity[0], "Velocity of finger 1 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger1JointEffort, MC->fingerJointState.effort[0], "Effort of finger 1 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger2JointPosition, MC->fingerJointState.position[1], "Position of finger 2 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger2JointVelocity, MC->fingerJointState.velocity[1], "Velocity of finger 2 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger2JointEffort, MC->fingerJointState.effort[1], "Effort of finger 2 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger3JointPosition, MC->fingerJointState.position[2], "Position of finger 3 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger3JointVelocity, MC->fingerJointState.velocity[2], "Velocity of finger 3 for focused end effector..");
+CONFIG_GETTER_DOUBLE(finger3JointEffort, MC->fingerJointState.effort[2], "Effort of finger 3 for focused end effector..");
+
+
+
+CONFIG_GETTER_DOUBLE(leftFinger1JointPosition, MC->leftFingerJointState.position[0], "Position of finger 1 for left end effector.");
+CONFIG_GETTER_DOUBLE(leftFinger1JointVelocity, MC->leftFingerJointState.velocity[0], "Velocity of Finger 1 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger1JointEffort, MC->leftFingerJointState.effort[0], "Effort of finger 1 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger2JointPosition, MC->leftFingerJointState.position[1], "Position of finger 2 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger2JointVelocity, MC->leftFingerJointState.velocity[1], "Velocity of finger 2 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger2JointEffort, MC->leftFingerJointState.effort[1], "Effort of finger 2 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger3JointPosition, MC->leftFingerJointState.position[2], "Position of finger 3 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger3JointVelocity, MC->leftFingerJointState.velocity[2], "Velocity of finger 3 for left end effector..");
+CONFIG_GETTER_DOUBLE(leftFinger3JointEffort, MC->leftFingerJointState.effort[2], "Effort of finger 3 for left end effector..");
+
+
+
+CONFIG_GETTER_DOUBLE(rightFinger1JointPosition, MC->rightFingerJointState.position[0], "Position of finger 1 for right end effector.");
+CONFIG_GETTER_DOUBLE(rightFinger1JointVelocity, MC->rightFingerJointState.velocity[0], "Velocity of Finger 1 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger1JointEffort, MC->rightFingerJointState.effort[0], "Effort of finger 1 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger2JointPosition, MC->rightFingerJointState.position[1], "Position of finger 2 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger2JointVelocity, MC->rightFingerJointState.velocity[1], "Velocity of finger 2 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger2JointEffort, MC->rightFingerJointState.effort[1], "Effort of finger 2 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger3JointPosition, MC->rightFingerJointState.position[2], "Position of finger 3 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger3JointVelocity, MC->rightFingerJointState.velocity[2], "Velocity of finger 3 for right end effector..");
+CONFIG_GETTER_DOUBLE(rightFinger3JointEffort, MC->rightFingerJointState.effort[2], "Effort of finger 3 for right end effector..");
+
 
 WORD(MoveitSetGoalJointTolerance)
 virtual string description() {

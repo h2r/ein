@@ -12,8 +12,24 @@ stuff "source ./setup.sh"
 stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
+
+screen -t " gmapping"
+stuff "source ./setup.sh"
+stuff "roslaunch movo_navigation_apps gmapping.launch"
+
+screen -t " rviz"
+stuff "source ./setup.sh"
+stuff "rosrun rviz rviz"
+
+
 screen -t " free"
 stuff "source ./setup.sh"
+
+screen -t " emacs"
+stuff "source ./setup.sh"
+stuff "cd $(rospack find ein)"
+stuff "emacs -nw src/ein.cpp"
+
 screen -t " vim"
 stuff "source ./setup.sh"
 stuff "cd src/ein/src"
@@ -21,10 +37,7 @@ stuff "vim -p ein.cpp ein.h config.h gaussian_map.cpp gaussian_map.h ../back/sce
 screen -t " git"
 stuff "source ./setup.sh"
 stuff "cd $(rospack find ein)"
-screen -t " emacs"
-stuff "source ./setup.sh"
-stuff "cd $(rospack find ein)"
-stuff "emacs -nw src/ein.cpp"
+
 
 screen -t " website"
 stuff "cd src/ein/doc && jekyll serve"

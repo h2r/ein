@@ -58,9 +58,16 @@ class EinMovoConfig {
   map<string, actionlib_msgs::GoalStatus> goals;
   ros::Time lastMoveitCallTime;
 
-  ros::Subscriber gripperJointSubscriber;
-  void gripperJointCallback(const sensor_msgs::JointState& js);
+  ros::Subscriber rightGripperJointSubscriber;
+  void rightGripperJointCallback(const sensor_msgs::JointState& js);
+  sensor_msgs::JointState rightFingerJointState;
+
+  ros::Subscriber leftGripperJointSubscriber;
+  void leftGripperJointCallback(const sensor_msgs::JointState& js);
+  sensor_msgs::JointState leftFingerJointState;
+
   sensor_msgs::JointState fingerJointState;
+
 
   ros::Subscriber torsoJointSubscriber;
   ros::Publisher torsoJointCmdPub;
@@ -114,7 +121,7 @@ class EinMovoConfig {
   eePose leftTargetPose;
   eePose rightTargetPose;
 
-  
+  void changeEndEffector(int idx);
 
 };
 
