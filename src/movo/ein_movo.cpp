@@ -688,7 +688,7 @@ virtual vector<string> names() {
 virtual void execute(MachineState * ms)
 {
   stringstream ss;
-  ss << MC->gripperClosePosition << " -1 gripperSend";
+  ss << MC->gripperClosedPosition << " -1 gripperSend";
   ms->evaluateProgram(ss.str());
 }
 END_WORD
