@@ -108,6 +108,19 @@ result in the base moving.  You need to have set up gmapper with a map
 and localization and the navigation action following the movo
 instructions.
 
+There is a known bug that it does not update the currentPose when you
+switch end effectors, so the pose that Ein tries to move to will still
+be from the 'old' end effector.  I plan to make it save the last good
+current pose when you switch end effectors and write it back when you
+switch back.
+
+For now, you should switch to zero gravity mode (zeroGToggle), which
+tells Ein to set the currentPose to the truePose.  This will update
+the currentPose to the end effector's current position and then the
+`xUp` words will start working from there.
+
+
+
 ### Movo Status
 
 There are a variety of reactive variable words that record the robot's
@@ -162,3 +175,6 @@ we can do this now by plugging into the wired ethernet...
 * try google cartographer.
 
 * See if you can map without providing an initial pose.
+
+* add isBaseMoving, isGripperMoving, isArmMoving, isGripperGripping, etc.
+
