@@ -32,12 +32,16 @@ how your network is configured.
 ### Get Started
 
 The relevant words are defined in ein_movo.cpp.  Useful ones:
-`movoKill` kills the robot (as if you hit the kill switch).  The two
-words `moveToTuck` and `moveToHome` move the upper body to the home
-and tucked position respectively.  The words `torsoUp` and `torsoDown`
-move the torso up and down, controlled by `torsoGridSize`.  The words
-`panUp`, `panDown`, `tiltUp` and `tiltDown` change the pan/tilt angle
-by the amount `panTiltGridSize`.    
+`movoKill` kills the robot (as if you hit the kill switch).  The full
+list of all Ein words can be seen in the [words](Word Index).  Example
+programs using the movo functionality can be seen in movo.back.  Below
+is a brief high-level overview.
+
+The two words `moveToTuck` and `moveToHome` move the upper body to the
+home and tucked position respectively.  The words `torsoUp` and
+`torsoDown` move the torso up and down, controlled by `torsoGridSize`.
+The words `panUp`, `panDown`, `tiltUp` and `tiltDown` change the
+pan/tilt angle by the amount `panTiltGridSize`.
 
 Ein has a concept of a focused end effector (either the left or right
 arm). Ein also has a concept of zero gravity.  When zeroGToggle is on,

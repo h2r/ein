@@ -13,7 +13,7 @@
 
 
 (
-  ( openGripper gripperWait closeGripper gripperWait ) 10 replicateWord
+  ( openGripper gripperWait closeGripper gripperWait ) 2 replicateWord
 ) "Open and close the gripper a few times."  "movoDanceGripper" define
 
 (
@@ -23,12 +23,18 @@
  -0.1 baseSendXVel 1 waitForSeconds
  -0.1 baseSendYVel 1 waitForSeconds
  -0.1 baseSendOZVel 1 waitForSeconds
- torsoUp 1 waitForSeconds
- torsoDown
 ) "Move the base in a little circle."  "movoDanceBase" define
 
 (
+zeroGOn
+moveToHome
+5 waitForSeconds
+moveToTuck
+5 waitForSeconds
+zeroGOff
 movoDanceBase
 movoDanceGripper
 movoNod
+torsoUp 1 waitForSeconds
+torsoDown
 ) "Exercise all the stuff that Ein can do with Movo."  "movoDance" define
