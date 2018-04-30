@@ -160,3 +160,7 @@ to add.
 
 * Try to teleop playing the ukulele.
 
+* When moveit is executing and the pose hasn't changed, let it keep executing. 
+
+* Save joint states; restore joint states.
+

@@ -38,3 +38,11 @@ movoNod
 torsoUp 1 waitForSeconds
 torsoDown
 ) "Exercise all the stuff that Ein can do with Movo."  "movoDance" define
+
+
+0.555846 0.022954 1.134107 0.068888 -0.062352 -0.797697 0.595858 createEEPose "leftStrumPose" store
+
+0.675415 -0.081037 1.151467 -0.584927 -0.466213 0.335808 0.572485 createEEPose "rightFretPose" store
+
+
+( ( zDown ) 10 replicateWord waitUntilAtCurrentPosition ( zUp ) 10 replicateWord waitUntilAtCurrentPosition ) "Strum a uke, relative to current pose." "strum" define

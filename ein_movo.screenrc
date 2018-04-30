@@ -13,13 +13,18 @@ stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 
-screen -t " gmapping"
+screen -t " gmapping mapping"
 stuff "source ./setup.sh"
-stuff "roslaunch movo_navigation_apps gmapping.launch"
+stuff "roslaunch movo_demos mapping.launch"
+
+
+screen -t " gmapping nav"
+stuff "source ./setup.sh"
+stuff "roslaunch movo_demos map_nav.launch map_file:=115.map"
 
 screen -t " rviz"
 stuff "source ./setup.sh"
-stuff "rosrun rviz rviz"
+stuff "roslaunch movo_viz view_robot.launch function:=map_nav"
 
 
 screen -t " free"
