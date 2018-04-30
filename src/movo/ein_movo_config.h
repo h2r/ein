@@ -5,6 +5,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <sensor_msgs/JointState.h>
 #include <actionlib_msgs/GoalStatusArray.h>
+#include <sound_play/SoundRequestAction.h>
 
 
 #include <movo_msgs/LinearActuatorCmd.h>
@@ -59,6 +60,8 @@ class EinMovoConfig {
   void moveitStatusCallback(const actionlib_msgs::GoalStatusArray&m);
   map<string, actionlib_msgs::GoalStatus> goals;
   ros::Time lastMoveitCallTime;
+
+  actionlib::SimpleActionClient<sound_play::SoundRequestAction> soundPlayActionClient;
 
   vector<actionlib::SimpleActionClient<control_msgs::GripperCommandAction> *> gripperActions;
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> * focusedGripperActionClient;

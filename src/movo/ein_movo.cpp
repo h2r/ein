@@ -2,9 +2,10 @@
 #include "ein_movo_config.h"
 
 #include <moveit_msgs/MoveItErrorCodes.h>
-
+#include <sound_play/SoundRequest.h>
 #include "config.h"
 #include "ein.h"
+
 
 #define MC ms->config.movoConfig
 #define CMG MC->endEffectors[MC->focused_ee]
@@ -18,9 +19,40 @@
 
 using namespace std;
 
+/*
+ * Magic numbers taken from movo_jtas.py
+ */
+double calc_grip_dist(double f1, double f3) {
+  double l1 = 30.9476-87.0932*sin(f1-0.627445866);
+  double l2 = 30.9476-87.0932*sin(f3-0.627445866);
+  double dist = l1+l2;
+    
+  if (dist < (2*30.9476)) {
+    dist-=17.0;
+  } else {
+    dist+=1.08;
+  }
+  return (dist * 0.001);
+}
+
+// def calc_grip_angle(x):
+    
+//     dist = x*1000.0
+//     tmp = (0.5*dist-30.9476)/-87.0932
+//     a = math.asin(tmp)+0.627445866
+    
+//     if (0.5*dist > 30.9476):
+//         a+=0.00599
+//     else:
+//         a-=0.1
+    
+//     return (a)
+
+
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"), 
 						   leftGripperActionClient("/movo/left_gripper_controller/gripper_cmd", true),
-						   rightGripperActionClient("/movo/right_gripper_controller/gripper_cmd", true)
+						   rightGripperActionClient("/movo/right_gripper_controller/gripper_cmd", true),
+						   soundPlayActionClient("/sound_play", true)
  {
    ms = myms;
 
@@ -342,6 +374,25 @@ void robotEndPointCallback(MachineState * ms) {
 
 
 namespace ein_words {
+
+
+WORD(Say)
+virtual string description() {
+  return "Takes a string and speaks it using the sound_play topic.";
+}
+virtual void execute(MachineState * ms) {
+  string textToSay;
+  GET_STRING_ARG(ms, textToSay);
+
+  sound_play::SoundRequestGoal goal;
+  goal.sound_request.sound = sound_play::SoundRequest::SAY;
+  goal.sound_request.command = sound_play::SoundRequest::PLAY_ONCE;
+  goal.sound_request.arg = textToSay;
+  MC->soundPlayActionClient.sendGoal(goal);
+}
+END_WORD
+REGISTER_WORD(Say)
+
 
 
 WORD(MoveCropToProperValueNoUpdate)
@@ -784,6 +835,9 @@ CONFIG_GETTER_DOUBLE(MoveitGoalOrientationTolerance, CMG->getGoalOrientationTole
 
 CONFIG_GETTER_DOUBLE(MoveitGoalJointTolerance, CMG->getGoalJointTolerance(), "Moveit goal joint tolerance.")
 
+
+CONFIG_GETTER_DOUBLE(gripperPosition, calc_grip_dist(MC->fingerJointState.position[0],
+						     MC->fingerJointState.position[2]), "State of the gripper, computed from finger joints, into a single number you can send to the gripper action.");
 
 CONFIG_GETTER_DOUBLE(finger1JointPosition, MC->fingerJointState.position[0], "Position of finger 1 for focused end effector.");
 CONFIG_GETTER_DOUBLE(finger1JointVelocity, MC->fingerJointState.velocity[0], "Velocity of finger 1 for focused end effector..");

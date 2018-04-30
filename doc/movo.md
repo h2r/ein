@@ -43,6 +43,8 @@ home and tucked position respectively.  The words `torsoUp` and
 The words `panUp`, `panDown`, `tiltUp` and `tiltDown` change the
 pan/tilt angle by the amount `panTiltGridSize`.
 
+### Arms
+
 Ein has a concept of a focused end effector (either the left or right
 arm). Ein also has a concept of zero gravity.  When zeroGToggle is on,
 Ein does not set the pose and continuously updates the end effector
@@ -55,6 +57,28 @@ such as `xUp`, `xDown`, `yUp`, `yDown`.  All movement words, such as
 move the focused end effector using MoveIt.  Many of the tutorial
 instructions for the [[getstarted]] page apply directly to MOVO to
 move the end effector.
+
+### Gripper
+
+The gripper is sort of complicated. Our Movo has the Jaco kg3 gripper.
+So there is a joint states topic that has the three finger positions.
+This is available in Ein as `finger1JointPosition`,
+`finger1JointVelocity` and `finger1JointEffort`, for each of the three
+fingers.  However there does not appear to be a Movo topic to move the
+finger joints individually (yet).  I have asked them about this on
+github.
+
+What does exist is an action client that opens and closes the gripper,
+treating the gripper state as a single double, gripperPosition.  This
+position is computed from the joint angles from two of the three
+fingers and ranges between 0.01 and 0.165.  These are all defined in
+the movo stack in `movo_jtas.py`.  Ein clones these constants as well
+as the function that computes the double value you use to command the
+gripper and has a `gripperPosition` reactive variable that reflects
+the current gripper position, computed from the finger joint states.
+
+Using these primitives, it defines `openGripper` and `closeGripper` as
+words, just like Baxter.
 
 ### Moving the Base in the Odom Frame
 
@@ -97,6 +121,13 @@ effector.  For example, `moveitPlanningFrame` is the string of the
 current planning frame.  The word `moveitGoalPositionTolerance` is the
 tolerance on the goal position, etc.
 
+### Sound
+
+The `say` word takes a string and sends it to the sound_play action.
+It would be easy to add more words to more directly control the sound
+playback, but all that exists now is `say`.  For example `"Hello
+world" say` causes MOVO to say, "Hello world."
+
 ### Light Fields
 
 We plan to connect the Kinect 2 camera to Ein in order to create light
@@ -110,8 +141,6 @@ to add.
 * open and close the gripper; set joint targets and positions for the fingers.
 
 * light fields with the kinect 2. (Our kinect 2 frame rate is realllllly slow.)
-
-* interfacing with the speaker and text to speech system.
 
 * better base movement, so you can do it with the map.
 
