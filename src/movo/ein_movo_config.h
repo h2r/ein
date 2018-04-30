@@ -15,6 +15,8 @@
 #include <movo_msgs/PanTiltCmd.h>
 #include <movo_msgs/Battery.h>
 
+#include <control_msgs/GripperCommandAction.h>
+
 #include <moveit/move_group_interface/move_group.h>
 using namespace moveit;
 using namespace planning_interface;
@@ -58,6 +60,13 @@ class EinMovoConfig {
   map<string, actionlib_msgs::GoalStatus> goals;
   ros::Time lastMoveitCallTime;
 
+  vector<actionlib::SimpleActionClient<control_msgs::GripperCommandAction> *> gripperActions;
+  actionlib::SimpleActionClient<control_msgs::GripperCommandAction> * focusedGripperActionClient;
+  actionlib::SimpleActionClient<control_msgs::GripperCommandAction> leftGripperActionClient;
+  actionlib::SimpleActionClient<control_msgs::GripperCommandAction> rightGripperActionClient;
+  ros::Time lastGripperCallTime;
+
+
   ros::Subscriber rightGripperJointSubscriber;
   void rightGripperJointCallback(const sensor_msgs::JointState& js);
   sensor_msgs::JointState rightFingerJointState;
@@ -67,6 +76,11 @@ class EinMovoConfig {
   sensor_msgs::JointState leftFingerJointState;
 
   sensor_msgs::JointState fingerJointState;
+
+  // magic numbers taken from kinova's init_robot
+  double gripperClosedPosition = 0.01;
+  double gripperOpenPosition = 0.165;
+
 
 
   ros::Subscriber torsoJointSubscriber;
@@ -121,7 +135,7 @@ class EinMovoConfig {
   eePose leftTargetPose;
   eePose rightTargetPose;
 
-  void changeEndEffector(int idx);
+  void changeFocusedEndEffector(int idx);
 
 };
 

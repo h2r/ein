@@ -18,7 +18,9 @@
 
 using namespace std;
 
-EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
+EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"), 
+						   leftGripperActionClient("/movo/left_gripper_controller/gripper_cmd", true),
+						   rightGripperActionClient("/movo/right_gripper_controller/gripper_cmd", true)
  {
    ms = myms;
 
@@ -33,6 +35,10 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    endEffectors.push_back(rightArm);
    //leftArm->setEndEffectorLink("left_gripper_base_link");
    //rightArm->setEndEffectorLink("right_gripper_base_link");
+
+   
+   gripperActions.push_back(&leftGripperActionClient);
+   gripperActions.push_back(&rightGripperActionClient);
 
    moveitStatusSubscriber = n.subscribe("/move_group/status", 1, &EinMovoConfig::moveitStatusCallback, this);
 
@@ -52,7 +58,17 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~")
    panTiltCmdPub = n.advertise<movo_msgs::PanTiltCmd>("/movo/head/cmd", 10);
 
    cmdVelPub = n.advertise<geometry_msgs::Twist>("/movo/cmd_vel", 10);
+
+   changeFocusedEndEffector(EE_RIGHT_ARM);
 }
+
+void EinMovoConfig::changeFocusedEndEffector(int idx)
+{
+  focused_ee = idx;
+  focusedGripperActionClient = gripperActions[idx];
+}
+
+
 
 void EinMovoConfig::moveitStatusCallback(const actionlib_msgs::GoalStatusArray & m)
 {
@@ -145,6 +161,7 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
     ms->config.trueEEPoseEEPose = MC->rightPose;
   } else{
     CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
+    assert(0);
   }
 }
 
@@ -191,6 +208,10 @@ void robotUpdate(MachineState * ms) {
       CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
     }
   }
+
+  if (ros::Time::now() - MC->lastGripperCallTime  > ros::Duration(1)) {
+  }
+
 
   /*  if (eePose::distance(MC->leftTargetPose, MC->leftPose) > 0.001 && (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1) )) {
     MC->lastMoveitCallTime = ros::Time::now();
@@ -591,21 +612,114 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(MoveToTuck)
 
+
 WORD(IncrementEndEffector)
+virtual string description() {
+  return "Increment the focused end effector.  All movement commands like xUp will affect only the focused end effector.";
+}
 virtual void execute(MachineState * ms)
 {
-  MC->focused_ee = (MC->focused_ee + 1) % MC->endEffectors.size();
+  MC->changeFocusedEndEffector((MC->focused_ee + 1) % MC->endEffectors.size());
 }
 END_WORD
 REGISTER_WORD(IncrementEndEffector)
 
 WORD(DecrementEndEffector)
+virtual string description() {
+  return "Decrement the focused end effector.  All movement commands like xUp will affect only the focused end effector.";
+}
 virtual void execute(MachineState * ms)
 {
-  MC->focused_ee = (MC->focused_ee - 1) % MC->endEffectors.size();
+  MC->changeFocusedEndEffector((MC->focused_ee - 1) % MC->endEffectors.size());
 }
 END_WORD
 REGISTER_WORD(DecrementEndEffector)
+
+WORD(GripperSend)
+virtual string description() {
+  return "Send a gripper action to the focused end effector.  For example 0.165 -1 gripperSend opens the gripper.";
+}
+virtual void execute(MachineState * ms)
+{
+  double position, effort;
+  GET_NUMERIC_ARG(ms, effort);
+  GET_NUMERIC_ARG(ms, position);
+
+  control_msgs::GripperCommandGoal goal;
+  goal.command.position = position;
+  goal.command.max_effort = effort;
+  MC->lastGripperCallTime = ros::Time::now();
+  MC->focusedGripperActionClient->sendGoal(goal);
+}
+END_WORD
+REGISTER_WORD(GripperSend)
+
+
+WORD(GripperOpen)
+virtual string description() {
+  return "Send a gripper action to the focused end effector.  For example 0.165 -1 gripperSend opens the gripper.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("openGripper");
+  return result;
+}
+virtual void execute(MachineState * ms)
+{
+  stringstream ss;
+  ss << MC->gripperOpenPosition << " -1 gripperSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(GripperOpen)
+
+
+WORD(GripperClose)
+virtual string description() {
+  return "Send a gripper action to the focused end effector.  For example 0.165 -1 gripperSend closes the gripper.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("closeGripper");
+  return result;
+}
+virtual void execute(MachineState * ms)
+{
+  stringstream ss;
+  ss << MC->gripperClosePosition << " -1 gripperSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(GripperClose)
+
+
+CONFIG_GETTER_DOUBLE(GripperOpenPosition, MC->gripperOpenPosition, "The position we command the gripper to go to to open it.");
+CONFIG_SETTER_DOUBLE(GripperSetOpenPosition, MC->gripperOpenPosition);
+CONFIG_GETTER_DOUBLE(GripperClosedPosition, MC->gripperClosedPosition, "The position we command the gripper to go to to closed it.");
+CONFIG_SETTER_DOUBLE(GripperSetClosedPosition, MC->gripperClosedPosition);
+
+
+
+
+WORD(GripperWait)
+virtual string description() {
+  return "Wait on the gripper action.";
+}
+virtual void execute(MachineState * ms)
+{
+  ros::Duration timeout(10);
+  bool result = MC->focusedGripperActionClient->waitForResult(timeout);
+  if (! result) {
+    CONSOLE_ERROR(ms, "Gripper goal did not finish in " << timeout);
+  }
+}
+END_WORD
+REGISTER_WORD(GripperWait)
+
+CONFIG_GETTER_STRING(GripperActionState, MC->focusedGripperActionClient->getState().getText(), "The action state for the gripper.");
+
 
 CONFIG_GETTER_STRING(FocusedEndEffectorName, CMG->getName(), "The name of the focused end effector.");
 CONFIG_GETTER_INT(FocusedEndEffector, MC->focused_ee);
