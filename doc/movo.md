@@ -92,13 +92,21 @@ angular speed.  Finally, `lx ly lz ax ay az baseSendTwist` sends a
 complete twist message.  (Note that `ax` and `ay` are probably ignored
 since the base is constrainted to move in the plane.)
 
+In the future, I plan for the odom frame to be another 'end effector',
+with movements that try to assume poses in that frame.  It would then
+let someone move the robot without running gmapper or the like.
+
 
 ### Moving the Base in the Map Frame
 
-This is not yet supported, but we plan to add this.  The plan is to
-make the base a third focused end effector, with the true pose
-obtained from the pose in the map frame, and the target pose set via
-the end effector movement words like `xUp` and `xDown`.
+The third 'end effector' is the base.  When the base is the focused
+end effector, the truePose reflects the pose from the TF /map frame.
+The movement commands such as `xUp` and the like result in an action
+being sent to the `move_base_navi` topic.  The base is constrained to
+move in x, y, and yaw; hence commands such as oXUp and the like will
+result in the base moving.  You need to have set up gmapper with a map
+and localization and the navigation action following the movo
+instructions.
 
 ### Movo Status
 
@@ -133,34 +141,24 @@ world" say` causes MOVO to say, "Hello world."
 We plan to connect the Kinect 2 camera to Ein in order to create light
 field synthetic photographs using Movo.  The problem is the frame rate
 when offboard over wireless is quite slow, so this feature is a pain
-to add.
+to add.  Movo plans to add faster wifi by the end of summer.  Perhaps
+we can do this now by plugging into the wired ethernet...
 
 
 ### TODO
 
-* open and close the gripper; set joint targets and positions for the fingers.
+* set joint targets and positions for the fingers.
 
 * light fields with the kinect 2. (Our kinect 2 frame rate is realllllly slow.)
 
-* better base movement, so you can do it with the map.
-
-* moveit seems to only work if I start moveit by sshing into movo2 and
- running `roslaunch movo_7dof_moveit_config
- movo_moveit_planning_execution.launch debug:=true` I am not sure why
- this should be since moveit starts when the base starts, and seems to
- work as part of the powerup sequence.
-
-* higher-level words like turn around.
+* zero g (reactive mode) as described on github. 
 
 * figuring useful "default" poses for the arms for various tasks.
 
-* integrating better with moveit.  
-
 * Try to teleop opening a door.
-
-* Try to teleop playing the ukulele.
-
-* When moveit is executing and the pose hasn't changed, let it keep executing. 
 
 * Save joint states; restore joint states.
 
+* try google cartographer.
+
+* See if you can map without providing an initial pose.
