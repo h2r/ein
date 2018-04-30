@@ -10,3 +10,25 @@
 (
  ( tiltDown 0.1 waitForSeconds ) 10 replicateWord ( tiltUp 0.1 waitForSeconds ) 10 replicateWord
 ) "Nod your head."  "movoNod" define
+
+
+(
+  ( openGripper gripperWait closeGripper gripperWait ) 10 replicateWord
+) "Open and close the gripper a few times."  "movoDanceGripper" define
+
+(
+ 0.1 baseSendXVel 1 waitForSeconds 
+ 0.1 baseSendYVel 1 waitForSeconds
+ 0.1 baseSendOZVel 1 waitForSeconds
+ -0.1 baseSendXVel 1 waitForSeconds
+ -0.1 baseSendYVel 1 waitForSeconds
+ -0.1 baseSendOZVel 1 waitForSeconds
+ torsoUp 1 waitForSeconds
+ torsoDown
+) "Move the base in a little circle."  "movoDanceBase" define
+
+(
+movoDanceBase
+movoDanceGripper
+movoNod
+) "Exercise all the stuff that Ein can do with Movo."  "movoDance" define
