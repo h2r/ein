@@ -52,7 +52,8 @@ double calc_grip_dist(double f1, double f3) {
 EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"), 
 						   leftGripperActionClient("/movo/left_gripper_controller/gripper_cmd", true),
 						   rightGripperActionClient("/movo/right_gripper_controller/gripper_cmd", true),
-						   soundPlayActionClient("/sound_play", true)
+						   soundPlayActionClient("/sound_play", true),
+						   moveBaseAction("/move_base_navi", true)
  {
    ms = myms;
 
@@ -174,9 +175,9 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
       CONSOLE_ERROR(ms, "Warning, no map frame yet.");
       MC->lastMapLookupPrintTime  = ros::Time::now();
     }
+  } catch (tf2::ExtrapolationException e) {
+    CONSOLE_ERROR(ms, "Extrapolation Exception: " << e.what());
   }
-
-
   geometry_msgs::PoseStamped left_ee_pose;
   id.header.frame_id = "left_ee_link";
   ms->config.tfListener->transformPose("base_link", id, left_ee_pose);
@@ -768,6 +769,36 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(GripperWait)
+
+
+
+
+WORD(MoveBase)
+virtual string description() {
+  return "Move the base to an x, y and theta=0";
+}
+virtual void execute(MachineState * ms)
+{
+  double x, y, theta;
+  GET_NUMERIC_ARG(ms, theta);
+  GET_NUMERIC_ARG(ms, y);
+  GET_NUMERIC_ARG(ms, x);
+
+
+  move_base_msgs::MoveBaseGoal goal;
+  goal.target_pose.header.frame_id = "map";
+  goal.target_pose.pose.position.x = x;
+  goal.target_pose.pose.position.y = y;
+  goal.target_pose.pose.position.z = 0;
+
+  tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, theta);
+  quaternionTFToMsg(q, goal.target_pose.pose.orientation);
+
+  MC->moveBaseAction.sendGoal(goal);
+}
+END_WORD
+REGISTER_WORD(MoveBase)
+
 
 CONFIG_GETTER_STRING(GripperActionState, MC->focusedGripperActionClient->getState().getText(), "The action state for the gripper.");
 

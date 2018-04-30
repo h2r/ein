@@ -6,6 +6,7 @@
 #include <sensor_msgs/JointState.h>
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <sound_play/SoundRequestAction.h>
+#include <move_base_msgs/MoveBaseAction.h>
 
 
 #include <movo_msgs/LinearActuatorCmd.h>
@@ -62,6 +63,8 @@ class EinMovoConfig {
   ros::Time lastMoveitCallTime;
 
   actionlib::SimpleActionClient<sound_play::SoundRequestAction> soundPlayActionClient;
+
+  actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> moveBaseAction;
 
   vector<actionlib::SimpleActionClient<control_msgs::GripperCommandAction> *> gripperActions;
   actionlib::SimpleActionClient<control_msgs::GripperCommandAction> * focusedGripperActionClient;
