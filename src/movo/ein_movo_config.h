@@ -61,6 +61,11 @@ class EinMovoConfig {
   void moveitStatusCallback(const actionlib_msgs::GoalStatusArray&m);
   map<string, actionlib_msgs::GoalStatus> goals;
   ros::Time lastMoveitCallTime;
+  eePose lastMoveitCallPose;
+
+
+  ros::Time lastMoveBaseCallTime;
+  eePose lastMoveBaseCallPose;
 
   actionlib::SimpleActionClient<sound_play::SoundRequestAction> soundPlayActionClient;
 

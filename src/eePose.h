@@ -76,6 +76,8 @@ typedef struct _eePose{
   _eePose(double _px, double _py, double _pz, double _qx, double _qy, double _qz, double _qw);
   _eePose();
 
+  bool operator==(const _eePose& other);
+  bool operator!=(const _eePose& other);
 } eePose;
 
 typedef struct _armPose{

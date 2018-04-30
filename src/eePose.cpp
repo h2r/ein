@@ -17,6 +17,23 @@ ostream & operator<<(ostream & os, const _eePose& toPrint)
   return os;
 } 
 
+bool _eePose::operator!=(const _eePose& other)
+{
+  return !(*this == other);
+}
+
+
+bool _eePose::operator==(const _eePose& other)
+{
+  return (px == other.px &&
+	  py == other.py &&
+	  pz == other.pz &&
+	  qx == other.qx &&
+	  qy == other.qy &&
+	  qz == other.qz &&
+	  qw == other.qw);
+}
+
 _eePose _eePose::zero() {
   _eePose zeroOut = eePose(0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0);

@@ -46,3 +46,6 @@ torsoDown
 
 
 ( ( zDown ) 10 replicateWord waitUntilAtCurrentPosition ( zUp ) 10 replicateWord waitUntilAtCurrentPosition ) "Strum a uke, relative to current pose." "strum" define
+
+
+1.272772 3.443345 0.000000 0.000000 0.000000 -0.094473 0.995527 createEEPose "baseDoorPose" store

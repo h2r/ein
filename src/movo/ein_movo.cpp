@@ -11,6 +11,7 @@
 #define CMG MC->endEffectors[MC->focused_ee]
 #define EE_LEFT_ARM 0
 #define EE_RIGHT_ARM 1
+#define EE_UPPER_BODY 2
 
 #define TRACTOR_REQUEST 5
 #define STANDBY_REQUEST 4
@@ -66,6 +67,7 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"),
    rightArm->setPlannerId("RRTConnectkConfigDefault");
    endEffectors.push_back(leftArm);
    endEffectors.push_back(rightArm);
+   endEffectors.push_back(upperBody);
    //leftArm->setEndEffectorLink("left_gripper_base_link");
    //rightArm->setEndEffectorLink("right_gripper_base_link");
 
@@ -192,6 +194,8 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
     ms->config.trueEEPoseEEPose = MC->leftPose;
   } else if (MC->focused_ee == EE_RIGHT_ARM) {
     ms->config.trueEEPoseEEPose = MC->rightPose;
+  } else if (MC->focused_ee == EE_UPPER_BODY) {
+    ms->config.trueEEPoseEEPose = MC->mapPose;
   } else{
     CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
     assert(0);
@@ -220,50 +224,44 @@ void robotUpdate(MachineState * ms) {
   MC->ptaCmdMsg.tilt_cmd.vel_rps = 0.87; 
   MC->ptaCmdMsg.tilt_cmd.acc_rps2 = 0.0;
   MC->panTiltCmdPub.publish(MC->ptaCmdMsg);
-
   double distance, angleDistance;
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
-		      
-  if ((sqrt(distance) > 0.001 || angleDistance > 0.001) && 
-      (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1))) {
-    MC->lastMoveitCallTime = ros::Time::now();
-    CMG->stop();
-    geometry_msgs::PoseStamped p;
-    p.pose = eePoseToRosPose(ms->config.currentEEPose);
-    p.header.frame_id = "base_link";
-    bool result = CMG->setPoseTarget(p);
-    if (!result) {
-      CONSOLE_ERROR(ms, "Invalid pose target: " << p);
-      return;
+
+  if (MC->focused_ee == EE_LEFT_ARM || MC->focused_ee == EE_RIGHT_ARM) {
+    if ((sqrt(distance) > 0.001 || angleDistance > 0.001) && 
+	(ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1)) &&
+	(MC->lastMoveitCallPose != ms->config.currentEEPose)) {
+      MC->lastMoveitCallTime = ros::Time::now();
+      MC->lastMoveitCallPose = ms->config.currentEEPose;
+      CMG->stop();
+      geometry_msgs::PoseStamped p;
+      p.pose = eePoseToRosPose(ms->config.currentEEPose);
+      p.header.frame_id = "base_link";
+      bool result = CMG->setPoseTarget(p);
+      if (!result) {
+	CONSOLE_ERROR(ms, "Invalid pose target: " << p);
+      } else {
+	MoveItErrorCode r = CMG->asyncMove();
+	if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
+	  CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
+	}
+      }
     }
-    MoveItErrorCode r = CMG->asyncMove();
-    if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-      CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
+  } else if (MC->focused_ee == EE_UPPER_BODY) {
+    if ((sqrt(distance) > 0.001 || angleDistance > 0.001) && 
+	(ros::Time::now() - MC->lastMoveBaseCallTime  > ros::Duration(1)) &&
+	(MC->lastMoveBaseCallPose != ms->config.currentEEPose)) {
+      MC->lastMoveBaseCallTime = ros::Time::now();
+      MC->lastMoveBaseCallPose = ms->config.currentEEPose;
+      move_base_msgs::MoveBaseGoal goal;
+      goal.target_pose.header.frame_id = "map";
+      goal.target_pose.pose = eePoseToRosPose(ms->config.currentEEPose);
+      MC->moveBaseAction.sendGoal(goal);
     }
+  } else {
+    CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
+    assert(0);
   }
-
-  if (ros::Time::now() - MC->lastGripperCallTime  > ros::Duration(1)) {
-  }
-
-
-  /*  if (eePose::distance(MC->leftTargetPose, MC->leftPose) > 0.001 && (ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1) )) {
-    MC->lastMoveitCallTime = ros::Time::now();
-    MC->leftArm->stop();
-    geometry_msgs::PoseStamped p;
-    p.pose = eePoseToRosPose(MC->leftTargetPose);
-    p.header.frame_id = "base_link";
-    bool result = MC->leftArm->setPoseTarget(p);
-    if (!result) {
-      CONSOLE_ERROR(ms, "Invalid pose target: " << p);
-      return;
-    }
-    
-    MoveItErrorCode r = MC->leftArm->asyncMove();
-    if (r.val != moveit_msgs::MoveItErrorCodes::SUCCESS) {
-      CONSOLE_ERROR(ms, "Couldn't execute.  Code:  " << r.val);
-    }
-    }*/
-
 }
 
 WORD(OdomPose)
@@ -775,7 +773,7 @@ REGISTER_WORD(GripperWait)
 
 WORD(MoveBase)
 virtual string description() {
-  return "Move the base to an x, y and theta=0";
+  return "Move the base to an x, y and theta=0 in the map frame.";
 }
 virtual void execute(MachineState * ms)
 {
