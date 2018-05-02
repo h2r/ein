@@ -3038,9 +3038,22 @@ void TransitionTable::loadFromFile(string filename) {
 
 
 
+void fillRecognizedObjectArrayFromPredictedMap(MachineState * mse) {
+  
+}
 
 
 namespace ein_words {
+
+WORD(PublishRecognizedObjectArrayFromPredictedMap)
+virtual string description() {
+  return "Publish recognized obejcts from predicted map.";
+}
+virtual void execute(MachineState * ms) {
+}
+END_WORD
+REGISTER_WORD(PublishRecognizedObjectArrayFromPredictedMap)
+
 
 WORD(SceneScoreObjectAtPose)
 virtual void execute(MachineState * ms) {

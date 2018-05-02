@@ -8303,6 +8303,80 @@ int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSe
   return closest_idx;
 }
 
+
+//Grant
+//Hopefully will publish all boxes
+void fillRecognizedObjectArrayFromBlueBoxMemoryAll(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa) {
+ 
+  //std::cout << "Hello! " << ms->config.blueBoxMemories.size() << std::endl;
+  roa->objects.resize(0);
+
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+
+  // this sets all locked or reported boxes to lock
+  for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+    if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+    ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+          ms->config.blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
+  }
+
+  //int objectStartIndex = roa->objects.size();
+  std::cout << "Num blueboxes: " << ms->config.blueBoxMemories.size() << std::endl;
+  for (int blueBox_i = 0; blueBox_i < ms->config.blueBoxMemories.size(); blueBox_i++) {
+        /*if ((ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_LOCK ||
+         ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_REPORTED)) {*/
+    std::cout << "bluebox num: " << blueBox_i;
+    std::cout << " centroid pos: " << ms->config.blueBoxMemories[blueBox_i].centroid.px;
+    std::cout << ", " << ms->config.blueBoxMemories[blueBox_i].centroid.py;
+    std::cout << ", " << ms->config.blueBoxMemories[blueBox_i].centroid.pz << std::endl;
+    int classLabelIndex = ms->config.blueBoxMemories[blueBox_i].labeledClassIndex;
+    string class_label = ms->config.classLabels[classLabelIndex];
+    geometry_msgs::Pose pose;
+    int aI = roa->objects.size();
+    roa->objects.resize(roa->objects.size() + 1);
+
+    pose.position.x = ms->config.blueBoxMemories[blueBox_i].centroid.px;
+    pose.position.y = ms->config.blueBoxMemories[blueBox_i].centroid.py;
+    pose.position.z = ms->config.blueBoxMemories[blueBox_i].centroid.pz;
+
+    //cout << "blueBoxMemories: " << ms->config.blueBoxMemories[closest_idx].centroid.px << endl;
+    //cout << "pose: " << pose.position.x << endl;
+
+    roa->objects[aI].pose.pose.pose.position = pose.position;
+
+    //cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+    roa->objects[aI].type.key = class_label;    
+    /*
+    else{
+        std::cout << "bluebox num: " << blueBox_i << " is not being printed" << std::endl;
+      }*/    
+  }
+/*
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < ms->scenePredictBestObject tableUpdateMapsconfig.blueBoxMemories.size(); j++) {
+    if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
+        (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+         ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+      double square_dist =
+        eePose::squareDistance(centroid, ms->config.blueBoxMemories[j].centroid);
+      if (square_dist < min_square_dist) {
+        min_square_dist = square_dist;
+        closest_idx = j;
+      }
+    }
+      }
+*/
+      
+    
+ 
+}
+
+
 void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa) {
   roa->objects.resize(0);
 
@@ -8477,7 +8551,7 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
 
 
   object_recognition_msgs::RecognizedObjectArray roa;
-  fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);
+  fillRecognizedObjectArrayFromBlueBoxMemoryAll(ms, &roa);
 
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
