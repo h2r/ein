@@ -628,7 +628,6 @@ void EinBaxterConfig::endpointCallback(const baxter_core_msgs::EndpointState& _e
 
 // XXX TODO get a better convention for controlling gripper position, maybe
 // this should be done by grasp calculators
-  ms->config.trueEEPose = eps.pose;
   {
     ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
     ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
