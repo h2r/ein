@@ -3,6 +3,7 @@
 
 class EinMovoConfig;
 class MachineState;
+void robotInitializeSerial(MachineState * ms);
 void robotInitializeConfig(MachineState * ms);
 void robotInitializeMachine(MachineState * ms);
 void robotEndPointCallback(MachineState * ms);

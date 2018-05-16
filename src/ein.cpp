@@ -6961,8 +6961,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
 
 
   nh.getParam("/robot_description", ms->config.robot_description);
-  nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
-  nh.getParam("/rethink/software_version", ms->config.robot_software_version);
+  robotInitializeSerial(ms);
 
   if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;

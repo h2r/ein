@@ -42,6 +42,10 @@ void neutral(MachineState * ms) {
   ms->config.baxterConfig->facePub.publish(msg);
 }
 
+void robotInitializeSerial(MachineState * ms) {
+  nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
+  nh.getParam("/rethink/software_version", ms->config.robot_software_version);
+}
 
 void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);

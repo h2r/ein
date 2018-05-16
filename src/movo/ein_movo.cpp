@@ -337,9 +337,15 @@ REGISTER_WORD(LeftTargetPose)
 
 
 
+void robotInitializeSerial(MachineState * ms) {
+  ms->config.robot_serial = "brown_movo";
+  ms->config.robot_software_version = "";
+}
 
 void robotInitializeConfig(MachineState * ms) {
  MC = new EinMovoConfig(ms);
+ ms->config.robot_serial = "brown_movo";
+
  ms->config.cameras.clear();
 
  string image_topic = "/cameras/stub/image";
