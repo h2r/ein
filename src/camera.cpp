@@ -1010,7 +1010,21 @@ void Camera::setDefaultHandCameraOffset() {
 
 void Camera::setHandCameraOffsetFromTf(ros::Time time)
 {
-  
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = 0;
+  pose.pose.position.y = 0;
+  pose.pose.position.z = 0;
+  pose.pose.orientation.x = 0;
+  pose.pose.orientation.y = 0;
+  pose.pose.orientation.z = 0;
+  pose.pose.orientation.w = 1;
+
+  pose.header.stamp = time;
+  pose.header.frame_id =  tf_camera_link;
+  geometry_msgs::PoseStamped transformed_pose;
+
+  ms->config.tfListener->transformPose(tf_ee_link, pose.header.stamp, pose, tf_camera_link, transformed_pose);
+  handCameraOffset = rosPoseToEEPose(transformed_pose.pose);
 }
 
 

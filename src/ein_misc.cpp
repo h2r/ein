@@ -3289,8 +3289,18 @@ virtual void execute(MachineState * ms)
   GET_STRING_ARG(ms, name);
 
   Camera * camera  = new Camera(ms, name, topic, ee_link, link);
-  ms->config.cameras.push_back(camera);
 
+  bool repeat = false;
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    if (ms->config.cameras[i]->name == camera->name) {
+      delete ms->config.cameras[i];
+      ms->config.cameras[i] = camera;
+      repeat = true;
+    }
+  }
+  if (! repeat) {
+    ms->config.cameras.push_back(camera);
+  }
 
 }
 END_WORD

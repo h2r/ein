@@ -1,11 +1,4 @@
-/* 
 
-"kinect2_color_qhd" +  "/kinect2/qhd/image_color" leftOrRightArm "_hand" + "k2rgb_tf_link" cameraCreate
-
-"kinect2_ir" +  "/kinect2/sd/image_ir" leftOrRightArm "_hand" + "k2ir_tf_link" cameraCreate
-
-"kinect2_depth" +  "/kinect2/sd/image_depth" leftOrRightArm "_hand" + "k2ir_tf_link" cameraCreate
-*/
 
 (
  ( tiltDown 0.1 waitForSeconds ) 10 replicateWord ( tiltUp 0.1 waitForSeconds ) 10 replicateWord

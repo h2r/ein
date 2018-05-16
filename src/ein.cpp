@@ -8324,7 +8324,7 @@ void fillRecognizedObjectArrayFromBlueBoxMemoryAll(MachineState * ms, object_rec
   }
 
   //int objectStartIndex = roa->objects.size();
-  std::cout << "Num blueboxes: " << ms->config.blueBoxMemories.size() << std::endl;
+  //std::cout << "Num blueboxes: " << ms->config.blueBoxMemories.size() << std::endl;
   for (int blueBox_i = 0; blueBox_i < ms->config.blueBoxMemories.size(); blueBox_i++) {
         /*if ((ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_LOCK ||
          ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_REPORTED)) {*/
