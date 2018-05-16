@@ -3306,6 +3306,30 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(CameraCreate)
 
+WORD(SetHandCameraOffsetFromTf)
+virtual string description() {
+  return "Sets the hand camera  from tf using the links.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setHandCameraOffsetFromTf();
+}
+END_WORD
+REGISTER_WORD(SetHandCameraOffsetFromTf)
+
+
+
+WORD(SetDefaultHandCameraOffset)
+virtual string description() {
+  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setDefaultHandCameraOffset();
+}
+END_WORD
+REGISTER_WORD(SetDefaultHandCameraOffset)
+
 WORD(CameraInitializeConfig)
 virtual string description() {
   return "Initialize the configuration of the camera (reticles) with reasonable default values based on image size.";
