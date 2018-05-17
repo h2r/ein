@@ -424,6 +424,8 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TorsoUp)
 
+
+
 WORD(TorsoDown)
 virtual string description() {
   return "Move the torso down.";
@@ -433,7 +435,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(TorsoDown)
-
 
 WORD(PanDown)
 virtual string description() {
@@ -821,8 +822,8 @@ CONFIG_GETTER_INT(NumEndEffectors, MC->endEffectors.size());
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
 CONFIG_GETTER_DOUBLE(TrueTorsoJointVelocity, MC->trueTorsoJointVelocity, "The true torso velocity from the topic.")
 
-CONFIG_GETTER_DOUBLE(TargetTorsoJointPosition, MC->targetTorsoJointPosition, "The target torso position from the topic.")
-CONFIG_SETTER_DOUBLE(SetTargetTorsoJointPosition, MC->targetTorsoJointPosition)
+CONFIG_GETTER_DOUBLE(targetTorsoJointPosition, MC->targetTorsoJointPosition, "The target torso position from the topic.")
+CONFIG_SETTER_DOUBLE(TorsoSetTarget, MC->targetTorsoJointPosition)
 
 
 CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when moving the torso up and down.  Default 1cm.")

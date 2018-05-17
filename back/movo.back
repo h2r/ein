@@ -42,3 +42,24 @@ torsoDown
 
 
 1.272772 3.443345 0.000000 0.000000 0.000000 -0.094473 0.995527 createEEPose "baseDoorPose" store
+
+1 streamSetSisImage
+1 streamSetSisPose
+
+
+( 0 trueTorsoJointVelocity  - abs 0.0001 > ) "Is the torso moving?" "torsoIsMoving" define
+( trueTorsoJointPosition targetTorsoJointPosition  - abs 0.01 < ) "Is the torso at the current position?" "torsoAtCurrentPosition" define
+( ( torsoAtCurrentPosition not ) ( 0.01 waitForSeconds ) while ) "Wait until the torso reaches the target position."  "waitUntilTorsoAtCurrentPosition" define
+( ( torsoIsMoving ) ( 0.01 waitForSeconds ) while ) "Wait until the torso stops moving."  "waitUntilTorsoNotMoving" define
+
+
+
+( 0.46 torsoSetTarget ) "Set the torso to the highest point." "torsoToHighest" define
+( 0 torsoSetTarget ) "Set the torso to the lowest point." "torsoToLowest" define
+( 0.4 torsoSetTarget ) "Set the torso to the home height." "torsoToHome" define
+( 0.04 torsoSetTarget ) "Set the torso to the tuck height." "torsoToTuck" define
+
+( torsoToLowest waitUntilTorsoAtCurrentPosition
+1 streamSetSisImage 1 streamSetSisPose activateSensorStreaming 
+torsoToHighest waitUntilTorsoAtCurrentPosition
+deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStreamBuffer" define
