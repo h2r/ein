@@ -144,6 +144,17 @@ when offboard over wireless is quite slow, so this feature is a pain
 to add.  Movo plans to add faster wifi by the end of summer.  Perhaps
 we can do this now by plugging into the wired ethernet...
 
+### Movo Says
+
+Movo can play the children's game Simon Says!
+
+* Move to the tuck position and explain the rules with `movoSaysBegin`
+* Say goodbye with `movoSaysEnd`
+* All commands are named movoSays. Movo gives a command and executes.
+* Check movo.back for an up-to-date list of commands.
+* To say "Movo Says" before a command, use `movoSays movoSaysCommand`
+* Use `movoSaysStop` to move back to the tuck position
+
 
 ### TODO
 
