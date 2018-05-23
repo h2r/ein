@@ -166,7 +166,11 @@ we can do this now by plugging into the wired ethernet...
 
 * zero g (reactive mode) as described on github. 
 
-* figuring useful "default" poses for the arms for various tasks.
+* figuring useful "default" poses for the arms for various tasks.  I
+  would like to find default poses for:
+   * front reaching (opening a door or cupboard or pushing an elevator)
+   * picking up from the floor
+   * picking up from the table
 
 * Try to teleop opening a door.
 
