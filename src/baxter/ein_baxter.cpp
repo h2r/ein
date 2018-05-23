@@ -42,6 +42,10 @@ void neutral(MachineState * ms) {
   ms->config.baxterConfig->facePub.publish(msg);
 }
 
+void robotInitializeSerial(MachineState * ms) {
+  nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
+  nh.getParam("/rethink/software_version", ms->config.robot_software_version);
+}
 
 void robotInitializeConfig(MachineState * ms) {
  ms->config.baxterConfig = new EinBaxterConfig(ms);
@@ -628,7 +632,6 @@ void EinBaxterConfig::endpointCallback(const baxter_core_msgs::EndpointState& _e
 
 // XXX TODO get a better convention for controlling gripper position, maybe
 // this should be done by grasp calculators
-  ms->config.trueEEPose = eps.pose;
   {
     ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
     ms->config.trueEEPoseEEPose.py = eps.pose.position.y;

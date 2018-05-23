@@ -674,6 +674,8 @@ void Camera::loadCalibration(string inFileName) {
     FileNodeIterator it = anode.begin(), it_end = anode.end();
     vanishingPointReticle.px = *(it++);
     vanishingPointReticle.py = *(it++);
+    probeReticle = vanishingPointReticle;
+
   }
 
   {
@@ -1008,9 +1010,26 @@ void Camera::setDefaultHandCameraOffset() {
 }
 
 
-void Camera::setHandCameraOffsetFromTf(ros::Time time)
+void Camera::setHandCameraOffsetFromTf()
 {
-  
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = 0;
+  pose.pose.position.y = 0;
+  pose.pose.position.z = 0;
+  pose.pose.orientation.x = 0;
+  pose.pose.orientation.y = 0;
+  pose.pose.orientation.z = 0;
+  pose.pose.orientation.w = 1;
+
+  pose.header.stamp = ros::Time(0);
+  pose.header.frame_id =  tf_camera_link;
+  geometry_msgs::PoseStamped transformed_pose;
+  try {
+    ms->config.tfListener->transformPose(tf_ee_link, pose.header.stamp, pose, tf_camera_link, transformed_pose);
+    handCameraOffset = rosPoseToEEPose(transformed_pose.pose);
+  } catch (tf2::TransformException e) {
+    CONSOLE_ERROR(ms, "TF Exception: " << e.what());
+  }
 }
 
 

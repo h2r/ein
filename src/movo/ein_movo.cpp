@@ -337,16 +337,29 @@ REGISTER_WORD(LeftTargetPose)
 
 
 
+void robotInitializeSerial(MachineState * ms) {
+  ms->config.robot_serial = "brown_movo";
+  ms->config.robot_software_version = "";
+}
 
 void robotInitializeConfig(MachineState * ms) {
  MC = new EinMovoConfig(ms);
+ ms->config.robot_serial = "brown_movo";
+
  ms->config.cameras.clear();
 
  string image_topic = "/cameras/stub/image";
- Camera * c = new Camera(ms, "stub", image_topic, "stub", "stub");
- ms->config.cameras.push_back(c);
+ //Camera * c = new Camera(ms, "stub", image_topic, "stub", "stub");
+ //ms->config.cameras.push_back(c);
  ms->config.focused_camera = 0;
+ Camera * c = new Camera(ms, "kinect2_color_qhd",  "/kinect2/qhd/image_color", "kinect2_link", "kinect2_rgb_link");
+ ms->config.cameras.push_back(c);
 
+ c = new Camera(ms, "kinect2_ir", "/kinect2/sd/image_ir", "kinect2_link", "kinect2_ir_link");
+ ms->config.cameras.push_back(c);
+
+ c = new Camera(ms, "kinect2_depth", "/kinect2/sd/image_depth", "kinect2_link", "kinect2_ir_link");
+ ms->config.cameras.push_back(c);
 }
 
 
@@ -411,6 +424,8 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TorsoUp)
 
+
+
 WORD(TorsoDown)
 virtual string description() {
   return "Move the torso down.";
@@ -420,7 +435,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(TorsoDown)
-
 
 WORD(PanDown)
 virtual string description() {
@@ -808,8 +822,8 @@ CONFIG_GETTER_INT(NumEndEffectors, MC->endEffectors.size());
 CONFIG_GETTER_DOUBLE(TrueTorsoJointPosition, MC->trueTorsoJointPosition, "The true torso position from the topic.")
 CONFIG_GETTER_DOUBLE(TrueTorsoJointVelocity, MC->trueTorsoJointVelocity, "The true torso velocity from the topic.")
 
-CONFIG_GETTER_DOUBLE(TargetTorsoJointPosition, MC->targetTorsoJointPosition, "The target torso position from the topic.")
-CONFIG_SETTER_DOUBLE(SetTargetTorsoJointPosition, MC->targetTorsoJointPosition)
+CONFIG_GETTER_DOUBLE(targetTorsoJointPosition, MC->targetTorsoJointPosition, "The target torso position from the topic.")
+CONFIG_SETTER_DOUBLE(TorsoSetTarget, MC->targetTorsoJointPosition)
 
 
 CONFIG_GETTER_DOUBLE(TorsoGridSize, MC->torsoGridSize, "The grid size when moving the torso up and down.  Default 1cm.")

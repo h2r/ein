@@ -155,7 +155,7 @@ class Camera {
   void saveGripperMask(string outFileName);
   void saveGripperMask();
 
-  void setHandCameraOffsetFromTf(ros::Time time);
+  void setHandCameraOffsetFromTf();
   void setDefaultHandCameraOffset();
 
   void updateTrueCameraPoseFromTf(ros::Time time);

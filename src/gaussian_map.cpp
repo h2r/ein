@@ -3038,9 +3038,35 @@ void TransitionTable::loadFromFile(string filename) {
 
 
 
+void fillRecognizedObjectArrayFromPredictedMap(MachineState * ms, shared_ptr<Scene> scene, object_recognition_msgs::RecognizedObjectArray * roa) {
+  roa->objects.resize(scene->predicted_objects.size());
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+  for (int i = 0; i < scene->predicted_objects.size(); i++) {
+    shared_ptr<SceneObject> tsob = scene->predicted_objects[i];
+    roa->objects[i].pose.pose.pose = eePoseToRosPose(tsob->scene_pose);
+    roa->objects[i].pose.header.frame_id = "base_link";
+    roa->objects[i].type.key = tsob->object_label;
+  }
+  
+}
 
 
 namespace ein_words {
+
+WORD(PublishRecognizedObjectArrayFromPredictedMap)
+virtual string description() {
+  return "Publish recognized obejcts from predicted map.";
+}
+virtual void execute(MachineState * ms) {
+  object_recognition_msgs::RecognizedObjectArray roa;
+  fillRecognizedObjectArrayFromPredictedMap(ms, ms->config.scene, &roa);
+  ms->config.rec_objs_blue_memory.publish(roa);
+}
+END_WORD
+REGISTER_WORD(PublishRecognizedObjectArrayFromPredictedMap)
+
 
 WORD(SceneScoreObjectAtPose)
 virtual void execute(MachineState * ms) {

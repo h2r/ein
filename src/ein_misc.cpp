@@ -3289,12 +3289,46 @@ virtual void execute(MachineState * ms)
   GET_STRING_ARG(ms, name);
 
   Camera * camera  = new Camera(ms, name, topic, ee_link, link);
-  ms->config.cameras.push_back(camera);
 
+  bool repeat = false;
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    if (ms->config.cameras[i]->name == camera->name) {
+      delete ms->config.cameras[i];
+      ms->config.cameras[i] = camera;
+      repeat = true;
+    }
+  }
+  if (! repeat) {
+    ms->config.cameras.push_back(camera);
+  }
 
 }
 END_WORD
 REGISTER_WORD(CameraCreate)
+
+WORD(SetHandCameraOffsetFromTf)
+virtual string description() {
+  return "Sets the hand camera  from tf using the links.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setHandCameraOffsetFromTf();
+}
+END_WORD
+REGISTER_WORD(SetHandCameraOffsetFromTf)
+
+
+
+WORD(SetDefaultHandCameraOffset)
+virtual string description() {
+  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setDefaultHandCameraOffset();
+}
+END_WORD
+REGISTER_WORD(SetDefaultHandCameraOffset)
 
 WORD(CameraInitializeConfig)
 virtual string description() {
