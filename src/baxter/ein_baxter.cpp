@@ -43,6 +43,7 @@ void neutral(MachineState * ms) {
 }
 
 void robotInitializeSerial(MachineState * ms) {
+  ros::NodeHandle nh("~");  
   nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
   nh.getParam("/rethink/software_version", ms->config.robot_software_version);
 }
