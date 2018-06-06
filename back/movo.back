@@ -194,3 +194,10 @@ deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStr
  "Turn to your left" say 2 waitForSeconds
  1.0 baseSendOZVel
 ) "Movo Says: turn left."  "movoSaysTurnLeft" define
+
+( 0 setTargetTilt 0.7 setTargetPanPos ) "Look right." "lookRight" define
+( 0 setTargetTilt -0.7 setTargetPanPos ) "Look left." "lookLeft" define
+( 0.7 setTargetTilt 0 setTargetPanPos ) "Look up." "lookUp" define
+( -0.7 setTargetTilt 0 setTargetPanPos ) "Look down." "lookDown" define
+( 0 setTargetTilt 0 setTargetPanPos ) "Look straight." "lookStraight" define
+( lookUp 0.8 setTargetPanPos ) "Look smug." "lookSmug" define
