@@ -12,6 +12,7 @@
 #define EE_LEFT_ARM 0
 #define EE_RIGHT_ARM 1
 #define EE_UPPER_BODY 2
+// RIGHT 2, LEFT 1 (??)
 
 #define TRACTOR_REQUEST 5
 #define STANDBY_REQUEST 4
@@ -684,9 +685,39 @@ virtual string description() {
 virtual void execute(MachineState * ms)
 {
   MC->changeFocusedEndEffector((MC->focused_ee + 1) % MC->endEffectors.size());
+  ms->evaluateProgram("recalibratePose");
+  CONSOLE_ERROR(ms, "right Arm: " << (MC->focused_ee == EE_RIGHT_ARM));
+  CONSOLE_ERROR(ms, "leftt Arm: " << (MC->focused_ee == EE_LEFT_ARM));
+  CONSOLE_ERROR(ms, "Base: " << (MC->focused_ee == EE_UPPER_BODY));
 }
 END_WORD
 REGISTER_WORD(IncrementEndEffector)
+
+WORD(SwitchToRightArm)
+virtual string description() {
+  return "Switch the focused end effector to the right arm.";
+}
+virtual void execute(MachineState * ms)
+{
+  MC->changeFocusedEndEffector(EE_RIGHT_ARM);
+  ms->evaluateProgram("recalibratePose");
+  CONSOLE_ERROR(ms, "Switched to right arm.");
+}
+END_WORD
+REGISTER_WORD(SwitchToRightArm)
+
+WORD(SwitchToLeftArm)
+virtual string description() {
+  return "Switch the focused end effector to the left arm.";
+}
+virtual void execute(MachineState * ms)
+{
+  MC->changeFocusedEndEffector(EE_LEFT_ARM);
+  ms->evaluateProgram("recalibratePose");
+  CONSOLE_ERROR(ms, "Switched to left arm.");
+}
+END_WORD
+REGISTER_WORD(SwitchToLeftArm)
 
 WORD(DecrementEndEffector)
 virtual string description() {
