@@ -58,6 +58,9 @@ move the focused end effector using MoveIt.  Many of the tutorial
 instructions for the [[getstarted]] page apply directly to MOVO to
 move the end effector.
 
+If you want to launch moveit yourself, run the following command on movo2:
+`roslaunch movo_7dof_moveit_config movo_moveit_planning_execution.launch debug:=true`.
+
 ### Gripper
 
 The gripper is sort of complicated. Our Movo has the Jaco kg3 gripper.
@@ -193,3 +196,4 @@ Movo can play the children's game Simon Says!
 
 * add isBaseMoving, isGripperMoving, isArmMoving, isGripperGripping, etc.
 
+* add ein joint position control and stuff.
