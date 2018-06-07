@@ -201,3 +201,7 @@ deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStr
 ( -0.7 setTargetTilt 0 setTargetPanPos ) "Look down." "lookDown" define
 ( 0 setTargetTilt 0 setTargetPanPos ) "Look straight." "lookStraight" define
 ( lookUp 0.8 setTargetPanPos ) "Look smug." "lookSmug" define
+
+( zeroGOn 0.1 waitForSeconds zeroGOff ) "Recalibrate arm pose." "recalibratePose" define
+
+0.831511 -0.274924 1.044420 0.567434 -0.301375 0.149185 0.751622 createEEPose "rightArmToDoorknob" store
