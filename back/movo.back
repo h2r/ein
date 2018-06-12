@@ -207,3 +207,7 @@ deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStr
 0.831511 -0.274924 1.044420 0.567434 -0.301375 0.149185 0.751622 createEEPose "rightDoorPose" store
 0.697929 -0.091607 0.816265 0.700326 -0.204607 -0.029490 0.683234 createEEPose "rightTablePose" store
 0.625801 -0.175294 0.192804 -0.481044 0.546029 0.481915 0.488064 createEEPose "rightFloorPose" store
+
+0.831590 0.085344 1.044304 0.567266 -0.300907 0.149927 0.751789 createEEPose "leftDoorPose" store
+0.697929 0.091607 0.816265 0.700326 -0.204607 -0.029490 0.683234 createEEPose "leftTablePose" store
+0.625801 0.114000 0.192804 -0.481044 0.546029 0.481915 0.488064 createEEPose "leftFloorPose" store
