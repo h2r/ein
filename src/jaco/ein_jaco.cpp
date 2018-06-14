@@ -59,6 +59,11 @@ void robotUpdate(MachineState * ms) {
 
 }
 
+void robotInitializeSerial(MachineState * ms) {
+  ms->config.robot_serial = "jaco";
+  ms->config.robot_software_version = "";
+}
+
 void robotInitializeConfig(MachineState * ms) {
  ms->config.jacoConfig = new EinJacoConfig(ms);
  ms->config.cameras.clear();
