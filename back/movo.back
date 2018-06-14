@@ -6,6 +6,10 @@
 
 
 (
+ 0 setTargetTiltPos 0 setTargetPanPos
+) "Center the head."  "centerHead" define
+
+(
   ( openGripper gripperWait closeGripper gripperWait ) 2 replicateWord
 ) "Open and close the gripper a few times."  "movoDanceGripper" define
 
