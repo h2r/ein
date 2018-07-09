@@ -11272,10 +11272,10 @@ virtual void execute(MachineState * ms) {
 
   if (minEnergyX == -1 || minEnergyY == -1) {
     CONSOLE_ERROR(ms, "scenePushPixelOfMinVariance: Did not update minEnergy, were there enough samples?  minEnergyX: " 
-      << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
+      << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples);
     return;
   } else {
-    CONSOLE(ms, cout << "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
+    CONSOLE(ms, "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples);
   }
   
   double meters_scene_x, meters_scene_y;

@@ -1132,6 +1132,7 @@ sceneSmoothDiscrepancyDensity -1
 scenePushSceneObjectPose -1
 scenePushNumSceneObjects -1
 scenePushSceneObjectLabel -1
+sceneObjectLabelToSceneObjectIdx -1
 sceneMapSceneObject -1
 sceneZeroBox -1
 sceneZeroLowerX -1
@@ -1764,5 +1765,3 @@ faceAnimationLoadEmotion -1
 faceAnimationSetEmotionValue -1
 changeAnimationState -1
 publishImageToFace -1
-openClEchoTest -1
-openClNbodyDemo -1
