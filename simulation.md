@@ -13,4 +13,11 @@ line arguments.  This will cause Ein to start with fake sensor data
 from Baxter.  It will generate fake camera images and poses so that
 various parts of the system will not crash.
 
+Here is an example:  `catkin_make && gdb --args ./devel/lib/ein/ein  physical left`. 
 
+You will need to start your own ROS core: `roscore` in another
+terminal, and make sure that your ROS_MASTER_URI is set appropriately.
+If you run the screen session with no arguments, it will default to
+localhost so everything should work.  If you encounter problems, most
+likely your $ROS_MASTER_URI or $ROST_HOSTNAME or $ROS_IP are set
+incorrectly.
