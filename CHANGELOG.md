@@ -1,3 +1,59 @@
+## 0.10.0 (July 08, 2018)
+  - minor tweaks before elease
+  - config for iorek and updated doc
+  - Merge branch 'develop' of https://github.com/h2r/ein into develop
+  - comments and new words
+  - renaming while
+  - docs
+  - updating docs
+  - adding more readable names for things, and fixing exports.
+  - publish all names in the list.
+  - updated docs
+  - typo and adding errors
+  - Some tweaks to aibo.  1) changing color encoding so it looks right in Ein, but need to check this with John.  2)  adding ear wiggle to demo dog routine 3) documenting aibo and simulation mode.
+  - update word index
+  - list words like nil, size, etc
+  - gt ,lt, leq, geq for strings as well as numbers.
+  - docs and tests
+  - mode, as well as more sorting stuff and more docs.
+  - cmp function
+  - compile errors and unit tests
+  - test cases and stuff
+  - skel for compare to, equals, docs.
+  - compound word docs
+  - dab words and stuff
+  - Merge branch 'develop' of http://github.com/h2r/ein into develop
+  - Merge branch 'develop' of http://github.com/h2r/ein into develop
+  - adding isGripperMoving and scaling of wrist view for depth cameras
+  - winnie calibration
+  - merging... is this bad?
+  - merging
+  - merge nuts and bolts back to dev
+  - converting to far
+  - fixing bug in variance trials so we convert all things to base.
+  - 3 iterations
+  - words to get the anchor pose
+  - localizing both
+  - fixing really dumb bug where it referenced the scene in MachineState in an instance method on scene, that should have been using this.  This bug affected the variance trials.
+  - calibration
+  - docs
+  - hand camera offset
+  - update hand camera offset
+  - Merge branch 'develop' of http://github.com/h2r/ein into develop
+  - docs
+  - tweak
+  - washer and bolt initial
+  - typo
+  - move variance trial stuff into its own file
+  - gripper mask
+  - updated documentaion
+  - 2d scan default; making tableInit do all the init instead of just init.back so you can rerun tableInit later; more samples
+  - updated doc
+  - more debug
+  - updated gripper mask
+  - Merge branch 'release'
+  - dabbing
+
 ## 0.9.0 (January 22, 2017)
   - release updates and new word list
   - bug fix
