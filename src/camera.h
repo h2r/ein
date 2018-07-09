@@ -2,6 +2,7 @@
 #define _CAMERA_H_
 
 
+#include <Eigen/Geometry> 
 
 #include <string>
 #include <memory>
@@ -26,7 +27,7 @@ class Camera {
   cv::Mat cam_img;
   cv::Mat cam_bgr_img;
   cv::Mat cam_ycrcb_img;
-  const int imRingBufferSize = 300;
+  int imRingBufferSize = 300;
   std::vector<Mat> imRingBuffer;
   std::vector<ros::Time> imRBTimes;
   int imRingBufferStart = 0;
@@ -134,6 +135,8 @@ class Camera {
   streamImage * setIsbIdxNoLoadNoKick(int idx);
   streamImage * getIsbIdxNoLoadNoKick(int idx);
   streamImage * currentImage();
+  void initializeConfig(int rows, int cols);
+
   void resetAccumulatedStreamImage();
   void populateStreamImageBuffer();
   void clearStreamBuffer();
@@ -152,7 +155,7 @@ class Camera {
   void saveGripperMask(string outFileName);
   void saveGripperMask();
 
-  void setHandCameraOffsetFromTf(ros::Time time);
+  void setHandCameraOffsetFromTf();
   void setDefaultHandCameraOffset();
 
   void updateTrueCameraPoseFromTf(ros::Time time);

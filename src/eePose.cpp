@@ -1,5 +1,8 @@
 #include "eePose.h"
 #include <iostream>
+#include <fstream>
+#include <Eigen/Geometry> 
+using namespace Eigen;
 
 using namespace std;
 
@@ -14,12 +17,32 @@ ostream & operator<<(ostream & os, const _eePose& toPrint)
   return os;
 } 
 
+bool _eePose::operator!=(const _eePose& other)
+{
+  return !(*this == other);
+}
+
+
+bool _eePose::operator==(const _eePose& other)
+{
+  return (px == other.px &&
+	  py == other.py &&
+	  pz == other.pz &&
+	  qx == other.qx &&
+	  qy == other.qy &&
+	  qz == other.qz &&
+	  qw == other.qw);
+}
+
 _eePose _eePose::zero() {
   _eePose zeroOut = eePose(0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0);
   return zeroOut;
 }
 
+double _eePose::qmagnitude() {
+  return sqrt(pow(this->qx, 2) + pow(this->qy, 2) + pow(this->qz, 2) + pow(this->qw, 2));
+}
 _eePose _eePose::identity() {
   _eePose idOut = eePose(0.0, 0.0, 0.0,
                          0.0, 0.0, 0.0, 1.0);
@@ -94,29 +117,6 @@ eePose _eePose::fromRectCentroid(Rect rect) {
   return result;
 }
 
-_eePose _eePose::plusP(const Vector3d& a) const {
-  _eePose toReturn;
-  toReturn.px = px + a.x();
-  toReturn.py = py + a.y();
-  toReturn.pz = pz + a.z();
-  toReturn.qx = qx;
-  toReturn.qy = qy;
-  toReturn.qz = qz;
-  toReturn.qw = qw;
-  return toReturn;
-}
-
-_eePose _eePose::minusP(const Vector3d& a) const {
-  _eePose toReturn;
-  toReturn.px = px - a.x();
-  toReturn.py = py - a.y();
-  toReturn.pz = pz - a.z();
-  toReturn.qx = qx;
-  toReturn.qy = qy;
-  toReturn.qz = qz;
-  toReturn.qw = qw;
-  return toReturn;
-}
 
 _eePose _eePose::plusP(const _eePose& a) const {
   _eePose toReturn;
@@ -493,4 +493,28 @@ void _armPose::writeToFileStorage(FileStorage& fsvO) const {
 }
 
 
+
+geometry_msgs::Pose eePoseToRosPose(eePose p) {
+  geometry_msgs::Pose result;
+  result.position.x = p.px;
+  result.position.y = p.py;
+  result.position.z = p.pz;
+  result.orientation.x = p.qx;
+  result.orientation.y = p.qy;
+  result.orientation.z = p.qz;
+  result.orientation.w = p.qw;
+  return result;
+}
+
+eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
+  eePose result;
+  result.px = pose.position.x;
+  result.py = pose.position.y;
+  result.pz = pose.position.z;
+  result.qx = pose.orientation.x;
+  result.qy = pose.orientation.y;
+  result.qz = pose.orientation.z;
+  result.qw = pose.orientation.w;
+  return result;
+}
 

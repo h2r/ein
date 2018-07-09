@@ -290,7 +290,6 @@ workspace4 "outputPileWorkspace" store
 (
   slide ( pushClassLabels 1 sP ) "scan_swap_classLabels" store
   focusedClassLabel "scan_swap_targetClass" store
-  setPickModeToStaticMarginals
   /* endArgs "kr_bars/10_5_2" "kr_bars/10_5_4" "kr_bars/10_5_6" "kr_bars/10_5_8" "kr_bars/10_5_10" setClassLabels */
   endArgs "kr_bars/10_4_0" "kr_bars/10_5_2" "kr_bars/10_5_4" "kr_bars/10_5_6" "kr_bars/10_5_8" "kr_bars/10_5_10" setClassLabels
   "kr_bars/10_5_2" setTargetClass
@@ -353,7 +352,6 @@ workspace4 "outputPileWorkspace" store
 (
   1 setSnapToFlushGrasp
   setPlaceModeToHold
-  setBoundingBoxModeToMapping
   clearMapForPatrol
   100 setGripperMovingForce
   openGripper
@@ -402,18 +400,14 @@ workspace4 "outputPileWorkspace" store
   tableSpiralTakeScene
   */ 
 
-  setBoundingBoxModeToMapping
   clearMapForPatrol
   1 changeToHeight waitUntilAtCurrentPosition
 
     0 currentTableZ - pickFlushFactor + 
   "scan_gripperTouchTableZ" store
 
-  setPickModeToLearningAlgorithmC
-
   ( scan_catScanCounter scan_catScanLimit <   scan_catScanSees   and ) (
 
-    setPickModeToLearningAlgorithmC
     setPlaceModeToShake
 
     tableAddBlockGraspSaveModelAndPickAfterFind
@@ -514,7 +508,7 @@ workspace4 "outputPileWorkspace" store
       /* 
       quarterImpulse
       tableSpiralServoToBestSceneObject waitUntilAtCurrentPosition
-      setPickModeToStaticMarginals tableMapBestAndPick
+      tableMapBestAndPick
       */
       
       /* 
@@ -547,7 +541,6 @@ workspace4 "outputPileWorkspace" store
 
 4 "moveToOutputPile2MaxPicks" store
 (
-  setPickModeToStaticMarginals
   1 setSnapToFlushGrasp
 
   1 "somethingsThere" store
@@ -575,7 +568,7 @@ workspace4 "outputPileWorkspace" store
 
       /* if we didnt succeed when we used an object model, it is likely that something went wrong, and so we should try to find a new grasp */
       tableSwapToBlocks
-      setPickModeToStaticMarginals tableMapBestAndPickInPlace
+      tableMapBestAndPickInPlace
       tableRestoreFromBlocks
 
     ) (
@@ -774,7 +767,7 @@ workspace4 "outputPileWorkspace" store
 
 (
   halfImpulse 
-  inputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear3 
+  inputPileWorkspace moveEeToPoseWord 1 changeToHeight 
 
     0.01 
   setGridSize
@@ -789,9 +782,9 @@ workspace4 "outputPileWorkspace" store
 (
   halfImpulse 
 /*
-  outputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear1 
+  outputPileWorkspace moveEeToPoseWord 1 changeToHeight 
 */
-  outputPileWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear3 
+  outputPileWorkspace moveEeToPoseWord 1 changeToHeight 
   waitUntilAtCurrentPosition
 
     0.01 
@@ -806,7 +799,7 @@ workspace4 "outputPileWorkspace" store
 
 (
   halfImpulse 
-  playWorkspace moveEeToPoseWord 1 changeToHeight shiftIntoGraspGear1
+  playWorkspace moveEeToPoseWord 1 changeToHeight 
 
   shoreUp
 

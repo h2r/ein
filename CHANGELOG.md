@@ -1,6 +1,189 @@
 ## 0.10.0 (July 08, 2018)
   - minor tweaks before elease
   - config for iorek and updated doc
+## 1.0 (July 08, 2018)
+  - words
+  - merge from feature/compileTime
+  - minor tweaks before elease
+  - Merge branch 'aibo' into feature/compileTime
+  - ella
+  - centering head
+  - bug fixes
+  - fixing neck words
+  - Added door, table and floor poses for left arm
+  - Added poses for door, table and floor manipulation for the right arm. Table pose doesn't always work because of IK failure. Joint angle control would be better
+  - Added recalibratePose
+  - Fixed end effector bug, added switchToRightArm/switchToLeftArm
+  - docs
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - added head tilt commands
+  - fixing bug
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - doc
+  - Added initial commands and documentation for Movo Says
+  - movo scanning with torso and waiting words
+  - hand camera offset from tf and tweaks to probeRetical and stuff.
+  - adding serial
+  - setting up camera on movo
+  - new publish word
+  - new calibration and compile
+  - compile error
+  - more doc
+  - more doc
+  - move in global frame
+  - move base action
+  - catching tf exception and playing uke
+  - working on gripper position, velocity
+  - docs
+  - dance words
+  - gripper open and close works
+  - gripper open and close!
+  - finger position observation
+  - finger stuff beginning as well as map frame not freaking when there is no map frame.
+  - docs
+  - doc
+  - more movo ein
+  - moving with regular ein
+  - removing trueEEPose, just saving it as an Ein EE Pose.  Unit tests pass, haven't verified with other robots, but shoudl be straightforward.
+  - working lxup
+  - comment out print.
+  - fixing pack bug where it would close socket 0.  Only close a socket if it's already open.
+  - make focused member zero
+  - prints and adding wiggle ears to test.
+  - fixing bug introduced from ros vr stuff
+  - merge
+  - Merge branch 'aibo' of http://github.com/h2r/ein into aibo
+  - fixing bugs
+  - Matt's commit, stuff from Thursday
+  - target pose for right and left
+  - working movo
+  - more movit hacking, and making string properties have a description
+  - head works, pan tilt
+  - pan/tilt words work.  not sure why they started.
+  - adding some moveit hooks, and adding kill word that works.
+  - movo twist command (untested)
+  - movo doc
+  - battery
+  - moving base!
+  - base rotates!
+  - odom frame
+  - maybe pan/tilt works, but can't test w/o fuses?
+  - fix compile errors
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - remove print
+  - pan/tilt initail commit
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - comments for doubles bug and fixing scene.back for infinite scan.
+  - movo torso is eined
+  - torso moves out of control.
+  - documentation with double words
+  - documentation with double words
+  - working on infinite scan; it picks and puts in the play and then crashed with an unknown word.  This fixes that unknown word.
+  - updating
+  - fixing range value so setTable works
+  - working on making baxter pick again
+  - removing old word
+  - removing 2d stuff
+  - make ein use less memory i n pidrone
+  - refactoring, clean up screen
+  - more debug and use console
+  - updating screenrc stuff
+  - compile on pi
+  - compiles movo, but doesn't do anything yet
+  - fixing bug where the default class was wrong and you couldnt' take a scene without loading a default class.
+  - initial support for movo
+  - guard to fix seg fault because class labels was empty.
+  - fixing rebase so it uses the correct background model and reloads it rather than writing the one from disk.  This enables it to work with infinite scan where it is changing the background model for the different piles.  This version successfully performs infinite scan.
+  - first pick without any gui!
+  - default background maps
+  - doc
+  - updated doc
+  - comments and verified baxter can do 5/5 picks on an easy object.
+  - hand camera offset
+  - calibration stuff
+  - bug fixes to make it work with Baxter
+  - lower frequency of publishing state message, which is slow.
+  - working gui/no gui mode, preparing for compiling on the raspberry pi
+  - more demo dog words, that aren't tested.
+  - Merge branch 'feature/compileTime' into aibo
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - doc:
+  - Changed the listener to work with server more easily
+  - switching branches
+  - push the true pose
+  - bug fix
+  - tf bug fix
+  - fixing message generation on indigo
+  - No real changes. Slight modifications to aibo.back for multiple dogs. Should show similar behaviour
+  - Tried modifying aibo.back to have Pluto's IP Address. Unsure what this other yml file is or how it got here
+  - refactoring to prepare to write new urbi callbacks
+  - accel too
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - aibo doc
+  - aibo stuff
+  - documenting the likefields
+  - Merge branch 'feature/compileTime' of http://github.com/h2r/ein into feature/compileTime
+  - orion's config and background map
+  - camera so it goes through the rest of ein
+  - updated console and erorr stuff
+  - aibo screen config
+  - jaco
+  - adding default poses, confirming waitUntilAtCurrentPosition works
+  - fingers and gripper
+  - correct pose messages
+  - jaco works with xup etc!
+  - jaco pose appearing in ein and build and screen stuff
+  - merge
+  - package thing
+  - bug fixes to ein and screen rc file
+  - Merge remote-tracking branch 'origin/develop' into feature/compileTime
+  - config for iorek and updated doc
+  - updated dependencies for kinetic.  This version runs the aibo.  Now going to try to run Baxter from kinetic.
+  - compile and bug fixes for aibo
+  - fixing bug; tabletakescene and tableshorttakescene work on Baxter
+  - working eined drone with velocity commads, arm, disarm, takeoff, yaw, backward.  Also have images and poses passing through the scene but calibreation stuff is still messed up
+  - pidrone with true and current eepose
+  - adding pidrone and making more stuff baxter specific to support adding pidrone
+  - pidrone start
+  - making it start without errors in aibo mode
+  - fixing compile time issue
+  - initialize machien and making aibo work so it compiles
+  - aibo as separate library.  Aibo probably doesn't compile at this moment, and verified baxter still works.  Whitespace.
+  - aibo config
+  - aibo as separate library and separate robot
+  - moving baxter library to its own directory.  verified ikfast still works
+  - whitespace and also verified compiles and runs on Nick's baxter.  tested happy face, publish wrist view, make background and observed map, basic stack functionality, unit tests
+  - removing face animation which is in the baxter library
+  - working baxter as a library
+  - make baxter a library
+  - script for assessing compile times
+  - removing stuff
+  - wew, even mnore baxter depends!
+  - minor tweaks
+  - removing more things
+  - more headers; opencv
+  - removing sstream; compiles
+  - removing more stuff from headers
+  - removing more depends
+  - more refactoring and removing Eigen from some headers.  This version compiles and runs the unittests in the simulator.
+  - removing more headers from central files
+  - removing more headers; compiles.
+  - removing ros messages from ein.h
+  - moving around stuff, compiles.
+  - verified we run in sim and pass tests; compile takes 2m11s.
+  - more refactoring of headers
+  - only include word.h
+  - gui refactor
+  - removing pcl which was not used in the end, as well as moving high gui to the files
+  - whitespace and also logging that this version compiles and runs the tests in the simulator mode.
+  - removing more baxter messages and refactoring compile of gui code.
+  - simulated default map, and more refactoring, as we remove more baxter dependencies and also UI.  Tested that it compiles and runs unit tests in the simulator.
+  - giant refactoring so we don't compile time depend on the Baxter messages except for in one place.  the main ein program doesn't need it; just has a forward declare to the stuff that uses it.
+  - refactoring compile; changing aibo classes to be forward declared and use pointers in the config class to remove compile dependencies
+  - moving functions around to reduce includes, to decrease compile time.
+  - removing duplicate headers
+  - removing stuff from header that is not needed in the header
+>>>>>>> release
   - Merge branch 'develop' of https://github.com/h2r/ein into develop
   - comments and new words
   - renaming while

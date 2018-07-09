@@ -2,7 +2,8 @@
 #define GAUSSIANMAPWIDGET_H
 
 #include <QWidget>
-#include "ein.h"
+class MachineState;
+class GaussianMap;
 #include "window_QT.h"
 #include "stackmodel.h"
 

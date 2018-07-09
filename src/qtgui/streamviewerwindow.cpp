@@ -4,9 +4,10 @@
 
 #include <QTest>
 #include <boost/algorithm/string.hpp>
-
+#include "config.h"
 #include "einwindow.h"
 #include "camera.h"
+int loadStreamImage(MachineState * ms, streamImage * tsi);
 
 StreamViewerWindow::StreamViewerWindow(QWidget *parent, MachineState * _ms) :
     QMainWindow(parent),
@@ -78,7 +79,7 @@ void StreamViewerWindow::update()
     txt << secondOffset << " of " << length << " seconds" << endl;
 
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
     if (success) {
       shared_ptr<EePoseWord> w = make_shared<EePoseWord>(tArmP);
       txt << w->repr() << endl;

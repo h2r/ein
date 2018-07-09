@@ -5,12 +5,13 @@
 
 
 #include "einwindow.h"
-#include <vector>
+#include <memory>
 
 using namespace std;
 #include <QAction>
 #include <QMenu>
-#include "word.h"
+class Word;
+class MachineState;
 
 class WordAction: public QAction {
 

@@ -6,13 +6,17 @@
 #include <boost/date_time/c_local_time_adjustor.hpp>
 #include <glob.h>
 
-
 #include <boost/filesystem.hpp>
+
+#include "config.h"
 
 #include "compress.h"
 using namespace boost::filesystem;
 
 
+double deg2rad (double degrees) {
+  return degrees * 4.0 * atan (1.0) / 180.0;
+}
 
 Mat readMatFromYaml(FileNode & fs) {
   int rows = fs["rows"];
@@ -132,41 +136,6 @@ bool isSketchyMat(Mat sketchy) {
 
 
 
-gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
-  double min_x = b.top.px;
-  double min_y = b.top.py;
-  double max_x = b.bot.px;
-  double max_y = b.bot.py;
-  double width = max_x - min_x;
-  double height = max_y - min_y;
-
-  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
-  gsl_matrix_set(polygon, 0, 0, min_x);
-  gsl_matrix_set(polygon, 1, 0, min_y);
-
-  gsl_matrix_set(polygon, 0, 1, min_x + width);
-  gsl_matrix_set(polygon, 1, 1, min_y);
-
-  gsl_matrix_set(polygon, 0, 2, min_x + width);
-  gsl_matrix_set(polygon, 1, 2, min_y + height);
-
-  gsl_matrix_set(polygon, 0, 3, min_x);
-  gsl_matrix_set(polygon, 1, 3, min_y + height);
-  return polygon;
-}
-
-
-eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
-  eePose result;
-  result.px = pose.position.x;
-  result.py = pose.position.y;
-  result.pz = pose.position.z;
-  result.qx = pose.orientation.x;
-  result.qy = pose.orientation.y;
-  result.qz = pose.orientation.z;
-  result.qw = pose.orientation.w;
-  return result;
-}
 
 
 
@@ -175,7 +144,7 @@ void initializeMachine(MachineState * ms) {
 
   ms->evaluateProgram("\"init\" import");
   ms->pushWord("sceneInit"); 
-  ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
+
 
   stringstream s;
   s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
@@ -183,29 +152,10 @@ void initializeMachine(MachineState * ms) {
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
 
-
-  if (ms->config.currentRobotMode == PHYSICAL) {
-
-    ms->pushWord("zeroGOff"); 
-    ms->pushWord("waitUntilEndpointCallbackReceived"); 
-    
-    ms->pushCopies("zUp", 15);
-    ms->pushWord("incrementTargetClass"); 
-    ms->pushWord("synchronicServoTakeClosest");
-
-    ms->pushWord("silenceSonar");
-    ms->pushWord("exportWords");
-    ms->pushWord("openGripper");
-    ms->pushWord("calibrateGripper");
-    ms->pushWord("shiftIntoGraspGear1"); 
-    
-    ms->pushWord("fillClearanceMap"); 
-  }
+  robotInitializeMachine(ms);
 
 
   ms->pushWord("loadCalibration"); 
-  ms->pushWord("loadIkMap"); 
-  ms->pushWord("loadGripperMask"); 
   ms->pushWord("loadConfig"); 
   ms->pushWord("initializeConfig");
   ms->pushWord("guiCustom1"); 

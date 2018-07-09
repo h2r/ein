@@ -2,8 +2,9 @@
 #define _EIN_SCENE_H_
 
 #include "eePose.h"
-#include "ein_util.h"
 
+#include <memory>
+using namespace std;
 
 class MachineState;
 class Word;

@@ -3,12 +3,22 @@ cmake_minimum_required(VERSION 2.8.3)
 project(ein)
 
 
+#SET (CMAKE_CXX_COMPILER             "/home/stefie10/dev/pidrone/src/ein/timecpp.sh")
+#SET (CMAKE_CXX_COMPILER             "/usr/bin/clang++-5.0")
+#SET (CMAKE_C_COMPILER             "/usr/bin/clang-5.0")
+#SET (CMAKE_AR      "/usr/bin/llvm-ar-5.0")
+#SET (CMAKE_LINKER  "/usr/bin/llvm-ld-5.0")
+#SET (CMAKE_NM      "/usr/bin/llvm-nm-5.0")
+#SET (CMAKE_OBJDUMP "/usr/bin/llvm-objdump-5.0")
+#SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib-5.0")
+
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake") 
 MESSAGE(CMAKE_MODULE_PATH)
 MESSAGE(${CMAKE_MODULE_PATH})
 
 
+find_package(OpenCV 2)
 
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
@@ -23,10 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   message_generation
-  pcl_ros
-  baxter_core_msgs
   control_msgs
-  kdl_parser
 )
 
 
@@ -59,20 +66,20 @@ generate_messages(
 
 catkin_package(CATKIN_DEPENDS 
   eigen
-  message_runtime)
+  message_runtime
+  std_msgs
+  object_recognition_msgs
+)
 
-link_directories(${PCL_LIBRARY_DIRS})
 
-add_definitions(${PCL_DEFINITIONS})
 
-string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
-add_definitions(-DRETHINK_SDK_${happy_version})
+
+
 
 
 include_directories(include
 	${catkin_INCLUDE_DIRS}
 	${EIGEN_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
 )
 
 set(OPENMP_FLAG "-fopenmp")
@@ -88,6 +95,7 @@ ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.cpp  ${PROJECT_SOURCE_DIR}/src/qtgui/s
 ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.cpp  
 ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.cpp ${PROJECT_SOURCE_DIR}/src/qtgui/discrepancywindow.cpp  
 ${PROJECT_SOURCE_DIR}/src/qtgui/capturelineedit.cpp
+${PROJECT_SOURCE_DIR}/src/qtgui/qt_util.cpp  
 )
 set (EinQtLib_hdr ${PROJECT_SOURCE_DIR}/src/qtgui/mainwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/einwindow.h ${PROJECT_SOURCE_DIR}/src/qtgui/window_QT.h ${PROJECT_SOURCE_DIR}/src/qtgui/stackmodel.h  ${PROJECT_SOURCE_DIR}/src/qtgui/windowmanager.h   ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/armwidget.h
 ${PROJECT_SOURCE_DIR}/src/qtgui/wordaction.h ${PROJECT_SOURCE_DIR}/src/qtgui/gaussianmapwidget.h  ${PROJECT_SOURCE_DIR}/src/qtgui/streamviewerwindow.h 
@@ -101,7 +109,6 @@ qt5_wrap_cpp(EinQtLib_hdr_moc ${EinQtLib_hdr})
 qt5_wrap_ui (EinQtLib_ui_moc  ${EinQtLib_ui})
 
 include_directories (${PROJECT_SOURCE_DIR}/src)
-include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 include_directories (${PROJECT_BINARY_DIR})
 
 add_library (EinQtLib SHARED 
@@ -109,11 +116,14 @@ add_library (EinQtLib SHARED
     ${EinQtLib_hdr_moc}
     ${EinQtLib_ui_moc}
 )
+add_dependencies(EinQtLib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
+
 
 
 add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_bandit.cpp src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp src/ein_ik.cpp src/ein_stream.cpp src/ikfast/ikfast_wrapper_left.cpp src/ikfast/ikfast_wrapper_right.cpp  src/ein_collision.cpp src/camera.cpp  
-src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp src/ein_polyhedron.cpp src/ein_aibo.cpp src/ein_face_animation.cpp
+src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
+src/ein_stream.cpp src/camera.cpp  
+src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/opencl/ein_opencl.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
@@ -136,25 +146,22 @@ src/cephes/exp2.c    src/cephes/k0.c      src/cephes/rgamma.c      src/cephes/ze
 src/cephes/expn.c    src/cephes/k1.c      src/cephes/round.c
 )
 
-
 target_link_libraries(ein
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
-#	opencv_nonfree
         ${GSL_LIBRARIES}
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
         EinQtLib
 )
+add_dependencies(ein ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
 
 
 qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
-message("OpenGL" ${OpenGL})
-message("OpenGL_FOUND" ${OpenGL_FOUND})
-message("OpenGL" ${OPENGL})
-message("OpenGL_FOUND" ${OPENGL_FOUND})
 if (OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND AND OpenCL_FOUND)
+
 MESSAGE("Building openCL with hardware acceleration.")
+include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
 add_definitions(-DUSE_OPENCL)
 add_library(EinOpenCLLib SHARED
 src/opencl/oclNbody/src/cmd_arg_reader.cpp
@@ -175,6 +182,7 @@ target_link_libraries(EinOpenCLLib
         ${GLEW_LIBRARIES}
         ${GLUT_LIBRARIES}
         ${OpenCL_LIBRARY}
+        EinQtLib
 )
 
 
@@ -206,51 +214,91 @@ else()
 MESSAGE("Not building openCL with hardware accelleration.")
 endif()
 
+find_package(catkin COMPONENTS baxter_core_msgs)
+
+find_package(catkin COMPONENTS pidrone_pkg)
+
+find_package(catkin COMPONENTS kinova_msgs)
+
+find_package(catkin COMPONENTS movo_msgs)
 
 
-# Add a top-level "tags" target which includes all files in both
-# the build and source versions of src/*.
-#set_source_files_properties(tags PROPERTIES GENERATED true)
-#add_custom_target(tags
-#    COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  -e --exclude='.\#*'
-#        ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
-#    COMMAND ln -sf ${CMAKE_CURRENT_BINARY_DIR}/tags ${CMAKE_BINARY_DIR}
-#    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+# you must pick one robot. 
 
-# ...but only make it a dependency of the project if the ctags program
-# is available, else it will fail to build on Windows.
-#find_program(CTAGS_PATH ctags)
-#if(CTAGS_PATH)
-#    message(STATUS "Found ctags: ${CTAGS_PATH}")
-#    add_dependencies(ein tags)
-#endif(CTAGS_PATH)
+if (baxter_core_msgs_FOUND)
+MESSAGE("Building Baxter.")
+add_definitions(-DUSE_ROBOT_BAXTER)
+find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
 
-
-
-
-
-
-
-# # Find includes in corresponding build directories
-# set(CMAKE_INCLUDE_CURRENT_DIR ON)
-# # Instruct CMake to run moc automatically when needed.
-
-# # Find the QtWidgets library
-# find_package(Qt5Widgets)
-
-# qt5_wrap_ui(Cmake_form_hdr mainwindow.ui)
+string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
+add_definitions(-DRETHINK_SDK_${happy_version})
+add_library(EinBaxter SHARED
+src/baxter/ein_baxter.cpp 
+src/baxter/ein_face_animation.cpp 
+src/baxter/ikfast/ikfast_wrapper_left.cpp 
+src/baxter/ikfast/ikfast_wrapper_right.cpp 
+src/baxter/ein_ik.cpp 
+)
+target_link_libraries(EinBaxter
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+        ${LAPACK_LIBRARIES}
+)
 
 
-# qt5_wrap_cpp(helloworld_hdr_moc src/qtgui/mainwindow.h)
-# qt5_wrap_ui (helloworld_ui_moc  src/qtgui/mainwindow.ui)
-                                
+target_link_libraries(ein EinBaxter)
 
-# include_directories (${PROJECT_SOURCE_DIR})
-# include_directories (${PROJECT_BINARY_DIR})
+elseif (pidrone_pkg_FOUND)
 
+MESSAGE("Building Pidrone")
+add_definitions(-DUSE_ROBOT_PIDRONE)
+add_library(EinPidrone SHARED
+src/pidrone/ein_pidrone.cpp 
+)
+target_link_libraries(ein EinPidrone)
+elseif (movo_msgs_FOUND)
+MESSAGE("Building movo")
 
-# # Tell CMake to create the helloworld executable
-# add_executable(helloworld src/qtgui/main.cpp src/qtgui/mainwindow.cpp)
+find_package(catkin REQUIRED COMPONENTS
+    moveit_core
+    moveit_ros_planning
+    moveit_ros_planning_interface
+)
+add_definitions(-DUSE_ROBOT_MOVO)
+add_library(EinMovo SHARED
+src/movo/ein_movo.cpp
+)
+target_link_libraries(ein EinMovo
+${catkin_LIBRARIES}
+)
+add_dependencies(EinMovo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-# # Use the Widgets module from Qt 5.
-# target_link_libraries(helloworld Qt5::Widgets)
+elseif (kinova_msgs_FOUND)
+MESSAGE("Building jaco")
+add_definitions(-DUSE_ROBOT_JACO)
+add_library(EinJaco SHARED
+src/jaco/ein_jaco.cpp 
+)
+target_link_libraries(ein EinJaco)
+
+else()
+MESSAGE("Building Aibo")
+add_definitions(-DUSE_ROBOT_AIBO)
+
+add_library(EinAibo SHARED
+  src/aibo/ein_aibo.cpp
+  src/aibo/ein_aibo_reactive.cpp 
+)
+add_dependencies(EinAibo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
+
+target_link_libraries(EinAibo
+	${catkin_LIBRARIES}
+	${OpenCV_LIBS}
+        )
+
+target_link_libraries(ein EinAibo)
+
+endif()
+

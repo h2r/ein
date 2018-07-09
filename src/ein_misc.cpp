@@ -1,7 +1,14 @@
 
 #include "ein_words.h"
 #include "ein.h"
+
+#include <ein/EinState.h>
+using namespace ein;
+
 #include <boost/filesystem.hpp>
+
+#include <sys/stat.h>
+
 using namespace boost::filesystem;
 #include "camera.h"
 
@@ -75,7 +82,6 @@ REGISTER_WORD(Now)
 WORD(Throw)
 virtual void execute(MachineState * ms) {
   throw runtime_error("test");
-  
 }
 END_WORD
 REGISTER_WORD(Throw)
@@ -322,6 +328,9 @@ REGISTER_WORD(DecrementTargetClass)
 
 WORD(Or)
 CODE('|') 
+virtual string description() {
+  return "Returns logical or of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -348,6 +357,9 @@ virtual vector<string> names() {
   result.push_back(name());
   result.push_back("&&");
   return result;
+}
+virtual string description() {
+  return "Returns logical and of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.";
 }
 virtual void execute(MachineState * ms) {
   double v1;
@@ -549,6 +561,19 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Sum)
 
+WORD(Abs)
+virtual string description() {
+  return "Returns the absolute value of its argument.";
+}
+virtual void execute(MachineState * ms) {
+  double val = 0.0;
+  GET_NUMERIC_ARG(ms, val);
+  ms->pushWord(make_shared<DoubleWord>(fabs(val)));
+}
+END_WORD
+REGISTER_WORD(Abs)
+
+
 WORD(Prod)
 virtual string description() {
   return "Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -> 1.";
@@ -721,6 +746,9 @@ REGISTER_WORD(Cmp)
 
 WORD(Times)
 CODE('*') 
+virtual string description() {
+  return "Multiply two numeric arguments.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -741,6 +769,9 @@ REGISTER_WORD(Times)
 
 WORD(Divide)
 CODE('/') 
+virtual string description() {
+  return "Divide two numeric arguments.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -1009,6 +1040,9 @@ END_WORD
 REGISTER_WORD(Swap)
 
 WORD(Slide)
+virtual string description() {
+  return "Moves a word from the call stack to the data stack.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -1027,6 +1061,9 @@ END_WORD
 REGISTER_WORD(Slide)
 
 WORD(Slip)
+virtual string description() {
+  return "Moves a word from the data stack to the call stack.";
+}
 virtual void execute(MachineState * ms) {
   std::shared_ptr<Word> word = ms->popData();
   if (word == NULL) {
@@ -1470,13 +1507,17 @@ END_WORD
 REGISTER_WORD(EndStackCollapseNoop)
 
 WORD(ExportWords)
+virtual string description() {
+  return "Export words to a text file for documentation purposes.";
+}
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.txt";
-  cout << "Writing words to " << wordFileName << endl;
+  CONSOLE(ms, "Writing words to " << wordFileName);
   ofstream wordFile;
   wordFile.open(wordFileName);
 
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   for (int i = 0; i < words.size(); i++) {
     vector<string> names = words[i]->names();
     for (int j = 0; j < names.size(); j++) {
@@ -1489,6 +1530,9 @@ END_WORD
 REGISTER_WORD(ExportWords)
 
 WORD(ExportDoc)
+virtual string description() {
+  return "Export words to an html file which is displayed on the website.";
+}
 virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.html";
@@ -1502,12 +1546,10 @@ virtual void execute(MachineState * ms)
   for (iter = words.begin(); iter != words.end(); ++iter) {
     vector<string> names = iter->second->names();
     wordFile << "<tr><td>";
-    //for (int j = 0; j < names.size(); j++) {
-    wordFile << xmlEncode(iter->first);
-      //if (j != names.size() - 1) {
-      //  wordFile << ", ";
-      //}
-    //}
+    for (int j = 0; j < names.size(); j++) {
+      wordFile << xmlEncode(names[j]);
+      wordFile << "<br/>";
+    }
     wordFile << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
 
   }
@@ -1852,96 +1894,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(CollapseStack)
 
-WORD(ShakeHeadPositive)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentHeadPanCommand.target = 3.1415926/2.0;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
-#else
-  ms->config.currentHeadPanCommand.speed = 50;
-#endif
-  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
-}
-END_WORD
-REGISTER_WORD(ShakeHeadPositive)
-
-
-WORD(ShakeHeadNegative)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentHeadPanCommand.target = -3.1415926/2.0;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
-#else
-  ms->config.currentHeadPanCommand.speed = 50;
-#endif
-  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
-}
-END_WORD
-REGISTER_WORD(ShakeHeadNegative)
-
-WORD(CenterHead)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentHeadPanCommand.target = 0;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
-#else
-  ms->config.currentHeadPanCommand.speed = 50;
-#endif
-  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
-}
-END_WORD
-REGISTER_WORD(CenterHead)
-
-WORD(SetHeadPanTargetSpeed)
-virtual void execute(MachineState * ms)
-{
-  double t_target;
-  double t_speed;
-  GET_NUMERIC_ARG(ms, t_speed);
-  GET_NUMERIC_ARG(ms, t_target);
-
-  cout << "setHeadPanTargetSpeed: " << t_target << " " << t_speed << endl;
-
-  ms->config.currentHeadPanCommand.target = t_target;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = floor(t_speed);
-#else
-  ms->config.currentHeadPanCommand.speed = floor(100 * t_speed);
-#endif
-  ms->config.headPub.publish(ms->config.currentHeadPanCommand);
-}
-END_WORD
-REGISTER_WORD(SetHeadPanTargetSpeed)
-
-WORD(SilenceSonar)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentSonarCommand.data = 0;
-  ms->config.sonarPub.publish(ms->config.currentSonarCommand);
-}
-END_WORD
-REGISTER_WORD(SilenceSonar)
-
-WORD(UnSilenceSonar)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentSonarCommand.data = 1;
-  ms->config.sonarPub.publish(ms->config.currentSonarCommand);
-}
-END_WORD
-REGISTER_WORD(UnSilenceSonar)
-
-WORD(Nod)
-virtual void execute(MachineState * ms)
-{
-  ms->config.currentHeadNodCommand.data = 1;
-  ms->config.nodPub.publish(ms->config.currentHeadNodCommand);
-}
-END_WORD
-REGISTER_WORD(Nod)
 
 WORD(ResetAuxiliary)
 virtual void execute(MachineState * ms)
@@ -2420,171 +2372,7 @@ END_WORD
 REGISTER_WORD(ResetAveragedWrenchNorm)
 
 
-WORD(AnalogIOCommand)
-virtual void execute(MachineState * ms)
-{
-  string component;
-  double value;
-  GET_ARG(ms, StringWord, component);
-  GET_NUMERIC_ARG(ms, value);
 
-  baxter_core_msgs::AnalogOutputCommand thisCommand;
-
-  thisCommand.name = component;
-  thisCommand.value = value;
-
-  ms->config.analog_io_pub.publish(thisCommand);
-}
-END_WORD
-REGISTER_WORD(AnalogIOCommand)
-
-WORD(TorsoFanOn)
-virtual void execute(MachineState * ms)
-{
-  ms->evaluateProgram("100 \"torso_fan\" analogIOCommand");
-}
-END_WORD
-REGISTER_WORD(TorsoFanOn)
-
-WORD(TorsoFanOff)
-virtual void execute(MachineState * ms)
-{
-  ms->evaluateProgram("1 \"torso_fan\" analogIOCommand");
-}
-END_WORD
-REGISTER_WORD(TorsoFanOff)
-
-WORD(TorsoFanAuto)
-virtual void execute(MachineState * ms)
-{
-  ms->evaluateProgram("0 \"torso_fan\" analogIOCommand");
-}
-END_WORD
-REGISTER_WORD(TorsoFanAuto)
-
-
-WORD(SetTorsoFanLevel)
-virtual void execute(MachineState * ms)
-{
-  double value;
-  GET_NUMERIC_ARG(ms, value);
-  std::stringstream program;
-  program << value << " \"torso_fan\" analogIOCommand";
-  ms->evaluateProgram(program.str());
-}
-END_WORD
-REGISTER_WORD(SetTorsoFanLevel)
-
-
-
-WORD(DigitalIOCommand)
-virtual void execute(MachineState * ms)
-{
-  string component;
-  int value;
-  GET_ARG(ms, StringWord, component);
-  GET_ARG(ms, IntegerWord, value);
-
-  baxter_core_msgs::DigitalOutputCommand thisCommand;
-
-  thisCommand.name = component;
-  thisCommand.value = value;
-
-  ms->config.digital_io_pub.publish(thisCommand);
-}
-END_WORD
-REGISTER_WORD(DigitalIOCommand)
-
-WORD(SetRedHalo)
-virtual void execute(MachineState * ms)
-{
-  double value;
-  GET_NUMERIC_ARG(ms, value);
-  ms->config.red_halo_state = value;
-
-  {
-    std_msgs::Float32 thisCommand;
-    thisCommand.data = ms->config.red_halo_state;
-    ms->config.red_halo_pub.publish(thisCommand);
-  }
-}
-END_WORD
-REGISTER_WORD(SetRedHalo)
-
-WORD(SetGreenHalo)
-virtual void execute(MachineState * ms)
-{
-  double value;
-  GET_NUMERIC_ARG(ms, value);
-  ms->config.green_halo_state = value;
-
-  {
-    std_msgs::Float32 thisCommand;
-    thisCommand.data = ms->config.green_halo_state;
-    ms->config.green_halo_pub.publish(thisCommand);
-  }
-}
-END_WORD
-REGISTER_WORD(SetGreenHalo)
-
-WORD(SetSonarLed)
-virtual void execute(MachineState * ms)
-{
-  int value;
-  GET_ARG(ms, IntegerWord, value);
-  ms->config.sonar_led_state = value;
-
-  {
-    std_msgs::UInt16 thisCommand;
-    thisCommand.data = ms->config.sonar_led_state;
-    ms->config.sonar_pub.publish(thisCommand);
-  }
-}
-END_WORD
-REGISTER_WORD(SetSonarLed)
-
-WORD(LightsOn)
-virtual void execute(MachineState * ms)
-{
-  std::stringstream program;
-  program << "100 setGreenHalo 100 setRedHalo 4095 setSonarLed ";
-  program << "1 \"left_itb_light_inner\" digitalIOCommand 1 \"right_itb_light_inner\" digitalIOCommand 1 \"torso_left_itb_light_inner\" digitalIOCommand 1 \"torso_right_itb_light_inner\" digitalIOCommand 1 \"left_itb_light_outer\" digitalIOCommand 1 \"right_itb_light_outer\" digitalIOCommand 1 \"torso_left_itb_light_outer\" digitalIOCommand 1 \"torso_right_itb_light_outer\" digitalIOCommand";
-  ms->evaluateProgram(program.str());
-}
-END_WORD
-REGISTER_WORD(LightsOn)
-
-WORD(LightsOff)
-virtual void execute(MachineState * ms)
-{
-  std::stringstream program;
-  program << "0 setGreenHalo 0 setRedHalo 32768 setSonarLed ";
-  program << "0 \"left_itb_light_inner\" digitalIOCommand 0 \"right_itb_light_inner\" digitalIOCommand 0 \"torso_left_itb_light_inner\" digitalIOCommand 0 \"torso_right_itb_light_inner\" digitalIOCommand 0 \"left_itb_light_outer\" digitalIOCommand 0 \"right_itb_light_outer\" digitalIOCommand 0 \"torso_left_itb_light_outer\" digitalIOCommand 0 \"torso_right_itb_light_outer\" digitalIOCommand";
-  ms->evaluateProgram(program.str());
-}
-END_WORD
-REGISTER_WORD(LightsOff)
-
-WORD(SwitchSonarLed)
-virtual void execute(MachineState * ms)
-{
-  int value;
-  int led;
-  GET_ARG(ms, IntegerWord, led);
-  GET_ARG(ms, IntegerWord, value);
-
-  int blanked_sls = (~(1<<led)) & ms->config.sonar_led_state;
-
-  ms->config.sonar_led_state = blanked_sls | (1<<15) | (value * (1<<led));
-
-  {
-    std_msgs::UInt16 thisCommand;
-    thisCommand.data = ms->config.sonar_led_state;
-    ms->config.sonar_pub.publish(thisCommand);
-  }
-}
-END_WORD
-REGISTER_WORD(SwitchSonarLed)
 
 WORD(PrintStacks)
 virtual void execute(MachineState * ms)
@@ -2624,6 +2412,9 @@ END_WORD
 REGISTER_WORD(ClearData)
 
 WORD(CP)
+virtual string description() {
+  return "Close paren; end a compound word.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -2639,6 +2430,9 @@ END_WORD
 REGISTER_WORD(CP)
 
 WORD(OP)
+virtual string description() {
+  return "Open paren; begin a compound word.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -3495,12 +3289,64 @@ virtual void execute(MachineState * ms)
   GET_STRING_ARG(ms, name);
 
   Camera * camera  = new Camera(ms, name, topic, ee_link, link);
-  ms->config.cameras.push_back(camera);
 
+  bool repeat = false;
+  for (int i = 0; i < ms->config.cameras.size(); i++) {
+    if (ms->config.cameras[i]->name == camera->name) {
+      delete ms->config.cameras[i];
+      ms->config.cameras[i] = camera;
+      repeat = true;
+    }
+  }
+  if (! repeat) {
+    ms->config.cameras.push_back(camera);
+  }
 
 }
 END_WORD
 REGISTER_WORD(CameraCreate)
+
+WORD(SetHandCameraOffsetFromTf)
+virtual string description() {
+  return "Sets the hand camera  from tf using the links.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setHandCameraOffsetFromTf();
+}
+END_WORD
+REGISTER_WORD(SetHandCameraOffsetFromTf)
+
+
+
+WORD(SetDefaultHandCameraOffset)
+virtual string description() {
+  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
+}
+virtual void execute(MachineState * ms) {
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  camera->setDefaultHandCameraOffset();
+}
+END_WORD
+REGISTER_WORD(SetDefaultHandCameraOffset)
+
+WORD(CameraInitializeConfig)
+virtual string description() {
+  return "Initialize the configuration of the camera (reticles) with reasonable default values based on image size.";
+}
+virtual void execute(MachineState * ms)
+{
+  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  if (!isSketchyMat(camera->cam_img)) {
+    camera->initializeConfig(camera->cam_img.rows, camera->cam_img.cols);
+  } else {
+    CONSOLE_ERROR(ms, "No camera image!");
+  }
+}
+END_WORD
+REGISTER_WORD(CameraInitializeConfig)
+
+
 
 
 CONFIG_GETTER_INT(GradientServoSoftMaxIterations, ms->config.softMaxGradientServoIterations)
@@ -3512,47 +3358,47 @@ CONFIG_SETTER_INT(SetGradientServoHardMaxIterations, ms->config.hardMaxGradientS
 CONFIG_GETTER_INT(MappingServoTimeout, ms->config.mappingServoTimeout)
 CONFIG_SETTER_INT(SetMappingServoTimeout, ms->config.mappingServoTimeout)
 
-CONFIG_GETTER_INT(RepeatHalo, ms->config.repeat_halo)
-CONFIG_SETTER_INT(SetRepeatHalo, ms->config.repeat_halo)
 
-CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh)
+CONFIG_GETTER_DOUBLE(TwistThresh, ms->config.twistThresh, "")
 CONFIG_SETTER_DOUBLE(SetTwistThresh, ms->config.twistThresh)
 
-CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh);
+CONFIG_GETTER_DOUBLE(EffortThresh, ms->config.actual_effort_thresh, "");
 CONFIG_SETTER_DOUBLE(SetEffortThresh, ms->config.actual_effort_thresh);
 
 
-CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory)
+CONFIG_GETTER_STRING(DataDirectory, ms->config.data_directory, "The directory where data is stored.")
 
-CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial)
-CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version)
-CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version)
+CONFIG_GETTER_STRING(RobotType, ms->config.robot_type, "The type of the robot.")
 
-CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group)
+CONFIG_GETTER_STRING(RobotSerial, ms->config.robot_serial, "The robot serial number, used for naming configuration files uniquely.")
+CONFIG_GETTER_STRING(RobotSoftwareVersion, ms->config.robot_software_version, "The robot software version.  used for baxter sdk versions.")
+CONFIG_GETTER_STRING(EinSoftwareVersion, ms->config.ein_software_version, "Ein's version.")
+
+CONFIG_GETTER_STRING(ScanGroup, ms->config.scan_group, "The scan group, for saving groups of scans organized by objects.")
 CONFIG_SETTER_STRING(SetScanGroup, ms->config.scan_group)
 
-CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight)
+CONFIG_GETTER_DOUBLE(IkMapStartHeight, ms->config.ikMapStartHeight, "Start height at which we make the IK map.")
 
-CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight)
+CONFIG_GETTER_DOUBLE(IkMapEndHeight, ms->config.ikMapEndHeight, "End height for making the IP map.")
 
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin)
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMin, ms->config.mapSearchFenceXMin, "Xmin for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMin, ms->config.mapSearchFenceXMin)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin)
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMin, ms->config.mapSearchFenceYMin, "Ymin for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMin, ms->config.mapSearchFenceYMin)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax)
+CONFIG_GETTER_DOUBLE(MapSearchFenceXMax, ms->config.mapSearchFenceXMax, "Xmax for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceXMax, ms->config.mapSearchFenceXMax)
 
-CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax)
+CONFIG_GETTER_DOUBLE(MapSearchFenceYMax, ms->config.mapSearchFenceYMax, "YMax for the map in base.")
 CONFIG_SETTER_DOUBLE(SetMapSearchFenceYMax, ms->config.mapSearchFenceYMax)
 
-CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
+CONFIG_GETTER_DOUBLE(GripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh, "Threshold for the gripper mask bmp.")
 CONFIG_SETTER_DOUBLE(SetGripperMaskThresh, ms->config.cameras[ms->config.focused_camera]->gripperMaskThresh)
 
 
-CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ)
+CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ, "Current location of the table at z in base.")
 CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
 
 
@@ -3577,7 +3423,7 @@ CONFIG_GETTER_INT(CameraWhiteBalanceBlue, ms->config.cameras[ms->config.focused_
 CONFIG_GETTER_POSE(TruePose, ms->config.trueEEPoseEEPose);
 CONFIG_GETTER_POSE(TrueCameraPose, ms->config.cameras[ms->config.focused_camera]->truePose);
 
-CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name);
+CONFIG_GETTER_STRING(CameraName, ms->config.cameras[ms->config.focused_camera]->name, "The name of the focused camera.");
 
 
 
@@ -3587,15 +3433,17 @@ CONFIG_SETTER_POSE(SetHandCameraOffset, ms->config.cameras[ms->config.focused_ca
 CONFIG_GETTER_POSE(HandEndEffectorOffset, ms->config.handEndEffectorOffset);
 CONFIG_SETTER_POSE(SetHandEndEffectorOffset, ms->config.handEndEffectorOffset);
 
-CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
-CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
-CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x)
-CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y)
+CONFIG_GETTER_INT(FocusedCamera, ms->config.focused_camera);
 
-CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00)
-CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01)
-CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10)
-CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11)
+  CONFIG_GETTER_DOUBLE(CameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x, "")
+  CONFIG_GETTER_DOUBLE(CameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y, "")
+  CONFIG_GETTER_DOUBLE(CameraKappaX, ms->config.cameras[ms->config.focused_camera]->kappa_x, "")
+  CONFIG_GETTER_DOUBLE(CameraKappaY, ms->config.cameras[ms->config.focused_camera]->kappa_y, "")
+
+  CONFIG_GETTER_DOUBLE(CameraR00, ms->config.cameras[ms->config.focused_camera]->r_00, "")
+  CONFIG_GETTER_DOUBLE(CameraR01, ms->config.cameras[ms->config.focused_camera]->r_01, "")
+  CONFIG_GETTER_DOUBLE(CameraR10, ms->config.cameras[ms->config.focused_camera]->r_10, "")
+  CONFIG_GETTER_DOUBLE(CameraR11, ms->config.cameras[ms->config.focused_camera]->r_11, "")
 
 CONFIG_SETTER_DOUBLE(SetCameraMuX, ms->config.cameras[ms->config.focused_camera]->mu_x)
 CONFIG_SETTER_DOUBLE(SetCameraMuY, ms->config.cameras[ms->config.focused_camera]->mu_y)
@@ -3629,14 +3477,14 @@ CONFIG_GETTER_INT(ArmOkButtonState, ms->config.lastArmOkButtonState)
 CONFIG_GETTER_INT(ArmShowButtonState, ms->config.lastArmShowButtonState)
 CONFIG_GETTER_INT(ArmBackButtonState, ms->config.lastArmBackButtonState)
 
-CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState)
+CONFIG_GETTER_DOUBLE(TorsoFanState, ms->config.torsoFanState, "")
 
 CONFIG_GETTER_INT(CurrentIKMode, ms->config.currentIKMode)
 
-CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange)
-CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue)
+CONFIG_GETTER_DOUBLE(EeRange, ms->config.eeRange, "Range reading.")
+CONFIG_GETTER_DOUBLE(EeRangeMaxValue, ms->config.eeRangeMaxValue, "Range max value.")
 
-CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ)
+  CONFIG_GETTER_DOUBLE(MostRecentUntabledZ, ms->config.mostRecentUntabledZ, "")
 
 CONFIG_GETTER_INT(NumCameras, ms->config.cameras.size())
 

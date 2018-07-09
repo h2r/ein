@@ -2,15 +2,14 @@
 #define EINWINDOW_H
 
 #include <QMainWindow>
-#include <iostream>
 #include <cv.h>
 
-#include "ein.h"
 #include "window_QT.h"
+class MachineState;
 
 using namespace std;
 
-void doSaveImage(QMainWindow * parent, const Mat & image);
+
 
 namespace Ui {
 class EinWindow;
@@ -47,7 +46,6 @@ private:
     Ui::EinWindow *ui;
     MachineState * ms;
     DefaultEinViewPort myView;
-    //OpenGlEinViewPort myView;
 };
 
 #endif // EINWINDOW_H

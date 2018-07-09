@@ -17,7 +17,6 @@
 // end Header
 
 #include "ein.h"
-#include "ein_ik.h"
 #include "camera.h"
 
 #include "qtgui/mainwindow.h"
@@ -27,6 +26,19 @@
 #include "qtgui/discrepancywindow.h"
 #include <QApplication>
 #include <QTimer>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <signal.h>
+
+#include <ros/package.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include <cv.h>
+#include <ml.h>
+#include <opencv2/gpu/gpu.hpp>
+
 
 //#define DEBUG_RING_BUFFER
 
@@ -34,6 +46,11 @@
 #define stringer_value(token) stringer(token)
 
 #include <boost/filesystem.hpp>
+
+#include <highgui.h>
+
+#include <boost/algorithm/string.hpp>
+
 
 MainWindow * einMainWindow;
 vector< MachineState * > machineStates;
@@ -48,24 +65,6 @@ MachineState * right_arm;
 //
 // start pilot definitions 
 ////////////////////////////////////////////////
-
-void happy(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 0;
-  ms->config.facePub.publish(msg);
-}
-
-void sad(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 99;
-  ms->config.facePub.publish(msg);
-}
-
-void neutral(MachineState * ms) {
-  std_msgs::Int32 msg;
-  msg.data = 50;
-  ms->config.facePub.publish(msg);
-}
 
 
 int getRingRangeAtTime(MachineState * ms, ros::Time t, double &value, int drawSlack) {
@@ -419,8 +418,9 @@ void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet) {
   }
 }
 void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet) {
+  //#define DEBUG_RING_BUFFER
 #ifdef DEBUG_RING_BUFFER
-  //cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
+  cout << "setRingPoseAtTime() start end size time: " << ms->config.epRingBufferStart << " " << ms->config.epRingBufferEnd << " " << ms->config.epRingBufferSize << " " << t << endl;
 #endif
 
   // if the ring buffer is empty, always re-initialize
@@ -429,22 +429,23 @@ void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToS
     ms->config.epRingBufferEnd = 1;
     ms->config.epRingBuffer[0] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-    //cout << epToSet << endl;
-    //cout << "11111 " << ms->config.epRingBuffer[0] << endl;
+    cout << epToSet << endl;
+    cout << "11111 " << ms->config.epRingBuffer[0] << endl;
 #endif
     ms->config.epRBTimes[0] = t;
   } else {
     ros::Duration deltaTdur = t - ms->config.epRBTimes[ms->config.epRingBufferStart];
     if (deltaTdur.toSec() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      //cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      cout << "Dropped out of order range value in setRingPoseAtTime(). " << ms->config.epRBTimes[ms->config.epRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
 #endif
+
     } else {
       int slot = ms->config.epRingBufferEnd;
       ms->config.epRingBuffer[slot] = epToSet;
 #ifdef DEBUG_RING_BUFFER
-      //cout << epToSet << endl;
-      //cout << "22222" << ms->config.epRingBuffer[slot] << endl;
+      cout << epToSet << endl;
+      cout << "22222" << ms->config.epRingBuffer[slot] << endl;
 #endif
       ms->config.epRBTimes[slot] = t;
 
@@ -562,9 +563,13 @@ void recordReadyRangeReadings(MachineState * ms) {
 
 	{
 	  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+          Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+	  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+	  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+	  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+	  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
 	  Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+	  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
 	  Eigen::Quaternionf irSensorStartGlobal(
 						  0.0,
 						 (thisPose.position.x - irSensorStartLocal.x()),
@@ -581,28 +586,6 @@ void recordReadyRangeReadings(MachineState * ms) {
 				       (thisPose.position.z - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
 				      );
 
-	  dX = (irSensorEnd.x() - ms->config.rmcX); //(thisPose.position.x - ms->config.drX) - rmcX;
-	  dY = (irSensorEnd.y() - ms->config.rmcY); //(thisPose.position.y - ms->config.drY) - rmcY;
-	  dZ = (irSensorEnd.z() - ms->config.rmcZ); //(thisPose.position.y - ms->config.drY) - rmcY;
-
-	  double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
-	  double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
-	  int eeX = (int)round(eX + ms->config.hrmHalfWidth);
-	  int eeY = (int)round(eY + ms->config.hrmHalfWidth);
-
-#ifdef DEBUG
-	  cout << "irSensorEnd w x y z: " << irSensorEnd.w() << " " << 
-	    irSensorEnd.x() << " " << irSensorEnd.y() << " " << irSensorEnd.z() << endl;
-	  cout << "irSensorStartGlobal w x y z: " << irSensorStartGlobal.w() << " " << 
-	    irSensorStartGlobal.x() << " " << irSensorStartGlobal.y() << " " << irSensorStartGlobal.z() << endl;
-	  cout << "Corrected x y: " << (thisPose.position.x - ms->config.drX) << " " << (thisPose.position.y - ms->config.drY) << endl;
-	  cout.flush();
-#endif
-
-	  //cout << thisPose.orientation << thisPose.position << " " << eX << " " << eY << " " << thisRange << endl;
-	  if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth))
-	    ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(0,0,128);
-	  // ATTN 0 this is negative because it used to be range and not Z but we have to chase the min / max switches to correct it
 	  thisZmeasurement = -irSensorEnd.z();
 	  // ATTN 25
 	  ms->config.mostRecentUntabledZ = thisZmeasurement;
@@ -611,197 +594,8 @@ void recordReadyRangeReadings(MachineState * ms) {
 	  thisZmeasurement = thisZmeasurement - ms->config.currentTableZ;
 
 	  rayDirection = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
-	}
-
-	double iX = dX / ms->config.rmDelta;
-	double iY = dY / ms->config.rmDelta;
-
-	double hiX = dX / ms->config.hrmDelta;
-	double hiY = dY / ms->config.hrmDelta;
-	double hiZ = dZ / ms->config.hrmDelta;
-
-	if (ms->config.recordRangeMap) {
-	  // draw new cell
-	  if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
-	    int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
-	    int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
-	    int hiiZ = (int)round(hiZ + ms->config.hrmHalfWidth);
-
-	    // the wrong point without pose correction
-	    //double upX = ((ms->config.trueEEPose.position.x - ms->config.drX) - rmcX)/ms->config.hrmDelta;
-	    //double upY = ((ms->config.trueEEPose.position.y - ms->config.drY) - ms->config.rmcY)/ms->config.hrmDelta;
-	    //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
-	    //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
-	    //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
-	      //ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
-
-	    // 2D map
-	    {
-	      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
-	      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
-	      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
-	      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
-	      // correct loop order for cache coherency
-	      for (int py = pyMin; py <= pyMax; py++) {
-		for (int px = pxMin; px <= pxMax; px++) {
-		  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
-		  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
-
-		  cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-		  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-		  ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-
-		  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-		  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-		  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-		  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-
-		  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
-
-		  ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-		  ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-		  // nonexperimental
-		  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-		  // XXX experimental
-		  double denom = 1.0;
-		  if (ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] > 0)
-		    denom = ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth];
-		  ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
-		}
-	      }
-	    }
-	    // record the point in the 3D maps
-	    // positive surface observation
-	    {
-	      int pxMin = max(0, hiiX-ms->config.parzen3DKernelHalfWidth);
-	      int pxMax = min(ms->config.vmWidth-1, hiiX+ms->config.parzen3DKernelHalfWidth);
-	      int pyMin = max(0, hiiY-ms->config.parzen3DKernelHalfWidth);
-	      int pyMax = min(ms->config.vmWidth-1, hiiY+ms->config.parzen3DKernelHalfWidth);
-	      int pzMin = max(0, hiiZ-ms->config.parzen3DKernelHalfWidth);
-	      int pzMax = min(ms->config.vmWidth-1, hiiZ+ms->config.parzen3DKernelHalfWidth);
-	      // correct loop order for cache coherency
-	      for (int pz = pzMin; pz <= pzMax; pz++) {
-		for (int py = pyMin; py <= pyMax; py++) {
-		  for (int px = pxMin; px <= pxMax; px++) {
-		    int kpx = px - (hiiX - ms->config.parzen3DKernelHalfWidth);
-		    int kpy = py - (hiiY - ms->config.parzen3DKernelHalfWidth);
-		    int kpz = pz - (hiiZ - ms->config.parzen3DKernelHalfWidth);
-
-		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-
-		    //double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-		    //int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-		    //int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-		    //int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-		    // slightly different than 2D
-		    ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    //ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += 1.0;
-		    ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-
-		    double denom = max(ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		    ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] / denom;
-		  }
-		}
-	      }
-	    }
-	    double negativeSpacing = 1.0*ms->config.parzen3DKernelSigma*ms->config.vmDelta;
-	    //int numCastPoints = int(ceil(thisRange / negativeSpacing));
-	    int numCastPoints = 10;
-	    // negative surface observations
-	    for (int castPoint = 1; castPoint <= numCastPoints; castPoint++) {
-	      double piX = (dX - negativeSpacing*castPoint*rayDirection.x())/ ms->config.hrmDelta;
-	      double piY = (dY - negativeSpacing*castPoint*rayDirection.y()) / ms->config.hrmDelta;
-	      double piZ = (dZ - negativeSpacing*castPoint*rayDirection.z()) / ms->config.hrmDelta;
-
-	      int piiX = (int)round(piX + ms->config.hrmHalfWidth);
-	      int piiY = (int)round(piY + ms->config.hrmHalfWidth);
-	      int piiZ = (int)round(piZ + ms->config.hrmHalfWidth);
-	      
-
-	      int pxMin = max(0, piiX-ms->config.parzen3DKernelHalfWidth);
-	      int pxMax = min(ms->config.vmWidth-1, piiX+ms->config.parzen3DKernelHalfWidth);
-	      int pyMin = max(0, piiY-ms->config.parzen3DKernelHalfWidth);
-	      int pyMax = min(ms->config.vmWidth-1, piiY+ms->config.parzen3DKernelHalfWidth);
-	      int pzMin = max(0, piiZ-ms->config.parzen3DKernelHalfWidth);
-	      int pzMax = min(ms->config.vmWidth-1, piiZ+ms->config.parzen3DKernelHalfWidth);
-	      // correct loop order for cache coherency
-	      for (int pz = pzMin; pz <= pzMax; pz++) {
-		for (int py = pyMin; py <= pyMax; py++) {
-		  for (int px = pxMin; px <= pxMax; px++) {
-		    int kpx = px - (piiX - ms->config.parzen3DKernelHalfWidth);
-		    int kpy = py - (piiY - ms->config.parzen3DKernelHalfWidth);
-		    int kpz = pz - (piiZ - ms->config.parzen3DKernelHalfWidth);
-
-		    cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[0]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[1]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] += thisSample[2]*ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-		    ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-
-		    //double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-		    //int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-		    //int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-		    //int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-		    // slightly different than 2D
-		    //ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += 0.0;
-		    ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] += ms->config.parzen3DKernel[kpx + kpy*ms->config.parzen3DKernelWidth + kpz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-
-		    double denom = max(ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], 1e-99); // XXX should be epsilon but there is clipping...
-		    ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] / denom;
-		  }
-		}
-	      }
-	    }
-	  }
-	  if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
-	    int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
-	    int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
-	    
-	    {
-	      ms->config.rangeMapMass[iiX + iiY*ms->config.rmWidth] += 1;
-	      //ms->config.rangeMapAccumulator[iiX + iiY*ms->config.ms->config.rmWidth] += eeRange;
-	      ms->config.rangeMapAccumulator[iiX + iiY*ms->config.rmWidth] += thisZmeasurement;
-	      double denom = max(ms->config.rangeMapMass[iiX + iiY*ms->config.rmWidth], EPSILON);
-	      ms->config.rangeMap[iiX + iiY*ms->config.rmWidth] = ms->config.rangeMapAccumulator[iiX + iiY*ms->config.rmWidth] / denom;
-	    }
-	    
-	    double minDepth = VERYBIGNUMBER;
-	    double maxDepth = 0;
-	    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-	      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-		minDepth = min(minDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-		maxDepth = max(maxDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-	      }
-	    }
-	    double denom2 = max(EPSILON,maxDepth-minDepth);
-	    if (denom2 <= EPSILON)
-	      denom2 = VERYBIGNUMBER;
-	    double intensity = 255 * (maxDepth - ms->config.rangeMap[iiX + iiY*ms->config.rmWidth]) / denom2;
-	    cv::Scalar backColor(0,0,ceil(intensity));
-	    cv::Point outTop = cv::Point(iiY*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
-	    cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth,(iiX+1)*ms->config.rmiCellWidth);
-	    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	    vCrop = backColor;
-	    // draw border
-	    {
-	      cv::Point outTop = cv::Point(iiY*ms->config.rmiCellWidth+1,iiX*ms->config.rmiCellWidth+1);
-	      cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth-1,(iiX+1)*ms->config.rmiCellWidth-1);
-	      cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
-	      cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	      rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	      rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
-	    }
-	  }
-	}
-    
+        }
+        
 	rgRingBufferAdvance(ms);
 	// XXX
 	//allRingBuffersAdvance(ms, thisTime);
@@ -817,22 +611,6 @@ void recordReadyRangeReadings(MachineState * ms) {
 #endif
 }
 
-void MachineState::jointCallback(const sensor_msgs::JointState& js) {
-  MachineState * ms = this;
-
-  if (ms->config.jointNamesInit) {
-    int limit = js.position.size();
-    for (int i = 0; i < limit; i++) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-	if (0 == js.name[i].compare(ms->config.jointNames[j]))
-	  ms->config.trueJointPositions[j] = js.position[i];
-	  ms->config.trueJointVelocities[j] = js.velocity[i];
-	  ms->config.trueJointEfforts[j] = js.effort[i];
-	//cout << "tJP[" << j << "]: " << trueJointPositions[j] << endl;
-      }
-    }
-  }
-}
 
 int classIdxForName(MachineState * ms, string name) {
   int class_idx = -1;
@@ -849,169 +627,6 @@ int classIdxForName(MachineState * ms, string name) {
   return class_idx;
 }
 
-void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path) {
-  if ( (idx > -1) && (idx < ms->config.classHeight0AerialGradients.size()) && 
-       (idx > -1) && (idx < ms->config.classHeight1AerialGradients.size()) &&
-       (idx > -1) && (idx < ms->config.classHeight2AerialGradients.size()) &&
-       (idx > -1) && (idx < ms->config.classHeight3AerialGradients.size()) ) {
-    // do nothing
-  } else {
-    //cout << "writeAerialGradientsToServoCrop: invalid idx, not writing." << endl;
-    return;
-  }
-
-  string thisLabelName;
-  if ( (idx > -1) && (idx < ms->config.classLabels.size()) ) {
-    thisLabelName = ms->config.classLabels[idx];
-  } else {
-  }
-
-  {
-    Mat this_grad = ms->config.classHeight0AerialGradients[idx];
-    string png_path = servoCrop_file_path + "0" + ".png";
-    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
-    double minDepth = std::numeric_limits<double>::max();
-    double maxDepth = std::numeric_limits<double>::min();
-    for (int gx = 0; gx < this_grad.cols; gx++) {
-      for (int gy = 0; gy < this_grad.rows; gy++) {
-	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
-	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
-      }
-    }
-    double denom = maxDepth - minDepth;
-    if (denom <= EPSILON) {
-      denom = 1.0;
-    } else {
-      // do nothing
-    }
-    this_grad = 255.0 * (this_grad - minDepth) / denom;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, this_grad, args);
-
-    {
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
-      string this_range_path;
-      this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
-      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
-
-      FileStorage fsvO;
-      fsvO.open(this_range_path, FileStorage::WRITE);
-      fsvO << "aerialHeight0Gradients" << ms->config.classHeight0AerialGradients[idx];
-      fsvO.release();
-    }
-  }
-  {
-    Mat this_grad = ms->config.classHeight1AerialGradients[idx];
-    string png_path = servoCrop_file_path + "1" + ".png";
-    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
-    double minDepth = std::numeric_limits<double>::max();
-    double maxDepth = std::numeric_limits<double>::min();
-    for (int gx = 0; gx < this_grad.cols; gx++) {
-      for (int gy = 0; gy < this_grad.rows; gy++) {
-	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
-	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
-      }
-    }
-    double denom = maxDepth - minDepth;
-    if (denom <= EPSILON) {
-      denom = 1.0;
-    } else {
-      // do nothing
-    }
-    this_grad = 255.0 * (this_grad - minDepth) / denom;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, this_grad, args);
-    {
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
-      string this_range_path;
-      this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
-      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
-
-      FileStorage fsvO;
-      fsvO.open(this_range_path, FileStorage::WRITE);
-      fsvO << "aerialHeight1Gradients" << ms->config.classHeight1AerialGradients[idx];
-      fsvO.release();
-    }
-  }
-  {
-    Mat this_grad = ms->config.classHeight2AerialGradients[idx];
-    string png_path = servoCrop_file_path + "2" + ".png";
-    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
-    double minDepth = std::numeric_limits<double>::max();
-    double maxDepth = std::numeric_limits<double>::min();
-    for (int gx = 0; gx < this_grad.cols; gx++) {
-      for (int gy = 0; gy < this_grad.rows; gy++) {
-	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
-	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
-      }
-    }
-    double denom = maxDepth - minDepth;
-    if (denom <= EPSILON) {
-      denom = 1.0;
-    } else {
-      // do nothing
-    }
-    this_grad = 255.0 * (this_grad - minDepth) / denom;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, this_grad, args);
-    {
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
-      string this_range_path;
-      this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
-      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
-
-      FileStorage fsvO;
-      fsvO.open(this_range_path, FileStorage::WRITE);
-      fsvO << "aerialHeight2Gradients" << ms->config.classHeight2AerialGradients[idx];
-      fsvO.release();
-    }
-  }
-  {
-    Mat this_grad = ms->config.classHeight3AerialGradients[idx];
-    string png_path = servoCrop_file_path + "3" + ".png";
-    //cout << "writeAerialGradientsToServoCrop: Writing: " << png_path << endl;
-    double minDepth = std::numeric_limits<double>::max();
-    double maxDepth = std::numeric_limits<double>::min();
-    for (int gx = 0; gx < this_grad.cols; gx++) {
-      for (int gy = 0; gy < this_grad.rows; gy++) {
-	minDepth = min(minDepth, this_grad.at<double>(gy,gx));
-	maxDepth = max(maxDepth, this_grad.at<double>(gy,gx));
-      }
-    }
-    double denom = maxDepth - minDepth;
-    if (denom <= EPSILON) {
-      denom = 1.0;
-    } else {
-      // do nothing
-    }
-    this_grad = 255.0 * (this_grad - minDepth) / denom;
-    // no compression!
-    std::vector<int> args;
-    args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-    args.push_back(ms->config.globalPngCompression);
-    imwrite(png_path, this_grad, args);
-    {
-      string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
-      string this_range_path;
-      this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
-      //cout << "writeAerialGradientsToServoCrop: Writing: " << this_range_path << endl;
-
-      FileStorage fsvO;
-      fsvO.open(this_range_path, FileStorage::WRITE);
-      fsvO << "aerialHeight3Gradients" << ms->config.classHeight3AerialGradients[idx];
-      fsvO.release();
-    }
-  }
-}
 
 void writeThumbnail(MachineState * ms, int idx, string thumbnail_file_path) {
   if ( (idx > -1) && (idx < ms->config.classLabels.size()) ) {
@@ -1034,76 +649,8 @@ void writeThumbnail(MachineState * ms, int idx, string thumbnail_file_path) {
   }
 }
 
-void writeIr2D(MachineState * ms, int idx, string this_range_path) {
-  if ((idx > -1) && (idx < ms->config.classRangeMaps.size())) {
-    // do nothing
-  } else {
-    cout << "writeIr2D: invalid idx, not writing." << endl;
-    return;
-  }
 
-  Mat thisRangeMap = ms->config.classRangeMaps[idx];
-  // write yaml
-  FileStorage fsvO;
-  string yaml_path = this_range_path + ".yml";
-  cout << "writeIr2D: Writing: " << yaml_path << endl;
-  fsvO.open(yaml_path, FileStorage::WRITE);
-  {
-    fsvO << "graspZ" << "[" 
-      << ms->config.currentGraspZ 
-    << "]";
-
-    if (ms->config.classGraspZs.size() > idx) {
-      ms->config.classGraspZs[idx] = ms->config.currentGraspZ;
-    }
-    if (ms->config.classGraspZsSet.size() > idx) {
-      ms->config.classGraspZsSet[idx] = 1;
-    }
-  }
-  fsvO << "rangeMap" << thisRangeMap;
-  fsvO.release();
-  fsvO << "rangeMap" << thisRangeMap;
-  fsvO.release();
-
-  // construct and write image
-  string png_path = this_range_path + ".png";
-  cout << "writeIr2D: Writing: " << png_path << endl;
-  Mat rmImageOut(ms->config.rmiHeight, ms->config.rmiWidth, CV_8UC3);
-  double minDepth = VERYBIGNUMBER;
-  double maxDepth = 0;
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      minDepth = min(minDepth, thisRangeMap.at<double>(ry,rx));
-      maxDepth = max(maxDepth, thisRangeMap.at<double>(ry,rx));
-    }
-  }
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      double denom2 = max(EPSILON,maxDepth-minDepth);
-      if (denom2 <= EPSILON) {
-	denom2 = VERYBIGNUMBER;
-      } else {
-	// do nothing
-      }
-      double intensity = 255 * (maxDepth - thisRangeMap.at<double>(ry,rx)) / denom2;
-      cv::Point outTop = cv::Point(ry*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-      cv::Point outBot = cv::Point((ry+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-      for (int cx = outTop.x; cx < outBot.x; cx++) {
-	for (int cy = outTop.y; cy < outBot.y; cy++) {
-	  rmImageOut.at<Vec3b>(cy,cx) = Vec3b(0,0,ceil(intensity));
-	}
-      }
-    }
-  }
-  // no compression!
-  std::vector<int> args;
-  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(ms->config.globalPngCompression);
-  imwrite(png_path, rmImageOut, args);
-}
-
-
-int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase) {
+int MachineState::getStreamPoseAtTime(double tin, eePose * outArm, eePose * outBase) {
 
   // if we are more than p_rejectThresh away from a measurement, reject it
   double p_rejectThresh = 1.0;
@@ -1179,7 +726,7 @@ int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose *
   assert(0);
 }
 
-int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase) {
+int MachineState::getStreamPoseAtTimeThreadSafe(double tin, eePose * outArm, eePose * outBase) {
 
   // if we are more than p_rejectThresh away from a measurement, reject it
   double p_rejectThresh = 1.0;
@@ -1249,13 +796,18 @@ int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm
 }
 
 // casts ray of length thisRange from end effector position thisPose to obtain castPointOut in direction rayDirectionOut 
-void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut) {
+void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * rayDirectionOut) {
 
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+  ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+  ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+  ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+  ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
   Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
-  Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+  Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
   Eigen::Quaternionf irSensorStartGlobal(
 					  0.0,
 					 (thisPose.px - irSensorStartLocal.x()),
@@ -1272,71 +824,10 @@ void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d
 			       (thisPose.pz - irSensorStartLocal.z()) + thisRange*localUnitZ.z()
 			      );
 
-  (*castPointOut)[0] = (irSensorEnd.x() - ms->config.rmcX); 
-  (*castPointOut)[1] = (irSensorEnd.y() - ms->config.rmcY); 
-  (*castPointOut)[2] = (irSensorEnd.z() - ms->config.rmcZ); 
 
   (*rayDirectionOut) = Eigen::Vector3d(localUnitZ.x(), localUnitZ.y(), localUnitZ.z());
 }
 
-void update2dRangeMaps(MachineState * ms, Vector3d castPoint) {
-  double dX = castPoint[0];
-  double dY = castPoint[1];
-  double dZ = castPoint[2];
-
-  double thisZmeasurement = -dZ;
-
-  double iX = dX / ms->config.rmDelta;
-  double iY = dY / ms->config.rmDelta;
-
-  double hiX = dX / ms->config.hrmDelta;
-  double hiY = dY / ms->config.hrmDelta;
-
-  if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
-    int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
-    int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
-
-    //cout << "hrmHalfWidth hiiX hiiY: " << ms->config.hrmHalfWidth << " " << hiiX << " " << hiiY << endl;
-
-    // 2D map
-    {
-      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
-      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
-      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
-      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
-      // correct loop order for cache coherency
-      for (int py = pyMin; py <= pyMax; py++) {
-	for (int px = pxMin; px <= pxMax; px++) {
-	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
-	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
-
-	  //cv::Vec3b thisSample = getCRColor(ms, thisImage); 
-	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-
-	  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-	  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-	  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-	  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-
-	  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
-
-	  ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += ms->config.parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  // nonexperimental
-	  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-	  // XXX experimental
-	  double denom = 1.0;
-	  if (ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] > 0)
-	    denom = ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth];
-	  ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
-	}
-      }
-    }
-  }
-}
 
 bool streamRangeComparator (streamRange i, streamRange j) {
  return (i.time < j.time);
@@ -1996,9 +1487,8 @@ void activateSensorStreaming(MachineState * ms) {
     mkdir(this_calibration_path.c_str(), 0777);
     ms->config.sensorStreamOn = 1;
 
-    // turn that queue size up!
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 100, &MachineState::endpointCallback, ms);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 100, &MachineState::rangeCallback, ms);
+    robotActivateSensorStreaming(ms);
+
     for (int i = 0; i < ms->config.cameras.size(); i++) {
       ms->config.cameras[i]->activateSensorStreaming();
     }
@@ -2018,10 +1508,9 @@ void deactivateSensorStreaming(MachineState * ms) {
   cout << "deactivateSensorStreaming: Making image transport." << endl;
   ms->config.sensorStreamOn = 0;
   // restore those queue sizes to defaults.
-  cout << "deactivateSensorStreaming: Subscribe to endpoint_state." << endl;
-  ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
-  cout << "deactivateSensorStreaming: Subscribe to hand_range." << endl;
-  ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
+
+  robotDeactivateSensorStreaming(ms);
+
   for (int i = 0; i < ms->config.cameras.size(); i++) {
     ms->config.cameras[i]->deactivateSensorStreaming();
   }
@@ -2288,38 +1777,6 @@ void write3dGrasps(MachineState * ms, int idx, string this_grasp_path) {
   fsvO.release();
 }
 
-void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path) {
-  // initialize this if we need to
-  guardGraspMemory(ms);
-  guardHeightMemory(ms);
-
-  if ((idx > -1) && (idx < ms->config.classGraspMemoryTries1.size())) {
-    // do nothing
-  } else {
-    CONSOLE_ERROR(ms, "writeGraspMemory: invalid idx, not writing.");
-    return;
-  }
-
-  FileStorage fsvO;
-  cout << "writeGraspMemory: Writing: " << this_grasp_path << endl;
-  fsvO.open(this_grasp_path, FileStorage::WRITE);
-
-  copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-  fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[idx];
-  fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[idx];
-  fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[idx];
-  fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[idx];
-  fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[idx];
-  fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[idx];
-  fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[idx];
-  fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[idx];
-
-  copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-  fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[idx];
-  fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[idx];
-
-  fsvO.release();
-}
 
 void writeSceneModel(MachineState * ms, int idx, string this_scene_path) {
   // initialize this if we need to
@@ -2402,17 +1859,8 @@ void writeClassToFolder(MachineState * ms, int idx, string folderName) {
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
   
-  string ir2d_file_path = ir2d + "ir2d";
-  writeIr2D(ms, idx, ir2d_file_path);
-
-  string servoCrop_file_path = servoCrops + "servoCrop";
-  writeAerialGradientsToServoCrop(ms, idx, servoCrop_file_path);
-
   string thumbnail_file_path = item;
   writeThumbnail(ms, idx, thumbnail_file_path);
-
-  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
-  writeGraspMemory(ms, idx, grasp_memory_file_path);
 
   string scene_model_file_path = sceneModel + "model.yml";
   writeSceneModel(ms, idx, scene_model_file_path);
@@ -2447,8 +1895,6 @@ void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName) {
   string d3d_grasp_file_path = d3dGrasps + "3dGrasps.yml";
   write3dGrasps(ms, idx, d3d_grasp_file_path);
 
-  string grasp_memory_file_path = pickMemories + "graspMemories.yml";
-  writeGraspMemory(ms, idx, grasp_memory_file_path);
 }
 
 
@@ -2486,8 +1932,8 @@ void MachineState::pickObjectUnderEndEffectorCommandCallback(const std_msgs::Emp
       box.bBot.x = camera->vanishingPointReticle.px+probeBoxHalfWidthPixels;
       box.bBot.y = camera->vanishingPointReticle.py+probeBoxHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2540,8 +1986,8 @@ void MachineState::placeObjectInEndEffectorCommandCallback(const std_msgs::Empty
       box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
       box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
       box.cameraPose = ms->config.currentEEPose;
-      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+      box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+      box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
       box.centroid.px = (box.top.px + box.bot.px) * 0.5;
       box.centroid.py = (box.top.py + box.bot.py) * 0.5;
       box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -2576,285 +2022,6 @@ void MachineState::forthCommandCallback(const std_msgs::String::ConstPtr& msg) {
 }
 
 
-void MachineState::endpointCallback(const baxter_core_msgs::EndpointState& _eps) {
-  baxter_core_msgs::EndpointState eps = _eps;
-  MachineState * ms = this;
-
-  eePose endPointEEPose;
-  {
-    endPointEEPose.px = _eps.pose.position.x;
-    endPointEEPose.py = _eps.pose.position.y;
-    endPointEEPose.pz = _eps.pose.position.z;
-    endPointEEPose.qx = _eps.pose.orientation.x;
-    endPointEEPose.qy = _eps.pose.orientation.y;
-    endPointEEPose.qz = _eps.pose.orientation.z;
-    endPointEEPose.qw = _eps.pose.orientation.w;
-  }
-
-  ms->config.lastEndpointCallbackReceived = ros::Time::now();
-
-  // note that the quaternion field holds a vector3!
-  ms->config.trueEEWrench.px = eps.wrench.force.x;
-  ms->config.trueEEWrench.py = eps.wrench.force.y;
-  ms->config.trueEEWrench.pz = eps.wrench.force.z;
-  ms->config.trueEEWrench.qx = eps.wrench.torque.x;
-  ms->config.trueEEWrench.qy = eps.wrench.torque.y;
-  ms->config.trueEEWrench.qz = eps.wrench.torque.z;
-
-  double thisWrenchNorm = eePose::distance(eePose::zero(), ms->config.trueEEWrench);
-  double td = ms->config.averagedWrechDecay;
-  //cout << "JJJ theWrenchNorm " << thisWrenchNorm << " " << td << endl;
-  ms->config.averagedWrechAcc = (1.0-td)*thisWrenchNorm + (td)*ms->config.averagedWrechAcc;
-  ms->config.averagedWrechMass =  (1.0-td)*1 + (td)*ms->config.averagedWrechMass;
-  //cout << "JJJ " << ms->config.averagedWrechMass << " " << ms->config.averagedWrechAcc << endl;
-
-  //cout << "endpoint frame_id: " << eps.header.frame_id << endl;
-  // XXX
-  //ms->config.tfListener
-  //tf::StampedTransform transform;
-  //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_gripper_base", ros::Time(0), transform);
-
-  geometry_msgs::PoseStamped hand_pose;
-  //tf::StampedTransform base_to_hand_transform;
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 0;
-    pose.pose.orientation.x = 0;
-    pose.pose.orientation.y = 0;
-    pose.pose.orientation.z = 0;
-    pose.pose.orientation.w = 1;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", hand_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    } else {
-      //pose = ms->config.currentEEPose;
-    }
-    //ms->config.tfListener->lookupTransform("base", ms->config.left_or_right_arm + "_hand", ros::Time(0), base_to_hand_transform);
-  }
-
-
-  // XXX
-  // right now we record the position of the hand and then switch current and
-  // true pose to refer to where the gripper actually is, which is a minor
-  // inconsistency
-  setRingPoseAtTime(ms, hand_pose.header.stamp, hand_pose.pose);
-  geometry_msgs::Pose thisPose;
-  int weHavePoseData = getRingPoseAtTime(ms, hand_pose.header.stamp, thisPose);
-
-  int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisPose)) {
-    double thisNow = hand_pose.header.stamp.toSec();
-    eePose tempPose;
-    {
-      tempPose.px = hand_pose.pose.position.x;
-      tempPose.py = hand_pose.pose.position.y;
-      tempPose.pz = hand_pose.pose.position.z;
-      tempPose.qx = hand_pose.pose.orientation.x;
-      tempPose.qy = hand_pose.pose.orientation.y;
-      tempPose.qz = hand_pose.pose.orientation.z;
-      tempPose.qw = hand_pose.pose.orientation.w;
-    }
-    streamPoseAsClass(ms, tempPose, cfClass, thisNow); 
-  } 
-  // XXX 
-
-  eePose handEEPose;
-  {
-    handEEPose.px = hand_pose.pose.position.x;
-    handEEPose.py = hand_pose.pose.position.y;
-    handEEPose.pz = hand_pose.pose.position.z;
-    handEEPose.qx = hand_pose.pose.orientation.x;
-    handEEPose.qy = hand_pose.pose.orientation.y;
-    handEEPose.qz = hand_pose.pose.orientation.z;
-    handEEPose.qw = hand_pose.pose.orientation.w;
-  }
-
-  if (eePose::distance(handEEPose, ms->config.lastHandEEPose) == 0 && ms->config.currentRobotMode != SIMULATED) {
-    //CONSOLE_ERROR(ms, "Ooops, duplicate pose: " << tArmP.px << " " << tArmP.py << " " << tArmP.pz << " " << endl);
-  }
-  ms->config.lastHandEEPose = handEEPose;
-  
-  ms->config.handToRethinkEndPointTransform = endPointEEPose.getPoseRelativeTo(handEEPose);
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = ms->config.handEndEffectorOffset.px;
-    pose.pose.position.y = ms->config.handEndEffectorOffset.py;
-    pose.pose.position.z = ms->config.handEndEffectorOffset.pz;
-    pose.pose.orientation.x = ms->config.handEndEffectorOffset.qx;
-    pose.pose.orientation.y = ms->config.handEndEffectorOffset.qy;
-    pose.pose.orientation.z = ms->config.handEndEffectorOffset.qz;
-    pose.pose.orientation.w = ms->config.handEndEffectorOffset.qw;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    }
-
-    eps.pose.position.x = transformed_pose.pose.position.x;
-    eps.pose.position.y = transformed_pose.pose.position.y;
-    eps.pose.position.z = transformed_pose.pose.position.z;
-    eps.pose.orientation = transformed_pose.pose.orientation;
-
-    //cout << pose << transformed_pose << hand_pose;
-    //cout << base_to_hand_transform.getOrigin().x() << base_to_hand_transform.getOrigin().y() << base_to_hand_transform.getOrigin().z() << endl;
-    //tf::Vector3 test(0,0,0.03);
-    //tf::Vector3 test2 = base_to_hand_transform * test;
-    //cout <<  test2.x() << test2.y() << test2.z() << endl;
-  }
-  for (int i = 0; i < ms->config.cameras.size(); i++) {
-    ms->config.cameras[i]->updateTrueCameraPoseWithHandCameraOffset(eps.header.stamp);
-  }
-
-
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = ms->config.handRangeOffset.px;
-    pose.pose.position.y = ms->config.handRangeOffset.py;
-    pose.pose.position.z = ms->config.handRangeOffset.pz;
-    pose.pose.orientation.x = ms->config.handRangeOffset.qx;
-    pose.pose.orientation.y = ms->config.handRangeOffset.qy;
-    pose.pose.orientation.z = ms->config.handRangeOffset.qz;
-    pose.pose.orientation.w = ms->config.handRangeOffset.qw;
-
-    //pose.header.stamp = ros::Time(0);
-    pose.header.stamp = eps.header.stamp;
-    pose.header.frame_id =  ms->config.left_or_right_arm + "_hand";
-    
-    geometry_msgs::PoseStamped transformed_pose;
-    if (ms->config.currentRobotMode != SIMULATED) {    
-      try {
-        ms->config.tfListener->waitForTransform("base", ms->config.left_or_right_arm + "_hand", pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, ms->config.left_or_right_arm + "_hand", transformed_pose);
-      } catch (tf::TransformException ex){
-        cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-        cout << ex.what();
-        //ROS_ERROR("%s", ex.what());
-        //throw;
-      }
-    }
-
-    ms->config.trueRangePose.px = transformed_pose.pose.position.x;
-    ms->config.trueRangePose.py = transformed_pose.pose.position.y;
-    ms->config.trueRangePose.pz = transformed_pose.pose.position.z;
-    ms->config.trueRangePose.qx = transformed_pose.pose.orientation.x;
-    ms->config.trueRangePose.qy = transformed_pose.pose.orientation.y;
-    ms->config.trueRangePose.qz = transformed_pose.pose.orientation.z;
-    ms->config.trueRangePose.qw = transformed_pose.pose.orientation.w;
-  }
-
-// XXX TODO get a better convention for controlling gripper position, maybe
-// this should be done by grasp calculators
-  ms->config.trueEEPose = eps.pose;
-  {
-    ms->config.trueEEPoseEEPose.px = eps.pose.position.x;
-    ms->config.trueEEPoseEEPose.py = eps.pose.position.y;
-    ms->config.trueEEPoseEEPose.pz = eps.pose.position.z;
-    ms->config.trueEEPoseEEPose.qx = eps.pose.orientation.x;
-    ms->config.trueEEPoseEEPose.qy = eps.pose.orientation.y;
-    ms->config.trueEEPoseEEPose.qz = eps.pose.orientation.z;
-    ms->config.trueEEPoseEEPose.qw = eps.pose.orientation.w;
-  }
-  ms->config.handFromEndEffectorTransform = handEEPose.getPoseRelativeTo(ms->config.trueEEPoseEEPose);
-// XXX
-
-
-
-
-  {
-    double distance = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.lastTrueEEPoseEEPose);
-    double distance2 = eePose::squareDistance(ms->config.trueEEPoseEEPose, ms->config.currentEEPose);
-
-    if (ms->config.currentMovementState == ARMED ) {
-      if (distance2 > ms->config.armedThreshold*ms->config.armedThreshold) {
-	cout << "armedThreshold crossed so leaving armed state into MOVING." << endl;
-	ms->config.currentMovementState = MOVING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      } else {
-	//cout << "ms->config.currentMovementState is ARMED." << endl;
-      }
-    } else if (distance > ms->config.movingThreshold*ms->config.movingThreshold) {
-      ms->config.currentMovementState = MOVING;
-      ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-      ms->config.lastMovementStateSet = ros::Time::now();
-    } else if (distance > ms->config.hoverThreshold*ms->config.hoverThreshold) {
-      if (distance2 > ms->config.hoverThreshold) {
-	ms->config.currentMovementState = MOVING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      } else {
-	ms->config.currentMovementState = HOVERING;
-	ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	ms->config.lastMovementStateSet = ros::Time::now();
-      }
-
-    } else {
-      ros::Duration deltaT = ros::Time::now() - ms->config.lastMovementStateSet;
-      if ( (deltaT.sec) > ms->config.stoppedTimeout ) {
-	if (distance2 > ms->config.hoverThreshold*ms->config.hoverThreshold) {
-	  ms->config.currentMovementState = BLOCKED;
-	  ms->config.lastMovementStateSet = ros::Time::now();
-	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	} else {
-	  ms->config.currentMovementState = STOPPED;
-	  ms->config.lastMovementStateSet = ros::Time::now();
-	  ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-	}
-      }
-    }
-  }
-}
-
-void MachineState::collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds) {
-  MachineState * ms = this;
-  CollisionDetection detection;
-  
-  detection.inCollision = cds.collision_state;
-  detection.time = cds.header.stamp;
-
-  ms->config.collisionStateBuffer.push_front(detection);
-  while (ms->config.collisionStateBuffer.size() > 100) {
-    ms->config.collisionStateBuffer.pop_back();
-  }
-
-}
-
-
-void MachineState::gripStateCallback(const baxter_core_msgs::EndEffectorState& ees) {
-
-  MachineState * ms = this;
-  ms->config.lastGripperCallbackReceived = ros::Time::now();
-  ms->config.gripperLastUpdated = ros::Time::now();
-  ms->config.gripperPosition  = ees.position;
-  ms->config.gripperMoving = ees.moving;
-  ms->config.gripperGripping = ees.gripping;
-}
 
 bool isGripperGripping(MachineState * ms) {
   //return (ms->config.gripperPosition >= ms->config.gripperThresh);
@@ -2864,101 +2031,6 @@ bool isGripperGripping(MachineState * ms) {
 bool isGripperMoving(MachineState * ms) {
   //return (ms->config.gripperPosition >= ms->config.gripperThresh);
   return ms->config.gripperMoving; 
-}
-
-void initialize3DParzen(MachineState * ms) {
-  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
-	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
-	double pky = ky - ms->config.parzen3DKernelHalfWidth;
-	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
-	ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth] = exp(-(pkx*pkx + pky*pky + pkz*pkz)/(2.0*ms->config.parzen3DKernelSigma*ms->config.parzen3DKernelSigma));
-      }
-    }
-  }
-}
-
-void l2Normalize3DParzen(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  double norm = 0;
-  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
-	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
-	double pky = ky - ms->config.parzen3DKernelHalfWidth;
-	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
-	norm += ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth];
-      }
-    }
-  }
-  if (fabs(norm) < camera->fEpsilon)
-    norm = 1;
-  for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
-      for (int kz = 0; kz < ms->config.parzen3DKernelWidth; kz++) {
-	double pkx = kx - ms->config.parzen3DKernelHalfWidth;
-	double pky = ky - ms->config.parzen3DKernelHalfWidth;
-	double pkz = ky - ms->config.parzen3DKernelHalfWidth;
-
-	ms->config.parzen3DKernel[kx + ky*ms->config.parzen3DKernelWidth + kz*ms->config.parzen3DKernelWidth*ms->config.parzen3DKernelWidth] /= norm;
-#ifdef DEBUG_RING_BUFFER
-	cout << "Parzen3D: " << ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] << endl;
-#endif
-      }
-    }
-  }
-}
-
-void initializeParzen(MachineState * ms) {
-  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
-      double pkx = kx - ms->config.parzenKernelHalfWidth;
-      double pky = ky - ms->config.parzenKernelHalfWidth;
-      ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] = exp(-(pkx*pkx + pky*pky)/(2.0*ms->config.parzenKernelSigma*ms->config.parzenKernelSigma));
-    }
-  }
-}
-
-
-void l2NormalizeParzen(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  double norm = 0;
-  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
-      double pkx = kx - ms->config.parzenKernelHalfWidth;
-      double pky = ky - ms->config.parzenKernelHalfWidth;
-      norm += ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth];
-    }
-  }
-  if (fabs(norm) < camera->fEpsilon)
-    norm = 1;
-  for (int kx = 0; kx < ms->config.parzenKernelWidth; kx++) {
-    for (int ky = 0; ky < ms->config.parzenKernelWidth; ky++) {
-      double pkx = kx - ms->config.parzenKernelHalfWidth;
-      double pky = ky - ms->config.parzenKernelHalfWidth;
-      ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] /= norm;
-#ifdef DEBUG_RING_BUFFER
-      cout << "Parzen: " << ms->config.parzenKernel[kx + ky*ms->config.parzenKernelWidth] << endl;
-#endif
-    }
-  }
-}
-
-void l2NormalizeFilter(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  double norm = 0;
-  for (int fx = 0; fx < 9; fx++) {
-    norm += ms->config.filter[fx]*ms->config.filter[fx];
-  }
-  if (fabs(norm) < camera->fEpsilon)
-    norm = 1;
-  for (int fx = 0; fx < 9; fx++) {
-    ms->config.filter[fx] /= norm;
-  }
 }
 
 
@@ -3039,119 +2111,6 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn) {
 
 
 
-void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenLines) {
-// XXX TODO work this out so that it scans from -ms->config.rmHalfWidth*ms->config.rmDelta to ms->config.rmHalfWidth*ms->config.rmDelta
-
-// XXX TODO right now we need to exit after every increment to set a new position in case there was an IK error
-
-  //double onLineGain = ms->config.rmDelta / speedOnLines;
-  //double betweenLineGain = ms->config.rmDelta / speedBetweenLines;
-  double onLineGain = 1;
-  double betweenLineGain = 1;
-
-  int scanPadding = int(floor(1 * onLineGain));
-
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  for (int g = 0; g < ((ms->config.rmWidth*onLineGain)-(ms->config.rmHalfWidth*onLineGain))+scanPadding; g++) {
-    ms->pushWord('a');
-    //ms->pushWord("endStackCollapseNoop");
-  }
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    ms->pushWord('e');
-    //ms->pushWord("endStackCollapseNoop");
-  }
-
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  //int gLimit = 1+((ms->config.rmWidth*betweenLineGain+2*scanPadding)/2);
-  int gLimit = ((ms->config.rmWidth*betweenLineGain+2*scanPadding));
-  for (int g = 0; g < gLimit; g++) {
-    ms->pushWord("fullRender"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord('d');
-    ms->pushWord("waitUntilAtCurrentPosition");
-    for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
-      ms->pushWord('q');
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord("endStackCollapseNoop");
-    }
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
-      ms->pushWord('e');
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord("endStackCollapseNoop");
-    }
-  }
-
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    ms->pushWord('q');
-    //ms->pushWord("endStackCollapseNoop");
-  }
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    ms->pushWord('a');
-    //ms->pushWord("endStackCollapseNoop");
-  }
-
-  ms->pushWord("setGridSizeCoarse");
-}
-
-
-void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenLines) {
-
-  double onLineGain = ms->config.rmDelta / speedOnLines;
-  double betweenLineGain = ms->config.rmDelta / speedBetweenLines;
-
-  int scanPadding = int(floor(1 * onLineGain));
-
-  for (int g = 0; g < ((ms->config.rmWidth*onLineGain)-(ms->config.rmHalfWidth*onLineGain))+scanPadding; g++) {
-    // ATTN 2
-    //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord('q');
-  }
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord('d');
-  }
-  pushGridSign(ms, speedOnLines);
-
-  //int gLimit = 1+((ms->config.rmWidth*betweenLineGain+2*scanPadding)/2);
-  int gLimit = ((ms->config.rmWidth*betweenLineGain+2*scanPadding));
-  for (int g = 0; g < gLimit; g++) {
-    ms->pushWord("fullRender"); // full render
-    //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    pushGridSign(ms, speedOnLines);
-    ms->pushWord('e');
-    pushGridSign(ms, speedBetweenLines);
-    for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
-      //ms->pushWord(1048677);
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord('a');
-    }
-    //pushGridSign(ms, speedOnLines);
-    //ms->pushWord('e');
-    //pushGridSign(ms, speedBetweenLines);
-    for (int gg = 0; gg < ms->config.rmWidth*onLineGain+2*scanPadding; gg++) {
-      //ms->pushWord(1048677);
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord('d');
-    }
-  }
-
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord('q');
-  }
-  for (int g = 0; g < ms->config.rmHalfWidth*onLineGain+scanPadding; g++) {
-    //ms->pushWord(1048677);
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    ms->pushWord('a');
-  }
-  pushGridSign(ms, speedOnLines);
-}
 
 Eigen::Quaternionf getGGRotation(MachineState * ms, int givenGraspGear) {
   Eigen::Vector3f localUnitX;
@@ -3295,121 +2254,13 @@ void setCCRotation(MachineState * ms, int thisGraspGear) {
   ms->config.currentEEPose.qw = eeBaseQuat.w();
 }
 
-// publish volumetric representation to a marker array
-void publishVolumetricMap(MachineState * ms) {
-  int aI = 0;
-  int vmSubsampleStride = 10;
-  visualization_msgs::MarkerArray ma_to_send; 
-  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	  aI++;
-	}
-      }
-    }
-  }
-  int numCubesToShow = aI;
-
-  /*
-  ma_to_send.markers.resize(aI);
-  aI = 0;
-  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	  double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-	  int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	  int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	  int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-//cout << tBlue << " " << ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] << " " <<  denomC << endl;
-	  ma_to_send.markers[aI].pose.position.x = rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  ma_to_send.markers[aI].pose.position.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  ma_to_send.markers[aI].pose.position.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  ma_to_send.markers[aI].pose.orientation.w = 1.0;
-	  ma_to_send.markers[aI].pose.orientation.x = 0.0;
-	  ma_to_send.markers[aI].pose.orientation.y = 0.0;
-	  ma_to_send.markers[aI].pose.orientation.z = 0.0;
-	  ma_to_send.markers[aI].type =  visualization_msgs::Marker::CUBE;
-	  ma_to_send.markers[aI].scale.x = ms->config.vmDelta*vmSubsampleStride;
-	  ma_to_send.markers[aI].scale.y = ms->config.vmDelta*vmSubsampleStride;
-	  ma_to_send.markers[aI].scale.z = ms->config.vmDelta*vmSubsampleStride;
-	  ma_to_send.markers[aI].color.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
-	  ma_to_send.markers[aI].color.r = double(tRed)/255.0;
-	  ma_to_send.markers[aI].color.g = double(tGreen)/255.0;
-	  ma_to_send.markers[aI].color.b = double(tBlue)/255.0;
-
-	  ma_to_send.markers[aI].header.stamp = ros::Time::now();
-	  ma_to_send.markers[aI].header.frame_id = "/base";
-	  ma_to_send.markers[aI].action = visualization_msgs::Marker::ADD;
-	  ma_to_send.markers[aI].id = aI;
-	  ma_to_send.markers[aI].lifetime = ros::Duration(1.0);
-
-	  aI++;
-	}
-      }
-    }
-  }
-  */
-
-  ma_to_send.markers.resize(1);
-
-  ma_to_send.markers[0].pose.orientation.w = 1.0;
-  ma_to_send.markers[0].pose.orientation.x = 0.0;
-  ma_to_send.markers[0].pose.orientation.y = 0.0;
-  ma_to_send.markers[0].pose.orientation.z = 0.0;
-  ma_to_send.markers[0].type =  visualization_msgs::Marker::CUBE_LIST;
-  ma_to_send.markers[0].scale.x = ms->config.vmDelta*vmSubsampleStride;
-  ma_to_send.markers[0].scale.y = ms->config.vmDelta*vmSubsampleStride;
-  ma_to_send.markers[0].scale.z = ms->config.vmDelta*vmSubsampleStride;
-
-  ma_to_send.markers[0].header.stamp = ros::Time::now();
-  ma_to_send.markers[0].header.frame_id = "/base";
-  ma_to_send.markers[0].action = visualization_msgs::Marker::ADD;
-  ma_to_send.markers[0].id = 0;
-  ma_to_send.markers[0].lifetime = ros::Duration(1.0);
-
-  double volumeRenderThresh = 0.333;
-
-  for (int pz = 0; pz < ms->config.vmWidth; pz+=vmSubsampleStride) {
-    for (int py = 0; py < ms->config.vmWidth; py+=vmSubsampleStride) {
-      for (int px = 0; px < ms->config.vmWidth; px+=vmSubsampleStride) {
-	if (ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0) {
-	  double denomC = max(ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth], EPSILON);
-	  int tRed = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 2*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	  int tGreen = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 1*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-	  int tBlue = min(255, max(0,int(round(ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + 0*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] / denomC))));
-
-	  std_msgs::ColorRGBA p;
-	  //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0;
-	  //p.a = volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > 0.5;
-	  p.a = ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] > volumeRenderThresh;
-	  //p.a = 4.0*volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth];
-	  p.r = double(tRed)/255.0;
-	  p.g = double(tGreen)/255.0;
-	  p.b = double(tBlue)/255.0;
-	  ma_to_send.markers[0].colors.push_back(p);
-
-	  geometry_msgs::Point temp;
-	  temp.x = ms->config.rmcX + (px - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  temp.y = ms->config.rmcY + (py - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  temp.z = ms->config.rmcZ + (pz - ms->config.vmHalfWidth)*ms->config.vmDelta;
-	  ma_to_send.markers[0].points.push_back(temp);
-	}
-      }
-    }
-  }
-  ms->config.vmMarkerPublisher.publish(ma_to_send);
-}
 
 void MachineState::accelerometerCallback(const sensor_msgs::Imu& moment) {
   MachineState * ms = this;
   ms->config.lastAccelerometerCallbackReceived = ros::Time::now();
-  ms->config.eeLinearAcceleration = Vector3d(
-    moment.linear_acceleration.x,
-    moment.linear_acceleration.y,
-    moment.linear_acceleration.z );
+  ms->config.eeLinearAcceleration[0] = moment.linear_acceleration.x;
+  ms->config.eeLinearAcceleration[1] = moment.linear_acceleration.y;
+  ms->config.eeLinearAcceleration[2] = moment.linear_acceleration.z;
 }
 
 void MachineState::rangeCallback(const sensor_msgs::Range& range) {
@@ -3519,254 +2370,23 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
       putText(ms->config.rangeogramImage, fpslabel, text_anchor, MY_FONT, 1.0, Scalar(0,0,160), 1.0);
     }
   }
-  ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
+
+  if (ms->config.showgui) {
+    ms->config.rangeogramWindow->updateImage(ms->config.rangeogramImage);
+  }
 
   if (!ms->config.shouldIRangeCallback) {
     return;
   }
 
-
-  if (ms->config.recordRangeMap) {
-    // actually storing the negative z for backwards compatibility
-    //double thisZmeasurement = -(ms->config.currentEEPose.pz - ms->config.eeRange);
-    double thisZmeasurement = -(ms->config.trueEEPose.position.z - ms->config.eeRange);
-    double dX = 0;
-    double dY = 0;
-
-    {
-      Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-      Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-      ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-      Eigen::Quaternionf ceeQuat(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
-      Eigen::Quaternionf irSensorStartGlobal(
-					      0.0,
-					     (ms->config.trueEEPose.position.x - irSensorStartLocal.x()),
-					     (ms->config.trueEEPose.position.y - irSensorStartLocal.y()),
-					     (ms->config.trueEEPose.position.z - irSensorStartLocal.z())
-					    );
-
-      Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
-      Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
-
-      Eigen::Vector3d irSensorEnd(
-				   (ms->config.trueEEPose.position.x - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
-				   (ms->config.trueEEPose.position.y - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
-				   (ms->config.trueEEPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
-				  );
-
-      dX = (irSensorEnd.x() - ms->config.rmcX); 
-      dY = (irSensorEnd.y() - ms->config.rmcY); 
-
-      double eX = (irSensorEnd.x() - ms->config.rmcX) / ms->config.hrmDelta;
-      double eY = (irSensorEnd.y() - ms->config.rmcY) / ms->config.hrmDelta;
-      int eeX = (int)round(eX + ms->config.hrmHalfWidth);
-      int eeY = (int)round(eY + ms->config.hrmHalfWidth);
-
-      if ((fabs(eX) <= ms->config.hrmHalfWidth) && (fabs(eY) <= ms->config.hrmHalfWidth)) {
-	ms->config.hiRangemapImage.at<cv::Vec3b>(eeX,eeY) += cv::Vec3b(128,0,0);
-      }
-      // XXX
-      thisZmeasurement = -irSensorEnd.z();
-    }
-
-    // find current rangemap slot
-    // check to see if it falls in our mapped region
-    // if so, update the arrays and draw the slot
-    // XXX
-    //double dX = (ms->config.trueEEPose.position.x - ms->config.drX) - rmcX;
-    //double dY = (ms->config.trueEEPose.position.y - ms->config.drY) - ms->config.rmcY;
-
-    double iX = dX / ms->config.rmDelta;
-    double iY = dY / ms->config.rmDelta;
-
-    double hiX = dX / ms->config.hrmDelta;
-    double hiY = dY / ms->config.hrmDelta;
-
-    ms->config.lastiX = ms->config.thisiX;
-    ms->config.lastiY = ms->config.thisiY;
-    ms->config.thisiX = iX;
-    ms->config.thisiY = iY;
-
-    
-  //cout << rmcX << " " << ms->config.trueEEPose.position.x << " " << dX << " " << iX << " " << ms->config.rmHalfWidth << endl;
-
-    // erase old cell
-    if ((fabs(ms->config.lastiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.lastiY) <= ms->config.rmHalfWidth)) {
-      int iiX = (int)round(ms->config.lastiX + ms->config.rmHalfWidth);
-      int iiY = (int)round(ms->config.lastiY + ms->config.rmHalfWidth);
-
-      double minDepth = VERYBIGNUMBER;
-      double maxDepth = 0;
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-	for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-	  minDepth = min(minDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-	  maxDepth = max(maxDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-	}
-      }
-      double denom2 = max(EPSILON,maxDepth-minDepth);
-      if (denom2 <= EPSILON)
-	denom2 = VERYBIGNUMBER;
-      double intensity = 255 * (maxDepth - ms->config.rangeMap[iiX + iiY*ms->config.rmWidth]) / denom2;
-      cv::Scalar backColor(0,0,ceil(intensity));
-      cv::Point outTop = cv::Point(iiY*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
-      cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth,(iiX+1)*ms->config.rmiCellWidth);
-      Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-      vCrop = backColor;
-    }
-
-
-
-    // draw new cell
-    if ((fabs(hiX) <= ms->config.hrmHalfWidth) && (fabs(hiY) <= ms->config.hrmHalfWidth)) {
-      int hiiX = (int)round(hiX + ms->config.hrmHalfWidth);
-      int hiiY = (int)round(hiY + ms->config.hrmHalfWidth);
-
-      // the wrong point without pose correction
-      //double upX = ((ms->config.trueEEPose.position.x - ms->config.drX) - rmcX)/ms->config.hrmDelta;
-      //double upY = ((ms->config.trueEEPose.position.y - ms->config.drY) - ms->config.rmcY)/ms->config.hrmDelta;
-      //int iupX = (int)round(upX + ms->config.hrmHalfWidth);
-      //int iupY = (int)round(upY + ms->config.hrmHalfWidth);
-      //if ((fabs(upX) <= ms->config.hrmHalfWidth) && (fabs(upY) <= ms->config.hrmHalfWidth)) 
-	//ms->config.hiRangemapImage.at<cv::Vec3b>(iupX,iupY) += cv::Vec3b(0,128,0);
-
-      int pxMin = max(0, hiiX-ms->config.parzenKernelHalfWidth);
-      int pxMax = min(ms->config.hrmWidth-1, hiiX+ms->config.parzenKernelHalfWidth);
-      int pyMin = max(0, hiiY-ms->config.parzenKernelHalfWidth);
-      int pyMax = min(ms->config.hrmWidth-1, hiiY+ms->config.parzenKernelHalfWidth);
-      for (int px = pxMin; px <= pxMax; px++) {
-	for (int py = pyMin; py <= pyMax; py++) {
-	  int kpx = px - (hiiX - ms->config.parzenKernelHalfWidth);
-	  int kpy = py - (hiiY - ms->config.parzenKernelHalfWidth);
-
-	  cv::Vec3b thisSample = getCRColor(ms); 
-//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[0]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[1]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-//	  ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] += thisSample[2]*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-//	  ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth] += parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-//
-//	  double denomC = max(ms->config.hiColorRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-//	  int tRed = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 2*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-//	  int tGreen = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 1*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-//	  int tBlue = min(255, max(0,int(round(ms->config.hiColorRangeMapAccumulator[px + py*ms->config.hrmWidth + 0*ms->config.hrmWidth*ms->config.hrmWidth] / denomC))));
-//
-//	  ms->config.hiColorRangemapImage.at<cv::Vec3b>(px,py) = cv::Vec3b(tBlue, tGreen, tRed);
-
-	  //ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += ms->config.eeRange*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] += thisZmeasurement*parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth] += parzenKernel[kpx + kpy*ms->config.parzenKernelWidth];
-	  //double denom = max(ms->config.hiRangeMapMass[px + py*ms->config.hrmWidth], EPSILON);
-	  //ms->config.hiRangeMap[px + py*ms->config.hrmWidth] = ms->config.hiRangeMapAccumulator[px + py*ms->config.hrmWidth] / denom;
-	}
-      }
-    }
-    if ((fabs(ms->config.thisiX) <= ms->config.rmHalfWidth) && (fabs(ms->config.thisiY) <= ms->config.rmHalfWidth)) {
-      int iiX = (int)round(ms->config.thisiX + ms->config.rmHalfWidth);
-      int iiY = (int)round(ms->config.thisiY + ms->config.rmHalfWidth);
-      
-      {
-	//ms->config.rangeMapMass[iiX + iiY*rmWidth] += 1;
-	//ms->config.rangeMapAccumulator[iiX + iiY*rmWidth] += thisZmeasurement;
-	//double denom = max(ms->config.rangeMapMass[iiX + iiY*rmWidth], EPSILON);
-	//ms->config.rangeMap[iiX + iiY*rmWidth] = ms->config.rangeMapAccumulator[iiX + iiY*rmWidth] / denom;
-      }
-      
-      double minDepth = VERYBIGNUMBER;
-      double maxDepth = 0;
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-	for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-	  minDepth = min(minDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-	  maxDepth = max(maxDepth, ms->config.rangeMap[rx + ry*ms->config.rmWidth]);
-	}
-      }
-      double denom2 = max(EPSILON,maxDepth-minDepth);
-      if (denom2 <= EPSILON)
-	denom2 = VERYBIGNUMBER;
-      double intensity = 255 * (maxDepth - ms->config.rangeMap[iiX + iiY*ms->config.rmWidth]) / denom2;
-      cv::Scalar backColor(0,0,ceil(intensity));
-      cv::Point outTop = cv::Point(iiY*ms->config.rmiCellWidth,iiX*ms->config.rmiCellWidth);
-      cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth,(iiX+1)*ms->config.rmiCellWidth);
-      Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-      vCrop = backColor;
-      // draw border
-      {
-	cv::Point outTop = cv::Point(iiY*ms->config.rmiCellWidth+1,iiX*ms->config.rmiCellWidth+1);
-	cv::Point outBot = cv::Point((iiY+1)*ms->config.rmiCellWidth-1,(iiX+1)*ms->config.rmiCellWidth-1);
-	cv::Point inTop = cv::Point(outTop.x+1, outTop.y+1);
-	cv::Point inBot = cv::Point(outBot.x-1, outBot.y-1);
-	rectangle(ms->config.rangemapImage, outTop, outBot, cv::Scalar(0,192,0)); 
-	rectangle(ms->config.rangemapImage, inTop, inBot, cv::Scalar(0,64,0)); 
-      }
-    }
-  }
-
-  if (ms->config.shouldIRender) {
-    ms->config.rangemapWindow->updateImage(ms->config.rangemapImage);
-    ms->config.graspMemoryWindow->updateImage(ms->config.graspMemoryImage);
-    ms->config.graspMemorySampleWindow->updateImage(ms->config.graspMemorySampleImage);
-    ms->config.heightMemorySampleWindow->updateImage(ms->config.heightMemorySampleImage);
-
-    Mat hRIT;
-    cv::resize(ms->config.hiRangemapImage, hRIT, cv::Size(0,0), 2, 2);
-    ms->config.hiRangemapWindow->updateImage(ms->config.hiRangemapImage);
-
-    Mat hCRIT;
-    cv::resize(ms->config.hiColorRangemapImage, hCRIT, cv::Size(0,0), 2, 2);
-    ms->config.hiColorRangemapWindow->updateImage(ms->config.hiColorRangemapImage);
-
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
 
     ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
 
     ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
 
-    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
-
     ms->config.mapBackgroundViewWindow->updateImage(ms->config.mapBackgroundImage);
-
-    
-    if (ms->config.targetClass > -1) {
-      if (ms->config.classHeight0AerialGradients[ms->config.targetClass].rows == ms->config.aerialGradientWidth) {
-	Mat crop0 = ms->config.aerialGradientViewerImage(cv::Rect(0, 3*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
-	double min0 = 0;
-	double max0 = 0;
-	minMaxLoc(ms->config.classHeight0AerialGradients[ms->config.targetClass], &min0, &max0);
-	double denom0 = max0-min0;
-	if (fabs(denom0) < EPSILON)
-	  denom0 = 1;
-	crop0 = (ms->config.classHeight0AerialGradients[ms->config.targetClass] - min0) / denom0;
-
-	Mat crop1 = ms->config.aerialGradientViewerImage(cv::Rect(0, 2*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
-	double min1 = 0;
-	double max1 = 0;
-	minMaxLoc(ms->config.classHeight1AerialGradients[ms->config.targetClass], &min1, &max1);
-	double denom1 = max1-min1;
-	if (fabs(denom1) < EPSILON)
-	  denom1 = 1;
-	crop1 = (ms->config.classHeight1AerialGradients[ms->config.targetClass] - min1) / denom1;
-
-	Mat crop2 = ms->config.aerialGradientViewerImage(cv::Rect(0, 1*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
-	double min2 = 0;
-	double max2 = 0;
-	minMaxLoc(ms->config.classHeight2AerialGradients[ms->config.targetClass], &min2, &max2);
-	double denom2 = max2-min2;
-	if (fabs(denom2) < EPSILON)
-	  denom2 = 1;
-	crop2 = (ms->config.classHeight2AerialGradients[ms->config.targetClass] - min2) / denom2;
-
-	Mat crop3 = ms->config.aerialGradientViewerImage(cv::Rect(0, 0*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, ms->config.aerialGradientWidth));
-	double min3 = 0;
-	double max3 = 0;
-	minMaxLoc(ms->config.classHeight3AerialGradients[ms->config.targetClass], &min3, &max3);
-	double denom3 = max3-min3;
-	if (fabs(denom3) < EPSILON)
-	  denom3 = 1;
-	crop3 = (ms->config.classHeight3AerialGradients[ms->config.targetClass] - min3) / denom3;
-
-	ms->config.aerialGradientViewerWindow->updateImage(ms->config.aerialGradientViewerImage);
-      }
-    }
   }
 }
 
@@ -3899,269 +2519,6 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose) {
 }
 
 
-void MachineState::update_baxter(ros::NodeHandle &n) {
-
-  MachineState * ms = this;
-  ms->config.bfc = ms->config.bfc % ms->config.bfc_period;
-  if (!ms->config.shouldIDoIK) {
-    return;
-  }
-
-  if (ms->config.currentRobotMode == SIMULATED) {
-    return;
-  }
-  if (ms->config.currentRobotMode == SNOOP) {
-    return;
-  }
-
-  baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
-
-  int ikResultFailed = 0;
-  eePose originalCurrentEEPose = ms->config.currentEEPose;
-
-  // do not start in a state with ikShare 
-  if ((drand48() <= ms->config.ikShare) || !ms->config.ikInitialized) {
-
-    int numIkRetries = 2;//100; //5000;//100;
-    double ikNoiseAmplitude = 0.01;//0.1;//0.03;
-    double useZOnly = 1;
-    double ikNoiseAmplitudeQuat = 0;
-    for (int ikRetry = 0; ikRetry < numIkRetries; ikRetry++) {
-      // ATTN 24
-      //int ikCallResult = ms->config.ikClient.call(thisIkRequest);
-      int ikCallResult = 0;
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	// set this here in case noise was added
-	ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-	ikResultFailed = 0;
-	if (ikRetry > 0) {
-	  ROS_WARN_STREAM("___________________");
-	  CONSOLE_ERROR(ms, "Accepting perturbed IK result.");
-	  cout << "ikRetry: " << ikRetry << endl;
-	  eePose::print(originalCurrentEEPose);
-	  eePose::print(ms->config.currentEEPose);
-	  ROS_WARN_STREAM("___________________");
-	}
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-
-	  ikResultFailed = 0;
-	  ms->config.currentEEPose.px = thisIkRequest.request.pose_stamp[0].pose.position.x;
-	  ms->config.currentEEPose.py = thisIkRequest.request.pose_stamp[0].pose.position.y;
-	  ms->config.currentEEPose.pz = thisIkRequest.request.pose_stamp[0].pose.position.z;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      if (!ikResultFailed) {
-	break;
-      }
-
-      ROS_WARN_STREAM("Initial IK result invalid... adding noise and retrying.");
-      cout << thisIkRequest.request.pose_stamp[0].pose << endl;
-
-      reseedIkRequest(ms, &ms->config.currentEEPose, &thisIkRequest, ikRetry, numIkRetries);
-      fillIkRequest(ms->config.currentEEPose, &thisIkRequest);
-    }
-  }
-  
-  /*if ( ms->config.ikClient.waitForExistence(ros::Duration(1, 0)) ) {
-    ikResultFailed = (!ms->config.ikClient.call(thisIkRequest) || !thisIkRequest.response.isValid[0]);
-  } else {
-    cout << "waitForExistence timed out" << endl;
-    ikResultFailed = 1;
-  }*/
-
-  if (ikResultFailed) 
-  {
-    CONSOLE_ERROR(ms, "ikClient says pose request is invalid.");
-    ms->config.ik_reset_counter++;
-    ms->config.lastIkWasSuccessful = false;
-
-    cout << "ik_reset_counter, ik_reset_thresh: " << ms->config.ik_reset_counter << " " << ms->config.ik_reset_thresh << endl;
-    if (ms->config.ik_reset_counter > ms->config.ik_reset_thresh) {
-      ms->config.ik_reset_counter = 0;
-      //ms->config.currentEEPose = ms->config.ik_reset_eePose;
-      //cout << "  reset pose disabled! setting current position to true position." << endl;
-      //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
-      cout << "  reset pose disabled! setting current position to last good position." << endl;
-      ms->config.currentEEPose = ms->config.lastGoodEEPose;
-      //ms->pushWord("pauseStackExecution"); // pause stack execution
-      cout << "  pausing disabled!" << endl;
-      ms->pushCopies("beep", 15); // beep
-      cout << "target position denied by ik, please reset the object.";
-    }
-    else {
-      cout << "This pose was rejected by ikClient:" << endl;
-      cout << "Current EE Position (x,y,z): " << ms->config.currentEEPose.px << " " << ms->config.currentEEPose.py << " " << ms->config.currentEEPose.pz << endl;
-      cout << "Current EE Orientation (x,y,z,w): " << ms->config.currentEEPose.qx << " " << ms->config.currentEEPose.qy << " " << ms->config.currentEEPose.qz << " " << ms->config.currentEEPose.qw << endl;
-
-      if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_STOP) {
-	ms->config.currentEEPose = ms->config.lastGoodEEPose;
-      } else if (ms->config.currentIKBoundaryMode == IK_BOUNDARY_PASS) {
-      } else {
-	assert(0);
-      }
-    }
-
-    return;
-  }
-  ms->config.lastIkWasSuccessful = true;
-  ms->config.ik_reset_counter = max(ms->config.ik_reset_counter-1, 0);
-
-  ms->config.lastGoodEEPose = ms->config.currentEEPose;
-  ms->config.ikRequest = thisIkRequest;
-  ms->config.ikInitialized = 1;
-  
-
-  // but in theory we can bypass the joint controllers by publishing to this topic
-  // /robot/limb/left/joint_command
-
-  baxter_core_msgs::JointCommand myCommand;
-
-  if (!ms->config.jointNamesInit) {
-    ms->config.jointNames.resize(NUM_JOINTS);
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      ms->config.jointNames[j] = ms->config.ikRequest.response.joints[0].name[j];
-    }
-    ms->config.jointNamesInit = 1;
-  }
-
-  if (ms->config.currentControlMode == VELOCITY) {
-
-    double l2Gravity = 0.0;
-
-    myCommand.mode = baxter_core_msgs::JointCommand::VELOCITY_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ros::Time theNow = ros::Time::now();
-    ros::Duration howLong = theNow - ms->config.oscilStart;
-    double spiralEta = 1.25;
-    double rapidJointGlobalOmega[NUM_JOINTS] = {4, 0, 0, 4, 4, 4, 4};
-    double rapidJointLocalOmega[NUM_JOINTS] = {.2, 0, 0, 2, 2, .2, 2};
-    double rapidJointLocalBias[NUM_JOINTS] = {0, 0, 0, 0.7, 0, 0, 0};
-    int rapidJointMask[NUM_JOINTS] = {1, 0, 0, 1, 1, 1, 1};
-    double rapidJointScales[NUM_JOINTS] = {.10, 0, 0, 1.0, 2.0, .20, 3.1415926};
-
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
-      myCommand.command[j] = spiralEta*rapidJointScales[j]*(ms->config.ikRequest.response.joints[0].position[j] - ms->config.trueJointPositions[j]);
-    }
-    {
-      double tim = howLong.toSec();
-      double rapidAmp1 = 0.00; //0.3 is great
-      myCommand.command[4] += -rapidAmp1*rapidJointScales[4]*sin(rapidJointLocalBias[4] + (rapidJointLocalOmega[4]*rapidJointGlobalOmega[4]*tim));
-      myCommand.command[3] +=  rapidAmp1*rapidJointScales[3]*cos(rapidJointLocalBias[3] + (rapidJointLocalOmega[3]*rapidJointGlobalOmega[3]*tim));
-
-      double rapidAmp2 = 0.00;
-      myCommand.command[5] += -rapidAmp2*rapidJointScales[5]*sin(rapidJointLocalBias[5] + (rapidJointLocalOmega[5]*rapidJointGlobalOmega[5]*tim));
-      myCommand.command[0] +=  rapidAmp2*rapidJointScales[0]*cos(rapidJointLocalBias[0] + (rapidJointLocalOmega[0]*rapidJointGlobalOmega[0]*tim));
-    }
-  } else if (ms->config.currentControlMode == EEPOSITION) {
-    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ms->config.lastGoodIkRequest.response.joints.resize(1);
-    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
-
-    ms->config.currentJointPositions.response.joints.resize(1);
-    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.ikRequest.response.joints[0].name[j];
-      myCommand.command[j] = ms->config.ikRequest.response.joints[0].position[j];
-      ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
-      ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
-
-      ms->config.currentJointPositions.response.joints[0].name[j] = myCommand.names[j];
-      ms->config.currentJointPositions.response.joints[0].position[j] = myCommand.command[j];
-    }
-    ms->config.goodIkInitialized = 1;
-  } else if (ms->config.currentControlMode == ANGLES) {
-    //ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    //ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    //ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    //ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    //ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    //ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    //ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
-
-    myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-    myCommand.command.resize(NUM_JOINTS);
-    myCommand.names.resize(NUM_JOINTS);
-
-    ms->config.lastGoodIkRequest.response.joints.resize(1);
-    ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
-
-    ms->config.currentJointPositions.response.joints.resize(1);
-    ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-    ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      myCommand.names[j] = ms->config.currentJointPositions.response.joints[0].name[j];
-      myCommand.command[j] = ms->config.currentJointPositions.response.joints[0].position[j];
-      //ms->config.lastGoodIkRequest.response.joints[0].name[j] = ms->config.ikRequest.response.joints[0].name[j];
-      //ms->config.lastGoodIkRequest.response.joints[0].position[j] = ms->config.ikRequest.response.joints[0].position[j];
-    }
-  } else {
-    assert(0);
-  }
-  if (ms->config.publish_commands_mode) {
-    std_msgs::Float64 speedCommand;
-    speedCommand.data = ms->config.currentEESpeedRatio;
-    int param_resend_times = 1;
-    for (int r = 0; r < param_resend_times; r++) {
-      ms->config.joint_mover.publish(myCommand);
-      ms->config.moveSpeedPub.publish(speedCommand);
-      
-      {
-        std_msgs::UInt16 thisCommand;
-        thisCommand.data = ms->config.sonar_led_state;
-        ms->config.sonar_pub.publish(thisCommand);
-      }
-      if (ms->config.repeat_halo) {
-        {
-          std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.red_halo_state;
-          ms->config.red_halo_pub.publish(thisCommand);
-        }
-        {
-          std_msgs::Float32 thisCommand;
-          thisCommand.data = ms->config.green_halo_state;
-          ms->config.green_halo_pub.publish(thisCommand);
-        }
-      }
-    }
-  }
-
-  ms->config.bfc++;
-}
-
-
 
 
 
@@ -4192,7 +2549,9 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     ms->config.armWidget->update();
     ms->config.renderedWristViewWindow->updateImage(ms->config.wristViewImage);
   }
-  einMainWindow->update();
+  if (einMainWindow != NULL) {
+    einMainWindow->update();
+  }
 
   // XXX is heartBeatCounter even used?
 
@@ -4269,51 +2628,41 @@ void MachineState::timercallback1(const ros::TimerEvent&) {
     
   }
 
-  {
+
+  if (ros::Time::now() - ms->config.lastStatePubTime > ros::Duration(0.1)) {
     EinState state;
     fillEinStateMsg(ms, &state);
     ms->config.einStatePub.publish(state);
+    ms->config.lastStatePubTime = ros::Time::now();
   }
 
   endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
 
   if (!ms->config.zero_g_toggle) {
-    update_baxter(n);
+    robotUpdate(ms);
+  } else {
+    ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
+    robotSetCurrentJointPositions(ms);
   }
-  else {
-    ms->config.currentEEPose.px = ms->config.trueEEPose.position.x;
-    ms->config.currentEEPose.py = ms->config.trueEEPose.position.y;
-    ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z;
-    ms->config.currentEEPose.qx = ms->config.trueEEPose.orientation.x;
-    ms->config.currentEEPose.qy = ms->config.trueEEPose.orientation.y;
-    ms->config.currentEEPose.qz = ms->config.trueEEPose.orientation.z;
-    ms->config.currentEEPose.qw = ms->config.trueEEPose.orientation.w;
 
-    if ( (ms->config.currentJointPositions.response.joints.size() > 0) && (ms->config.currentJointPositions.response.joints[0].position.size() == NUM_JOINTS) ) {
-      for (int j = 0; j < NUM_JOINTS; j++) {
-	ms->config.currentJointPositions.response.joints[0].position[j] = ms->config.trueJointPositions[j];
-      }
-    } else {
-      ms->config.currentJointPositions.response.joints.resize(1);
-      ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-      ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
+  if (ms->config.showgui) {
+    if (ms->config.coreViewWindow->isVisible()) {
+      renderCoreView(ms);
+      ms->config.coreViewWindow->updateImage(ms->config.coreViewImage);
+    }
+    
+    if (ms->config.rangeogramWindow->isVisible()) {
+      renderRangeogramView(ms);
+    }
+    
+    if (ms->config.shouldIRender && ms->config.showgui) { // && ms->config.objectMapViewerWindow->isVisible()) {
+      renderObjectMapView(left_arm, right_arm);
     }
   }
-
-  if (ms->config.coreViewWindow->isVisible()) {
-    renderCoreView(ms);
-    ms->config.coreViewWindow->updateImage(ms->config.coreViewImage);
-  }
-
-  if (ms->config.rangeogramWindow->isVisible()) {
-    renderRangeogramView(ms);
-  }
-
-  if (ms->config.shouldIRender) { // && ms->config.objectMapViewerWindow->isVisible()) {
-    renderObjectMapView(left_arm, right_arm);
-  }
 }
-void publishConsoleMessage(MachineState * ms, string msg) {
+
+void MachineState::publishConsoleMessage(string msg) {
+  MachineState * ms = this;
   EinConsole consoleMsg;
   consoleMsg.msg = msg;
   ms->config.einConsolePub.publish(consoleMsg);
@@ -4338,8 +2687,6 @@ int renderInit(MachineState * ms,  Camera * camera) {
   
   ms->config.densityViewerImage = camera->cam_bgr_img.clone();
   ms->config.densityViewerImage *= 0;
-  ms->config.gradientViewerImage = Mat(2*camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, camera->cam_bgr_img.type());
-  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   ms->config.objectViewerImage = camera->cam_bgr_img.clone();
   
   
@@ -4463,9 +2810,9 @@ void renderWristViewImage(MachineState * ms) {
   // paint gripper reticle centerline
   if (1) {
     eePose teePose;
-    teePose.px = ms->config.trueEEPose.position.x;
-    teePose.py = ms->config.trueEEPose.position.y;
-    teePose.pz = ms->config.trueEEPose.position.z;
+    teePose.px = ms->config.trueEEPoseEEPose.px;
+    teePose.py = ms->config.trueEEPoseEEPose.py;
+    teePose.pz = ms->config.trueEEPoseEEPose.pz;
     cv::Scalar theColor(192, 64, 64);
     cv::Scalar THEcOLOR(64, 192, 192);
     
@@ -4515,24 +2862,29 @@ void renderWristViewImage(MachineState * ms) {
         Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
 	Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-	ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-	geometry_msgs::Pose thisPose = ms->config.trueEEPose;
-	Eigen::Quaternionf ceeQuat(thisPose.orientation.w, thisPose.orientation.x, thisPose.orientation.y, thisPose.orientation.z);
-	Eigen::Quaternionf irSensorStartLocal = ceeQuat * ms->config.irGlobalPositionEEFrame * ceeQuat.conjugate();
+        Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+        ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+        ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+        ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+        ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
+	eePose thisPose = ms->config.trueEEPoseEEPose;
+	Eigen::Quaternionf ceeQuat(thisPose.qw, thisPose.qx, thisPose.qy, thisPose.qz);
+	Eigen::Quaternionf irSensorStartLocal = ceeQuat * irpos * ceeQuat.conjugate();
 	Eigen::Quaternionf irSensorStartGlobal(
                                                0.0,
-					       (thisPose.position.x - irSensorStartLocal.x()),
-					       (thisPose.position.y - irSensorStartLocal.y()),
-					       (thisPose.position.z - irSensorStartLocal.z())
+					       (thisPose.px - irSensorStartLocal.x()),
+					       (thisPose.py - irSensorStartLocal.y()),
+					       (thisPose.pz - irSensorStartLocal.z())
                                                );
         
 	Eigen::Quaternionf globalUnitZ(0, 0, 0, 1);
 	Eigen::Quaternionf localUnitZ = ceeQuat * globalUnitZ * ceeQuat.conjugate();
 
 	Eigen::Vector3d irSensorEnd(
-				     (thisPose.position.x - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
-				     (thisPose.position.y - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
-				     (thisPose.position.z - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
+				     (thisPose.px - irSensorStartLocal.x()) + ms->config.eeRange*localUnitZ.x(),
+				     (thisPose.py - irSensorStartLocal.y()) + ms->config.eeRange*localUnitZ.y(),
+				     (thisPose.pz - irSensorStartLocal.z()) + ms->config.eeRange*localUnitZ.z()
 				    );
 	irPose.px = irSensorEnd.x();
 	irPose.py = irSensorEnd.y();
@@ -4788,7 +3140,7 @@ void MachineState::imageCallback(Camera * camera) {
   accumulateImage(ms);
 
   renderWristViewImage(ms);
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(camera->cam_img);
@@ -4804,122 +3156,6 @@ void MachineState::imageCallback(Camera * camera) {
   }
 }
 
-void MachineState::gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) {
-  MachineState * ms = this;
-
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    ms->config.last_joint_actual_effort[i] = seaJ.actual_effort[i];
-  }
-}
-
-void MachineState::cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  MachineState * ms = this;
-  if (cuffDIOS.state == 1) {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-    command.args = "{\"position\": 0.0}";
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-  } else {
-  }
-
-}
-
-void MachineState::cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) {
-  MachineState * ms = this;
-  if (cuffDIOS.state == 1) {
-    baxter_core_msgs::EndEffectorCommand command;
-    command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-    command.args = "{\"position\": 100.0}";
-    command.id = 65538;
-    ms->config.gripperPub.publish(command);
-    ms->config.lastMeasuredClosed = ms->config.gripperPosition;
-  } else {
-  }
-
-}
-
-void MachineState::armShowButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->evaluateProgram("infiniteScan");
-    }      
-  }
-
-  if (dios.state) {
-    ms->config.lastArmShowButtonState = 1;
-  } else {
-    ms->config.lastArmShowButtonState = 0;
-  }
-}
-
-void MachineState::armBackButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->clearStack();
-      ms->clearData();
-
-      ms->evaluateProgram("inputPileWorkspace moveEeToPoseWord");
-    }      
-  }
-
-  if (dios.state) {
-    ms->config.lastArmBackButtonState = 1;
-  } else {
-    ms->config.lastArmBackButtonState = 0;
-  }
-}
-
-void MachineState::armOkButtonCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-  if (dios.state == 1) {
-    // only if this is the first of recent presses
-    if (ms->config.lastArmOkButtonState == 0) {
-      ms->evaluateProgram("zeroGToggle");
-    }      
-  }
-
-  if (dios.state == 1) {
-    ms->config.lastArmOkButtonState = 1;
-  } else if (dios.state == 0) {
-    ms->config.lastArmOkButtonState = 0;
-  } else {
-    CONSOLE_ERROR(ms, "Unexpected state: " << dios);
-    assert(0);
-  }
-
-}
-
-void MachineState::torsoFanCallback(const baxter_core_msgs::AnalogIOState& aios) {
-  MachineState * ms = this;
-  ms->config.torsoFanState = aios.value;
-}
-
-void MachineState::shoulderCallback(const baxter_core_msgs::DigitalIOState& dios) {
-  MachineState * ms = this;
-
-  // this is backwards, probably a bug
-  if (!dios.state && ms->config.lastShoulderState == 1) {
-    ms->config.intendedEnableState = !ms->config.intendedEnableState;
-    if (ms->config.intendedEnableState) {
-      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -e\"");
-    } else {
-      int sis = system("bash -c \"echo -e \'C\003\' | rosrun baxter_tools enable_robot.py -d\"");
-    }
-  }
-
-  if (dios.state) {
-    ms->config.lastShoulderState = 1;
-  } else {
-    ms->config.lastShoulderState = 0;
-  }
-}
 
 cv::Point worldToMapPixel(Mat mapImage, double xMin, double xMax, double yMin, double yMax, double x, double y) {
   double pxMin = 0;
@@ -5258,7 +3494,7 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     line(ms->config.objectMapViewerImage, center, orientation_point, color);
   }
   { // drawHand
-    eePose tp = rosPoseToEEPose(ms->config.trueEEPose);
+    eePose tp = ms->config.trueEEPoseEEPose;
     double radius = 10;
     cv::Point handPoint = worldToMapPixel(ms->config.objectMapViewerImage, ms->config.mapXMin, ms->config.mapXMax, ms->config.mapYMin, ms->config.mapYMax, 
                                        tp.px, tp.py);
@@ -5311,12 +3547,39 @@ void renderObjectMapViewOneArm(MachineState * ms) {
     }
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
   }
 
 
 }
+
+
+
+gsl_matrix * boxMemoryToPolygon(BoxMemory b) {
+  double min_x = b.top.px;
+  double min_y = b.top.py;
+  double max_x = b.bot.px;
+  double max_y = b.bot.py;
+  double width = max_x - min_x;
+  double height = max_y - min_y;
+
+  gsl_matrix *  polygon = gsl_matrix_alloc(2, 4);
+  gsl_matrix_set(polygon, 0, 0, min_x);
+  gsl_matrix_set(polygon, 1, 0, min_y);
+
+  gsl_matrix_set(polygon, 0, 1, min_x + width);
+  gsl_matrix_set(polygon, 1, 1, min_y);
+
+  gsl_matrix_set(polygon, 0, 2, min_x + width);
+  gsl_matrix_set(polygon, 1, 2, min_y + height);
+
+  gsl_matrix_set(polygon, 0, 3, min_x);
+  gsl_matrix_set(polygon, 1, 3, min_y + height);
+  return polygon;
+}
+
+
 
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * polygon_xy, cv::Scalar color) {
   for (size_t i = 0; i < polygon_xy->size2; i++) {
@@ -5521,544 +3784,6 @@ void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * 
 }
 
 
-void graspMemoryCallbackFunc(int event, int x, int y, int flags, void* userdata) {
-  MachineState * ms = ((MachineState *) userdata);
-
-
-  if (!ms->config.shouldIMiscCallback) {
-    return;
-  }
-
-  if ( event == EIN_EVENT_LBUTTONDOWN ) {
-    int bigX = x / ms->config.rmiCellWidth;
-    int bigY = y / ms->config.rmiCellWidth;
-    if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
-      // weight the grasp at a single point
-      ms->config.gmTargetY = (bigX-ms->config.rmWidth);
-      ms->config.gmTargetX = bigY;
-
-      // ATTN 5
-      // XXX no check
-//      for (int delX = -1; delX <= 1; delX++) {
-//	for (int delY = -1; delY <= 1; delY++) {
-//	  ms->config.graspMemoryTries[(ms->config.gmTargetX+delX) + (ms->config.gmTargetY+delY)*ms->config.rmWidth] = 1;
-//	  ms->config.graspMemoryPicks[(ms->config.gmTargetX+delX) + (ms->config.gmTargetY+delY)*ms->config.rmWidth] = 1;
-//	}
-//      }
-      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
-      ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
-    }
-    ms->pushWord("paintReticles"); // render reticle
-    ms->pushWord("drawMapRegisters"); // render register 1
-    ms->execute_stack = 1;
-
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EIN_EVENT_RBUTTONDOWN ) {
-    int bigX = x / ms->config.rmiCellWidth;
-    int bigY = y / ms->config.rmiCellWidth;
-    if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
-      ms->config.graspMemoryTries[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] += 1;
-    }
-    ms->pushWord("paintReticles"); // render reticle
-    ms->pushWord("drawMapRegisters"); // render register 1
-    ms->execute_stack = 1;
-
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if  ( event == EIN_EVENT_MBUTTONDOWN ) {
-    int bigX = x / ms->config.rmiCellWidth;
-    int bigY = y / ms->config.rmiCellWidth;
-    if ((bigX >= ms->config.rmWidth) && (bigX < 2*ms->config.rmWidth) && (bigY < ms->config.rmWidth)) {
-      // reset to uniform failure
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-	for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-	  ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] = 10;
-	  ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] = 0;
-	}
-      }
-    }
-    ms->pushWord("paintReticles"); // render reticle
-    ms->pushWord("drawMapRegisters"); // render register 1
-    ms->execute_stack = 1;
-
-    cout << "Grasp Memory Left Click x: " << x << " y: " << y << " eeRange: " << ms->config.eeRange << 
-      " bigX: " << bigX << " bigY: " << bigY << " gmTargetX gmTargetY: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << endl;
-  } else if ( event == EIN_EVENT_MOUSEMOVE ) {
-    //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
-  }
-}
-
-void pilotInit(MachineState * ms) {
-
-  if (0 == ms->config.left_or_right_arm.compare("left")) {
-    ms->config.joint_min[0] = -1.70168;
-    ms->config.joint_min[1] = -2.147;
-    ms->config.joint_min[2] = -3.05418;
-    ms->config.joint_min[3] = -0.05;
-    ms->config.joint_min[4] = -3.059;
-    ms->config.joint_min[5] = -1.5708;
-    ms->config.joint_min[6] = -3.059;
-
-
-    ms->config.joint_max[0] = 1.70168;
-    ms->config.joint_max[1] = 1.047;
-    ms->config.joint_max[2] = 3.05418;
-    ms->config.joint_max[3] = 2.618;
-    ms->config.joint_max[4] = 3.059;
-    ms->config.joint_max[5] = 2.094;
-    ms->config.joint_max[6] = 3.059;
-
-    ms->config.backScanningPose = eePose(-0.304942, 0.703968, 0.186738,
-                                         0.0, 1, 0.0, 0.0);
-
-    ms->config.beeHome = eePose(0.334217, 0.75386, 0.0362593,
-                                -0.00125253, 0.999999, -0.000146851, 0.000236656);
-    
-    ms->config.eepReg4 = ms->config.beeHome;
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    camera->defaultReticle = eePose(334, 100, 0.0,
-                                       0.0, 0.0, 0.0, 0.0);
-    camera->reticle = camera->defaultReticle;
-
-    ms->config.crane1 = eePose(-0.0155901, 0.981296, 0.71078,
-                               0.709046, -0.631526, -0.226613, -0.216967);
-
-    double ystart = 0.1;
-    double yend = 0.7;
-    int numposes = 4;
-    double ystep = (yend - ystart) / numposes;
-    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
-                          0, 1, 0, 0);
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses.push_back(pose1);
-    }
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses[i].py = ystart + i * ystep;
-    }
-
-    ms->config.ik_reset_eePose = eePose(0.334217, 0.75386, 0.0362593,
-                                        -0.00125253, 0.999999, -0.000146851, 0.000236656);
-
-    ms->config.currentTableZ = ms->config.leftTableZ;
-    ms->config.bagTableZ = ms->config.leftTableZ;
-    ms->config.counterTableZ = ms->config.leftTableZ;
-    ms->config.pantryTableZ  = ms->config.leftTableZ;
-
-    ms->config.eepReg1 = ms->config.beeHome; 
-    ms->config.eepReg2 = ms->config.beeHome; 
-
-    ms->config.mapSearchFenceXMin = -0.75;
-    //ms->config.mapSearchFenceXMin = 0.25;
-    //ms->config.mapSearchFenceXMax = 0.25;
-    ms->config.mapSearchFenceXMax = 0.9; //1.0;
-    ms->config.mapSearchFenceYMin = -0.5; //0.1;//-1.25;
-    ms->config.mapSearchFenceYMax = 1.25;
-
-    //.px = 0.278252, .py = 0.731958, .pz = -0.0533381,
-
-    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
-    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
-    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
-    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
-
-    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
-
-    // left arm
-    // (313, 163)
-
-    camera->vanishingPointReticle.px = 313;
-    camera->vanishingPointReticle.py = 163;
-    camera->probeReticle = camera->vanishingPointReticle;
-
-    // ATTN 16
-    camera->heightReticles[0] = camera->defaultReticle;
-    camera->heightReticles[1] = camera->defaultReticle;
-    camera->heightReticles[2] = camera->defaultReticle;
-    camera->heightReticles[3] = camera->defaultReticle;
-
-    camera->heightReticles[3].px = 323;
-    camera->heightReticles[2].px = 326;
-    camera->heightReticles[1].px = 329;
-    camera->heightReticles[0].px = 336;
-
-    camera->heightReticles[3].py = 135;
-    camera->heightReticles[2].py = 128;
-    camera->heightReticles[1].py = 117;
-    camera->heightReticles[0].py = 94;
-
-    /* color reticle init */
-    /* XXX TODO needs recalibrating */
-    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    camera->xCR[0] = 462;
-    camera->xCR[1] = 450;
-    camera->xCR[2] = 439;
-    camera->xCR[3] = 428;
-    camera->xCR[4] = 419;
-    camera->xCR[5] = 410;
-    camera->xCR[6] = 405;
-    camera->xCR[7] = 399;
-    camera->xCR[8] = 394;
-    camera->xCR[9] = 389;
-    camera->xCR[10] = 383;
-    camera->xCR[11] = 381;
-    camera->xCR[12] = 379;
-    camera->xCR[13] = 378;
-
-    /* left arm */
-    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    camera->yCR[0] = 153;
-    camera->yCR[1] = 153;
-    camera->yCR[2] = 153;
-    camera->yCR[3] = 153;
-    camera->yCR[4] = 153;
-    camera->yCR[5] = 154;
-    camera->yCR[6] = 154;
-    camera->yCR[7] = 154;
-    camera->yCR[8] = 154;
-    camera->yCR[9] = 154;
-    camera->yCR[10] = 155;
-    camera->yCR[11] = 155;
-    camera->yCR[12] = 155;
-    camera->yCR[13] = 155;
-
-    /* lens correction */
-    camera->m_x_h[0] = 1.2;
-    camera->m_x_h[1] = 1.06;
-    camera->m_x_h[2] = 0.98;
-    camera->m_x_h[3] = 0.94;
-
-    camera->m_y_h[0] = 0.95;
-    camera->m_y_h[1] = 0.93;
-    camera->m_y_h[2] = 0.92;
-    camera->m_y_h[3] = 0.92;
-
-    //ms->config.handingPose = {.px = 0.955119, .py = 0.0466243, .pz = 0.20442,
-    //               .qx = 0.538769, .qy = -0.531224, .qz = 0.448211, .qw = -0.476063};
-    ms->config.handingPose = eePose(1.0858369, 0.0495844, 0.2052459,
-                                    0.5398360, -0.5294786, 0.4481372, -0.4768674);
-
-    ms->config.eepReg3 = ms->config.handingPose;
-
-    // ir offset
-    camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-
-    ms->config.calibrationPose = eePose(0.434176, 0.633423, 0.48341,
-                                        0.000177018, 1, -0.000352912, -0.000489087);
-    ms->config.shrugPose = eePose(0.0354772, 1.20633, 0.150562,
-                                  -0.370521, 0.381345, 0.578528, 0.618544);
-  } else if (0 == ms->config.left_or_right_arm.compare("right")) {
-    ms->config.joint_min[0] = -1.70168;
-    ms->config.joint_min[1] = -2.147;
-    ms->config.joint_min[2] = -3.05418;
-    ms->config.joint_min[3] = -0.05;
-    ms->config.joint_min[4] = -3.059;
-    ms->config.joint_min[5] = -1.5708;
-    ms->config.joint_min[6] = -3.059;
-
-
-    ms->config.joint_max[0] = 1.70168;
-    ms->config.joint_max[1] = 1.047;
-    ms->config.joint_max[2] = 3.05418;
-    ms->config.joint_max[3] = 2.618;
-    ms->config.joint_max[4] = 3.059;
-    ms->config.joint_max[5] = 2.094;
-    ms->config.joint_max[6] = 3.059;
-
-
-
-    ms->config.backScanningPose = eePose(-0.304942, -0.703968, 0.186738,
-                                         0.0, 1, 0.0, 0.0);
-
-    ms->config.beeHome = eePose(0.525866, -0.710611, 0.0695764,
-                                -0.00122177, 0.999998, 0.00116169, -0.001101);
-
-    ms->config.eepReg4 = ms->config.beeHome;
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    camera->defaultReticle = eePose(325, 127, 0.0,
-                                       0.0, 0.0, 0.0, 0.0);
-    camera->reticle = camera->defaultReticle;
-
-    ms->config.crane1 = eePose(0.0448714, -1.04476, 0.698522,
-                               0.631511, 0.68929, -0.25435, 0.247748);
-
-    double ystart = -0.7;
-    double yend = -0.1;
-    int numposes = 4;
-    double ystep = (yend - ystart) / numposes;
-    eePose pose1 = eePose(0.65, 0.0544691, -0.0582791,
-                          0, 1, 0, 0);
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses.push_back(pose1);
-    }
-    for (int i = 0; i < numposes; i++) {
-      ms->config.deliveryPoses[i].py = ystart + i * ystep;
-    }
-
-
-    ms->config.ik_reset_eePose = ms->config.beeHome;
-
-    ms->config.currentTableZ = ms->config.rightTableZ;
-    ms->config.bagTableZ = ms->config.rightTableZ;
-    ms->config.counterTableZ = ms->config.rightTableZ;
-    ms->config.pantryTableZ  = ms->config.rightTableZ;
-
-
-    ms->config.eepReg1 = ms->config.beeHome;
-    ms->config.eepReg2 = ms->config.beeHome;
-
-    // raw fence values (from John estimating arm limits)
-    // True EE Position (x,y,z): -0.329642 -0.77571 0.419954
-    // True EE Position (x,y,z): 0.525236 -0.841226 0.217111
-
-    // full workspace
-    ms->config.mapSearchFenceXMin = -0.75;
-    ms->config.mapSearchFenceXMax = 0.9;
-    ms->config.mapSearchFenceYMin = -1.25;
-    ms->config.mapSearchFenceYMax = 0.5; //-0.1;//1.25;
-    ms->config.mapRejectFenceXMin = ms->config.mapSearchFenceXMin;
-    ms->config.mapRejectFenceXMax = ms->config.mapSearchFenceXMax;
-    ms->config.mapRejectFenceYMin = ms->config.mapSearchFenceYMin;
-    ms->config.mapRejectFenceYMax = ms->config.mapSearchFenceYMax;
-
-    ms->config.mapBackgroundXMin = ms->config.mapSearchFenceXMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundXMax = ms->config.mapSearchFenceXMax + ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMin = ms->config.mapSearchFenceYMin - ms->config.mapBackgroundBufferMeters;
-    ms->config.mapBackgroundYMax = ms->config.mapSearchFenceYMax + ms->config.mapBackgroundBufferMeters;
-
-    // right arm
-    camera->vanishingPointReticle.px = 313;
-    camera->vanishingPointReticle.py = 185;
-    camera->probeReticle = camera->vanishingPointReticle;
-
-    // ATTN 16
-    camera->heightReticles[0] = camera->defaultReticle;
-    camera->heightReticles[1] = camera->defaultReticle;
-    camera->heightReticles[2] = camera->defaultReticle;
-    camera->heightReticles[3] = camera->defaultReticle;
-    
-    camera->heightReticles[3].px = 314;
-    camera->heightReticles[2].px = 317;
-    camera->heightReticles[1].px = 320;
-    camera->heightReticles[0].px = 328;
-
-    camera->heightReticles[3].py = 154;
-    camera->heightReticles[2].py = 149;
-    camera->heightReticles[1].py = 139;
-    camera->heightReticles[0].py = 120;
-
-    /* color reticle init */
-    /* XXX TODO needs recalibrating */
-    //const int camera->xCR[camera->numCReticleIndexes] = {462, 450, 439, 428, 419, 410, 405, 399, 394, 389, 383, 381, 379, 378};
-    camera->xCR[0] = 462;
-    camera->xCR[1] = 450;
-    camera->xCR[2] = 439;
-    camera->xCR[3] = 428;
-    camera->xCR[4] = 419;
-    camera->xCR[5] = 410;
-    camera->xCR[6] = 405;
-    camera->xCR[7] = 399;
-    camera->xCR[8] = 394;
-    camera->xCR[9] = 389;
-    camera->xCR[10] = 383;
-    camera->xCR[11] = 381;
-    camera->xCR[12] = 379;
-    camera->xCR[13] = 378;
-
-    /* right arm */
-    //const int camera->yCR[camera->numCReticleIndexes] = {153, 153, 153, 153, 153, 154, 154, 154, 154, 154, 155, 155, 155, 155};
-    camera->yCR[0] = 153;
-    camera->yCR[1] = 153;
-    camera->yCR[2] = 153;
-    camera->yCR[3] = 153;
-    camera->yCR[4] = 153;
-    camera->yCR[5] = 154;
-    camera->yCR[6] = 154;
-    camera->yCR[7] = 154;
-    camera->yCR[8] = 154;
-    camera->yCR[9] = 154;
-    camera->yCR[10] = 155;
-    camera->yCR[11] = 155;
-    camera->yCR[12] = 155;
-    camera->yCR[13] = 155;
-
-    /* lens correction */
-    camera->m_x_h[0] = 1.18;
-    camera->m_x_h[1] = 1.12;
-    camera->m_x_h[2] = 1.09;
-    camera->m_x_h[3] = 1.08;
-
-    camera->m_y_h[0] = 1.16;
-    camera->m_y_h[1] = 1.17;
-    camera->m_y_h[2] = 1.16;
-    camera->m_y_h[3] = 1.2;
-
-    ms->config.handingPose = eePose(0.879307, -0.0239328, 0.223839,
-                                    0.459157, 0.527586, 0.48922, 0.521049);
-    ms->config.eepReg3 = ms->config.handingPose;
-
-    // ir offset
-    camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-
-    ms->config.calibrationPose = eePose(0.562169, -0.348055, 0.493231,
-                                        0.00391311, 0.999992, -0.00128095, 8.18951e-05);
-    ms->config.shrugPose = eePose(0.0558937, -1.12849, 0.132171,
-                                  0.392321, 0.324823, -0.555039, 0.657652);
-
-
-  } else {
-    cout << "Invalid chirality: " << ms->config.left_or_right_arm << ".  Exiting." << endl;
-    exit(0);
-  }
-  ms->config.pilotTarget = ms->config.beeHome;
-  ms->config.lastGoodEEPose = ms->config.beeHome;
-  ms->config.currentEEPose = ms->config.beeHome;
-
-  for (int r = 0; r < ms->config.totalRangeHistoryLength; r++) {
-    ms->config.rangeHistory[r] = 0;
-  }
-
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
-
-      // ATTN 6 change initialization to determine speed of learning
-      for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-	ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
-	ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = 1;
-      }
-    }
-  }
-
-  ms->config.rangemapImage = Mat(ms->config.rmiHeight, 3*ms->config.rmiWidth, CV_8UC3);
-  ms->config.graspMemoryImage = Mat(ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
-  ms->config.graspMemorySampleImage = Mat(2*ms->config.rmiHeight, 2*ms->config.rmiWidth, CV_8UC3);
-  ms->config.heightMemorySampleImage = Mat(ms->config.hmiHeight, 2*ms->config.hmiWidth, CV_8UC3);
-
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
-    }
-  }
-  ms->config.hiRangemapImage = Mat(ms->config.hrmiHeight, 3*ms->config.hrmiWidth, CV_8UC3);
-
-  ms->config.hiColorRangemapImage = Mat(ms->config.hrmiHeight, ms->config.hrmiWidth, CV_8UC3);
-
-  ms->config.rangeogramImage = Mat(ms->config.rggHeight, ms->config.rggWidth, CV_8UC3);
-
-  ms->config.rmcX = 0;
-  ms->config.rmcY = 0;
-  ms->config.rmcZ = 0;
-
-  for (int g = 0; g < ms->config.totalGraspGears; g++) {
-    ms->config.ggX[g] = 0;
-    ms->config.ggY[g] = 0;
-    ms->config.ggT[g] = double(g)*2.0*3.1415926/double(ms->config.totalGraspGears);
-  }
-  // old orientation
-  //ms->config.ggX[0] =  0.03;
-  //ggY[0] =  0.02;
-  //ms->config.ggX[1] =  0.04;
-  //ms->config.ggY[1] =  0.00;
-  //ms->config.ggX[2] =  0.03;
-  //ms->config.ggY[2] = -0.02;
-  //ms->config.ggX[3] =  0.00;
-  //ms->config.ggY[3] = -0.03; //-0.04
-
-  // new orientation
-  // verticle calibration
-  ms->config.ggX[0] =  0.02;
-  ms->config.ggY[0] =  0.02;
-  ms->config.ggX[1] =  0.03;
-  ms->config.ggY[1] =  0.00;
-  ms->config.ggX[2] =  0.02;
-  ms->config.ggY[2] = -0.02;
-  ms->config.ggX[3] =  0.00;
-  ms->config.ggY[3] = -0.03;//-0.03; //-0.04
-
-  ms->config.ggX[4] = -0.02;
-  ms->config.ggY[4] = -0.02;
-  ms->config.ggX[5] = -0.03;
-  ms->config.ggY[5] = -0.00;
-  ms->config.ggX[6] = -0.02;
-  ms->config.ggY[6] =  0.02;
-  ms->config.ggX[7] = -0.00;
-  ms->config.ggY[7] =  0.03;//-0.03; //-0.04
-
-  // XXX set this to be arm-generic
-  // XXX add symbols to change register sets
-  //ms->config.eepReg3 = crane4right;
-
-  initializeParzen(ms);
-  //l2NormalizeParzen();
-  initialize3DParzen(ms);
-  //l2Normalize3DParzen();
-
-  {
-    //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //if (0 == ms->config.left_or_right_arm.compare("left")) {
-      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
-      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
-    //}
-
-    // invert the transformation
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-    ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-
-    //cout << "irGlobalPositionEEFrame w x y z: " << ms->config.irGlobalPositionEEFrame.w() << " " << 
-    //ms->config.irGlobalPositionEEFrame.x() << " " << ms->config.irGlobalPositionEEFrame.y() << " " << ms->config.irGlobalPositionEEFrame.z() << endl;
-  }
-
-  for (int h = 0; h < ms->config.hrmWidth; h++) {
-    for (int i = 0; i < ms->config.hrmWidth; i++) {
-      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
-      for (int j = 0; j < 3; j++) {
-	ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
-      }
-    }
-  }
-  
-  ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
-  ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
-
-  ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
-  ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
-
-  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
-    for (int py = 0; py < ms->config.vmWidth; py++) {
-      for (int px = 0; px < ms->config.vmWidth; px++) {
-	ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	for (int pc = 0; pc < 3; pc++) {
-	  ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
-	}
-      }
-    }
-  }
-}
-
-void spinlessPilotMain(MachineState * ms) {
-  pilotInit(ms);
-}
-
 int shouldIPick(MachineState * ms, int classToPick) {
 
   int toReturn = 0;
@@ -6085,86 +3810,6 @@ int shouldIPick(MachineState * ms, int classToPick) {
   return toReturn;
 }
 
-int getLocalGraspGear(MachineState * ms, int globalGraspGearIn) {
-  // ATTN 7
-  // diagnostic line
-  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
-  // correct line
-  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
-
-  Quaternionf gear1Orient = getGGRotation(ms, 0);
-  Quaternionf rel = eeqform * gear1Orient.inverse();
-  Quaternionf ex(0,1,0,0);
-  Quaternionf zee(0,0,0,1);
-  
-
-  Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
-  double aY = result.y();
-  double aX = result.x();
-
-  // ATTN 1
-  // this is here to get the signs right
-  aX = -aX;
-
-  //double angle = atan2(aY, aX)*180.0/3.1415926;
-  // no degrees here
-  // ATTN 22
-  //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(ms, aY, aX);
-  // no inversion necessary
-  //angle = -angle;
-  
-  double deltaGG = floor(angle * ms->config.totalGraspGears / (2.0 * 3.1415926));
-  int ggToReturn = (ms->config.totalGraspGears + globalGraspGearIn + int(deltaGG)) % (ms->config.totalGraspGears / 2);
-
-  //cout << "getLocalGraspGear angle deltaGG ggToReturn: " << angle << " " << deltaGG << " " << ggToReturn << endl;
-
-  assert(getGlobalGraspGear(ms, ggToReturn) == globalGraspGearIn);
-
-  return ggToReturn;
-}
-
-int getGlobalGraspGear(MachineState * ms, int localGraspGearIn) {
-  // ATTN 7
-  // diagnostic line
-  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
-  // correct line
-  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
-
-  Quaternionf gear1Orient = getGGRotation(ms, 0);
-  Quaternionf rel = eeqform * gear1Orient.inverse();
-  Quaternionf ex(0,1,0,0);
-  Quaternionf zee(0,0,0,1);
-  
-
-  Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
-  double aY = result.y();
-  double aX = result.x();
-
-  // ATTN 1
-  // this is here to get the signs right
-  aX = -aX;
-
-  //double angle = atan2(aY, aX)*180.0/3.1415926;
-  // no degrees here
-  // ATTN 22
-  //double angle = atan2(aY, aX);
-  double angle = vectorArcTan(ms, aY, aX);
-  // inversion to convert to global
-  angle = -angle;
-  
-  double deltaGG = floor(angle * ms->config.totalGraspGears / (2.0 * 3.1415926));
-  // we are doing ceiling by taking the floor and then adding one, the inverse of getLocalGraspGear.
-  int ggToReturn = (ms->config.totalGraspGears + localGraspGearIn + 1 + int(deltaGG)) % (ms->config.totalGraspGears / 2);
-
-  //assert(getLocalGraspGear(ms, ggToReturn) == localGraspGearIn);
-
-  return ggToReturn;
-}
-
-
 void changeCamera(MachineState * ms, int newCamera) {
   ms->config.focused_camera = newCamera;
   ms->config.renderInit = 0;
@@ -6188,123 +3833,8 @@ void changeTargetClass(MachineState * ms, int newTargetClass) {
   cout << "class " << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
   ms->execute_stack = 1;	
 
-  //cout << "BTTN 1" << endl;
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
-      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.focusedClass].at<double>(y,x);
-    } 
-  } 
-
-  ms->pushWord("loadMarginalHeightMemory"); 
-
-
-  ms->pushWord("drawMapRegisters"); // render register 1
-  // ATTN 10
-  //ms->pushWord(196360); // loadPriorGraspMemory
-  //ms->pushWord(1179721); // set graspMemories from classGraspMemories
-  switch (ms->config.currentPickMode) {
-  case STATIC_PRIOR:
-    {
-      ms->pushWord(196360); // loadPriorGraspMemory
-    }
-    break;
-  case LEARNING_ALGORITHMC:
-  case LEARNING_SAMPLING:
-    {
-      ms->pushWord(1179721); // set graspMemories from classGraspMemories
-    }
-    break;
-  case STATIC_MARGINALS:
-    {
-      ms->pushWord(1179721); // set graspMemories from classGraspMemories
-    }
-    break;
-  default:
-    {
-      assert(0);
-    }
-    break;
-  }
-  
-  switch (ms->config.currentBoundingBoxMode) {
-  case STATIC_PRIOR:
-    {
-      ms->pushWord(1244936); // loadPriorHeightMemory
-    }
-    break;
-  case LEARNING_ALGORITHMC:
-  case LEARNING_SAMPLING:
-    {
-      ms->pushWord(1245289); // set heightMemories from classHeightMemories
-    }
-    break;
-  case STATIC_MARGINALS:
-    {
-      //cout << "Pushing set heightMemories from classHeightMemories" << endl;
-      ms->pushWord(1245289); // set heightMemories from classHeightMemories
-    }
-    break;
-  case MAPPING:
-    {
-    }
-    break;
-  default:
-    {
-      assert(0);
-    }
-    break;
-  }
 }
 
-
-int ARE_GENERIC_PICK_LEARNING(MachineState * ms) {
-  return ( (ms->config.currentPickMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentPickMode == LEARNING_ALGORITHMC) );
-}
-
-
-int ARE_GENERIC_HEIGHT_LEARNING(MachineState * ms) {
-  return ( (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) ||
-	   (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) );
-}
-
-
-void zeroGraspMemoryAndRangeMap(MachineState * ms) {
-  guardGraspMemory(ms);
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = 0; 
-      ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 1;
-      ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = 0; 
-      ms->config.rangeMap[x + y*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = 0;
-      //ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = 0;
-    } 
-  } 
-
-}
-
-void zeroClassGraspMemory(MachineState * ms) {
-  guardGraspMemory(ms);
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x) = 1;
-      ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 0;
-      ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x) = 1;
-      ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 0;
-      ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x) = 1;
-      ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 0;
-      ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x) = 1;
-      ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 0;
-    } 
-  } 
-}
 
 void guard3dGrasps(MachineState * ms) {
   if (ms->config.class3dGrasps.size() < ms->config.numClasses) {
@@ -6320,96 +3850,6 @@ void guardSceneModels(MachineState * ms) {
   }
 }
 
-void guardGraspMemory(MachineState * ms) {
-
-  {
-    if (ms->config.classGraspMemoryTries1.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryTries1.resize(ms->config.focusedClass + 1);
-    }
-    if (ms->config.classGraspMemoryPicks1.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryPicks1.resize(ms->config.focusedClass + 1);
-    }
-
-    if (ms->config.classGraspMemoryTries2.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryTries2.resize(ms->config.focusedClass + 1);
-    }
-    if (ms->config.classGraspMemoryPicks2.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryPicks2.resize(ms->config.focusedClass + 1);
-    }
-
-    if (ms->config.classGraspMemoryTries3.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryTries3.resize(ms->config.focusedClass + 1);
-    }
-    if (ms->config.classGraspMemoryPicks3.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryPicks3.resize(ms->config.focusedClass + 1);
-    }
-
-    if (ms->config.classGraspMemoryTries4.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryTries4.resize(ms->config.focusedClass + 1);
-    }
-    if (ms->config.classGraspMemoryPicks4.size() <= ms->config.focusedClass) {
-      ms->config.classGraspMemoryPicks4.resize(ms->config.focusedClass + 1);
-    }
-
-    if (ms->config.classRangeMaps.size() <= ms->config.focusedClass) {
-      ms->config.classRangeMaps.resize(ms->config.focusedClass + 1);
-    }
-
-  }
-
-  {
-    bool loadPrior = false;
-    if (!((ms->config.classGraspMemoryTries1[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries1[ms->config.focusedClass].cols > 1) &&
-	(ms->config.classGraspMemoryPicks1[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks1[ms->config.focusedClass].cols > 1) )) {
-      ms->config.classGraspMemoryTries1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      ms->config.classGraspMemoryPicks1[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      loadPrior = true;
-    }
-    if (!((ms->config.classGraspMemoryTries2[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries2[ms->config.focusedClass].cols > 1) &&
-	(ms->config.classGraspMemoryPicks2[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks2[ms->config.focusedClass].cols > 1) )) {
-      ms->config.classGraspMemoryTries2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      ms->config.classGraspMemoryPicks2[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      loadPrior = true;
-    }
-    if (!((ms->config.classGraspMemoryTries3[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries3[ms->config.focusedClass].cols > 1) &&
-	(ms->config.classGraspMemoryPicks3[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks3[ms->config.focusedClass].cols > 1) )) {
-      ms->config.classGraspMemoryTries3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      ms->config.classGraspMemoryPicks3[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      loadPrior = true;
-    }
-    if (!((ms->config.classGraspMemoryTries4[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryTries4[ms->config.focusedClass].cols > 1) &&
-	(ms->config.classGraspMemoryPicks4[ms->config.focusedClass].rows > 1) && (ms->config.classGraspMemoryPicks4[ms->config.focusedClass].cols > 1) )) {
-      ms->config.classGraspMemoryTries4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      ms->config.classGraspMemoryPicks4[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-      loadPrior = true;
-    }
-    if (!( (ms->config.classRangeMaps[ms->config.focusedClass].rows > 1) && (ms->config.classRangeMaps[ms->config.focusedClass].cols > 1) )) {
-      ms->config.classRangeMaps[ms->config.focusedClass] = Mat(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-    }
-    if (loadPrior) {
-      loadPriorGraspMemory(ms, ANALYTIC_PRIOR);
-    }
-  }
-
-}
-
-void guardHeightMemory(MachineState * ms) {
-  if (ms->config.focusedClass == -1) {
-    CONSOLE_ERROR(ms, "Focused class not initialized! " << ms->config.focusedClass);
-  }
-  if (ms->config.classHeightMemoryTries.size() <= ms->config.focusedClass) {
-    ms->config.classHeightMemoryTries.resize(ms->config.focusedClass + 1);
-  }
-  if (ms->config.classHeightMemoryPicks.size() <= ms->config.focusedClass) {
-    ms->config.classHeightMemoryPicks.resize(ms->config.focusedClass + 1);
-  }
-  if (!((ms->config.classHeightMemoryTries[ms->config.focusedClass].rows > 1) && (ms->config.classHeightMemoryTries[ms->config.focusedClass].cols == 1) &&
-	(ms->config.classHeightMemoryPicks[ms->config.focusedClass].rows > 1) && (ms->config.classHeightMemoryPicks[ms->config.focusedClass].cols == 1) )) {
-    ms->config.classHeightMemoryTries[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
-    ms->config.classHeightMemoryPicks[ms->config.focusedClass] = Mat(ms->config.hmWidth, 1, CV_64F);
-    loadPriorHeightMemory(ms, ANALYTIC_PRIOR);
-  }
-}
 
 int calibrateGripper(MachineState * ms) {
   if (ms->config.currentRobotMode == SIMULATED) {
@@ -6443,239 +3883,6 @@ int doCalibrateGripper(MachineState * ms) {
     cout << "Error running calibrate: " << return_value << endl;
   }
   return return_value;
-}
-
-void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry, 
-                                  int * localX, int * localY) {
-  // COMPLETELY UNTESTED
-  assert(0);
-  // find global coordinate of current point
-  double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-  double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-  // transform it into local coordinates
-  double unangle = -ms->config.bestOrientationAngle;
-  double unscale = 1.0;
-  Point uncenter = Point(0, 0);
-  Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
-  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=thX;
-  toUn.at<double>(1,0)=thY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
-  double localThX = didUn.at<double>(0,0);
-  double localThY = didUn.at<double>(1,0);
-  *localX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-  *localY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-
-}
-
-void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int localY,
-                                  int * rx, int * ry) {
-  // find local coordinate of current point
-  double thX = (localX-ms->config.rmHalfWidth) * ms->config.rmDelta;
-  double thY = (localY-ms->config.rmHalfWidth) * ms->config.rmDelta;
-  // transform it into local coordinates
-  double unangle = ms->config.bestOrientationAngle;
-  double unscale = 1.0;
-  Point uncenter = Point(0, 0);
-  Mat un_rot_mat = getRotationMatrix2D(uncenter, unangle, unscale);
-  Mat toUn(3,1,CV_64F);
-  toUn.at<double>(0,0)=thX;
-  toUn.at<double>(1,0)=thY;
-  toUn.at<double>(2,0)=1.0;
-  Mat didUn = un_rot_mat*toUn;
-  double localThX = didUn.at<double>(0,0);
-  double localThY = didUn.at<double>(1,0);
-  *rx = (int) round(((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth); 
-  *ry = (int) round(((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth); 
-}
-
-
-void loadSampledGraspMemory(MachineState * ms) {
-  ROS_INFO("Loading sampled grasp memory.");
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        
-
-	// ATTN 19 this isn't quite Thompson sampling...
-	//   regularization.
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        double nsuccess = ms->config.pickEccentricity * (ms->config.graspMemoryPicks[i]);
-        double nfailure = ms->config.pickEccentricity * (ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i]);
-        ms->config.graspMemorySample[i] = rk_beta(&ms->config.random_state, 
-                                       nsuccess + 1, 
-                                       nfailure + 1);
-      }
-    }
-  }
-}
-
-
-void loadMarginalGraspMemory(MachineState * ms) {
-  ROS_INFO("Loading marginal grasp memory.");
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        double nsuccess = ms->config.graspMemoryPicks[i];
-        double nfailure = ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
-        ms->config.graspMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
-      }
-    }
-  }
-}
-
-void loadPriorGraspMemory(MachineState * ms, priorType prior) {
-  ROS_INFO("Loading prior grasp memory.");
-  double max_range_value = -VERYBIGNUMBER;
-  double min_range_value = VERYBIGNUMBER;
-
-
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    prepareGraspFilter(ms, tGG);
-    loadLocalTargetClassRangeMap(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
-    applyGraspFilter(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
-
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        ms->config.graspMemoryReg1[i] = ms->config.rangeMapReg3[rx + ry * ms->config.rmWidth];
-        if (ms->config.graspMemoryReg1[i] < min_range_value) {
-          min_range_value = ms->config.graspMemoryReg1[i];
-        }
-        if (ms->config.graspMemoryReg1[i] > max_range_value) {
-          max_range_value = ms->config.graspMemoryReg1[i];
-        }
-      }
-    }
-  }
-
-  // ATTN 18
-  // make the grasp gears symmetric so we can reliably 
-  // populate a fixed number of grasps.
-  int symmetrizeGraspGears = 0;
-  if (symmetrizeGraspGears) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-	double minAtThisXY = INFINITY;
-	for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-	  int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-	  if (ms->config.graspMemoryReg1[i] < minAtThisXY) {
-	    minAtThisXY = ms->config.graspMemoryReg1[i];
-	  }
-	}
-	for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-	  int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-	  ms->config.graspMemoryReg1[i] = minAtThisXY; 
-	}
-      }
-    }
-  }
-
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        ms->config.graspMemoryReg1[i] = (max_range_value - ms->config.graspMemoryReg1[i]) / (max_range_value - min_range_value);
-      }
-    }
-  }
-
-  // make everything peakier
-  // for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-  //   for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-  //     for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-  //       int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-  //       ms->config.graspMemoryReg1[i] = pow(ms->config.graspMemoryReg1[i], 4);
-  //     }
-  //   }
-  // }
-  
-  std::vector<double> sorted;
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        sorted.push_back(ms->config.graspMemoryReg1[i]);
-      }
-    }
-  }
-  
-  std::sort (sorted.begin(), sorted.end());
-
-  int numLocationsToTry = 10;
-  double threshold = sorted[sorted.size() - 4*numLocationsToTry];
-
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        if (ms->config.graspMemoryReg1[i] < threshold && prior == UNIFORM_PRIOR) {
-          ms->config.graspMemoryReg1[i] = 0;
-        }
-      }
-    }
-  }
-
-
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-        double mu = ms->config.graspMemoryReg1[i];
-        double nfailure;
-        //double eccentricity = 3.0;//100;
-	// ATTN 19
-        //double nsuccess = (eccentricity * mu);
-        double nsuccess = mu;
-
-        if (mu == 0) {
-          //nfailure = VERYBIGNUMBER;
-          nfailure = 1;
-        } else {
-          if (prior == UNIFORM_PRIOR) {
-            nfailure = 0;
-          } else if (prior == ANALYTIC_PRIOR) {
-	    // ATTN 19
-            //nfailure = round(eccentricity * (1 - mu));
-            //nfailure = eccentricity * (1 - mu);
-            nfailure = (1 - mu);
-          } else {
-            cout << "Invalid prior: " << prior << endl;
-            assert(0);
-          }
-        }
-
-	if (prior == UNIFORM_PRIOR) {
-	  nsuccess = 0;
-	}
-	ms->config.graspMemoryPicks[i] = nsuccess;
-	ms->config.graspMemoryTries[i] = nsuccess + nfailure;
-      }
-    }
-  }
-}
-
-void loadMarginalHeightMemory(MachineState * ms) {
-  //ROS_INFO("Loading marginal height memory.");
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    double nsuccess = ms->config.heightMemoryPicks[i];
-    double nfailure = ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i];
-    ms->config.heightMemorySample[i] = (nsuccess + 1) / (nsuccess + nfailure + 2);
-  }
-}
- 
-void loadSampledHeightMemory(MachineState * ms) {
-  ROS_INFO("Loading sampled height memory.");
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    double nsuccess = ms->config.heightEccentricity * (ms->config.heightMemoryPicks[i]);
-    double nfailure = ms->config.heightEccentricity * (ms->config.heightMemoryTries[i] - ms->config.heightMemoryPicks[i]);
-    ms->config.heightMemorySample[i] = rk_beta(&ms->config.random_state, 
-                                    nsuccess + 1, 
-                                    nfailure + 1);
-  }
-  drawHeightMemorySample(ms);
 }
 
 double convertHeightIdxToGlobalZ(MachineState * ms, int heightIdx) {
@@ -6713,856 +3920,6 @@ void testHeightConversion(MachineState * ms) {
   }
 }
 
-void loadPriorHeightMemory(MachineState * ms, priorType prior) {
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    ms->config.heightMemoryPicks[i] = 1;
-    ms->config.heightMemoryTries[i] = 1;
-  }
-  if (prior == ANALYTIC_PRIOR) {
-    ms->config.heightMemoryPicks[1] = 1;
-    ms->config.heightMemoryTries[1] = 1;
-  }
-}
-
-void drawHeightMemorySample(MachineState * ms) {
-  
-  {
-    double max_value = -VERYBIGNUMBER;
-    int max_i=0, max_ry=0, max_rx=0;
-    for (int i = 0; i < ms->config.hmWidth; i++) {
-      if (ms->config.heightMemorySample[i] > max_value) {
-	max_value = ms->config.heightMemorySample[i];
-	max_i = i;
-	max_rx = ms->config.hmWidth - 1 - max_i;
-	max_ry = 0;
-      }
-      {
-	int ry = 0;
-	int rx = ms->config.hmWidth - 1 - i;
-	double blueIntensity = 255 * ms->config.heightMemorySample[i];
-	double greenIntensity = 255 * ms->config.heightMemorySample[i];
-	double redIntensity = 255 * ms->config.heightMemorySample[i];
-	//cout << "Height Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << ms->config.heightMemorySample[i] << endl;
-	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-	
-	cv::Point outTop = cv::Point((ry)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
-	cv::Point outBot = cv::Point(((ry)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
-	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	vCrop = color;
-      }
-    }
-    {
-      // draw the max
-      char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry) * ms->config.hmiCellWidth - 5, 
-					(max_rx + 1) * ms->config.hmiCellWidth);
-      sprintf(buff, "x");
-      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
-	      Scalar(0,0,255), 2);
-    }
-  }
-  {
-    double max_value = -VERYBIGNUMBER;
-    int max_i=0, max_ry=0, max_rx=0;
-    for (int i = 0; i < ms->config.hmWidth; i++) {
-      double thisMarginal = (ms->config.heightMemoryPicks[i]+1)/(ms->config.heightMemoryTries[i]+2);
-      if (thisMarginal > max_value) {
-	max_value = thisMarginal;
-	max_i = i;
-	max_rx = ms->config.hmWidth - 1 - max_i;
-	max_ry = 0;
-      }
-      {
-	int ry = 0;
-	int rx = ms->config.hmWidth - 1 - i;
-	double blueIntensity = 255 * thisMarginal;
-	double greenIntensity = 255 * thisMarginal;
-	double redIntensity = 255 * thisMarginal;
-	//cout << "Height Memory Marginal: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << thisMarginal << endl;
-	cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-	
-	cv::Point outTop = cv::Point((ry+1)*ms->config.hmiCellWidth,(rx)*ms->config.hmiCellWidth);
-	cv::Point outBot = cv::Point(((ry+1)+1)*ms->config.hmiCellWidth,((rx)+1)*ms->config.hmiCellWidth);
-	Mat vCrop = ms->config.heightMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-	vCrop = color;
-      }
-    }
-    {
-      // draw the max
-      char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry+1) * ms->config.hmiCellWidth, 
-					(max_rx + 1) * ms->config.hmiCellWidth);
-      sprintf(buff, "x");
-      putText(ms->config.heightMemorySampleImage, buff, text_anchor, MY_FONT, 7, 
-	      Scalar(0,0,255), 2);
-    }
-  }
-}
-
-void copyHeightMemoryTriesToClassHeightMemoryTries(MachineState * ms) {
-  guardHeightMemory(ms);
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    ms->config.classHeightMemoryTries[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryTries[i];
-    ms->config.classHeightMemoryPicks[ms->config.focusedClass].at<double>(i,0) = ms->config.heightMemoryPicks[i];
-  }
-}
-
-void estimateGlobalGraspGear(MachineState * ms) {
-  ROS_INFO("Estimating global grasp gear.");
-  double max_range_value = -VERYBIGNUMBER;
-  double min_range_value = VERYBIGNUMBER;
-  int eMinGG = 0;
-
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    prepareGraspFilter(ms, tGG);
-    loadGlobalTargetClassRangeMap(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
-    applyGraspFilter(ms, ms->config.rangeMapReg3, ms->config.rangeMapReg4);
-
-    int rx = ms->config.maxX;
-    int ry = ms->config.maxY;
-
-    int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-    ms->config.graspMemoryReg1[i] = ms->config.rangeMapReg3[rx + ry * ms->config.rmWidth];
-    if (ms->config.graspMemoryReg1[i] < min_range_value) {
-      min_range_value = ms->config.graspMemoryReg1[i];
-      eMinGG = tGG;
-    }
-    if (ms->config.graspMemoryReg1[i] > max_range_value) {
-      max_range_value = ms->config.graspMemoryReg1[i];
-    }
-  }
-
-  ms->config.maxGG = eMinGG;
-  ms->config.localMaxGG = getLocalGraspGear(ms, eMinGG);
-}
-
-void drawMapRegisters(MachineState * ms) {
-  {
-    double minDepth = VERYBIGNUMBER;
-    double maxDepth = 0;
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        minDepth = min(minDepth, ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]);
-        maxDepth = max(maxDepth, ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]);
-      }
-    }
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        double denom = max(EPSILON,maxDepth-minDepth);
-        if (denom <= EPSILON)
-          denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]) / denom;
-        //cout << denom << " " << maxDepth << " " << ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] << " " << (maxDepth - ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth]) << " " << endl;
-        cv::Scalar backColor(0,0,ceil(intensity));
-        cv::Point outTop = cv::Point((ry+ms->config.rmWidth)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-        cv::Point outBot = cv::Point(((ry+ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-        Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-        vCrop = backColor;
-      }
-    }
-  }
-  {
-    double minDepth = VERYBIGNUMBER;
-    double maxDepth = 0;
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        minDepth = min(minDepth, ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth]);
-        maxDepth = max(maxDepth, ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth]);
-      }
-    }
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-        double denom = max(EPSILON,maxDepth-minDepth);
-        if (denom <= EPSILON)
-          denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - ms->config.rangeMapReg2[rx + ry*ms->config.rmWidth]) / denom;
-        cv::Scalar backColor(0,0,ceil(intensity));
-        cv::Point outTop = cv::Point((ry+2*ms->config.rmWidth)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-        cv::Point outBot = cv::Point(((ry+2*ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-        Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-        vCrop = backColor;
-      }
-    }
-  }
-  {
-    double minDepth = VERYBIGNUMBER;
-    double maxDepth = 0;
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        minDepth = min(minDepth, ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]);
-        maxDepth = max(maxDepth, ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]);
-      }
-    }
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        double denom = max(EPSILON,maxDepth-minDepth);
-        if (denom <= EPSILON)
-          denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth]) / denom;
-        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry) = cv::Vec3b(0,0,ceil(intensity));
-      }
-    }
-  }
-  {
-    double minDepth = VERYBIGNUMBER;
-    double maxDepth = 0;
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        minDepth = min(minDepth, ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]);
-        maxDepth = max(maxDepth, ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]);
-      }
-    }
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        double denom = max(EPSILON,maxDepth-minDepth);
-        if (denom <= EPSILON)
-          denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth]) / denom;
-        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+ms->config.hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
-      }
-    }
-  }
-  {
-    double minDepth = VERYBIGNUMBER;
-    double maxDepth = 0;
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        minDepth = min(minDepth, ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]);
-        maxDepth = max(maxDepth, ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]);
-      }
-    }
-    for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-      for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-        double denom = max(EPSILON,maxDepth-minDepth);
-        if (denom <= EPSILON)
-          denom = VERYBIGNUMBER;
-        double intensity = 255 * (maxDepth - ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth]) / denom;
-        ms->config.hiRangemapImage.at<cv::Vec3b>(rx,ry+2*ms->config.hrmWidth) = cv::Vec3b(0,0,ceil(intensity));
-      }
-    }
-  }
-
-  // draw grasp memory window
-  {
-    {
-      double minDepth = VERYBIGNUMBER;
-      double maxDepth = 0;
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-          minDepth = min(minDepth, ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear]);
-          maxDepth = max(maxDepth, ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear]);
-        }
-      }
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-          double denom = max(1.0,maxDepth);
-          if (denom <= EPSILON)
-            denom = VERYBIGNUMBER;
-          double blueIntensity = 128 * (ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear]) / denom;
-          double redIntensity = 128 * (ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear] - ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*ms->config.currentGraspGear]) / denom;
-          cv::Scalar backColor(ceil(blueIntensity),0,ceil(redIntensity));
-          cv::Point outTop = cv::Point((ry)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-          cv::Point outBot = cv::Point(((ry)+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-          Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-          vCrop = backColor;
-        }
-      }
-    }
-    if ((ms->config.targetClass > -1) && (ms->config.classRangeMaps[ms->config.targetClass].rows > 1) && (ms->config.classRangeMaps[ms->config.targetClass].cols > 1)) {
-      double minDepth = VERYBIGNUMBER;
-      double maxDepth = 0;
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-
-          minDepth = min(minDepth, ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
-          maxDepth = max(maxDepth, ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx));
-        }
-      }
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-          double denom = max(EPSILON,maxDepth-minDepth);
-          if (denom <= EPSILON)
-            denom = VERYBIGNUMBER;
-          double greenIntensity = 255 * (maxDepth - ms->config.classRangeMaps[ms->config.targetClass].at<double>(ry,rx)) / denom;
-          {
-            cv::Scalar backColor(0,ceil(greenIntensity),0);
-            cv::Point outTop = cv::Point((ry+ms->config.rmWidth)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-            cv::Point outBot = cv::Point(((ry+ms->config.rmWidth)+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-            Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-            vCrop = backColor;
-          }
-          {
-            cv::Scalar backColor(0,ceil(greenIntensity/2),0);
-            cv::Point outTop = cv::Point((ry)*ms->config.rmiCellWidth,rx*ms->config.rmiCellWidth);
-            cv::Point outBot = cv::Point(((ry)+1)*ms->config.rmiCellWidth,(rx+1)*ms->config.rmiCellWidth);
-            Mat vCrop = ms->config.graspMemoryImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-            vCrop = vCrop + backColor;
-          }
-        }
-      }
-    }
-  }
-  // draw grasp memory sample window
-  {
-    double max_value = -VERYBIGNUMBER;
-    int max_rx=0, max_ry=0, max_tGG=0;
-    int dy[4] = {0,1,0,1};
-    int dx[4] = {0,0,1,1};
-    
-    for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-          int i = rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG;
-          if (ms->config.graspMemorySample[i] > max_value) {
-            max_value = ms->config.graspMemorySample[i];
-            max_rx = rx;
-            max_ry = ry;
-            max_tGG = tGG;
-          }
-
-          
-          {
-            double blueIntensity = 255 * ms->config.graspMemorySample[i];
-            double greenIntensity = 255 * ms->config.graspMemorySample[i];
-            double redIntensity = 255 * ms->config.graspMemorySample[i];
-            //cout << "Grasp Memory Sample: " << "rx: " << rx << " ry: " << ry << " tGG:" << tGG << "sample: " << ms->config.graspMemorySample[i] << endl;
-
-            cv::Scalar color(ceil(blueIntensity),ceil(greenIntensity),ceil(redIntensity));
-
-            cv::Point outTop = cv::Point((ry + dy[tGG]*ms->config.rmWidth)*ms->config.rmiCellWidth,(rx + dx[tGG]*ms->config.rmWidth)*ms->config.rmiCellWidth);
-            cv::Point outBot = cv::Point(((ry + dy[tGG]*ms->config.rmWidth)+1)*ms->config.rmiCellWidth,((rx + dx[tGG]*ms->config.rmWidth)+1)*ms->config.rmiCellWidth);
-            Mat vCrop = ms->config.graspMemorySampleImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-            vCrop = color;
-          }
-        }
-      }
-    }
-
-    
-    for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-      {
-        char buff[256];
-        cv::Point text_anchor = cv::Point((dy[tGG]*ms->config.rmWidth)*ms->config.rmiCellWidth, 
-                                          (dx[tGG]*ms->config.rmWidth + 1)*ms->config.rmiCellWidth);
-        sprintf(buff, "%d", tGG+1);
-        putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, Scalar(192,192,192), 2);
-      }
-    }
-
-    {
-      // draw the max
-      char buff[256];
-      cv::Point text_anchor = cv::Point((max_ry + dy[max_tGG]*ms->config.rmWidth) * ms->config.rmiCellWidth, 
-                                        (max_rx + dx[max_tGG]*ms->config.rmWidth + 1) * ms->config.rmiCellWidth);
-      sprintf(buff, "x");
-      putText(ms->config.graspMemorySampleImage, buff, text_anchor, MY_FONT, 1, 
-              Scalar(0,0,255), 2);
-    }
-  }
-}
-
-
-void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB) {
-  //cout << "Applying filter to rangeMapRegA and storing result in rangeMapRegA." << endl;
-
-  // ATTN 2
-  int dx[9] = { -1,  0,  1, 
-                -1,  0,  1, 
-                -1,  0,  1};
-  int dy[9] = { -1, -1, -1, 
-                0,  0,  0, 
-                1,  1,  1};
-  //	int dx[9] = { -2,  0,  2, 
-  //		      -2,  0,  2, 
-  //		      -2,  0,  2};
-  //	int dy[9] = { -2, -2, -2, 
-  //		       0,  0,  0, 
-  //		       2,  2,  2};
-  // ATTN 2
-  int transformPadding = 2;
-  //int transformPadding = 4;
-
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      rangeMapRegB[rx + ry*ms->config.rmWidth] = 0.0;
-    }
-  }
-  for (int rx = transformPadding; rx < ms->config.rmWidth-transformPadding; rx++) {
-    for (int ry = transformPadding; ry < ms->config.rmWidth-transformPadding; ry++) {
-      for (int fx = 0; fx < 9; fx++)
-        rangeMapRegB[rx + ry*ms->config.rmWidth] += ms->config.filter[fx] * rangeMapRegA[(rx+dx[fx]) + (ry+dy[fx])*ms->config.rmWidth];
-    }
-  }
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      rangeMapRegA[rx + ry*ms->config.rmWidth] = rangeMapRegB[rx + ry*ms->config.rmWidth];
-    }
-  }
-
-  // XXX TODO Consider: 
-  // Push boundary to deepest point...
-  double minDepth = VERYBIGNUMBER;
-  double maxDepth = 0;
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      minDepth = min(minDepth, rangeMapRegA[rx + ry*ms->config.rmWidth]);
-      maxDepth = max(maxDepth, rangeMapRegA[rx + ry*ms->config.rmWidth]);
-    }
-  }
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < transformPadding; ry++) {
-      rangeMapRegA[rx + ry*ms->config.rmWidth] = maxDepth;
-      rangeMapRegB[rx + ry*ms->config.rmWidth] = maxDepth;
-    }
-    for (int ry = ms->config.rmWidth-transformPadding; ry < ms->config.rmWidth; ry++) {
-      rangeMapRegA[rx + ry*ms->config.rmWidth] = maxDepth;
-      rangeMapRegB[rx + ry*ms->config.rmWidth] = maxDepth;
-    }
-  }
-  for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-    for (int rx = 0; rx < transformPadding; rx++) {
-      rangeMapRegA[rx + ry*ms->config.rmWidth] = maxDepth;
-      rangeMapRegB[rx + ry*ms->config.rmWidth] = maxDepth;
-    }
-    for (int rx = ms->config.rmWidth-transformPadding; rx < ms->config.rmWidth; rx++) {
-      rangeMapRegA[rx + ry*ms->config.rmWidth] = maxDepth;
-      rangeMapRegB[rx + ry*ms->config.rmWidth] = maxDepth;
-    }
-  }
-}
-void copyRangeMapRegister(MachineState * ms, double * src, double * target) {
-  for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-    for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-      target[rx + ry*ms->config.rmWidth] = src[rx + ry * ms->config.rmWidth];
-    }
-  }
-}
-
-void copyGraspMemoryRegister(MachineState * ms, double * src, double * target) {
-  for (int tGG = 0; tGG < ms->config.totalGraspGears/2; tGG++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-        target[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG] = src[rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tGG];
-      }
-    }
-  }
-}
-
-void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB) {
-  //Quaternionf eeqform(ms->config.currentEEPose.qw, ms->config.currentEEPose.qx, ms->config.currentEEPose.qy, ms->config.currentEEPose.qz);
-  Quaternionf eeqform(ms->config.bestOrientationEEPose.qw, ms->config.bestOrientationEEPose.qx, ms->config.bestOrientationEEPose.qy, ms->config.bestOrientationEEPose.qz);
-  Quaternionf crane2Orient(0, 1, 0, 0);
-  Quaternionf rel = eeqform * crane2Orient.inverse();
-  Quaternionf ex(0,1,0,0);
-  Quaternionf zee(0,0,0,1);
-	
-    
-  Quaternionf result = rel * ex * rel.conjugate();
-  Quaternionf thumb = rel * zee * rel.conjugate();
-  double aY = result.y();
-  double aX = result.x();
-
-  // ATTN 1
-  // this is here to get the signs right
-  aX = -aX;
-
-  // ATTN 22
-  //double angle = atan2(aY, aX)*180.0/3.1415926;
-  double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
-  double scale = 1.0;
-  Point center = Point(ms->config.rmWidth/2, ms->config.rmWidth/2);
-  Size toBecome(ms->config.rmWidth, ms->config.rmWidth);
-
-  cout << "load target class range map angle result eeqform thumb: " << angle << " | " << result.x() << " "  << result.y() << " "  << result.z() << " "  << result.w() << " | " << eeqform.x() << " "  << eeqform.y() << " "  << eeqform.z() << " "  << eeqform.w() << " | " << thumb.x() << " "  << thumb.y() << " "  << thumb.z() << " "  << thumb.w() << endl;
-
-  // Get the rotation matrix with the specifications above
-  Mat rotatedClassRangeMap;
-  Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-  warpAffine(ms->config.classRangeMaps[ms->config.targetClass], rotatedClassRangeMap, rot_mat, toBecome, INTER_LINEAR, BORDER_REPLICATE);
-
-  ms->config.bestOrientationAngle = angle;
-
-  if ((ms->config.targetClass < ms->config.numClasses) && (ms->config.targetClass >= 0)) {
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        // unrotated
-        //rangeMap[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
-        //ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
-        // rotated
-        rangeMapRegA[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
-        rangeMapRegB[x + y*ms->config.rmWidth] = rotatedClassRangeMap.at<double>(y,x);
-      } 
-    } 
-  } 
-}
-
-
-void loadLocalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB) {
-  if ((ms->config.targetClass < ms->config.numClasses) && (ms->config.targetClass >= 0)) {
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        rangeMapRegA[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
-        rangeMapRegB[x + y*ms->config.rmWidth] = ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } 
-}
-
-
-void prepareGraspFilter(MachineState * ms, int i) {
-  if (i == 0) {
-    prepareGraspFilter1(ms);
-  } else if (i == 1) {
-    prepareGraspFilter2(ms);
-  } else if (i == 2) {
-    prepareGraspFilter3(ms);
-  } else if (i == 3) {
-    prepareGraspFilter4(ms);
-  }
-}
-void prepareGraspFilter1(MachineState * ms) {
-  double tfilter[9]    = {   0, -1,  0, 
-                             0,  2,  0, 
-                             0, -1,  0};
-  for (int fx = 0; fx < 9; fx++)
-    ms->config.filter[fx] = tfilter[fx];
-  l2NormalizeFilter(ms);
-  for (int fx = 0; fx < 9; fx++) {
-    cout << ms->config.filter[fx] << endl;
-  }
-
-}
-
-void prepareGraspFilter2(MachineState * ms) {
-  double tfilter[9]    = {  -1,  0,  0, 
-                            0,  2,  0, 
-                            0,  0, -1};
-  //double tfilter[9]    = {  -1,  0,  0, 
-  //0,  2-diagonalKappa,  0, 
-  //0,  0, -1};
-  for (int fx = 0; fx < 9; fx++)
-    ms->config.filter[fx] = tfilter[fx];
-  l2NormalizeFilter(ms);
-  for (int fx = 0; fx < 9; fx++) {
-    cout << ms->config.filter[fx] << " ";
-    ms->config.filter[fx] *= ms->config.diagonalKappa;
-    cout << ms->config.filter[fx] << endl;
-  }
-}
-void prepareGraspFilter3(MachineState * ms) {
-  double tfilter[9]    = {   0,  0,  0, 
-                             -1,  2, -1, 
-                             0,  0,  0};
-  for (int fx = 0; fx < 9; fx++)
-    ms->config.filter[fx] = tfilter[fx];
-  l2NormalizeFilter(ms);
-  for (int fx = 0; fx < 9; fx++) {
-    cout << ms->config.filter[fx] << endl;
-  }
-}
-void prepareGraspFilter4(MachineState * ms) {
-  double tfilter[9]    = {   0,  0, -1, 
-                             0,  2,  0, 
-                             -1,  0,  0};
-  //double tfilter[9]    = {   0,  0, -1, 
-  //0,  2-diagonalKappa,  0, 
-  //-1,  0,  0};
-  for (int fx = 0; fx < 9; fx++)
-    ms->config.filter[fx] = tfilter[fx];
-  l2NormalizeFilter(ms);
-  for (int fx = 0; fx < 9; fx++) {
-    cout << ms->config.filter[fx] << " ";
-    ms->config.filter[fx] *= ms->config.diagonalKappa;
-    cout << ms->config.filter[fx] << endl;
-  }
-
-}
-
-void copyClassGraspMemoryTriesToGraspMemoryTries(MachineState * ms) {
-  if ((ms->config.classGraspMemoryTries1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries1[ms->config.targetClass].cols > 1) &&
-      (ms->config.classGraspMemoryPicks1[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks1[ms->config.targetClass].cols > 1) ) {
-    cout << "graspMemoryTries[] = classGraspMemoryTries1" << endl;
-    //cout << "ms->config.classGraspMemoryTries1 " << ms->config.classGraspMemoryTries1[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks1 " << ms->config.classGraspMemoryPicks1[ms->config.targetClass] << endl; 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryTries1[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } else {
-    cout << "Whoops, tried to set grasp memories 1 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-  }
-  if ((ms->config.classGraspMemoryTries2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries2[ms->config.targetClass].cols > 1) &&
-      (ms->config.classGraspMemoryPicks2[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks2[ms->config.targetClass].cols > 1) ) {
-    cout << "graspMemoryTries[] = classGraspMemoryTries2" << endl;
-    //cout << "classGraspMemoryTries2 " << ms->config.classGraspMemoryTries2[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks2 " << ms->config.classGraspMemoryPicks2[ms->config.targetClass] << endl; 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryTries2[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*1] = ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } else {
-    cout << "Whoops, tried to set grasp memories 2 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-  }
-  if ((ms->config.classGraspMemoryTries3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries3[ms->config.targetClass].cols > 1) &&
-      (ms->config.classGraspMemoryPicks3[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks3[ms->config.targetClass].cols > 1) ) {
-    cout << "graspMemoryTries[] = classGraspMemoryTries3" << endl;
-    //cout << "classGraspMemoryTries3 " << ms->config.classGraspMemoryTries3[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks3 " << ms->config.classGraspMemoryPicks3[ms->config.targetClass] << endl; 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryTries3[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*2] = ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } else {
-    cout << "Whoops, tried to set grasp memories 3 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-  }
-  if ((ms->config.classGraspMemoryTries4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryTries4[ms->config.targetClass].cols > 1) &&
-      (ms->config.classGraspMemoryPicks4[ms->config.targetClass].rows > 1) && (ms->config.classGraspMemoryPicks4[ms->config.targetClass].cols > 1) ) {
-    cout << "graspMemoryTries[] = classGraspMemoryTries4" << endl;
-    //cout << "classGraspMemoryTries4 " << ms->config.classGraspMemoryTries4[ms->config.targetClass] << endl; 
-    //cout << "classGraspMemoryPicks4 " << ms->config.classGraspMemoryPicks4[ms->config.targetClass] << endl; 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryTries4[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-        ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*3] = ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x);
-      } 
-    } 
-  } else {
-    cout << "Whoops, tried to set grasp memories 4 but they don't exist for this class." << ms->config.targetClass << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-  }
-        
-  cout << "class " << ms->config.classLabels[ms->config.targetClass] << " number ";
-
-}
-
-void copyGraspMemoryTriesToClassGraspMemoryTries(MachineState * ms) {
-  guardGraspMemory(ms);
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryTries1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  }
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryPicks1[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 0*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
-
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryTries2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryPicks2[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 1*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
-
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryTries3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  }
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryPicks3[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 2*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  }
-
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryTries4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryTries[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  } 
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.classGraspMemoryPicks4[ms->config.focusedClass].at<double>(y,x) = ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + 3*ms->config.rmWidth*ms->config.rmWidth];
-    } 
-  }
-}
-
-void selectMaxTarget(MachineState * ms, double minDepth) {
-  selectMaxTargetThompsonContinuous2(ms, minDepth);
-}
-
-void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth) {
-  // ATTN 2
-  int maxSearchPadding = ms->config.rangeMapTargetSearchPadding;
-  //int maxSearchPadding = 4;
-
-  for (int rx = maxSearchPadding; rx < ms->config.rmWidth-maxSearchPadding; rx++) {
-    for (int ry = maxSearchPadding; ry < ms->config.rmWidth-maxSearchPadding; ry++) {
-
-      // ATTN 5
-      double graspMemoryWeight = 0.0;
-      double graspMemoryBias = VERYBIGNUMBER;
-      int localIntThX = -1; 
-      int localIntThY = -1; 
-      double localThX = 0.0;
-      double localThY = 0.0;
-      {
-        // find local coordinate of current point
-        double thX = (rx-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        double thY = (ry-ms->config.rmHalfWidth) * ms->config.rmDelta;
-        // transform it into global coordinates
-        double angle = ms->config.bestOrientationAngle;
-        double unscale = 1.0;
-        Point uncenter = Point(0, 0);
-        Mat un_rot_mat = getRotationMatrix2D(uncenter, angle, unscale);
-        Mat toUn(3,1,CV_64F);
-        toUn.at<double>(0,0)=thX;
-        toUn.at<double>(1,0)=thY;
-        toUn.at<double>(2,0)=1.0;
-        Mat didUn = un_rot_mat*toUn;
-        localThX = didUn.at<double>(0,0);
-        localThY = didUn.at<double>(1,0);
-        localIntThX = ((localThX)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        localIntThY = ((localThY)/ms->config.rmDelta) + ms->config.rmHalfWidth; 
-        // retrieve its value
-        double mDenom = max(ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)], 1.0);
-        if ((rx < ms->config.rmWidth) && (ry < ms->config.rmWidth)) {
-
-          // Thompson
-          graspMemoryWeight = (ms->config.graspMemorySample[rx + ry*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)]) * -1;  
-
-          graspMemoryBias = 0;
-        } else {
-          graspMemoryWeight = 0;
-        }
-      }
-
-
-      //cout << "graspMemory Incorporation rx ry lthx lthy gmw: " << rx << " " << ry << " LL: " << localIntThX << " " << localIntThY << " " << graspMemoryWeight << endl;
-      //cout << "  gmTargetX gmTargetY eval: " << ms->config.gmTargetX << " " << ms->config.gmTargetY << " " << ms->config.graspMemoryPicks[ms->config.gmTargetX + ms->config.gmTargetY*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear)] << endl;
-	  
-	  // this breaks ties
-	  if (ms->config.breakGraspTiesWithNoise) {
-		double p_noiseAmp = 0.00001;  
-		double tnoise = drand48() * p_noiseAmp;
-        graspMemoryWeight = graspMemoryWeight - tnoise;
-	  } else {
-	  }
-	    
-      // ATTN 19
-      int i = rx + ry * ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*(ms->config.currentGraspGear);
-      int maxedOutTries = isThisGraspMaxedOut(ms, i);
-
-      //if (graspMemoryBias + graspMemoryWeight < minDepth) 
-      if ((graspMemoryBias + graspMemoryWeight < minDepth) && !maxedOutTries) {
-          minDepth = graspMemoryWeight;
-          ms->config.maxX = localIntThX;
-          ms->config.maxY = localIntThY;
-          ms->config.localMaxX = rx;
-          ms->config.localMaxY = ry;
-          ms->config.localMaxGG = (ms->config.currentGraspGear);
-          ms->config.maxD = graspMemoryWeight;
-          ms->config.maxGG = (ms->config.currentGraspGear);
-	      ms->config.useContinuousGraspTransform = 1;
-	      cout << "ZZZ ZZZ ZZZ" << endl;
-        }
-    }
-  }
-  cout << "non-cumulative maxX: " << ms->config.maxX << " ms->config.maxY: " << ms->config.maxY <<  " maxD: " << 
-    ms->config.maxD << " maxGG: " << ms->config.maxGG << " localMaxGG: " << ms->config.localMaxGG << endl;
-}
-
-void recordBoundingBoxSuccess(MachineState * ms) {
-  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]++;
-  ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx]++;
-  ms->config.heightSuccessCounter++;
-  ms->config.heightAttemptCounter++;
-  cout << "Successful bounding box on floor " << ms->config.currentThompsonHeightIdx << endl;
-  cout << "Tries: " << ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx] << endl;
-  int ttotalTries = 0;
-  int ttotalPicks = 0;
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    ttotalTries += ms->config.heightMemoryTries[i];
-    ttotalPicks += ms->config.heightMemoryPicks[i];
-  }
-  cout << "Total Tries: " << ttotalTries << endl;
-  cout << "Total Picks: " << ttotalPicks << endl;
-
-  double thisPickRate = double(ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx]) / double(ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]);
-  int thisNumTries = ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx];
-  cout << "Thompson Early Out: thisPickrate = " << thisPickRate << ", thisNumTries = " << thisNumTries << endl;
-  if (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING) {
-    if ( (thisNumTries >= ms->config.thompsonMinTryCutoff) && 
-	 (thisPickRate >= ms->config.thompsonMinPassRate) ) {
-      ms->config.thompsonHeightHaltFlag = 1;
-    }
-  }
-
-  // ATTN 20
-  {
-    double successes = ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
-    double failures =  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] - ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx];
-    // returns probability that mu <= d given successes and failures.
-    double presult = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
-    // we want probability that mu > d
-    double result = 1.0 - presult;
-
-    double presult2a = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget + ms->config.algorithmCEPS);
-    double presult2b = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget - ms->config.algorithmCEPS);
-    // we want probability that 
-    //  ms->config.algorithmCTarget - ms->config.algorithmCEPS < mu < ms->config.algorithmCTarget + ms->config.algorithmCEPS
-    double result2 = presult2a - presult2b;
-
-    cout << "prob that mu > d: " << result << " algorithmCAT: " << ms->config.algorithmCAT << endl;
-    if (ms->config.currentBoundingBoxMode == LEARNING_ALGORITHMC) {
-      ms->config.thompsonHeightHaltFlag = (result > ms->config.algorithmCAT);
-      if (result2 > ms->config.algorithmCAT) {
-	ms->config.thompsonHeightHaltFlag = 1;
-      }
-    }
-  }
-}
-
-void recordBoundingBoxFailure(MachineState * ms) {
-  ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx]++;
-  ms->config.heightAttemptCounter++;
-  cout << "Failed to learn bounding box on floor " << ms->config.currentThompsonHeightIdx << endl;
-  cout << "Tries: " << ms->config.heightMemoryTries[ms->config.currentThompsonHeightIdx] << endl;
-  cout << "Picks: " << ms->config.heightMemoryPicks[ms->config.currentThompsonHeightIdx] << endl;
-  int ttotalTries = 0;
-  int ttotalPicks = 0;
-  for (int i = 0; i < ms->config.hmWidth; i++) {
-    ttotalTries += ms->config.heightMemoryTries[i];
-    ttotalPicks += ms->config.heightMemoryPicks[i];
-  }
-  cout << "Total Tries: " << ttotalTries << endl;
-  cout << "Total Picks: " << ttotalPicks << endl;
-}
-
-void restartBBLearning(MachineState * ms) {
-  recordBoundingBoxFailure(ms);
-  ms->clearStack();
-  ms->pushWord("continueHeightLearning"); // continue bounding box learning
-}
-
 
 void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
   bool useLaser = 0;
@@ -7577,7 +3934,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     {
       Eigen::Quaternionf qin(0, 1, 0, 0);
       Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
       qout = eeqform * qin * eeqform.conjugate();
       localUnitX.x() = qout.x();
       localUnitX.y() = qout.y();
@@ -7588,7 +3945,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     {
       Eigen::Quaternionf qin(0, 0, 1, 0);
       Eigen::Quaternionf qout(0, 1, 0, 0);
-      Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+      Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
       qout = eeqform * qin * eeqform.conjugate();
       localUnitY.x() = qout.x();
       localUnitY.y() = qout.y();
@@ -7602,7 +3959,7 @@ void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms) {
     ms->config.currentEEPose.px += xToAdd;
     ms->config.currentEEPose.py += yToAdd;
   } else {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     Camera * camera  = ms->config.cameras[ms->config.focused_camera];
     pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, zToUse, &(ms->config.currentEEPose.px), &(ms->config.currentEEPose.py));
   }
@@ -7782,1818 +4139,6 @@ double computeSimilarity(MachineState * ms, int class1, int class2) {
   return computeSimilarity(ms, ms->config.classHeight1AerialGradients[class1], ms->config.classHeight1AerialGradients[class2]);
 }
 
-void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->reticle = camera->vanishingPointReticle;
-
-  cout << "entered pixel servo..." << endl;
-  cout << "  servoDeltaX, servoDeltaY, servoDeltaTheta: " << servoDeltaX << " " << servoDeltaY << " " << servoDeltaTheta << endl;
-  {
-    int i, j;
-    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
-    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
-    if (!doWeHaveClearance) {
-      cout << ">>>> pixelServo strayed out of clearance area during mapping. <<<<" << endl;
-    }
-  }
-
-  //double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-  //ms->config.lastPtheta = Ptheta;
-
-  // set the target reticle
-  ms->config.pilotTarget.px = servoDeltaX;
-  ms->config.pilotTarget.py = servoDeltaY;
-  ms->config.currentEEDeltaRPY.pz -= servoDeltaTheta;
-  
-  // position update
-  {
-    double newx = 0;
-    double newy = 0;
-
-    // ATTN 23
-    // second analytic
-    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
-    newx = newGlobalTarget.px;
-    newy = newGlobalTarget.py;
-
-    ms->config.currentEEPose.px = newx;
-    ms->config.currentEEPose.py = newy;
-  }
-
-  // orientation update
-  // this must happen in order for getCCRotation to work, maybe it should be refactored
-  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
-  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-}
-
-void gradientServo(MachineState * ms) {
-  Size sz = ms->config.objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  // ATTN 23
-  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->reticle = camera->vanishingPointReticle;
-
-  // ATTN 12
-  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
-  //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-  //          restartBBLearning(ms);
-  //        }
-
-  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
-  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
-    cout << "bad target class, not servoing." << endl;
-    return;
-  }
-
-  {
-    int i, j;
-    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
-    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
-    if (!doWeHaveClearance) {
-      //ms->pushWord("clearStackIntoMappingPatrol"); 
-      cout << ">>>> Gradient servo strayed out of clearance area during mapping. <<<<" << endl;
-      ms->pushWord("endStackCollapseNoop");
-      return;
-    }
-  }
-
-  // ATTN 16
-  switch (ms->config.currentThompsonHeightIdx) {
-  case 0:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight0AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 1:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight1AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 2:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight2AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 3:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight3AerialGradients[ms->config.targetClass];
-    }
-    break;
-  default:
-    {
-      assert(0);
-    }
-    break;
-  }
-
-  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
-    cout << "no aerial gradients for this class, not servoing." << endl;
-    return;
-  }
-
-  double Px = 0;
-  double Py = 0;
-
-  double Ps = 0;
-
-  //cout << "computing scores... ";
-
-  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
-
-  int numOrientations = 37;
-  vector<Mat> rotatedAerialGrads;
-
-  // ATTN 3
-  // gradientServoScale should be even
-  int gradientServoScale = 3;//11;
-  double gradientServoScaleStep = 1.02;
-  if (ms->config.orientationCascade) {
-    if (ms->config.lastPtheta < ms->config.lPTthresh) {
-      //gradientServoScale = 1;
-      //gradientServoScaleStep = 1.0;
-    }
-  }
-  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
-
-  //rotatedAerialGrads.resize(numOrientations);
-  rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-
-  if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
-    cout << "orientation cascade activated" << endl;
-  }
-
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-    double thisScale = startScale * pow(gradientServoScaleStep, etaS);
-    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-      // orientation cascade
-      if (ms->config.orientationCascade) {
-        if (ms->config.lastPtheta < ms->config.lPTthresh) {
-          if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-            //cout << "skipping orientation " << thisOrient << endl;
-            continue;
-          }
-          if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-            //cout << "skipping orientation " << thisOrient << endl;
-            continue;
-          }
-        }
-      }
-      
-      // rotate the template and L1 normalize it
-      Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
-      double angle = thisOrient*360.0/numOrientations;
-      
-      //double scale = 1.0;
-      double scale = thisScale;
-      
-      // Get the rotation matrix with the specifications above
-      Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-      warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-      
-      processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      
-      //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
-      //if (l1norm <= EPSILON)
-      //l1norm = 1.0;
-      //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
-      //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-      
-      double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
-      double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      l2norm = sqrt(l2norm);
-      if (l2norm <= EPSILON) {
-        l2norm = 1.0;
-      }
-      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
-    }
-  }
-
-  int bestOrientation = -1;
-  double bestOrientationScore = -INFINITY;
-  double bestCropNorm = 1.0;
-  int bestX = -1;
-  int bestY = -1;
-  int bestS = -1;
-
-  int crows = ms->config.aerialGradientReticleWidth;
-  int ccols = ms->config.aerialGradientReticleWidth;
-  int maxDim = max(crows, ccols);
-  int tRy = (maxDim-crows)/2;
-  int tRx = (maxDim-ccols)/2;
-
-  //int gradientServoTranslation = 40;
-  //int gsStride = 2;
-  int gradientServoTranslation = 40;
-  int gsStride = 2;
-  if (ms->config.orientationCascade) {
-    if (ms->config.lastPtheta < ms->config.lPTthresh) {
-      //int gradientServoTranslation = 20;
-      //int gsStride = 2;
-      int gradientServoTranslation = 40;
-      int gsStride = 2;
-    }
-  }
-  
-  //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-  int gSTwidth = 2*gradientServoTranslation + 1;
-  double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-
-  
-  // XXX should be etaY <= to cover whole array
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-    #pragma omp parallel for
-    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-        // get the patch
-        Mat gCrop = makeGCrop(ms, etaX, etaY);
-        
-        
-        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-          // orientation cascade
-          if (ms->config.orientationCascade) {
-            if (ms->config.lastPtheta < ms->config.lPTthresh) {
-              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-            }
-          }
-	  // ATTN 25
-	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-	       (thisOrient != 0) ) {
-	    continue;
-	  }
-          
-          // compute the score
-          double thisScore = 0;
-          thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-          
-          int tEtaX = etaX+gradientServoTranslation;
-          int tEtaY = etaY+gradientServoTranslation;
-          allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-
-	  //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
-	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
-
-        }
-      }
-    }
-  }
-  
-  // perform max
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-        // get the patch
-        int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        //Mat gCrop(maxDim, maxDim, CV_64F);
-        
-        // throw it out if it isn't contained in the image
-        //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
-        //      continue;
-        //    if ( (topCornerX < 0) || (topCornerY < 0) )
-        //      continue;
-        
-        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-          // orientation cascade
-          if (ms->config.orientationCascade) {
-            if (ms->config.lastPtheta < ms->config.lPTthresh) {
-              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-            }
-          }
-	  // ATTN 25
-	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-	       (thisOrient != 0) ) {
-	    continue;
-	  }
-          
-          int tEtaX = etaX+gradientServoTranslation;
-          int tEtaY = etaY+gradientServoTranslation;
-          double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-          
-          if (thisScore > bestOrientationScore) {
-            bestOrientation = thisOrient;
-            bestOrientationScore = thisScore;
-            bestX = etaX;
-            bestY = etaY;
-            bestS = etaS;
-          }
-          //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-        } 
-      }
-    }
-  }
-
-
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
-  int oneToDraw = bestOrientation;
-  Px = -bestX;
-  Py = -bestY;
-  
-  //Ps = bestS - ((gradientServoScale-1)/2);
-  Ps = 0;
-  
-  Mat toShowModel;
-  Mat toShowImage;
-  Size toUnBecome(maxDim, maxDim);
-  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
-  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
-  cv::resize(bestGCrop, toShowImage, toUnBecome);
-  //cout << rotatedAerialGrads[oneToDraw];
-  
-  double maxTSImage = -INFINITY;
-  double minTSImage = INFINITY;
-  double maxTSModel = -INFINITY;
-  double minTSModel = INFINITY;
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
-      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
-      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
-      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
-    }
-  }
-  
-  // draw the winning score in place
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      //int tx = x - tRx;
-      //int ty = y - tRy;
-      int tx = x - tRx;
-      int ty = y - tRy;
-      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
-        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
-        //cout << thisColor;
-        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
-        int tgX = thisTopCornerX + tx;
-        int tgY = thisTopCornerY + ty;
-        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
-        }
-      }
-    }
-  }
-
-  cv::Point text_anchor = cv::Point(0, imH - 10);
-  stringstream txt;
-  txt << "Score: " << bestOrientationScore;
-  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
-
-  
-  oneToDraw = oneToDraw % numOrientations;
-  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-  //double Ptheta = bestOrientation;
-  ms->config.lastPtheta = Ptheta;
-
-  // set the target reticle
-  ms->config.pilotTarget.px = camera->reticle.px + bestX;
-  ms->config.pilotTarget.py = camera->reticle.py + bestY;
-  
-  
-  int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
-
-  // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
-  // and you would like to have the best translation from this perspective. But this is incompatible with the notion
-  // of a single iteration.
-  {
-    double kPtheta = 0.0;
-    /*
-    if (Ptheta < ms->config.kPThresh)
-      kPtheta = ms->config.kPtheta2;
-    else
-      kPtheta = ms->config.kPtheta1;
-    */
-    kPtheta = ms->config.kPtheta1;
-    
-
-    if (bestOrientation <= numOrientations/2) {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-      
-    } else {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
-    }
-
-    //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-  }
-  
-  // position update
-  {
-    //double pTermX = ms->config.gradKp*Px;
-    //double pTermY = ms->config.gradKp*Py;
-    
-    // servoing in z
-    //double pTermS = Ps * .005;
-    //ms->config.currentEEPose.pz += pTermS;
-    
-    // invert the current eePose orientation to decide which direction to move from POV
-    //Eigen::Vector3f localUnitX;
-    //{
-      //Eigen::Quaternionf qin(0, 1, 0, 0);
-      //Eigen::Quaternionf qout(0, 1, 0, 0);
-      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      //qout = eeqform * qin * eeqform.conjugate();
-      //localUnitX.x() = qout.x();
-      //localUnitX.y() = qout.y();
-      //localUnitX.z() = qout.z();
-    //}
-      
-    //Eigen::Vector3f localUnitY;
-    //{
-      //Eigen::Quaternionf qin(0, 0, 1, 0);
-      //Eigen::Quaternionf qout(0, 1, 0, 0);
-      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      //qout = eeqform * qin * eeqform.conjugate();
-      //localUnitY.x() = qout.x();
-      //localUnitY.y() = qout.y();
-      //localUnitY.z() = qout.z();
-    //}
-    
-    // ATTN 21
-    //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-    //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    double newx = 0;
-    double newy = 0;
-    // first analytic
-    //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    //pixelToGlobal(ms->p->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
-    // old PID
-    //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-    // ATTN 23
-    // second analytic
-    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
-    newx = newGlobalTarget.px;
-    newy = newGlobalTarget.py;
-    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
-
-    ms->config.currentEEPose.px = newx;
-    ms->config.currentEEPose.py = newy;
-  }
-
-  // this must happen in order for getCCRotation to work, maybe it should be refactored
-  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
-  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
-  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-
-  
-  // if we are at the soft max, take first histogram estimate.
-  // if we are above, add to it
-  // if we are below it, we behave as if there is no histogram 
-  // That is, to disable histogramming, set softmax to hardmax.
-  if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
-    ms->config.gshHistogram = ms->config.currentEEPose;
-    ms->config.gshCounts = 1.0;
-    cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-    ms->config.currentEEPose.copyP(ms->config.gshPose);
-  } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-    ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-    ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
-      ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-    ms->config.currentEEPose.copyP(ms->config.gshPose);
-  } else {
-  } // do nothing
-
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << camera->reticle.px << " " << 
-  ms->config.pilotTarget.px << " " << camera->reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
-
-  // ATTN 5
-  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-      ( is_this_last ))
-  {
-
-    if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
-	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    } else {
-    }
-    
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-
-    //ms->pushWord("pauseStackExecution"); 
-    //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    
-    // ATTN 12
-    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-      cout << "bbLearning: returning from gradient servo." << endl;
-      return;
-    }
-    
-    return;
-  } else {
-    ms->pushWord("gradientServoA"); 
-    //ms->pushWord("pauseStackExecution"); 
-    //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-  }
-
-  // update after
-  ms->config.currentGradientServoIterations++;
-}
-
-void gradientServoLatentClass(MachineState * ms) {
-  Size sz = ms->config.objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  // ATTN 23
-  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->reticle = camera->vanishingPointReticle;
-
-  // ATTN 12
-  //        if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ms->config.currentBoundingBoxMode == LEARNING_SAMPLING)) {
-  //          cout << "bbLearning: synchronic servo timed out, early outting." << endl;
-  //          restartBBLearning(ms);
-  //        }
-
-  cout << "entered gradient servo... iteration " << ms->config.currentGradientServoIterations << endl;
-  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
-    cout << "bad target class, not servoing." << endl;
-    return;
-  }
-
-
-  int numOrientations = 37;
-  int gradientServoScale = 3;
-  vector<Mat> rotatedAerialGrads;
-  rotatedAerialGrads.resize(gradientServoScale*numOrientations*ms->config.numClasses);
-  int tnc = ms->config.numClasses;
-
-  int bestOrientation = -1;
-  double bestOrientationScore = -INFINITY;
-  double bestCropNorm = 1.0;
-  int bestX = -1;
-  int bestY = -1;
-  int bestS = -1;
-  int bestC = -1;
-
-  vector<double> classScores; classScores.resize(tnc);
-
-  int crows = ms->config.aerialGradientReticleWidth;
-  int ccols = ms->config.aerialGradientReticleWidth;
-  int maxDim = max(crows, ccols);
-  int tRy = (maxDim-crows)/2;
-  int tRx = (maxDim-ccols)/2;
-
-
-  for (int t_class = 0; t_class < tnc; t_class++) {
-    classScores[t_class] = 0;
-
-    // ATTN 16
-    switch (ms->config.currentThompsonHeightIdx) {
-    case 0:
-      {
-	ms->config.classAerialGradients[t_class] = ms->config.classHeight0AerialGradients[t_class];
-      }
-      break;
-    case 1:
-      {
-	ms->config.classAerialGradients[t_class] = ms->config.classHeight1AerialGradients[t_class];
-      }
-      break;
-    case 2:
-      {
-	ms->config.classAerialGradients[t_class] = ms->config.classHeight2AerialGradients[t_class];
-      }
-      break;
-    case 3:
-      {
-	ms->config.classAerialGradients[t_class] = ms->config.classHeight3AerialGradients[t_class];
-      }
-      break;
-    default:
-      {
-	assert(0);
-      }
-      break;
-    }
-
-    if ((ms->config.classAerialGradients[t_class].rows <= 1) && (ms->config.classAerialGradients[t_class].cols <= 1)) {
-      cout << "no aerial gradients for this class, not servoing." << endl;
-      continue;
-    }
-
-
-    //cout << "computing scores... ";
-
-    Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
-
-
-    // ATTN 3
-    // gradientServoScale should be even
-    double gradientServoScaleStep = 1.02;
-    if (ms->config.orientationCascade) {
-      if (ms->config.lastPtheta < ms->config.lPTthresh) {
-	//gradientServoScale = 1;
-	//gradientServoScaleStep = 1.0;
-      }
-    }
-    double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
-
-
-    if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
-      cout << "orientation cascade activated" << endl;
-    }
-
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      double thisScale = startScale * pow(gradientServoScaleStep, etaS);
-      for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	// orientation cascade
-	if (ms->config.orientationCascade) {
-	  if (ms->config.lastPtheta < ms->config.lPTthresh) {
-	    if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-	      //cout << "skipping orientation " << thisOrient << endl;
-	      continue;
-	    }
-	    if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-	      //cout << "skipping orientation " << thisOrient << endl;
-	      continue;
-	    }
-	  }
-	}
-	
-	// rotate the template and L1 normalize it
-	Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
-	double angle = thisOrient*360.0/numOrientations;
-	
-	//double scale = 1.0;
-	double scale = thisScale;
-	
-	// Get the rotation matrix with the specifications above
-	Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-	warpAffine(ms->config.classAerialGradients[t_class], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rot_mat, toBecome);
-	
-	processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale], rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
-	
-	//double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type()));
-	//if (l1norm <= EPSILON)
-	//l1norm = 1.0;
-	//rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] / l1norm;
-	//cout << "classOrientedGradients[t_class]: " << ms->config.classAerialGradients[t_class] << "rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] " << rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] << endl;
-	
-	double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-	rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] - mean;
-	double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale]);
-	l2norm = sqrt(l2norm);
-	if (l2norm <= EPSILON) {
-	  l2norm = 1.0;
-	}
-	rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] / l2norm;
-      }
-    }
-
-
-    //int gradientServoTranslation = 40;
-    //int gsStride = 2;
-    int gradientServoTranslation = 40;
-    int gsStride = 2;
-    if (ms->config.orientationCascade) {
-      if (ms->config.lastPtheta < ms->config.lPTthresh) {
-	//int gradientServoTranslation = 20;
-	//int gsStride = 2;
-	int gradientServoTranslation = 40;
-	int gsStride = 2;
-      }
-    }
-    
-    //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-    int gSTwidth = 2*gradientServoTranslation + 1;
-    double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-
-    
-    // XXX should be etaY <= to cover whole array
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      #pragma omp parallel for
-      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-	  // get the patch
-	  Mat gCrop = makeGCrop(ms, etaX, etaY);
-	  
-	  
-	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	    // orientation cascade
-	    if (ms->config.orientationCascade) {
-	      if (ms->config.lastPtheta < ms->config.lPTthresh) {
-		if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-		  //cout << "skipping orientation " << thisOrient << endl;
-		  continue;
-		}
-		if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-		  //cout << "skipping orientation " << thisOrient << endl;
-		  continue;
-		}
-	      }
-	    }
-	    // ATTN 25
-	    if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-		 (thisOrient != 0) ) {
-	      continue;
-	    }
-	    
-	    // compute the score
-	    double thisScore = 0;
-	    thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale].dot(gCrop);
-	    
-	    int tEtaX = etaX+gradientServoTranslation;
-	    int tEtaY = etaY+gradientServoTranslation;
-	    allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-
-	    //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations + t_class*numOrientations*gradientServoScale] << endl;
-	    //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
-	    //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
-
-	  }
-	}
-      }
-    }
-    
-    // perform max
-    for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-      for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-	for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-	  // get the patch
-	  int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-	  int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-	  //Mat gCrop(maxDim, maxDim, CV_64F);
-	  
-	  // throw it out if it isn't contained in the image
-	  //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
-	  //      continue;
-	  //    if ( (topCornerX < 0) || (topCornerY < 0) )
-	  //      continue;
-	  
-	  for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-	    // orientation cascade
-	    if (ms->config.orientationCascade) {
-	      if (ms->config.lastPtheta < ms->config.lPTthresh) {
-		if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-		  //cout << "skipping orientation " << thisOrient << endl;
-		  continue;
-		}
-		if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-		  //cout << "skipping orientation " << thisOrient << endl;
-		  continue;
-		}
-	      }
-	    }
-	    // ATTN 25
-	    if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-		 (thisOrient != 0) ) {
-	      continue;
-	    }
-	    
-	    int tEtaX = etaX+gradientServoTranslation;
-	    int tEtaY = etaY+gradientServoTranslation;
-	    double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-	    
-	    if (thisScore > bestOrientationScore) {
-	      bestOrientation = thisOrient;
-	      bestOrientationScore = thisScore;
-	      bestX = etaX;
-	      bestY = etaY;
-	      bestS = etaS;
-	      bestC = t_class;
-	    }
-	    classScores[t_class] = classScores[t_class] + thisScore;
-	    //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-	  } 
-	}
-      }
-    }
-
-  }
-
-  cout << "gradientServoLatentClass report: winning class and score " << bestC << " ";
-  if ( (bestC > -1) && (bestC < ms->config.classLabels.size()) ) {
-    cout << ms->config.classLabels[bestC] << " ";
-  } else {
-  }
-  cout << bestOrientationScore << " " << endl;
-
-  int maxClassScoreClass = -1;
-  int maxClassScoreScore = -INFINITY;
-  for (int t_class = 0; t_class < tnc; t_class++) {
-    cout << "    sum of scores class " << t_class << ": " << classScores[t_class] << endl;
-    if (classScores[t_class] > maxClassScoreScore) {
-      maxClassScoreClass = t_class;
-      maxClassScoreScore = classScores[t_class];
-    } else {
-    }
-  }
-  cout << "      max sum scoring class: " << maxClassScoreClass << "  ";
-  if ( (bestC > -1) && (bestC < ms->config.classLabels.size()) ) {
-    cout << ms->config.classLabels[maxClassScoreClass] << " ";
-  } else {
-  }
-  cout << endl;
-
-  for (int t_class = 0; t_class < tnc; t_class++) {
-  }
-
-
-  double Px = 0;
-  double Py = 0;
-
-  double Ps = 0;
- 
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
-  int oneToDraw = bestOrientation;
-  Px = -bestX;
-  Py = -bestY;
-  
-  //Ps = bestS - ((gradientServoScale-1)/2);
-  Ps = 0;
-  
-  Mat toShowModel;
-  Mat toShowImage;
-  Size toUnBecome(maxDim, maxDim);
-  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
-  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations + bestC*numOrientations*gradientServoScale], toShowModel, toUnBecome);
-  cv::resize(bestGCrop, toShowImage, toUnBecome);
-  //cout << rotatedAerialGrads[oneToDraw];
-  
-  double maxTSImage = -INFINITY;
-  double minTSImage = INFINITY;
-  double maxTSModel = -INFINITY;
-  double minTSModel = INFINITY;
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
-      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
-      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
-      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
-    }
-  }
-  
-  // draw the winning score in place
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      //int tx = x - tRx;
-      //int ty = y - tRy;
-      int tx = x - tRx;
-      int ty = y - tRy;
-      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
-        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
-        //cout << thisColor;
-        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
-        int tgX = thisTopCornerX + tx;
-        int tgY = thisTopCornerY + ty;
-        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
-        }
-      }
-    }
-  }
-
-  cv::Point text_anchor = cv::Point(0, imH - 10);
-  stringstream txt;
-  txt << "Score: " << bestOrientationScore;
-  putText(ms->config.gradientViewerImage, txt.str(), text_anchor, MY_FONT, 1.0, Scalar(255,255,255), 1.0);
-
-  
-  oneToDraw = oneToDraw % numOrientations;
-  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-  //double Ptheta = bestOrientation;
-  ms->config.lastPtheta = Ptheta;
-
-  // set the target reticle
-  ms->config.pilotTarget.px = camera->reticle.px + bestX;
-  ms->config.pilotTarget.py = camera->reticle.py + bestY;
-  
-  
-  int is_this_last = ms->config.currentGradientServoIterations >= (ms->config.hardMaxGradientServoIterations-1);
-  cout << "    is_this_last: " << is_this_last << endl;
-
-  // Note: you might not want to adjust the orientation on the last iteration because the perspective changes
-  // and you would like to have the best translation from this perspective. But this is incompatible with the notion
-  // of a single iteration.
-  {
-    double kPtheta = 0.0;
-    /*
-    if (Ptheta < ms->config.kPThresh)
-      kPtheta = ms->config.kPtheta2;
-    else
-      kPtheta = ms->config.kPtheta1;
-    */
-    kPtheta = ms->config.kPtheta1;
-    
-
-    if (bestOrientation <= numOrientations/2) {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-      
-    } else {
-      ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
-    }
-
-    //ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-  }
-  
-  // position update
-  {
-    //double pTermX = ms->config.gradKp*Px;
-    //double pTermY = ms->config.gradKp*Py;
-    
-    // servoing in z
-    //double pTermS = Ps * .005;
-    //ms->config.currentEEPose.pz += pTermS;
-    
-    // invert the current eePose orientation to decide which direction to move from POV
-    //Eigen::Vector3f localUnitX;
-    //{
-      //Eigen::Quaternionf qin(0, 1, 0, 0);
-      //Eigen::Quaternionf qout(0, 1, 0, 0);
-      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      //qout = eeqform * qin * eeqform.conjugate();
-      //localUnitX.x() = qout.x();
-      //localUnitX.y() = qout.y();
-      //localUnitX.z() = qout.z();
-    //}
-      
-    //Eigen::Vector3f localUnitY;
-    //{
-      //Eigen::Quaternionf qin(0, 0, 1, 0);
-      //Eigen::Quaternionf qout(0, 1, 0, 0);
-      //Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-      //qout = eeqform * qin * eeqform.conjugate();
-      //localUnitY.x() = qout.x();
-      //localUnitY.y() = qout.y();
-      //localUnitY.z() = qout.z();
-    //}
-    
-    // ATTN 21
-    //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-    //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    double newx = 0;
-    double newy = 0;
-    // first analytic
-    //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-    //pixelToGlobal(ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
-    // old PID
-    //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-    //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-    // ATTN 23
-    // second analytic
-    // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, ms->config.trueEEPoseEEPose);
-    newx = newGlobalTarget.px;
-    newy = newGlobalTarget.py;
-    //double sqdistance = eePose::squareDistance(ms->config.currentEEPose, newGlobalTarget);
-
-    ms->config.currentEEPose.px = newx;
-    ms->config.currentEEPose.py = newy;
-  }
-
-  // this must happen in order for getCCRotation to work, maybe it should be refactored
-  // this should happen after position update so that position update could use currentEePose if it wanted (possibly the right thing to do)
-  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
-  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-
-  
-  // if we are at the soft max, take first histogram estimate.
-  // if we are above, add to it
-  // if we are below it, we behave as if there is no histogram 
-  // That is, to disable histogramming, set softmax to hardmax.
-  if (ms->config.currentGradientServoIterations == (ms->config.softMaxGradientServoIterations-1)) {
-    ms->config.gshHistogram = ms->config.currentEEPose;
-    ms->config.gshCounts = 1.0;
-    cout << "Initializing gradient servo histogrammed position estimate, counts: " << ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-    ms->config.currentEEPose.copyP(ms->config.gshPose);
-  } else if (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) {
-    ms->config.gshHistogram = ms->config.gshHistogram.plusP(ms->config.currentEEPose);
-    ms->config.gshCounts = 1.0 + ms->config.gshCounts;
-    cout << "Adding intermediate gradient servo position estimate to histogrammed position estimate, counts: " << 
-      ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-    ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-    ms->config.currentEEPose.copyP(ms->config.gshPose);
-  } else {
-  } // do nothing
-
-  cout << "gradient servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << camera->reticle.px << " " << 
-  ms->config.pilotTarget.px << " " << camera->reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
-
-  // ATTN 5
-  // cannot proceed unless Ptheta = 0, since our best eePose is determined by our current pose and not where we WILL be after adjustment
-  if (((fabs(Px) < ms->config.gradServoPixelThresh) && (fabs(Py) < ms->config.gradServoPixelThresh) && (fabs(Ptheta) < ms->config.gradServoThetaThresh)) ||
-      ( is_this_last ))
-  {
-
-    if (ms->config.gshCounts > 0) {
-      cout << "Replacing final gradient servo position estimate with histogrammed position estimate, counts: " << 
-	ms->config.gshCounts << ", current gs iterations: " << ms->config.currentGradientServoIterations << endl;
-      ms->config.gshPose = ms->config.gshHistogram.multP(1.0/ms->config.gshCounts);
-      ms->config.currentEEPose.copyP(ms->config.gshPose);
-    } else {
-    }
-    
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-
-    //ms->pushWord("pauseStackExecution"); 
-    //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    
-    // ATTN 12
-    if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-      cout << "bbLearning: gradient servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-      cout << "bbLearning: returning from gradient servo." << endl;
-      return;
-    }
-    
-    return;
-  } else {
-    ms->pushWord("gradientServoA"); 
-    //ms->pushWord("pauseStackExecution"); 
-    //ms->pushWord("waitUntilEndpointCallbackReceived");
-    //ms->pushWord("waitUntilAtCurrentPosition"); 
-    cout << "GsGsGs hist current pose: " << ms->config.gshHistogram << ms->config.currentEEPose <<  ms->config.gshPose;  
-  }
-
-  // update after
-  ms->config.currentGradientServoIterations++;
-}
-
-void continuousServo(MachineState * ms) {
-  Size sz = ms->config.objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  // XXX
-  geometry_msgs::Pose thisPose;
-  int weHavePoseData = getRingPoseAtTime(ms, ms->config.lastImageFromDensityReceived, thisPose);
-  eePose poseOfImage = eePose::fromGeometryMsgPose(thisPose);
-
-/*
-cout << "AAA: " << weHavePoseData << " " << poseOfImage << " " << ms->config.currentEEPose << endl;
-cout << "BBB: " << ms->config.lastImageFromDensityReceived << endl 
-     << ms->config.lastImageCallbackReceived << endl 
-     << ms->config.lastEndpointCallbackReceived << endl 
-     << ros::Time::now() << endl;
-*/
-
-  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-  // ATTN a1
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->reticle = camera->vanishingPointReticle;
-
-  cout << "entered continuous servo... iteration " << endl;
-  if (ms->config.targetClass < 0 || ms->config.targetClass >= ms->config.numClasses) {
-    cout << "bad target class, not servoing." << endl;
-    return;
-  }
-
-  {
-    int i, j;
-    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
-    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
-    if (!doWeHaveClearance) {
-      cout << ">>>> continuous servo strayed out of clearance area during mapping. Going home. <<<<" << endl;
-      ms->pushWord("waitUntilAtCurrentPosition");
-      ms->pushWord("changeToHeight");
-      ms->pushWord("1");
-      ms->pushWord("assumeBeeHome");
-      ms->pushWord("endStackCollapseNoop");
-      return;
-    }
-  }
-
-  // ATTN 16
-  switch (ms->config.currentThompsonHeightIdx) {
-  case 0:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight0AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 1:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight1AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 2:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight2AerialGradients[ms->config.targetClass];
-    }
-    break;
-  case 3:
-    {
-      ms->config.classAerialGradients[ms->config.targetClass] = ms->config.classHeight3AerialGradients[ms->config.targetClass];
-    }
-    break;
-  default:
-    {
-      assert(0);
-    }
-    break;
-  }
-
-  if ((ms->config.classAerialGradients[ms->config.targetClass].rows <= 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols <= 1)) {
-    cout << "no aerial gradients for this class, not servoing." << endl;
-    return;
-  }
-
-  double Px = 0;
-  double Py = 0;
-
-  double Ps = 0;
-
-  //cout << "computing scores... ";
-
-  Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
-
-  int numOrientations = 37;
-  vector<Mat> rotatedAerialGrads;
-
-  // ATTN 3
-  // gradientServoScale should be even
-  int gradientServoScale = 1;//3;//11;
-  double gradientServoScaleStep = 1.02;
-  if (ms->config.orientationCascade) {
-    if (ms->config.lastPtheta < ms->config.lPTthresh) {
-      //gradientServoScale = 1;
-      //gradientServoScaleStep = 1.0;
-    }
-  }
-  double startScale = pow(gradientServoScaleStep, -(gradientServoScale-1)/2);
-
-  //rotatedAerialGrads.resize(numOrientations);
-  rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-
-  if ((ms->config.lastPtheta < ms->config.lPTthresh) && ms->config.orientationCascade) {
-    cout << "orientation cascade activated" << endl;
-  }
-
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-    double thisScale = startScale * pow(gradientServoScaleStep, etaS);
-#pragma omp parallel for
-    for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-      // orientation cascade
-      if (ms->config.orientationCascade) {
-        if (ms->config.lastPtheta < ms->config.lPTthresh) {
-          if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-            //cout << "skipping orientation " << thisOrient << endl;
-            continue;
-          }
-          if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-            //cout << "skipping orientation " << thisOrient << endl;
-            continue;
-          }
-        }
-      }
-      
-      // rotate the template and L1 normalize it
-      Point center = Point(ms->config.aerialGradientWidth/2, ms->config.aerialGradientWidth/2);
-      double angle = thisOrient*360.0/numOrientations;
-      
-      //double scale = 1.0;
-      double scale = thisScale;
-      
-      // Get the rotation matrix with the specifications above
-      Mat rot_mat = getRotationMatrix2D(center, angle, scale);
-      warpAffine(ms->config.classAerialGradients[ms->config.targetClass], rotatedAerialGrads[thisOrient + etaS*numOrientations], rot_mat, toBecome);
-      
-      processSaliency(rotatedAerialGrads[thisOrient + etaS*numOrientations], rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      
-      //double l1norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type()));
-      //if (l1norm <= EPSILON)
-      //l1norm = 1.0;
-      //rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l1norm;
-      //cout << "classOrientedGradients[ms->config.targetClass]: " << ms->config.classAerialGradients[ms->config.targetClass] << "rotatedAerialGrads[thisOrient + etaS*numOrientations] " << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-      
-      double mean = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(Mat::ones(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, rotatedAerialGrads[thisOrient + etaS*numOrientations].type())) / double(ms->config.aerialGradientWidth*ms->config.aerialGradientWidth);
-      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] - mean;
-      double l2norm = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(rotatedAerialGrads[thisOrient + etaS*numOrientations]);
-      l2norm = sqrt(l2norm);
-      if (l2norm <= EPSILON) {
-        l2norm = 1.0;
-      }
-      rotatedAerialGrads[thisOrient + etaS*numOrientations] = rotatedAerialGrads[thisOrient + etaS*numOrientations] / l2norm;
-    }
-  }
-
-  int bestOrientation = -1;
-  double bestOrientationScore = -INFINITY;
-  double bestCropNorm = 1.0;
-  int bestX = -1;
-  int bestY = -1;
-  int bestS = -1;
-
-  int crows = ms->config.aerialGradientReticleWidth;
-  int ccols = ms->config.aerialGradientReticleWidth;
-  int maxDim = max(crows, ccols);
-  int tRy = (maxDim-crows)/2;
-  int tRx = (maxDim-ccols)/2;
-
-  //int gradientServoTranslation = 40;
-  //int gsStride = 2;
-  int gradientServoTranslation = 40;
-  int gsStride = 2;
-  if (ms->config.orientationCascade) {
-    if (ms->config.lastPtheta < ms->config.lPTthresh) {
-      //int gradientServoTranslation = 20;
-      //int gsStride = 2;
-      int gradientServoTranslation = 40;
-      int gsStride = 2;
-    }
-  }
-  
-  //rotatedAerialGrads.resize(gradientServoScale*numOrientations);
-  int gSTwidth = 2*gradientServoTranslation + 1;
-  double allScores[gSTwidth][gSTwidth][gradientServoScale][numOrientations];
-
-  
-  // XXX should be etaY <= to cover whole array
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-#pragma omp parallel for
-    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-        // get the patch
-        Mat gCrop = makeGCrop(ms, etaX, etaY);
-        
-        
-        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-          // orientation cascade
-          if (ms->config.orientationCascade) {
-            if (ms->config.lastPtheta < ms->config.lPTthresh) {
-              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-            }
-          }
-
-	  // ATTN 25
-	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-	       (thisOrient != 0) ) {
-	    continue;
-	  }
-          
-          // compute the score
-          double thisScore = 0;
-          thisScore = rotatedAerialGrads[thisOrient + etaS*numOrientations].dot(gCrop);
-          
-          int tEtaX = etaX+gradientServoTranslation;
-          int tEtaY = etaY+gradientServoTranslation;
-          allScores[tEtaX][tEtaY][etaS][thisOrient] = thisScore;
-
-	  //cout << "  JJJ: gsDebug " << thisScore << endl << gCrop << endl << rotatedAerialGrads[thisOrient + etaS*numOrientations] << endl;
-	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.frameGraySobel << endl;
-	  //cout << "  JJJ: gsDebug " << thisScore << ms->config.objectViewerImage << endl;
-
-        }
-      }
-    }
-  }
-  
-  // perform max
-  for (int etaS = 0; etaS < gradientServoScale; etaS++) {
-    for (int etaY = -gradientServoTranslation; etaY < gradientServoTranslation; etaY += gsStride) {
-      for (int etaX = -gradientServoTranslation; etaX < gradientServoTranslation; etaX += gsStride) {
-        // get the patch
-        int topCornerX = etaX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int topCornerY = etaY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        //Mat gCrop(maxDim, maxDim, CV_64F);
-        
-        // throw it out if it isn't contained in the image
-        //    if ( (topCornerX+ms->config.aerialGradientWidth >= imW) || (topCornerY+ms->config.aerialGradientWidth >= imH) )
-        //      continue;
-        //    if ( (topCornerX < 0) || (topCornerY < 0) )
-        //      continue;
-        
-        for (int thisOrient = 0; thisOrient < numOrientations; thisOrient++) {
-          // orientation cascade
-          if (ms->config.orientationCascade) {
-            if (ms->config.lastPtheta < ms->config.lPTthresh) {
-              if (thisOrient < ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-              if (thisOrient > numOrientations - ms->config.orientationCascadeHalfWidth) {
-                //cout << "skipping orientation " << thisOrient << endl;
-                continue;
-              }
-            }
-          }
-
-	  // ATTN 25
-	  if ( (ms->config.currentGradientServoIterations > (ms->config.softMaxGradientServoIterations-1)) &&
-	       (thisOrient != 0) ) {
-	    continue;
-	  }
-          
-          int tEtaX = etaX+gradientServoTranslation;
-          int tEtaY = etaY+gradientServoTranslation;
-          double thisScore = allScores[tEtaX][tEtaY][etaS][thisOrient];
-          
-          if (thisScore > bestOrientationScore) {
-            bestOrientation = thisOrient;
-            bestOrientationScore = thisScore;
-            bestX = etaX;
-            bestY = etaY;
-            bestS = etaS;
-          }
-          //cout << " this best: " << thisScore << " " << bestOrientationScore << " " << bestX << " " << bestY << endl;
-        } 
-      }
-    }
-  }
-
-  Mat bestGCrop = makeGCrop(ms, bestX, bestY); 
-
-
-  // set the target reticle
-  ms->config.pilotTarget.px = camera->reticle.px + bestX;
-  ms->config.pilotTarget.py = camera->reticle.py + bestY;
-  
-  int oneToDraw = bestOrientation;
-  Px = -bestX;
-  Py = -bestY;
-  
-  // don't servo in Z
-  //Ps = bestS - ((gradientServoScale-1)/2);
-  Ps = 0;
-  
-  Mat toShowModel;
-  Mat toShowImage;
-  Size toUnBecome(maxDim, maxDim);
-  //cv::resize(ms->config.classAerialGradients[ms->config.targetClass], toShow, toUnBecome);
-  //cv::resize(rotatedAerialGrads[oneToDraw], toShow, toUnBecome);
-  cv::resize(rotatedAerialGrads[bestOrientation + bestS*numOrientations], toShowModel, toUnBecome);
-  cv::resize(bestGCrop, toShowImage, toUnBecome);
-  //cout << rotatedAerialGrads[oneToDraw];
-  
-  double maxTSImage = -INFINITY;
-  double minTSImage = INFINITY;
-  double maxTSModel = -INFINITY;
-  double minTSModel = INFINITY;
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      maxTSImage = max(maxTSImage, toShowImage.at<double>(y, x));
-      minTSImage = min(minTSImage, toShowImage.at<double>(y, x));
-      maxTSModel = max(maxTSModel, toShowModel.at<double>(y, x));
-      minTSModel = min(minTSModel, toShowModel.at<double>(y, x));
-    }
-  }
-  
-  // draw the winning score in place
-  for (int x = 0; x < maxDim; x++) {
-    for (int y = 0; y < maxDim; y++) {
-      //int tx = x - tRx;
-      //int ty = y - tRy;
-      int tx = x - tRx;
-      int ty = y - tRy;
-      if (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) {
-        Vec3b thisColorModel = Vec3b(0,0,min(255, int(floor(255.0*8*(toShowModel.at<double>(y, x)-minTSModel)/(maxTSModel-minTSModel)))));
-        Vec3b thisColorImage = Vec3b(min(255, int(floor(255.0*8*(toShowImage.at<double>(y, x)-minTSImage)/(maxTSImage-minTSImage)))), 0, 0);
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(100000*toShow.at<double>(y, x)))));
-        //Vec3b thisColor = Vec3b(0,0,min(255, int(floor(0.2*sqrt(toShow.at<double>(y, x))))));
-        //cout << thisColor;
-        int thisTopCornerX = bestX + camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-        int thisTopCornerY = bestY + camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-        
-        int tgX = thisTopCornerX + tx;
-        int tgY = thisTopCornerY + ty;
-        if ((tgX > 0) && (tgX < imW) && (tgY > 0) && (tgY < imH)) {
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) = 0;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorImage;
-          ms->config.gradientViewerImage.at<Vec3b>(tgY, tgX) += thisColorModel;
-        }
-      }
-    }
-  }
-  
-  oneToDraw = oneToDraw % numOrientations;
-  double Ptheta = min(bestOrientation, numOrientations - bestOrientation);
-  ms->config.lastPtheta = Ptheta;
-  
-  double kPtheta = 0.0;
-  /*
-  if (Ptheta < ms->config.kPThresh) {
-    kPtheta = ms->config.kPtheta2;
-  } else {
-    kPtheta = ms->config.kPtheta1;
-  }
-  */
-  kPtheta = ms->config.kPtheta1;
-  
-  if (bestOrientation <= numOrientations/2) {
-    ms->config.currentEEDeltaRPY.pz -= kPtheta * bestOrientation*2.0*3.1415926/double(numOrientations);
-    
-  } else {
-    ms->config.currentEEDeltaRPY.pz -= kPtheta * (-(numOrientations - bestOrientation))*2.0*3.1415926/double(numOrientations);
-  }
-  
-  {
-    double newx = 0;
-    double newy = 0;
-    eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, ms->config.currentEEDeltaRPY.pz, poseOfImage);
-    newx = newGlobalTarget.px;
-    newy = newGlobalTarget.py;
-
-    ms->config.currentEEPose.px = newx;
-    ms->config.currentEEPose.py = newy;
-  }
-
-  double doublePtheta =   ms->config.currentEEDeltaRPY.pz;
-  endEffectorAngularUpdate(&ms->config.currentEEPose, &ms->config.currentEEDeltaRPY);
-  ms->config.bestOrientationEEPose = ms->config.currentEEPose;
-  //cout << "continuous servo Px Py Ps bestOrientation Ptheta doublePtheta: " << Px << " " << Py << " " << Ps << " : " << reticle.px << " " << 
-  //ms->config.pilotTarget.px << " " << reticle.py << " " << ms->config.pilotTarget.py << " " <<
-  //bestOrientation << " " << Ptheta << " " << doublePtheta << endl;
-}
-
-// given pixel is the pixel in the current frame that you want to be at the vanishing point
-//  after undergoing a rotaion of ozAngle about the end effector Z axis
-eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double ozAngle, eePose givenCameraPose) {
-  eePose toReturn = givenCameraPose;
-  eePose grGlobalPostRotation = givenCameraPose;
-  eePose gpGlobalPreRotation = givenCameraPose;
-  {
-    double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenPixel.px, givenPixel.py, zToUse, &(gpGlobalPreRotation.px), &(gpGlobalPreRotation.py), givenCameraPose);
-  }
-
-  eePose fakeEndEffector = givenCameraPose;
-  eePose fakeEndEffectorDeltaRPY = eePose::zero();
-  fakeEndEffectorDeltaRPY.pz = ozAngle;
-  endEffectorAngularUpdate(&fakeEndEffector, &fakeEndEffectorDeltaRPY);
-  {
-    double zToUse = givenCameraPose.pz+ms->config.currentTableZ;
-    pixelToGlobal(ms, givenReticle.px, givenReticle.py, zToUse, &(grGlobalPostRotation.px), &(grGlobalPostRotation.py), fakeEndEffector);
-  }
-  double  postRotationTranslationX = (gpGlobalPreRotation.px - grGlobalPostRotation.px);
-  double  postRotationTranslationY = (gpGlobalPreRotation.py - grGlobalPostRotation.py);
-
-  toReturn.px += postRotationTranslationX;
-  toReturn.py += postRotationTranslationY;
-  return toReturn;
-}
-
-void synchronicServo(MachineState * ms) {
-  ROS_WARN_STREAM("___________________ Synchronic Servo");
-  ms->config.synServoLockFrames++;
-
-  // ATTN 23
-  //reticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-  eePose thisGripperReticle;
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-  int xOut=-1, yOut=-1;
-  globalToPixel(ms, &xOut, &yOut, zToUse, ms->config.trueEEPoseEEPose.px, ms->config.trueEEPoseEEPose.py);
-  thisGripperReticle.px = xOut;
-  thisGripperReticle.py = yOut;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->reticle = camera->vanishingPointReticle;
-
-  // ATTN 17
-  ms->config.currentGradientServoIterations = 0;
-
-  // ATTN 12
-  // if we time out, reset the bblearning program
-  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) || (ms->config.bTops.size() <= 0)) && 
-	(ARE_GENERIC_HEIGHT_LEARNING(ms)) ) {
-    cout << "bbLearning: synchronic servo early outting: ";
-    if (ms->config.bTops.size() <= 0) {
-      cout << "NO BLUE BOXES ";
-    }
-    if ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout) && (ARE_GENERIC_HEIGHT_LEARNING(ms))) {
-      cout << "TIMED OUT ";
-    }
-    cout << endl;
-    restartBBLearning(ms);
-    return;
-  }
-
-  if ( ((ms->config.synServoLockFrames > ms->config.mappingServoTimeout) || (ms->config.bTops.size() <= 0)) && 
-	(ms->config.currentBoundingBoxMode == MAPPING) ) {
-    cout << ">>>> Synchronic servo timed out or no blue boxes during mapping. <<<<" << endl;
-    return;
-  }
-
-  {
-    int i, j;
-    mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, ms->config.currentEEPose.px, ms->config.currentEEPose.py, &i, &j);
-    int doWeHaveClearance = (ms->config.clearanceMap[i + ms->config.mapWidth * j] != 0);
-    if (!doWeHaveClearance) {
-      cout << ">>>> Synchronic servo strayed out of clearance area during mapping. <<<<" << endl;
-      ms->pushWord("endStackCollapseNoop");
-      return;
-    }
-  }
-
-  // ATTN 19
-  // if we time out, reset the pick learning 
-  if ( ((ms->config.synServoLockFrames > ms->config.heightLearningServoTimeout)) && 
-	ARE_GENERIC_PICK_LEARNING(ms) ) {
-    // record a failure
-    cout << ">>>> Synchronic servo timed out.  Going back on patrol. <<<<" << endl;
-    ms->config.thisGraspPicked = FAILURE; 
-    ms->pushWord("shiftIntoGraspGear1"); 
-    ms->pushCopies("beep", 15); 
-    ms->pushWord("countGrasp"); 
-    return; 
-  }
-
-  if (ms->config.bTops.size() <= 0) {
-    cout << ">>>> HELP,  I CAN'T SEE!!!!! Going back on patrol. <<<<" << endl;
-    ms->pushWord("visionCycle"); 
-    ms->pushWord("waitUntilAtCurrentPosition"); 
-    return;
-  }
-
-  if (ms->config.synchronicTakeClosest) {
-    if ((ms->config.pilotClosestTarget.px != -1) && (ms->config.pilotClosestTarget.py != -1)) {
-      ms->config.pilotTarget.px = ms->config.pilotClosestTarget.px;
-      ms->config.pilotTarget.py = ms->config.pilotClosestTarget.py;
-      ms->config.pilotTarget.pz = ms->config.pilotClosestTarget.pz;
-      ms->config.pilotTargetBlueBoxNumber = ms->config.pilotClosestBlueBoxNumber;
-    } else {
-      return;
-    }
-  }
-
-  // target the closest blue box that hasn't been mapped since
-  //  the last mapping started
-  if (ms->config.currentBoundingBoxMode == MAPPING) {
-    int foundAnUnmappedTarget = 0;
-    int closestUnmappedBBToReticle = -1;
-    double closestBBDistance = VERYBIGNUMBER;
-    for (int c = 0; c < ms->config.bTops.size(); c++) {
-      double tbx, tby;
-      int tbi, tbj;
-      double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-      pixelToGlobal(ms, ms->config.bCens[c].x, ms->config.bCens[c].y, zToUse, &tbx, &tby);
-      mapxyToij(ms->config.mapXMin, ms->config.mapYMin, ms->config.mapStep, tbx, tby, &tbi, &tbj);
-      
-      ros::Time thisLastMappedTime = ms->config.objectMap[tbi + ms->config.mapWidth * tbj].lastMappedTime;
-      ros::Time thisNow = ros::Time::now();
-
-      // ATTN 23
-      //int isUnmapped = (thisLastMappedTime < ms->config.lastScanStarted);
-      int isCooldownComplete = (thisNow.sec - thisLastMappedTime.sec) > ms->config.mapBlueBoxCooldown;
-
-      if ((ms->config.currentPatrolMode == ONCE) && (thisLastMappedTime.sec > ms->config.lastScanStarted.sec)) {
-	isCooldownComplete = false;
-      } else {
-	// do nothing
-      }
-
-      int isOutOfReach = ( !positionIsSearched(ms->config.mapSearchFenceXMin, ms->config.mapSearchFenceXMax, ms->config.mapSearchFenceYMin, ms->config.mapSearchFenceYMax, tbx, tby) || 
-                           !isBlueBoxIkPossible(ms, ms->config.bTops[c], ms->config.bBots[c]) ); 
-
-      double thisDistance = sqrt((ms->config.bCens[c].x-camera->reticle.px)*(ms->config.bCens[c].x-camera->reticle.px) + (ms->config.bCens[c].y-camera->reticle.py)*(ms->config.bCens[c].y-camera->reticle.py));
-      cout << "   Servo CUB distance for box " << c << " : " << thisDistance << ", isCooldownComplete isOutOfReach: " <<
-	      isCooldownComplete << " " << isOutOfReach << endl;
-      cout << "      (thisNow - thisLastMappedTime) mapBlueBoxCooldown:" << 
-	      thisNow.sec - thisLastMappedTime.sec << " " << ms->config.mapBlueBoxCooldown << " " <<  endl;
-
-      if (isOutOfReach) {
-	mapBlueBox(ms, ms->config.bTops[c], ms->config.bBots[c], 0, ros::Time::now()+ros::Duration(ms->config.mapBlueBoxCooldown));
-      }
-
-      if ( isCooldownComplete  && 
-	   !isOutOfReach ) {
-	if (thisDistance < closestBBDistance) {
-	  closestBBDistance = thisDistance;
-	  closestUnmappedBBToReticle = c;
-	  foundAnUnmappedTarget = 1;
-	}
-      } 
-    }
-
-    if (foundAnUnmappedTarget) {
-      ms->config.pilotClosestBlueBoxNumber = closestUnmappedBBToReticle;
-      ms->config.pilotTarget.px = ms->config.bCens[ms->config.pilotClosestBlueBoxNumber].x;
-      ms->config.pilotTarget.py = ms->config.bCens[ms->config.pilotClosestBlueBoxNumber].y;
-      ms->config.pilotTarget.pz = 0;
-      ms->config.pilotClosestTarget = ms->config.pilotTarget;
-    } else {
-      // this prevents gradient servo 
-      ms->config.pilotClosestBlueBoxNumber = -1;
-      ms->config.bTops.resize(0);
-      ms->config.bBots.resize(0);
-      ms->config.bCens.resize(0);
-      ms->config.bLabels.resize(0);
-      return;
-    }
-  }
-
-
-  double Px = camera->reticle.px - ms->config.pilotTarget.px;
-  double Py = camera->reticle.py - ms->config.pilotTarget.py;
-
-  {
-    if ((fabs(Px) < ms->config.synServoPixelThresh) && (fabs(Py) < ms->config.synServoPixelThresh)) {
-      // ATTN 12
-      if (ARE_GENERIC_HEIGHT_LEARNING(ms)) {
-	cout << "bbLearning: synchronic servo succeeded. gradientServoDuringHeightLearning: " << ms->config.gradientServoDuringHeightLearning << endl;
-	if (ms->config.gradientServoDuringHeightLearning) {
-	  cout << "bbLearning: proceeding to gradient servo." << endl;
-	} else {
-	  cout << "bbLearning: returning from synchronic servo." << endl;
-	  return;
-	}
-      }
-
-      // ATTN 17
-      if (ms->config.bailAfterSynchronic) {
-	cout << "synchronic servo set to bail. returning." << endl;
-	return;
-      }
-
-      cout << "got within thresh. ";
-      if ((ms->config.classAerialGradients[ms->config.targetClass].rows > 1) && (ms->config.classAerialGradients[ms->config.targetClass].cols > 1)) {
-        ms->pushWord("gradientServo"); 
-        cout << "Queuing gradient servo." << endl;
-        //ms->pushCopies("density", ms->config.densityIterationsForGradientServo); 
-	//ms->pushCopies("accumulateDensity", ms->config.densityIterationsForGradientServo); 
-        //ms->pushCopies("resetTemporalMap", 1); 
-        //ms->pushWord("resetAerialGradientTemporalFrameAverage"); 
-        //ms->pushCopies("density", 1); 
-        //ms->pushCopies("waitUntilAtCurrentPosition", 5); 
-        ms->pushCopies("waitUntilAtCurrentPosition", 1); 
-        
-      } else {
-        CONSOLE_ERROR(ms, "No gradient map for class " << ms->config.targetClass << endl);
-        ms->clearStack();
-      }
-
-      return;	
-    } else {
-
-      //double thisKp = ms->config.synKp;
-      //double pTermX = thisKp*Px;
-      //double pTermY = thisKp*Py;
-
-      // invert the current eePose orientation to decide which direction to move from POV
-      //Eigen::Vector3f localUnitX;
-      //{
-	//Eigen::Quaternionf qin(0, 1, 0, 0);
-	//Eigen::Quaternionf qout(0, 1, 0, 0);
-	//Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-	//qout = eeqform * qin * eeqform.conjugate();
-	//localUnitX.x() = qout.x();
-	//localUnitX.y() = qout.y();
-	//localUnitX.z() = qout.z();
-      //}
-
-      //Eigen::Vector3f localUnitY;
-      //{
-	//Eigen::Quaternionf qin(0, 0, 1, 0);
-	//Eigen::Quaternionf qout(0, 1, 0, 0);
-	//Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-	//qout = eeqform * qin * eeqform.conjugate();
-	//localUnitY.x() = qout.x();
-	//localUnitY.y() = qout.y();
-	//localUnitY.z() = qout.z();
-      //}
-
-      // ATTN 21
-      // old PID
-      //double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-      //double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
-      double newx = 0;
-      double newy = 0;
-      // first analytic
-      //double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
-      //pixelToGlobal(ms, ms->config.pilotTarget.px, ms->config.pilotTarget.py, zToUse, &newx, &newy);
-      // ATTN 23
-      // use trueEEPoseEEPose here so that its attention will shift if the arm is moved by external means
-      eePose newGlobalTarget = analyticServoPixelToReticle(ms, ms->config.pilotTarget, camera->reticle, 0, ms->config.trueEEPoseEEPose);
-      newx = newGlobalTarget.px;
-      newy = newGlobalTarget.py;
-
-      if (!positionIsMapped(ms, newx, newy)) {
-        cout << "Returning because position is out of map bounds." << endl;
-        return;
-      } else {
-        ms->pushWord("synchronicServoRepeat"); 
-	// ATTN 21
-        //ms->config.currentEEPose.px += pTermX*localUnitY.x() - pTermY*localUnitX.x();
-        //ms->config.currentEEPose.py += pTermX*localUnitY.y() - pTermY*localUnitX.y();
-        ms->config.currentEEPose.px = newx;
-        ms->config.currentEEPose.py = newy;
-      }
-    }
-  }
-}
-
-void darkServo(MachineState * ms) {
-
-  // remember, ms->config.currentTableZ is inverted so this is like minus
-  double heightAboveTable = ms->config.currentEEPose.pz + ms->config.currentTableZ;
-
-  double heightFactor = heightAboveTable / ms->config.minHeight;
-
-  int darkX = 0;
-  int darkY = 0;
-  findDarkness(ms, &darkX, &darkY);
-
-  cout << "darkServo darkX darkY heightAboveTable: " << darkX << " " << darkY << " " << heightAboveTable << endl;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->reticle = camera->vanishingPointReticle;
-  ms->config.pilotTarget.px = darkX;
-  ms->config.pilotTarget.py = darkY;
-
-  double Px = camera->reticle.px - ms->config.pilotTarget.px;
-  double Py = camera->reticle.py - ms->config.pilotTarget.py;
-
-  double thisKp = ms->config.darkKp * heightFactor;
-  double pTermX = thisKp*Px;
-  double pTermY = thisKp*Py;
-
-  // invert the current eePose orientation to decide which direction to move from POV
-  //  of course this needs to be from the pose that corresponds to the frame this was taken from 
-  Eigen::Vector3f localUnitX;
-  {
-    Eigen::Quaternionf qin(0, 1, 0, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitX.x() = qout.x();
-    localUnitX.y() = qout.y();
-    localUnitX.z() = qout.z();
-  }
-
-  Eigen::Vector3f localUnitY;
-  {
-    Eigen::Quaternionf qin(0, 0, 1, 0);
-    Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
-    qout = eeqform * qin * eeqform.conjugate();
-    localUnitY.x() = qout.x();
-    localUnitY.y() = qout.y();
-    localUnitY.z() = qout.z();
-  }
-
-  double newx = ms->config.currentEEPose.px + pTermX*localUnitY.x() - pTermY*localUnitX.x();
-  double newy = ms->config.currentEEPose.py + pTermX*localUnitY.y() - pTermY*localUnitX.y();
-
-  ms->config.currentEEPose.px = newx;
-  ms->config.currentEEPose.py = newy;
-
-  if ((fabs(Px) < ms->config.darkServoPixelThresh) && (fabs(Py) < ms->config.darkServoPixelThresh)) {
-    cout << "darkness reached, continuing." << endl;
-  } else {
-    cout << "darkness not reached, servoing more. " << ms->config.darkServoIterations << " " << ms->config.darkServoTimeout << endl;
-    ms->pushWord("darkServoA");
-  }
-}
 
 void faceServo(MachineState * ms, vector<Rect> faces) {
 
@@ -9637,7 +4182,7 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
   {
     Eigen::Quaternionf qin(0, 1, 0, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+    Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitX.x() = qout.x();
     localUnitX.y() = qout.y();
@@ -9648,7 +4193,7 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
   {
     Eigen::Quaternionf qin(0, 0, 1, 0);
     Eigen::Quaternionf qout(0, 1, 0, 0);
-    Eigen::Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+    Eigen::Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
     qout = eeqform * qin * eeqform.conjugate();
     localUnitY.x() = qout.x();
     localUnitY.y() = qout.y();
@@ -9673,71 +4218,6 @@ void faceServo(MachineState * ms, vector<Rect> faces) {
 }
 
 
-void initRangeMaps(MachineState * ms) {
-  initRangeMapsNoLoad(ms);
-
-  ms->config.class3dGrasps.resize(ms->config.numClasses);
-  ms->config.classPlaceUnderPoints.resize(ms->config.numClasses);
-  ms->config.classPlaceOverPoints.resize(ms->config.numClasses);
-  for(int i = 0; i < ms->config.numClasses; i++) {
-    ms->config.class3dGrasps[i].resize(0);
-    ms->config.classPlaceUnderPoints[i].resize(0);
-    ms->config.classPlaceOverPoints[i].resize(0);
-  }
-
-  for (int i = 0; i < ms->config.classLabels.size(); i++) {
-    cout << "Trying to load range map for class " << i << endl;
-    tryToLoadRangeMap(ms, ms->config.class_crops_path, ms->config.classLabels[i].c_str(), i);
-  }
-}
-
-void initRangeMapsNoLoad(MachineState * ms) {
-  ms->config.classRangeMaps.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryTries1.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryPicks1.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryTries2.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryPicks2.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryTries3.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryPicks3.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryTries4.resize(ms->config.numClasses);
-  ms->config.classGraspMemoryPicks4.resize(ms->config.numClasses);
-  ms->config.classAerialGradients.resize(ms->config.numClasses);
-
-  // ATTN 16
-  ms->config.classHeight0AerialGradients.resize(ms->config.numClasses);
-  ms->config.classHeight1AerialGradients.resize(ms->config.numClasses);
-  ms->config.classHeight2AerialGradients.resize(ms->config.numClasses);
-  ms->config.classHeight3AerialGradients.resize(ms->config.numClasses);
-
-  ms->config.classGraspZs.resize(ms->config.numClasses);
-  ms->config.classGraspZsSet.resize(ms->config.numClasses);
-
-  ms->config.classHeightMemoryTries.resize(ms->config.numClasses);
-  ms->config.classHeightMemoryPicks.resize(ms->config.numClasses);
-}
-
-int isThisGraspMaxedOut(MachineState * ms, int i) {
-  int toReturn = 0;
-
-  if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-    toReturn = ( (ms->config.graspMemoryTries[i] >= ms->config.graspLearningMaxTries) );
-  } else if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-    // ATTN 20
-    double successes = ms->config.graspMemoryPicks[i];
-    double failures = ms->config.graspMemoryTries[i] - ms->config.graspMemoryPicks[i];
-    //cout << "YYY failures, successes: " << failures << " " << successes << endl;
-    successes = round(successes);
-    failures = round(failures);
-    //cout << "XXX failures, successes: " << failures << " " << successes << endl;
-    // returns probability that mu <= d given successes and failures.
-    double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
-    toReturn = (result > ms->config.algorithmCRT);
-  } else if (ms->config.currentPickMode == STATIC_MARGINALS) {
-    //toReturn = (ms->config.graspMemoryTries[i] <= 1);
-  }
-
-  return toReturn;
-}
 
 void pixelToGlobalFullFromCacheZNotBuilt(MachineState * ms, int pX, int pY, double * gX, double * gY, pixelToGlobalCache * cache, double z) {
   Eigen::Vector4f pixelVector;
@@ -10129,7 +4609,7 @@ void computePixelToGlobalFullOOPCache(MachineState * ms, double gZ, eePose given
 eePose pixelToGlobalEEPose(MachineState * ms, int pX, int pY, double gZ) {
   eePose result;
   pixelToGlobal(ms, pX, pY, gZ, &result.px, &result.py);
-  result.pz = ms->config.trueEEPose.position.z - ms->config.currentTableZ;
+  result.pz = ms->config.trueEEPoseEEPose.pz - ms->config.currentTableZ;
   result.qx = 0;
   result.qy = 0;
   result.qz = 0;
@@ -10579,7 +5059,7 @@ void globalToPixel(MachineState * ms, int * pX, int * pY, double gZ, double gX, 
   //cout << "reticlePixelX, reticlePixelY: " << reticlePixelX << " " << reticlePixelY << endl;
 
   // account for rotation of the end effector 
-  Quaternionf eeqform(ms->config.trueEEPose.orientation.w, ms->config.trueEEPose.orientation.x, ms->config.trueEEPose.orientation.y, ms->config.trueEEPose.orientation.z);
+  Quaternionf eeqform(ms->config.trueEEPoseEEPose.qw, ms->config.trueEEPoseEEPose.qx, ms->config.trueEEPoseEEPose.qy, ms->config.trueEEPoseEEPose.qz);
   Quaternionf crane2Orient(0, 1, 0, 0);
   Quaternionf rel = eeqform * crane2Orient.inverse();
   Quaternionf ex(0,1,0,0);
@@ -10635,7 +5115,7 @@ void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor) 
   int lineLength = 5;
   int pXo = 0, pYo = 0;  
   int pX = 0, pY = 0;  
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
 
   globalToPixel(ms, &pXo, &pYo, zToUse, toPaint.px, toPaint.py);
   pX = pXo - lineLength;
@@ -10722,7 +5202,7 @@ void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detecte
   for (double px = tbTop.x-ms->config.mapBlueBoxPixelSkirt; px <= tbBot.x+ms->config.mapBlueBoxPixelSkirt; px++) {
     for (double py = tbTop.y-ms->config.mapBlueBoxPixelSkirt; py <= tbBot.y+ms->config.mapBlueBoxPixelSkirt; py++) {
       double x, y;
-      double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+      double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
 
       pixelToGlobal(ms, px, py, z, &x, &y);
       int i, j;
@@ -10841,23 +5321,9 @@ void MachineState::simulatorCallback(const ros::TimerEvent&) {
     myRange.header.stamp = ros::Time::now();
     rangeCallback(myRange);
   }
-
+  robotEndPointCallback(ms);
   {
-    baxter_core_msgs::EndpointState myEPS;
-
-    myEPS.header.stamp = ros::Time::now();
-    myEPS.pose.position.x = ms->config.currentEEPose.px;
-    myEPS.pose.position.y = ms->config.currentEEPose.py;
-    myEPS.pose.position.z = ms->config.currentEEPose.pz;
-    myEPS.pose.orientation.x = ms->config.currentEEPose.qx;
-    myEPS.pose.orientation.y = ms->config.currentEEPose.qy;
-    myEPS.pose.orientation.z = ms->config.currentEEPose.qz;
-    myEPS.pose.orientation.w = ms->config.currentEEPose.qw;
-
-    endpointCallback(myEPS);
-  }
-  {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
 
     ms->config.mapBackgroundImage = ms->config.originalMapBackgroundImage.clone();
     // draw sprites on background
@@ -11757,639 +6223,6 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
   }
 }
 
-
-
-
-
-
-void resetAccumulatedImageAndMass(MachineState * ms) {
-  Size sz = ms->config.accumulatedImageMass.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.accumulatedImageMass.at<double>(y,x) = 0;
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = 0;
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = 0;
-      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = 0;
-    }
-  }
-}
-
-void renderAccumulatedImageAndDensity(MachineState * ms) {
-  /*
-  // copy the density map to the rendered image
-  for (int x = 0; x < imW; x++) {
-  for (int y = 0; y < imH; y++) {
-  //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-  uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
-  ms->config.gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-
-  ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
-  }
-  }
-  */
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  Size sz = camera->cam_bgr_img.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  int YConstant = 128;
-  Mat oviToConstantize = camera->cam_ycrcb_img.clone();
-
-
-  Mat oviInBGR;
-  cvtColor(oviToConstantize, oviInBGR, CV_YCrCb2BGR);
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = oviInBGR.at<cv::Vec3b>(y,x);
-     }
-  }
-
-  if (ms->config.shouldIRender) {
-    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
-  }
-
-}
-
-void saveAccumulatedStreamToPath(MachineState * ms, string path) {
-  // no compression!
-  std::vector<int> args;
-  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(ms->config.globalPngCompression);
-  imwrite(path, ms->config.accumulatedStreamImageBytes, args);
-}
-
-void substituteStreamAccumulatedImageQuantities(MachineState * ms) {
-  double param_aerialGradientDecayImageAverage = 0.0;
-  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
-
-  double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
-  ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
-
-  Size sz = ms->config.accumulatedStreamImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      double denom = ms->config.accumulatedStreamImageMass.at<double>(y,x);
-      if (denom <= 1.0) {
-	denom = 1.0;
-      }
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedStreamImage.at<Vec3d>(y,x)[2] / denom);
-    }
-  }
-
-  ms->config.accumulatedStreamImageBytes = ms->config.objectViewerImage.clone();
-}
-
-void substituteStreamImageQuantities(MachineState * ms) {
-  double param_aerialGradientDecayImageAverage = 0.0;
-  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
-
-  double param_sobel_sigma_substitute_stream = 4.0;//2.0; reflections are a problem for low sigma...
-  ms->config.sobel_sigma = param_sobel_sigma_substitute_stream;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  int thisIdx = camera->sibCurIdx;
-  //cout << "substituteStreamImageQuantities: " << thisIdx << endl;
-  if ( (thisIdx > -1) && (thisIdx < camera->streamImageBuffer.size()) ) {
-    streamImage &tsi = camera->streamImageBuffer[thisIdx];
-    if (tsi.image.data == NULL) {
-      cout << "encountered NULL data in sib, clearing stack." << endl;
-      ms->clearStack();
-    } else {
-      ms->config.objectViewerImage = tsi.image.clone();
-    }
-  } else {
-    cout << "sibCurIdx out of bounds, clearing stack." << endl;
-    ms->clearStack();
-  }
-}
-
-void substituteAccumulatedImageQuantities(MachineState * ms) {
-  double param_aerialGradientDecayImageAverage = 0.0;
-  ms->config.aerialGradientDecay = param_aerialGradientDecayImageAverage;
-
-  double param_sobel_sigma_substitute_accumulated = 4.0;//2.0; reflections are a problem for low sigma...
-  ms->config.sobel_sigma = param_sobel_sigma_substitute_accumulated;
-  Size sz = ms->config.accumulatedImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  cout << "Object viewer image: " << ms->config.objectViewerImage.size() << " type: " << ms->config.objectViewerImage.type() << endl;
-  cout << "accumulated image: " << ms->config.accumulatedImage.size() << " type: " << ms->config.accumulatedImage.type() << endl;
-  
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
-      if (denom <= 1.0) {
-	denom = 1.0;
-      }
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[1] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      ms->config.objectViewerImage.at<Vec3b>(y,x)[2] = doubleToByte(ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
-//cout << "JJJ: " << ms->config.objectViewerImage.at<Vec3b>(y,x) << endl;
-    }
-  }
-}
-
-void substituteLatestImageQuantities(MachineState * ms) {
-  double param_aerialGradientDecayIteratedDensity = 0.9;
-  ms->config.aerialGradientDecay = param_aerialGradientDecayIteratedDensity;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  double param_sobel_sigma_substitute_latest = 4.0;
-  ms->config.sobel_sigma = param_sobel_sigma_substitute_latest;
-
-  ms->config.objectViewerImage = camera->cam_bgr_img.clone();
-}
-
-void drawDensity(MachineState * ms, double scale) {
-  Size sz = ms->config.objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      uchar val = uchar(min( 255.0 * ms->config.density[y*imW+x] / scale, 255.0));
-      ms->config.densityViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-    }
-  }
-
-}
-
-void goCalculateDensity(MachineState * ms) {
-
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  Size sz = camera->cam_bgr_img.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  ms->config.lastImageFromDensityReceived = ms->config.lastImageStamp;
-
-  // XXX TODO might be able to pick up some time here if their allocation is slow
-  // by making these global
-  ms->config.densityViewerImage = camera->cam_bgr_img.clone();
-  Mat tmpImage = camera->cam_bgr_img.clone();
-
-  Mat yCrCbGradientImage = camera->cam_bgr_img.clone();
-
-
-  // Sobel business
-  Mat sobelGrayBlur;
-  Mat sobelYCrCbBlur;
-  processImage(tmpImage, sobelGrayBlur, sobelYCrCbBlur, ms->config.sobel_sigma);
-  ms->config.objectViewerYCbCrBlur = sobelYCrCbBlur;
-  ms->config.objectViewerGrayBlur = sobelYCrCbBlur;
-  
-  Mat totalGraySobel;
-  {
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(sobelGrayBlur, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(sobelGrayBlur, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalGraySobel = grad_x + grad_y;
-    // now totalGraySobel is gradient magnitude squared
-  }
-
-  Mat totalCrSobel = totalGraySobel.clone();
-  Mat totalCrSobelMag;
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalCrSobel.at<double>(y,x) = thisColor[1];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalCrSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalCrSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    totalCrSobel = grad_x + grad_y;
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalCrSobelMag = grad_x + grad_y;
-  }
-
-  Mat totalCbSobel = totalGraySobel.clone();
-  Mat totalCbSobelMag;
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalCbSobel.at<double>(y,x) = thisColor[2];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalCbSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalCbSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    totalCbSobel = grad_x + grad_y;
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalCbSobelMag = grad_x + grad_y;
-  }
-
-  Mat totalYSobel = totalGraySobel.clone();
-  {
-    for (int y = 0; y < imH; y++) {
-      for (int x = 0; x < imW; x++) {
-	cv::Vec3b thisColor = sobelYCrCbBlur.at<cv::Vec3b>(y,x);
-	totalYSobel.at<double>(y,x) = thisColor[0];
-      }
-    }
-    Mat grad_x, grad_y;
-    int sobelScale = 1;
-    int sobelDelta = 0;
-    int sobelDepth = CV_64F;
-    /// Gradient X
-    Sobel(totalYSobel, grad_x, sobelDepth, 1, 0, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-    /// Gradient Y
-    Sobel(totalYSobel, grad_y, sobelDepth, 0, 1, 5, sobelScale, sobelDelta, BORDER_DEFAULT);
-
-    grad_x = grad_x.mul(grad_x);
-    grad_y = grad_y.mul(grad_y);
-    totalYSobel = grad_x + grad_y;
-  }
-
-  // total becomes sum of Cr and Cb
-  int totalBecomes = 1;
-  if (totalBecomes) {
-    totalGraySobel = totalCrSobelMag + totalCbSobelMag;
-  }
-
-  // truncate the Sobel image outside the gray box
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < ms->config.grayTop.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalCrSobel.at<double>(y,x) = 0;
-      totalCbSobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = 0; x < ms->config.grayTop.x; x++) {
-    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalCrSobel.at<double>(y,x) = 0;
-      totalCbSobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = ms->config.grayBot.x; x < imW; x++) {
-    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalCrSobel.at<double>(y,x) = 0;
-      totalCbSobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = ms->config.grayBot.y; y < imH; y++) {
-      totalGraySobel.at<double>(y,x) = 0;
-      totalCrSobel.at<double>(y,x) = 0;
-      totalCbSobel.at<double>(y,x) = 0;
-      totalYSobel.at<double>(y,x) = 0;
-    }
-  }
-
-  // input image is noisy so blurring is a good idea
-  //GaussianBlur(ms->config.densityViewerImage, ms->config.densityViewerImage, cv::Size(0,0), 1.0);
-
-
-  int replaceDensityWithGrad = 1;
-  if (replaceDensityWithGrad) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.density[y*imW+x] = totalGraySobel.at<double>(y,x);
-      }
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.preDensity[y*imW+x] = totalGraySobel.at<double>(y,x);
-    }
-  }
-
-  // now update the exponential average of the density
-  // and set the density to be a thresholded version of this
-  ms->config.maxDensity = 0;
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
-    }
-  }
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      ms->config.temporalDensity[y*imW+x] = ms->config.densityDecay*ms->config.temporalDensity[y*imW+x] + (1.0-ms->config.densityDecay)*ms->config.density[y*imW+x];
-    }
-  }
-
-  // optionally feed it back in
-  int sobelBecomesDensity = 0;
-  if (sobelBecomesDensity) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	totalGraySobel.at<double>(y,x) = ms->config.density[y*imW+x];
-      }
-    }
-  }
-
-  double maxGsob = -INFINITY;
-  double maxYsob = -INFINITY;
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      maxGsob = max(maxGsob, totalGraySobel.at<double>(y,x));
-      maxYsob = max(maxYsob, totalYSobel.at<double>(y,x));
-    }
-  }
-  
-  // ATTN 11
-  // experimental
-  int combineYandGray = 1;
-  double yWeight = 1.0;
-  if (combineYandGray) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	double thisY2G = min(maxYsob, yWeight * totalYSobel.at<double>(y,x));
-	totalGraySobel.at<double>(y,x) += maxGsob * thisY2G * thisY2G / (maxYsob * maxYsob);
-      }
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      if (ms->config.density[y*imW+x] < ms->config.maxDensity* ms->config.threshFraction)
-	ms->config.density[y*imW+x] = 0;
-    }
-  }
-
-  // smooth the density
-  int smoothDensity = 1;
-  double densitySigma = max(0.5, double(ms->config.postDensitySigmaTrackbarVariable));//3.0;
-  Mat denTemp = totalGraySobel.clone();
-  if (smoothDensity) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	denTemp.at<double>(y,x) = ms->config.density[y*imW+x];
-      }
-    }
-
-    GaussianBlur(denTemp, denTemp, cv::Size(0,0), densitySigma);
-
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.density[y*imW+x] = denTemp.at<double>(y,x);
-      }
-    }
-  }
-
-  // inject some of the Y gradient map back in AFTER feeding back to totalGraySobel
-  //   so that Y contributes to objectness to help catch objects with poor color contrast,
-  //   but not to pose since it is corrupted by shadows.
-  int injectYGrad = 1;
-  double yThresh = 0.9*maxGsob;
-  if (injectYGrad) {
-    // truncate again after reinjection
-    ms->config.maxDensity = 0;
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
-      }
-    }
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if (totalYSobel.at<double>(y,x) > yThresh) {
-	  ms->config.density[y*imW+x] += 0.5*ms->config.maxDensity;
-	}
-      }
-    }
-
-    // truncate again after reinjection
-    ms->config.maxDensity = 0;
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.maxDensity = max(ms->config.maxDensity, ms->config.density[y*imW+x]);
-      }
-    }
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if (ms->config.density[y*imW+x] < ms->config.maxDensity* ms->config.threshFraction)
-	  ms->config.density[y*imW+x] = 0;
-      }
-    }
-  }
-
-  if (ms->config.drawGray) {
-    cv::Point outTop = cv::Point(ms->config.grayTop.x, ms->config.grayTop.y);
-    cv::Point outBot = cv::Point(ms->config.grayBot.x, ms->config.grayBot.y);
-    cv::Point inTop = cv::Point(ms->config.grayTop.x+1,ms->config.grayTop.y+1);
-    cv::Point inBot = cv::Point(ms->config.grayBot.x-1,ms->config.grayBot.y-1);
-    rectangle(ms->config.objectViewerImage, outTop, outBot, cv::Scalar(128,128,128));
-    rectangle(ms->config.objectViewerImage, inTop, inBot, cv::Scalar(32,32,32));
-  }
-
-  if (ms->config.mask_gripper) {
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	if ( isInGripperMask(ms, x, y) ) {
-	  ms->config.density[y*imW+x] = 0;
-	  totalGraySobel.at<double>(y,x) = 0;
-          ms->config.objectViewerImage.at<Vec3b>(y,x)[0] = 255;
-	}
-      }
-    }
-  }
-
-  if (ms->config.mask_gripper_blocks) {
-    int xs = ms->config.g1xs;
-    int xe = ms->config.g1xe;
-    int ys = ms->config.g1ys;
-    int ye = ms->config.g1ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	ms->config.density[y*imW+x] = 0;
-	totalGraySobel.at<double>(y,x) = 0;
-      }
-    }
-    Mat vCrop = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
-    vCrop = vCrop/2;
-
-    xs = ms->config.g2xs;
-    xe = ms->config.g2xe;
-    ys = ms->config.g2ys;
-    ye = ms->config.g2ye;
-    for (int x = xs; x < xe; x++) {
-      for (int y = ys; y < ye; y++) {
-	ms->config.density[y*imW+x] = 0;
-	totalGraySobel.at<double>(y,x) = 0;
-      }
-    }
-    Mat vCrop2 = ms->config.objectViewerImage(cv::Rect(xs, ys, xe-xs, ye-ys));
-    vCrop2 = vCrop2/2;
-  }
-
-  // truncate the density outside the gray box
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < ms->config.grayTop.y; y++) {
-      ms->config.density[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = 0; x < ms->config.grayTop.x; x++) {
-    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
-      ms->config.density[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = ms->config.grayBot.x; x < imW; x++) {
-    for (int y = ms->config.grayTop.y; y < ms->config.grayBot.y; y++) {
-      ms->config.density[y*imW+x] = 0;
-    }
-  }
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = ms->config.grayBot.y; y < imH; y++) {
-      ms->config.density[y*imW+x] = 0;
-    }
-  }
-
-  // integrate the density into the integral density
-  //double maxIntegralDensity = 0;
-  ms->config.integralDensity[0] = ms->config.density[0];
-  for (int x = 1; x < imW; x++) {
-    int y = 0;
-    ms->config.integralDensity[y*imW+x] = ms->config.integralDensity[y*imW+(x-1)] + ms->config.density[y*imW + x];
-  }
-  for (int y = 1; y < imH; y++) {
-    int x = 0;
-    ms->config.integralDensity[y*imW+x] = ms->config.integralDensity[(y-1)*imW+x] + ms->config.density[y*imW + x];
-  }
-  for (int x = 1; x < imW; x++) {
-    for (int y = 1; y < imH; y++) {
-      ms->config.integralDensity[y*imW+x] = 
-	ms->config.integralDensity[(y-1)*imW+x]+ms->config.integralDensity[y*imW+(x-1)]-ms->config.integralDensity[(y-1)*imW+(x-1)]+ms->config.density[y*imW + x];
-    }
-  }
-
-  // copy the density map to the rendered image
-  drawDensity(ms, ms->config.maxDensity);
-
-  // masked this too
-  ms->config.frameGraySobel = totalGraySobel.clone();
-  ms->config.preFrameGraySobel = totalGraySobel.clone();
-
-// XXX remove this junk
-/*
-  { // temporal averaging of aerial gradient
-    if ( (ms->config.aerialGradientTemporalFrameAverage.rows < ms->config.aerialGradientReticleWidth) ||
-	 (ms->config.aerialGradientTemporalFrameAverage.cols < ms->config.aerialGradientReticleWidth) ) {
-      ms->config.aerialGradientTemporalFrameAverage = Mat(imH,imW,ms->config.frameGraySobel.type()); 
-    }
-
-    for (int x = 0; x < imW; x++) {
-      for (int y = 0; y < imH; y++) {
-	ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) = 
-	  ms->config.aerialGradientDecay*ms->config.aerialGradientTemporalFrameAverage.at<double>(y, x) + 
-	  (1.0 - ms->config.aerialGradientDecay)*ms->config.frameGraySobel.at<double>(y, x);
-      }
-    }
-  }
-
-  ms->config.frameGraySobel = ms->config.aerialGradientTemporalFrameAverage;
-*/
-
-
-  double minGraySob = INFINITY;
-  double maxGraySob = -INFINITY;
-  double minCrSob = INFINITY;
-  double maxCrSob = -INFINITY;
-  double minCbSob = INFINITY;
-  double maxCbSob = -INFINITY;
-  double minYSob = INFINITY;
-  double maxYSob = -INFINITY;
-  double minAerTemp = INFINITY;
-  double maxAerTemp = -INFINITY;
-  for (int y = 0; y < imH; y++) {
-    for (int x = 0; x < imW; x++) {
-      minGraySob = min(minGraySob, double(totalGraySobel.at<double>(y,x)));
-      maxGraySob = max(maxGraySob, double(totalGraySobel.at<double>(y,x)));
-
-      minCrSob = min(minCrSob, double(totalCrSobel.at<double>(y,x)));
-      maxCrSob = max(maxCrSob, double(totalCrSobel.at<double>(y,x)));
-
-      minCbSob = min(minCbSob, double(totalCbSobel.at<double>(y,x)));
-      maxCbSob = max(maxCbSob, double(totalCbSobel.at<double>(y,x)));
-
-      minYSob = min(minYSob, double(totalYSobel.at<double>(y,x)));
-      maxYSob = max(maxYSob, double(totalYSobel.at<double>(y,x)));
-      
-      minAerTemp = min(minAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
-      maxAerTemp = max(maxAerTemp, double(ms->config.frameGraySobel.at<double>(y,x)));
-    }
-  }
-
-  double sobGrayRange = maxGraySob - minGraySob;
-  double sobCrRange = maxCrSob - minCrSob;
-  double sobCbRange = maxCbSob - minCbSob;
-  double sobYRange = maxYSob - minYSob;
-  double aerTempRange = maxAerTemp - minAerTemp;
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      yCrCbGradientImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(
-	uchar(max(0.0, min((128+255.0*(totalYSobel.at<double>(y,x) - minYSob - (sobYRange/2.0)) / sobYRange), 255.0))) ,
-	uchar(max(0.0, min((128+255.0*(totalCrSobel.at<double>(y,x) - minCrSob - (sobCrRange/2.0)) / sobCrRange), 255.0))) ,
-	uchar(max(0.0, min((128+255.0*(totalCbSobel.at<double>(y,x) - minCbSob - (sobCbRange/2.0)) / sobCbRange), 255.0))) );
-    }
-  }
-  Mat convertedYCbCrGradientImage;
-  cvtColor(yCrCbGradientImage, convertedYCbCrGradientImage, CV_YCrCb2BGR);
-
-  // copy the density map to the rendered image
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      //uchar val = uchar(min( 1*255.0 *  (totalGraySobel.at<double>(y,x) - minGraySob) / sobGrayRange, 255.0));
-      uchar val = uchar(min( 1*255.0 *  (ms->config.frameGraySobel.at<double>(y,x) - minAerTemp) / aerTempRange, 255.0));
-      ms->config.gradientViewerImage.at<cv::Vec3b>(y,x) = cv::Vec<uchar, 3>(0,val,0);
-
-      ms->config.gradientViewerImage.at<cv::Vec3b>(y+imH,x) = convertedYCbCrGradientImage.at<cv::Vec3b>(y,x);
-    }
-  }
-
-  if (ms->config.shouldIRender) {
-    ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
-    ms->config.gradientViewerWindow->updateImage(ms->config.gradientViewerImage);
-  }
-}
-
 void goFindBlueBoxes(MachineState * ms) {
   Size sz = ms->config.objectViewerImage.size();
   int imW = sz.width;
@@ -12694,7 +6527,7 @@ void goFindBlueBoxes(MachineState * ms) {
 
 //cout << "Here 4" << endl;
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 
@@ -13112,7 +6945,7 @@ void goClassifyBlueBoxes(MachineState * ms) {
     ms->config.pilotClosestBlueBoxNumber = -1;
   }
 
-  if (ms->config.shouldIRender) {
+  if (ms->config.shouldIRender && ms->config.showgui) {
     ms->config.objectViewerWindow->updateImage(ms->config.objectViewerImage);
   }
 
@@ -13128,8 +6961,7 @@ void loadROSParamsFromArgs(MachineState * ms) {
 
 
   nh.getParam("/robot_description", ms->config.robot_description);
-  nh.getParam("/manifest/robot_serial", ms->config.robot_serial);
-  nh.getParam("/rethink/software_version", ms->config.robot_software_version);
+  robotInitializeSerial(ms);
 
   if (ms->config.robot_mode == "simulated") {
     ms->config.currentRobotMode = SIMULATED;
@@ -13149,11 +6981,42 @@ void loadROSParamsFromArgs(MachineState * ms) {
 }
 
 
+void irInit(MachineState * ms) {
 
-void spinlessNodeMain(MachineState * ms) {
-  nodeInit(ms);
-  detectorsInit(ms);
+  {
+    //gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //if (0 == ms->config.left_or_right_arm.compare("left")) {
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.03, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //} else if (0 == ms->config.left_or_right_arm.compare("right")) {
+      //camera->gear0offset = Eigen::Quaternionf(0.0, 0.023, 0.023, 0.0167228); // z is from TF, good for depth alignment
+    //}
+
+    // invert the transformation
+    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
+    Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
+    Eigen::Quaternionf irpos = crane2quat.conjugate() * camera->gear0offset * crane2quat;
+    ms->config.irGlobalPositionEEFrame[0] = irpos.w();
+    ms->config.irGlobalPositionEEFrame[1] = irpos.x();
+    ms->config.irGlobalPositionEEFrame[2] = irpos.y();
+    ms->config.irGlobalPositionEEFrame[3] = irpos.z();
+
+  }
+
+
+  ms->config.epRingBuffer.resize(ms->config.epRingBufferSize);
+  ms->config.rgRingBuffer.resize(ms->config.rgRingBufferSize);
+
+  ms->config.epRBTimes.resize(ms->config.epRingBufferSize);
+  ms->config.rgRBTimes.resize(ms->config.rgRingBufferSize);
+
+
+  for (int r = 0; r < ms->config.totalRangeHistoryLength; r++) {
+    ms->config.rangeHistory[r] = 0;
+  }
+  ms->config.rangeogramImage = Mat(ms->config.rggHeight, ms->config.rggWidth, CV_8UC3);
 }
+
 
 void nodeInit(MachineState * ms) {
   ms->config.gBoxStrideX = ms->config.gBoxW / 2.0;
@@ -13257,9 +7120,6 @@ void detectorsInit(MachineState * ms) {
 
   // this is the total number of classes, so it is counted after the cache is dealt with
   ms->config.numClasses = ms->config.classLabels.size();
-
-  initRangeMaps(ms);
-
 
   Mat vocabulary;
 
@@ -13687,70 +7547,6 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
   }
 }
 
-void clearAllRangeMaps(MachineState * ms) {
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      ms->config.rangeMap[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = 0;
-      // ATTN 17
-      //rangeMapReg2[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapMass[rx + ry*ms->config.rmWidth] = 0;
-      ms->config.rangeMapAccumulator[rx + ry*ms->config.rmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.rmiWidth,ms->config.rmiHeight);
-    Mat vCrop = ms->config.rangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg1[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapReg2[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapMass[rx + ry*ms->config.hrmWidth] = 0;
-      ms->config.hiRangeMapAccumulator[rx + ry*ms->config.hrmWidth] = 0;
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hrmiWidth,ms->config.hrmiHeight);
-    Mat vCrop = ms->config.hiRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-  for (int h = 0; h < ms->config.hrmWidth; h++) {
-    for (int i = 0; i < ms->config.hrmWidth; i++) {
-      ms->config.hiColorRangeMapMass[h + i*ms->config.hrmWidth] = 0;
-      for (int j = 0; j < 3; j++) {
-        ms->config.hiColorRangeMapAccumulator[h + i*ms->config.hrmWidth + j*ms->config.hrmWidth*ms->config.hrmWidth] = 0;
-      }
-    }
-  }
-  for (int pz = 0; pz < ms->config.vmWidth; pz++) {
-    for (int py = 0; py < ms->config.vmWidth; py++) {
-      for (int px = 0; px < ms->config.vmWidth; px++) {
-        ms->config.volumeMap[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.volumeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        ms->config.vmColorRangeMapMass[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        for (int pc = 0; pc < 3; pc++) {
-          ms->config.vmColorRangeMapAccumulator[px + py*ms->config.vmWidth + pz*ms->config.vmWidth*ms->config.vmWidth + pc*ms->config.vmWidth*ms->config.vmWidth*ms->config.vmWidth] = 0;
-        }
-      }
-    }
-  }
-  {
-    cv::Scalar backColor(128,0,0);
-    cv::Point outTop = cv::Point(0,0);
-    cv::Point outBot = cv::Point(ms->config.hiColorRangemapImage.cols,ms->config.hiColorRangemapImage.rows);
-    Mat vCrop = ms->config.hiColorRangemapImage(cv::Rect(outTop.x, outTop.y, outBot.x-outTop.x, outBot.y-outTop.y));
-    vCrop = backColor;
-  }
-}
-
 void processSaliency(Mat in, Mat out) {
 //  out = in.clone();
 //
@@ -13884,7 +7680,7 @@ bool isBoxMemoryIkPossible(MachineState * ms, BoxMemory b) {
 }
 
 bool isBlueBoxIkPossible(MachineState * ms, cv::Point tbTop, cv::Point tbBot) {
-  double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+  double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
   int toReturn = 1;
   {
     double tbx, tby;
@@ -14452,20 +8248,12 @@ void initializeViewers(MachineState * ms) {
   ms->config.objectViewerGrayBlur = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
 
 
-  ms->config.densityViewerImage = camera->cam_bgr_img.clone();
-  ms->config.densityViewerImage *= 0;
-
-
   ms->config.accumulatedImage = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64FC3);
 
 
   ms->config.accumulatedImageMass = Mat(camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, CV_64F);
 
 
-  ms->config.gradientViewerImage = Mat(2*camera->cam_bgr_img.rows, camera->cam_bgr_img.cols, camera->cam_bgr_img.type());
-
-
-  ms->config.aerialGradientViewerImage = Mat(4*ms->config.aerialGradientWidth, ms->config.aerialGradientWidth, CV_64F);
   ms->config.objectViewerImage = camera->cam_bgr_img.clone();
 
 }
@@ -14513,6 +8301,80 @@ int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSe
 
   return closest_idx;
 }
+
+
+//Grant
+//Hopefully will publish all boxes
+void fillRecognizedObjectArrayFromBlueBoxMemoryAll(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa) {
+ 
+  //std::cout << "Hello! " << ms->config.blueBoxMemories.size() << std::endl;
+  roa->objects.resize(0);
+
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+
+  // this sets all locked or reported boxes to lock
+  for (int j = 0; j < ms->config.blueBoxMemories.size(); j++) {
+    if (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+    ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED) {
+          ms->config.blueBoxMemories[j].lockStatus = POSE_LOCK;
+    }
+  }
+
+  //int objectStartIndex = roa->objects.size();
+  //std::cout << "Num blueboxes: " << ms->config.blueBoxMemories.size() << std::endl;
+  for (int blueBox_i = 0; blueBox_i < ms->config.blueBoxMemories.size(); blueBox_i++) {
+        /*if ((ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_LOCK ||
+         ms->config.blueBoxMemories[blueBox_i].lockStatus == POSE_REPORTED)) {*/
+    std::cout << "bluebox num: " << blueBox_i;
+    std::cout << " centroid pos: " << ms->config.blueBoxMemories[blueBox_i].centroid.px;
+    std::cout << ", " << ms->config.blueBoxMemories[blueBox_i].centroid.py;
+    std::cout << ", " << ms->config.blueBoxMemories[blueBox_i].centroid.pz << std::endl;
+    int classLabelIndex = ms->config.blueBoxMemories[blueBox_i].labeledClassIndex;
+    string class_label = ms->config.classLabels[classLabelIndex];
+    geometry_msgs::Pose pose;
+    int aI = roa->objects.size();
+    roa->objects.resize(roa->objects.size() + 1);
+
+    pose.position.x = ms->config.blueBoxMemories[blueBox_i].centroid.px;
+    pose.position.y = ms->config.blueBoxMemories[blueBox_i].centroid.py;
+    pose.position.z = ms->config.blueBoxMemories[blueBox_i].centroid.pz;
+
+    //cout << "blueBoxMemories: " << ms->config.blueBoxMemories[closest_idx].centroid.px << endl;
+    //cout << "pose: " << pose.position.x << endl;
+
+    roa->objects[aI].pose.pose.pose.position = pose.position;
+
+    //cout << "roa objects x: " << roa->objects[aI].pose.pose.pose.position.x << endl;
+    roa->objects[aI].type.key = class_label;    
+    /*
+    else{
+        std::cout << "bluebox num: " << blueBox_i << " is not being printed" << std::endl;
+      }*/    
+  }
+/*
+      int closest_idx = -1;
+      double min_square_dist = VERYBIGNUMBER;
+
+      for (int j = 0; j < ms->scenePredictBestObject tableUpdateMapsconfig.blueBoxMemories.size(); j++) {
+    if (ms->config.blueBoxMemories[j].labeledClassIndex == class_i &&
+        (ms->config.blueBoxMemories[j].lockStatus == POSE_LOCK ||
+         ms->config.blueBoxMemories[j].lockStatus == POSE_REPORTED)) {
+      double square_dist =
+        eePose::squareDistance(centroid, ms->config.blueBoxMemories[j].centroid);
+      if (square_dist < min_square_dist) {
+        min_square_dist = square_dist;
+        closest_idx = j;
+      }
+    }
+      }
+*/
+      
+    
+ 
+}
+
 
 void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa) {
   roa->objects.resize(0);
@@ -14666,6 +8528,8 @@ void promoteBlueBoxes(MachineState * ms) {
   }
 }
 
+
+
 void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   stateOut->zero_g = ms->config.zero_g_toggle;
 
@@ -14686,7 +8550,7 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
 
 
   object_recognition_msgs::RecognizedObjectArray roa;
-  fillRecognizedObjectArrayFromBlueBoxMemory(ms, &roa);
+  fillRecognizedObjectArrayFromBlueBoxMemoryAll(ms, &roa);
 
   for (int i = 0; i < roa.objects.size(); i++) {
     stateOut->objects.push_back(roa.objects[i]);
@@ -14697,7 +8561,7 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
     stateOut->words.push_back(iter->first);
   }
-
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   for (int i = 0; i < words.size(); i++) {
     vector<string> names = words[i]->names();
     for (int j = 0; j < names.size(); j++) {
@@ -14724,7 +8588,15 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   time(&ms->config.firstTimeRange);
 
 
-  initializeMachine(ms);
+#ifdef USE_ROBOT_BAXTER
+  ms->config.robot_type = "baxter";
+#elif defined(USE_ROBOT_AIBO)
+  ms->config.robot_type = "aibo123";
+#elif defined(USE_ROBOT_PIDRONE)
+  ms->config.robot_type = "pidrone";
+#else
+  ms->config.robot_type = "none";
+#endif
 
   ms->config.left_or_right_arm = left_or_right_arm;
 
@@ -14755,13 +8627,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   unsigned long seed = 1;
   rk_seed(seed, &ms->config.random_state);
-  ms->config.cameras.clear();
-  if ( (ms->config.left_or_right_arm.compare("right") == 0) || (ms->config.left_or_right_arm.compare("left") == 0) ) {
-    string image_topic = "/cameras/" + ms->config.left_or_right_arm + "_hand_camera/image";
-    Camera * c = new Camera(ms, ms->config.left_or_right_arm + "_hand_camera", image_topic, ms->config.left_or_right_arm + "_hand", ms->config.left_or_right_arm + "_hand_camera");
-    ms->config.cameras.push_back(c);
-    ms->config.focused_camera = 0;
-  }
+
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_qhd", "/kinect2/qhd/image_color", ms->config.left_or_right_arm + "_hand", "k2rgb_tf_link");
   //Camera * k2rgb = new Camera(ms, "left_kinect2_color_hd", "/kinect2/hd/image_color", ms->config.left_or_right_arm + "_hand", "kinect2_link");
   //ms->config.cameras.push_back(k2rgb);
@@ -14778,142 +8644,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
 
   ms->config.ee_target_pub = n.advertise<geometry_msgs::Point>("pilot_target_" + ms->config.left_or_right_arm, 10);
 
-
-
-
-  if (ms->config.currentRobotMode == PHYSICAL || ms->config.currentRobotMode == SNOOP) {
-    ms->config.epState =   n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/endpoint_state", 1, &MachineState::endpointCallback, ms);
-    ms->config.eeRanger =  n.subscribe("/robot/range/" + ms->config.left_or_right_arm + "_hand_range/state", 1, &MachineState::rangeCallback, ms);
-
-    ms->config.gravity_comp_sub = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/gravity_compensation_torques", 1, &MachineState::gravityCompCallback, ms);
-
-    ms->config.cuff_grasp_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_upper_button/state", 1, &MachineState::cuffGraspCallback, ms);
-    ms->config.cuff_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_lower_button/state", 1, &MachineState::cuffOkCallback, ms);
-    ms->config.shoulder_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_shoulder_button/state", 1, &MachineState::shoulderCallback, ms);
-
-    ms->config.torso_fan_sub = n.subscribe("/robot/analog_io/torso_fan/state", 1, &MachineState::torsoFanCallback, ms);
-
-#ifdef RETHINK_SDK_1_2_0
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_back/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_ok/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_button_show/state", 1, &MachineState::armShowButtonCallback, ms);
-#else
-    ms->config.arm_button_back_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button1/state", 1, &MachineState::armBackButtonCallback, ms);
-    ms->config.arm_button_ok_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button0/state", 1, &MachineState::armOkButtonCallback, ms);
-    ms->config.arm_button_show_sub = n.subscribe("/robot/digital_io/" + ms->config.left_or_right_arm + "_itb_button2/state", 1, &MachineState::armShowButtonCallback, ms);
-#endif
-
-
-    ms->config.collisionDetectionState = n.subscribe("/robot/limb/" + ms->config.left_or_right_arm + "/collision_detection_state", 1, &MachineState::collisionDetectionStateCallback, ms);
-    ms->config.gripState = n.subscribe("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/state", 1, &MachineState::gripStateCallback, ms);
-    ms->config.eeAccelerator =  n.subscribe("/robot/accelerometer/" + ms->config.left_or_right_arm + "_accelerometer/state", 1, &MachineState::accelerometerCallback, ms);
-    ms->config.eeTarget =  n.subscribe("/ein_" + ms->config.left_or_right_arm + "/pilot_target_" + ms->config.left_or_right_arm, 1, &MachineState::targetCallback, ms);
-    ms->config.jointSubscriber = n.subscribe("/robot/joint_states", 1, &MachineState::jointCallback, ms);
-
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    cout << "SIMULATION mode enabled." << endl;
-
-    ms->config.simulatorCallbackTimer = n.createTimer(ros::Duration(1.0/ms->config.simulatorCallbackFrequency), &MachineState::simulatorCallback, ms);
-
-
-    { // load sprites
-      // snoop data/sprites folder
-      //   loop through subfolders
-      //     load image.ppm for now, default everything else
-      vector<string> spriteLabels;
-      spriteLabels.resize(0);
-      ms->config.masterSprites.resize(0);
-      ms->config.instanceSprites.resize(0);
-      DIR *dpdf;
-      struct dirent *epdf;
-      string dot(".");
-      string dotdot("..");
-
-      char buf[1024];
-      sprintf(buf, "%s/simulator/sprites", ms->config.data_directory.c_str());
-      dpdf = opendir(buf);
-      if (dpdf != NULL){
-	while (epdf = readdir(dpdf)){
-	  string thisFileName(epdf->d_name);
-
-	  string thisFullFileName(buf);
-	  thisFullFileName = thisFullFileName + "/" + thisFileName;
-	  cout << "checking " << thisFullFileName << " during sprite snoop...";
-
-	  struct stat buf2;
-	  stat(thisFullFileName.c_str(), &buf2);
-
-	  int itIsADir = S_ISDIR(buf2.st_mode);
-	  if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name) && itIsADir) {
-	    spriteLabels.push_back(thisFileName);
-	    cout << " is a directory." << endl;
-	  } else {
-	    cout << " is NOT a directory." << endl;
-	  }
-	}
-      }
-
-      ms->config.masterSprites.resize(spriteLabels.size());
-      for (int s = 0; s < ms->config.masterSprites.size(); s++) {
-	ms->config.masterSprites[s].name = spriteLabels[s];
-	string filename = ms->config.data_directory + "/simulator/sprites/" + ms->config.masterSprites[s].name + "/image.ppm";
-	cout << "loading sprite from " << filename << " ... ";
-
-	Mat tmp = imread(filename);
-	ms->config.masterSprites[s].image = tmp;
-	ms->config.masterSprites[s].scale = 15/.01;
-
-	ms->config.masterSprites[s].top = eePose::zero();
-	ms->config.masterSprites[s].bot = eePose::zero();
-	ms->config.masterSprites[s].pose = eePose::zero();
-	cout << "loaded " << ms->config.masterSprites[s].name << " as masterSprites[" << s << "] scale " << ms->config.masterSprites[s].scale << " image size " << ms->config.masterSprites[s].image.size() << endl;
-      }
-    }
-
-    // load background
-    int tileBackground = 1;
-    if (tileBackground) {
-      string filename;
-      filename = ms->config.data_directory + "/simulator/tableTile.png";
-      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-      Mat tmp = imread(filename);
-      cout << "done. Tiling " << tmp.size() << " "; cout.flush();
-      //cout << "downsampling... "; cout.flush();
-      //cv::resize(tmp, tmp, cv::Size(tmp.cols/2,tmp.rows/2));
-      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
-
-      int tilesWidth = ms->config.mbiWidth / tmp.cols;
-      int tilesHeight = ms->config.mbiHeight / tmp.rows;
-
-      for (int tx = 0; tx < tilesWidth; tx++) {
-	for (int ty = 0; ty < tilesHeight; ty++) {
-	  Mat crop = ms->config.mapBackgroundImage(cv::Rect(tx*tmp.cols, ty*tmp.rows, tmp.cols, tmp.rows));
-	  resize(tmp, crop, crop.size(), 0, 0, CV_INTER_LINEAR);
-	  if (tx % 2) {
-	    flip(crop, crop, 1);
-	  }
-	  if ((ty) % 2) {
-	    flip(crop, crop, 0);
-	  }
-	}
-      }
-
-      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
-    } else {
-      string filename;
-      //filename = ms->config.data_directory + "/mapBackground.ppm";
-      filename = ms->config.data_directory + "/simulator/carpetBackground.jpg";
-      cout << "loading mapBackgroundImage from " << filename << " "; cout.flush();
-      Mat tmp = imread(filename);
-      cout << "done. Resizing " << tmp.size() << " "; cout.flush();
-      cv::resize(tmp, ms->config.mapBackgroundImage, cv::Size(ms->config.mbiWidth,ms->config.mbiHeight));
-      cout << "done. " << ms->config.mapBackgroundImage.size() << endl; cout.flush();
-    }
-    ms->config.originalMapBackgroundImage = ms->config.mapBackgroundImage.clone();
-
-  }  else {
-    assert(0);
-  }
+  robotInitializeConfig(ms);
 
   ms->config.pickObjectUnderEndEffectorCommandCallbackSub = n.subscribe("/ein/eePickCommand", 1, &MachineState::pickObjectUnderEndEffectorCommandCallback, ms);
   ms->config.placeObjectInEndEffectorCommandCallbackSub = n.subscribe("/ein/eePlaceCommand", 1, &MachineState::placeObjectInEndEffectorCommandCallback, ms);
@@ -14932,57 +8663,23 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   }
 
 
-
   ms->config.tfListener = new tf::TransformListener();
   ms->config.tfListener->setUsingDedicatedThread(true);
 
-  ms->config.ikClient = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/" + ms->config.left_or_right_arm + "/PositionKinematicsNode/IKService");
-  ms->config.cameraClient = n.serviceClient<baxter_core_msgs::OpenCamera>("/cameras/open");
-
-  ms->config.joint_mover = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/" + ms->config.left_or_right_arm + "/joint_command", 10);
-  ms->config.gripperPub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/" + ms->config.left_or_right_arm + "_gripper/command",10);
-  ms->config.moveSpeedPub = n.advertise<std_msgs::Float64>("/robot/limb/" + ms->config.left_or_right_arm + "/set_speed_ratio",10);
-  ms->config.sonarPub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/set_sonars_enabled",10);
-  ms->config.headPub = n.advertise<baxter_core_msgs::HeadPanCommand>("/robot/head/command_head_pan",10);
-  ms->config.nodPub = n.advertise<std_msgs::Bool>("/robot/head/command_head_nod",10);
-
-  ms->config.stiffPub = n.advertise<std_msgs::UInt32>("/robot/limb/" + ms->config.left_or_right_arm + "/command_stiffness",10);
-
-  ms->config.digital_io_pub = n.advertise<baxter_core_msgs::DigitalOutputCommand>("/robot/digital_io/command",10);
-  ms->config.analog_io_pub = n.advertise<baxter_core_msgs::AnalogOutputCommand>("/robot/analog_io/command",10);
-
-  ms->config.sonar_pub = n.advertise<std_msgs::UInt16>("/robot/sonar/head_sonar/lights/set_lights",10);
-  ms->config.red_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_red_level",10);
-  ms->config.green_halo_pub = n.advertise<std_msgs::Float32>("/robot/sonar/head_sonar/lights/set_green_level",10);
-  ms->config.face_screen_pub = n.advertise<sensor_msgs::Image>("/robot/xdisplay",10);
-
-
-  ms->config.currentHeadPanCommand.target = 0;
-#ifdef RETHINK_SDK_1_2_0
-  ms->config.currentHeadPanCommand.speed_ratio = 0.5;
-#else
-  ms->config.currentHeadPanCommand.speed = 50;
-#endif
-  ms->config.currentHeadNodCommand.data = 0;
-  ms->config.currentSonarCommand.data = 0;
-
-
-  ms->config.facePub = n.advertise<std_msgs::Int32>("/confusion/target/command", 10);
   string state_topic = "/ein/" + ms->config.left_or_right_arm + "/state";
   ms->config.einStatePub = n.advertise<EinState>(state_topic, 10);
 
-
-  ms->config.vmMarkerPublisher = n.advertise<visualization_msgs::MarkerArray>("volumetric_rgb_map", 10);
 
   ms->config.frameGraySobel = Mat(1,1,CV_64F);
 
   initializeMap(ms);
 
 
+  nodeInit(ms);
+  detectorsInit(ms);
+  irInit(ms);
 
 
-  spinlessNodeMain(ms);
-  spinlessPilotMain(ms);
 
   ms->config.lastMovementStateSet = ros::Time::now();
 
@@ -14998,6 +8695,7 @@ void initializeArm(MachineState * ms, string left_or_right_arm) {
   } 
 
 
+  initializeMachine(ms);
 
 }
 
@@ -15058,38 +8756,8 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.faceViewWindow->setWindowTitle("Face View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.faceViewWindow);
   
-  
-
-  ms->config.rangemapWindow = new EinWindow(NULL, ms);
-  ms->config.rangemapWindow->setWindowTitle("Range Map View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.rangemapWindow);
-  
-  
-  ms->config.graspMemoryWindow = new EinWindow(NULL, ms);
-  ms->config.graspMemoryWindow->setWindowTitle("Grasp Memory View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.graspMemoryWindow);
-  ms->config.graspMemoryWindow->setMouseCallBack(graspMemoryCallbackFunc, ms);
-  
-  
-  
-  ms->config.graspMemorySampleWindow = new EinWindow(NULL, ms);
-  ms->config.graspMemorySampleWindow->setWindowTitle("Grasp Memory Sample View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.graspMemorySampleWindow);
 
   
-  ms->config.heightMemorySampleWindow = new EinWindow(NULL, ms);
-  ms->config.heightMemorySampleWindow->setWindowTitle("Height Memory Sample View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.heightMemorySampleWindow);
-  
-  
-  ms->config.hiRangemapWindow = new EinWindow(NULL, ms);
-  ms->config.hiRangemapWindow->setWindowTitle("Hi Range Map View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.hiRangemapWindow);
-  
-  ms->config.hiColorRangemapWindow = new EinWindow(NULL, ms);
-  ms->config.hiColorRangemapWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.hiColorRangemapWindow);
-
 
   ms->config.mapBackgroundViewWindow = new EinWindow(NULL, ms);
   ms->config.mapBackgroundViewWindow->setWindowTitle("Hi Color Range Map View " + ms->config.left_or_right_arm);
@@ -15108,15 +8776,6 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   ms->config.objectMapViewerWindow->setWindowTitle("Object Map Viewer " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.objectMapViewerWindow);
 
-
-
-  ms->config.gradientViewerWindow = new EinWindow(NULL, ms);
-  ms->config.gradientViewerWindow->setWindowTitle("Gradient Viewer " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.gradientViewerWindow);
-
-  ms->config.aerialGradientViewerWindow = new EinWindow(NULL, ms);
-  ms->config.aerialGradientViewerWindow->setWindowTitle("Aerial Gradient Viewer " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.aerialGradientViewerWindow);
 
   ms->config.stereoViewerWindow = new EinWindow(NULL, ms);
   ms->config.stereoViewerWindow->setWindowTitle("Stereo Viewer " + ms->config.left_or_right_arm);
@@ -15225,28 +8884,24 @@ void signalHandler( int signo )
 
 int main(int argc, char **argv) {
 
-  QApplication a(argc, argv);
-
-
-
   initializeWords();
 
   srand(time(NULL));
 
-  if (argc < 3) {
-    cout << "Must pass at least three arguments.  Received " << argc;
-    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both>");
+  if (argc < 4) {
+    cout << "Must pass at least four arguments.  Received " << argc;
+    ROS_ERROR("ein <physical|simulated|snoop> <left|right|both> <gui|nogui>");
     return -1;
   }
 
-  string robot_mode = argv[argc-2];
+  string robot_mode = argv[1];
   if (robot_mode != "simulated" && robot_mode != "physical" && robot_mode != "snoop")  {
     cout << "Invalid mode: " << robot_mode << endl;
-    ROS_ERROR("Must pass ein <physical|simulated|snoop> <left|right|both>");
+    ROS_ERROR("Must pass ein <physical|simulated|snoop> <left|right|both> <gui|nogui>");
     return -1;
   }
 
-  string left_or_right_arm = argv[argc-1];
+  string left_or_right_arm = argv[2];
 
   vector<string> arm_names;
 
@@ -15260,7 +8915,24 @@ int main(int argc, char **argv) {
   } else {
     ROS_ERROR("Must pass left, right, or both.");
   }
-  
+  bool showgui;
+  string gui_or_nogui = argv[3];
+  if (gui_or_nogui == "gui") {
+    showgui = true;
+  } else if (gui_or_nogui == "nogui") {
+    showgui = false;
+  } else {
+    ROS_ERROR("Must pass gui or nogui");
+  }
+
+  QCoreApplication * a;
+
+  if (showgui) {
+    a = new QApplication(argc, argv);
+  } else {
+    a = new QCoreApplication(argc, argv);
+  }
+
 
 
   string programName;
@@ -15315,21 +8987,21 @@ int main(int argc, char **argv) {
 
     initializeArm(ms, left_or_right);
 
-    ms->config.timer1 = n.createTimer(ros::Duration(0.0001), &MachineState::timercallback1, ms);
+    ms->config.timer1 = n.createTimer(ros::Duration(0.01), &MachineState::timercallback1, ms);
+    ms->config.showgui = showgui;
   }
 
-  
+  if (showgui) {
+    einMainWindow = new MainWindow(NULL, right_arm, left_arm);
 
-  einMainWindow = new MainWindow(NULL, right_arm, left_arm);
+    for(int i = 0; i < machineStates.size(); i++) {
+      initializeArmGui(machineStates[i], einMainWindow);
+    }
 
-  for(int i = 0; i < machineStates.size(); i++) {
-    initializeArmGui(machineStates[i], einMainWindow);
+    einMainWindow->show();
+    einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
+    einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ein_software_version + " Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
   }
-
-  einMainWindow->show();
-  einMainWindow->setObjectMapViewMouseCallBack(objectMapCallbackFunc, &machineStates);
-  einMainWindow->setWindowTitle(QString::fromStdString("Ein " + ein_software_version + " Main Window (" + robot_mode + " " + left_or_right_arm + ")"));
-
 
 
   //timer->start(0);

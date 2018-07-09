@@ -1,0 +1,3398 @@
+#include "ein_words.h"
+#include "config.h"
+#include "ein.h"
+#include "camera.h"
+#include "qtgui/einwindow.h"
+
+#include "ein_aibo.h"
+#include "ein_aibo_config.h"
+
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/JointState.h>
+#include <sensor_msgs/image_encodings.h>
+#include <ros/package.h>
+#include <iostream>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2/LinearMath/Quaternion.h>
+
+
+using namespace cv;
+
+/*
+
+Using MS_URBI pink memory stick image downloaded from 
+
+https://github.com/Diamg/AiboRosPackages/tree/master/MS_URBI
+
+cloned from
+
+https://github.com/Diamg/AiboRosPackages.git
+
+Looked briefly for the source since we can cross compile for Aibo.
+The image is an URBI server for the dog. 
+
+Wrapped some URBI in Back. 
+
+XXX be careful, some of these actions can cause Aibo to hit the ground
+harder than I would allow...
+
+///////////// Start Original forward to motion.u ///////////////////////
+
+Contributors: * Laboratory of Robotics in Versailles (original walk)
+                  (if you have other walks, contact us)
+              * Matthieu Nottale (Fourier extraction)
+              * Assif Mirza (incremental turn)
+              * Frederic Lettelier (adaptation of the inc. turn for walk)
+
+Functions:
+  robot.walk(duration) : walk for duration milliseconds. 
+                         => Walk backward if duration is negative
+  robot.stopwalk()     : interrupt the walk
+  robot.turn(duration) : turn couterclockwise for duration milliseconds.
+                         => Turn clockwise if duration is negative
+  robot.stopturn()     : interrupt the turn
+
+  robot.initial()   : initial position sitting down (strech and lay)
+  robot.stretch()   : stretching like in the morning...
+  robot.lay()       : laying (sitting down)
+  robot.sit()       : sit on the back
+  robot.beg()       : stand up with knees bent
+  robot.stand()     : stand up
+
+Variables:
+  robot.walkspeed      : speed of walk, the smaller the faster: 
+                         period of a step. Defaults to 1s
+  robot.turnspeed      : speed of turn, the smaller the faster:
+                         period of a step. Defaults to 1s
+
+///////////// End   Original forward to motion.u ///////////////////////
+
+///////////// Start Original forward to swtrans.u ///////////////////////
+##############################################################
+#                  AiboUrbi Postures                         #
+#                                                            #
+#                                                            #
+#  Postures of the robot are set with                        #
+#                                        robot.StandUp()     #
+#                                        robot.SitDown()     #
+#                                        robot.LayDown()     #
+#                                                            #
+##############################################################
+///////////// End   Original forward to swtrans.u ///////////////////////
+
+We open a socket for Ein to talk to the URBI server over WiFi.  WiFi must be WirelessB. 
+
+You can send URBI directly or use the Back wrappers. 
+
+////////////////////
+///// To use WiFi you need to set up a MS_URBI_TEST/OPEN-R/SYSTEM/CONF/WLANCONF.TXT
+///////
+#
+# WLAN
+#
+HOSTNAME=peregrin
+ESSID=arachna
+WEPENABLE=1
+WEPKEY=0xDEADBEEF00
+# 0=ad-hoc ; 1=infrastructure ; 2=inf || ad
+APMODE=1
+CHANNEL=8
+
+#
+# IP network
+#
+USE_DHCP=1
+#ETHER_IP=192.168.0.2
+#ETHER_NETMASK=255.255.255.0
+#IP_GATEWAY=192.168.0.1
+#DNS_SERVER_1=192.168.0.1
+#DNS_DEFDNAME=example.net
+
+#
+# SSDP - for UPnP
+#
+SSDP_ENABLE=1
+///////
+
+*/
+
+void flushDogBuffer(MachineState * ms, int member);
+
+void robotInitializeConfig(MachineState * ms) {
+  ms->config.aiboConfig = new EinAiboConfig(ms);
+  ms->config.cameras.clear();
+
+  Camera * c = new Camera(ms, "", "", "", "");
+  ms->config.cameras.push_back(c);
+  ms->config.focused_camera = 0;
+
+  ros::NodeHandle n("~");
+
+  string description_fname = ros::package::getPath("aibo_description") + "/urdf/Aibo.urdf";
+  std::ifstream input(description_fname);
+  std::stringstream sstr;
+
+  while(input >> sstr.rdbuf());
+  
+
+  n.setParam("/robot_description", sstr.str());
+
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  geometry_msgs::TransformStamped static_transformStamped;
+
+  static_transformStamped.header.stamp = ros::Time::now();
+  static_transformStamped.header.frame_id = "map";
+  static_transformStamped.child_frame_id = "base_link";
+  static_transformStamped.transform.translation.x = 0;
+  static_transformStamped.transform.translation.y = 0;
+  static_transformStamped.transform.translation.z = 0;
+  tf2::Quaternion quat;
+  quat.setRPY(0, 0, 0);
+  static_transformStamped.transform.rotation.x = quat.x();
+  static_transformStamped.transform.rotation.y = quat.y();
+  static_transformStamped.transform.rotation.z = quat.z();
+  static_transformStamped.transform.rotation.w = quat.w();
+  //static_broadcaster.sendTransform(static_transformStamped);
+
+
+}
+
+void robotInitializeMachine(MachineState * ms) {
+  ms->evaluateProgram("\"aibo\" import");
+
+}
+
+EinAiboConfig::EinAiboConfig(MachineState * myms) {
+  ms = myms;
+}
+
+EinAiboDog::EinAiboDog() {
+  ros::NodeHandle n("~");
+
+  joint_state_pub = n.advertise<sensor_msgs::JointState>("/joint_states",10);
+  joint_state.name.resize(17);
+  joint_state.name[0] = "legRF1";
+  joint_state.name[1] = "legRF2";
+  joint_state.name[2] = "legRF3";
+  joint_state.name[3] = "legLF1";
+  joint_state.name[4] = "legLF2";
+  joint_state.name[5] = "legLF3";
+  joint_state.name[6] = "legRB1";
+  joint_state.name[7] = "legRB2";
+  joint_state.name[8] = "legRB3";
+  joint_state.name[9] = "legLB1";
+  joint_state.name[10] = "legLB2";
+  joint_state.name[11] = "legLB3";
+  joint_state.name[12] = "neck";
+  joint_state.name[13] = "headPan";
+  joint_state.name[14] = "headTilt";
+  joint_state.name[15] = "tailTilt";
+  joint_state.name[16] = "tailPan";
+  joint_state.position.resize(17);
+}
+    
+
+
+void EinAiboDog::jointsDeg2Rad() {
+  truePose.legRF1 = deg2rad(truePose.legRF1);
+  truePose.legRF2 = deg2rad(truePose.legRF2);
+  truePose.legRF3 = deg2rad(truePose.legRF3);
+  truePose.legLF1 = deg2rad(truePose.legLF1);
+  truePose.legLF2 = deg2rad(truePose.legLF2);
+  truePose.legLF3 = deg2rad(truePose.legLF3);
+  truePose.legRH1 = deg2rad(truePose.legRH1);
+  truePose.legRH2 = deg2rad(truePose.legRH2);
+  truePose.legRH3 = deg2rad(truePose.legRH3);
+  truePose.legLH1 = deg2rad(truePose.legLH1);
+  truePose.legLH2 = deg2rad(truePose.legLH2);
+  truePose.legLH3 = deg2rad(truePose.legLH3);
+  truePose.neck = deg2rad(truePose.neck);
+  truePose.headPan = deg2rad(truePose.headPan);
+  truePose.headTilt = deg2rad(truePose.headTilt);
+  truePose.tailTilt = deg2rad(truePose.tailTilt);
+  truePose.tailPan = deg2rad(truePose.tailPan);
+  
+}  
+void EinAiboDog::publishJoints() {
+  joint_state.position[0] = truePose.legRF1;
+  joint_state.position[1] = truePose.legRF2;
+  joint_state.position[2] = truePose.legRF3;
+  joint_state.position[3] = truePose.legLF1;
+  joint_state.position[4] = truePose.legLF2;
+  joint_state.position[5] = truePose.legLF3;
+  joint_state.position[6] = truePose.legRH1;
+  joint_state.position[7] = truePose.legRH2;
+  joint_state.position[8] = truePose.legRH3;
+  joint_state.position[9] = truePose.legLH1;
+  joint_state.position[10] = truePose.legLH2;
+  joint_state.position[11] = truePose.legLH3;
+  joint_state.position[12] = truePose.neck;
+  joint_state.position[13] = truePose.headPan;
+  joint_state.position[14] = truePose.headTilt;
+  joint_state.position[15] = truePose.tailTilt;
+  joint_state.position[16] = truePose.tailPan;
+  joint_state.header.stamp = lastSensoryMotorUpdateTime;
+  joint_state_pub.publish(joint_state);
+
+    
+}
+
+void EinAiboDog::publishMapToBaseLink() {
+  static tf2_ros::TransformBroadcaster broadcaster;
+  geometry_msgs::TransformStamped t;
+  t.header.stamp = ros::Time::now();
+  t.header.frame_id = "map";
+  t.child_frame_id = "base_link";
+  t.transform.translation.x = 0;
+  t.transform.translation.y = 0;
+  t.transform.translation.z = 0;
+  tf2::Quaternion quat;
+  
+  quat.setRPY(-atan2(-trueSensors.accelerometer[0]/9.8,
+                    trueSensors.accelerometer[2]/9.8) - 3.1415926,
+              atan2(trueSensors.accelerometer[1]/9.8,
+                    sqrt(pow(trueSensors.accelerometer[0]/9.8, 2) +
+                         pow(trueSensors.accelerometer[2]/9.8, 2))),              
+              0);
+  t.transform.rotation.x = quat.x();
+  t.transform.rotation.y = quat.y();
+  t.transform.rotation.z = quat.z();
+  t.transform.rotation.w = quat.w();
+  broadcaster.sendTransform(t);
+
+}
+
+void robotEndPointCallback(MachineState * ms){}
+void robotSetCurrentJointPositions(MachineState * ms){}
+
+void robotActivateSensorStreaming(MachineState * ms){}
+void robotDeactivateSensorStreaming(MachineState * ms){}
+void robotUpdate(MachineState * ms)
+{
+  for (int i = 0; i < ms->config.aiboConfig->pack.size(); i++) {
+    ms->config.aiboConfig->pack[i]->robotUpdate();
+  }
+  
+}
+
+
+#define DOG_READ_VAR(x) \
+  nextCoreMessage = findStringInDogBuffer(ms, this_dog, string("] "), nextCoreMessage); \
+  if (nextCoreMessage == -1) {\
+    return;\
+  }\
+  r = stod(&(ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[nextCoreMessage]), &idx);  \
+  x = r; 
+
+
+void dogReconnect(MachineState * ms) {
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 0;
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->dog_needs_reinit = 1;
+  close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+  ms->evaluateProgram("dogFocusedIP 54000 socketOpen ( endStackCollapseNoop dogSocketDidConnect not ) ( dogFocusedIP 54000 socketOpen ) while 15.0 waitForSeconds dogMotorsOn 1.0 waitForSeconds");
+}
+
+double EinAiboJoints::dist(EinAiboJoints & other) {
+  double result = (fabs(legLF1 - other.legLF1) + 
+		   fabs(legLF2 - other.legLF2) +
+		   fabs(legLF3 - other.legLF3) +
+		   fabs(legLH1 - other.legLH1) +
+		   fabs(legLH2 - other.legLH2) +
+		   fabs(legLH3 - other.legLH3) +
+		   fabs(legRH1 - other.legRH1) +
+		   fabs(legRH2 - other.legRH2) +
+		   fabs(legRH3 - other.legRH3) +
+		   fabs(legRF1 - other.legRF1) +
+		   fabs(legRF2 - other.legRF2) +
+		   fabs(legRF3 - other.legRF3) +
+		   fabs(neck - other.neck) +
+		   fabs(headPan - other.headPan) +
+		   fabs(headTilt - other.headTilt) +
+		   fabs(tailPan - other.tailPan) +
+		   fabs(tailTilt - other.tailTilt) +
+		   fabs(mouth - other.mouth));
+  return result;
+}
+string EinAiboJoints::toString() {
+  stringstream buf;
+  buf << "legLF1: " << legLF1 << " ";
+  buf << "legLF2: " << legLF2 << " ";
+  buf << "legLF3: " << legLF3 << " ";
+  buf << "legLH1: " << legLH1 << " ";
+  buf << "legLH2: " << legLH2 << " ";
+  buf << "legLH3: " << legLH3 << " ";
+  buf << "legRH1: " << legRH1 << " ";
+  buf << "legRH2: " << legRH2 << " ";
+  buf << "legRH3: " << legRH3 << " ";
+  buf << "legRF1: " << legRF1 << " ";
+  buf << "legRF2: " << legRF2 << " ";
+  buf << "legRF3: " << legRF3 << " ";
+  buf << "neck: " <<  neck << " ";
+  buf << "headPan: " <<  headPan << " ";
+  buf << "headTilt: " <<  headTilt << " ";
+  buf << "tailPan: " <<  tailPan << " ";
+  buf << "tailTilt: " <<  tailTilt << " ";
+  buf << "mouth: " <<  mouth << " ";
+  return buf.str();
+}
+bool dogIsStopped(MachineState * ms, int member) {
+  EinAiboDog * dog = ms->config.aiboConfig->pack[member];
+  //cout << "Intended joints: " << dog->targetJoints.toString() << endl;
+  //cout << "True joints: " << dog->trueJoints.toString() << endl;
+
+  //cout << "Intended pose: " << dog->intendedPose.toString() << endl;
+  //cout << "True pose: " << dog->truePose.toString() << endl;
+
+  return false;
+}
+
+void sendOnDogSocket(MachineState * ms, int member, string message) {
+  int p_send_poll_timeout = 5000;
+  //CONSOLE(ms, "sending to " << member);
+  if (ms->config.aiboConfig->pack.size() == 0) {
+    CONSOLE_ERROR(ms, "No pack; need to initialize.");
+    return;
+  }
+  //CONSOLE(ms, "Socket desc: " << ms->config.aiboConfig->pack[member]->aibo_socket_desc);
+  struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
+  if (poll(&fd, 1, p_send_poll_timeout) != 1) {
+    CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    dogReconnect(ms);
+    return;
+  } else {
+    if( send(ms->config.aiboConfig->pack[member]->aibo_socket_desc, message.c_str(), message.size(), 0) != message.size() ) {
+      CONSOLE_ERROR(ms, "send failed..." << endl);
+      dogReconnect(ms);
+      return;
+    } else {
+      //cout << "sent: " << endl << message << endl;
+      //cout << "sent: " << message.size() << endl;
+    }
+  }
+}
+
+void sendOnDogSocket(MachineState * ms, int member, char *buf, int size) {
+  int p_send_poll_timeout = 5000;
+  struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
+  if (poll(&fd, 1, p_send_poll_timeout) != 1) {
+    CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);
+    dogReconnect(ms);
+    return;
+  } else {
+    if( send(ms->config.aiboConfig->pack[member]->aibo_socket_desc, buf, size, 0) != size ) {
+      CONSOLE_ERROR(ms, "send failed..." << endl);
+      dogReconnect(ms);
+      return;
+    } else {
+      //cout << "sent: " << endl << size << " bytes." << endl;
+      //cout << "sent: " << message.size() << endl;
+    }
+  }
+}
+
+void flushDogBuffer(MachineState * ms, int member) {
+  int p_flush_wait_milliseconds = 250;
+
+  int read_size = 1;
+  while (read_size > 0) {
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->config.aiboConfig->pack[member]->aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, p_flush_wait_milliseconds);  
+    switch (ret) {
+      case -1:
+	// Error
+	CONSOLE_ERROR(ms, "file descriptor error during poll in flush...");
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	//CONSOLE_ERROR(ms, "timeout during poll in flush...");
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, ms->config.aiboConfig->pack[member]->aibo_sock_buf, ms->config.aiboConfig->pack[member]->aibo_sock_buf_size);
+	if (read_size <= 0) {
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
+	  dogReconnect(ms);
+	  return;
+	} else {
+	  CONSOLE_ERROR(ms, "read " << read_size << " bytes during poll in flush...");
+	  break;
+	}
+    }
+  }
+}
+
+int getBytesFromDog(MachineState * ms, int member, int bytesToGet, int timeout) {
+  int read_size = 1;
+  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes = 0;
+  int sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+
+  while ( (read_size > 0) && (sbStart < bytesToGet) ){
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->config.aiboConfig->pack[member]->aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, timeout);  
+    switch (ret) {
+      case -1:
+	// Error
+	CONSOLE_ERROR(ms, "file descriptor error during poll in gbfd...");
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	CONSOLE_ERROR(ms, "timeout during poll in gbfd...");
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[sbStart]), ms->config.aiboConfig->pack[member]->aibo_sock_buf_size-sbStart);
+	if (read_size <= 0) {
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
+	  dogReconnect(ms);
+	  return ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+	} else {
+	  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes += read_size;
+	}
+	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+	//cout << "read " << read_size << " bytes during poll in gbfd..." << endl;
+	break;
+    }
+  }
+  return ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+}
+
+// returns the byte after the searched string
+int readBytesFromDogUntilString(MachineState * ms, int member, int timeout, string toFind) {
+  int read_size = 1;
+  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes = 0;
+  int sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+
+  int searchedBytes = 0;
+
+  while ( (read_size > 0) ){
+
+    for (; searchedBytes < (ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
+      //cout << searchedBytes << " " << ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes] << " " << ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes << " " << toFind.size() << " " << (ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes - int(toFind.size()) + 1) << endl;
+      if (toFind.compare(0, toFind.size(), &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
+	searchedBytes += toFind.size();
+	//cout << "readBytesFromDogUntilString found " << toFind << " at " << searchedBytes << endl;
+	return searchedBytes;
+      } else {
+      }
+    }
+
+    // return if not ready to read.
+    struct pollfd fd;
+    int ret;
+
+    fd.fd = ms->config.aiboConfig->pack[member]->aibo_socket_desc;  
+    fd.events = POLLIN;
+    ret = poll(&fd, 1, timeout);  
+    switch (ret) {
+      case -1:
+	// Error
+	CONSOLE_ERROR(ms, "file descriptor error during poll in rbfdus...");
+	read_size = -1;
+	break;
+      case 0:
+	// Timeout 
+	//cout << "timeout during poll in rbfdus..." << endl;
+	read_size = 0;
+	break;
+      default:
+	// read from dog
+	sbStart = ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes;
+	read_size = read(ms->config.aiboConfig->pack[member]->aibo_socket_desc, &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[sbStart]), ms->config.aiboConfig->pack[member]->aibo_sock_buf_size-sbStart);
+	if (read_size <= 0) {
+	  CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
+	  dogReconnect(ms);
+	  return -1;
+	} else {
+	  ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes += read_size;
+	}
+	//cout << "read " << read_size << " bytes during poll in rbfdus..." << endl;
+	break;
+    }
+  }
+  return -1;
+}
+
+// returns the byte after the searched string
+int findStringInDogBuffer(MachineState * ms, int member, string toFind, int start) {
+  int searchedBytes = 0;
+  for (searchedBytes = start; searchedBytes < (ms->config.aiboConfig->pack[member]->aibo_sock_buf_valid_bytes - int(toFind.size()) + 1); searchedBytes++) {
+    if (toFind.compare(0, toFind.size(), &(ms->config.aiboConfig->pack[member]->aibo_sock_buf[searchedBytes]), toFind.size()) == 0) {
+      searchedBytes += toFind.size();
+      //cout << "findStringInDogBuffer found " << toFind << " at " << searchedBytes << endl;
+      return searchedBytes;
+    }
+  }
+
+  CONSOLE_ERROR(ms, "findStringInDogBuffer failed to find " << toFind << " at " << searchedBytes);
+  string searchedText(ms->config.aiboConfig->pack[member]->aibo_sock_buf, searchedBytes);
+  CONSOLE_ERROR(ms, "  searched: " << endl << searchedText);
+
+  return -1;
+}
+
+
+
+// XXX REQUIRE_FOCUSED_DOG macro
+
+namespace ein_words {
+
+WORD(DogSendPack)
+virtual void execute(MachineState * ms) {
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  for (int m = 0; m < ms->config.aiboConfig->pack.size(); m++) {
+    sendOnDogSocket(ms, m, message);
+  }
+}
+END_WORD
+REGISTER_WORD(DogSendPack)
+
+WORD(DogDoPack)
+virtual void execute(MachineState * ms) {
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  CONSOLE(ms, "doing pack (incrementing focused member)");
+
+  for (int m = 0; m < ms->config.aiboConfig->pack.size(); m++) {
+    ms->pushWord(w1);
+    ms->pushWord("dogIncrementFocusedMember");
+  }
+}
+END_WORD
+REGISTER_WORD(DogDoPack)
+
+WORD(DogStop)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  string message("stopall;");
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogStop)
+
+WORD(DogIncrementFocusedMember)
+virtual void execute(MachineState * ms) {
+  ms->config.aiboConfig->focusedMember = (ms->config.aiboConfig->focusedMember + 1) % ms->config.aiboConfig->pack.size();
+}
+END_WORD
+REGISTER_WORD(DogIncrementFocusedMember)
+
+WORD(DogDecrementPackMember)
+virtual void execute(MachineState * ms) {
+  ms->config.aiboConfig->focusedMember = (ms->config.aiboConfig->focusedMember - 1) % ms->config.aiboConfig->pack.size();
+}
+END_WORD
+REGISTER_WORD(DogDecrementPackMember)
+
+
+WORD(DogSetPackSize)
+virtual void execute(MachineState * ms) {
+  int toSet = 0;
+  GET_INT_ARG(ms, toSet);
+
+  if (toSet >= 0) {
+    ms->config.aiboConfig->pack.resize(toSet);
+    for (int i = 0; i < ms->config.aiboConfig->pack.size(); i ++) {
+      if (ms->config.aiboConfig->pack[i] == NULL) {
+        ms->config.aiboConfig->pack[i] = new EinAiboDog();
+      }
+    }
+    
+  } else {
+    CONSOLE_ERROR(ms, "dogSetPackSize: invalid size: " << "toSet");
+    ms->pushWord("pauseStackExecution"); 
+    return;
+  }
+  ms->config.aiboConfig->stoppedJoints = new EinAiboJoints();
+}
+END_WORD
+REGISTER_WORD(DogSetPackSize)
+
+WORD(DogDispersePack)
+virtual void execute(MachineState * ms) {
+  ms->config.aiboConfig->pack.resize(2);
+  for (int m = 0; m < ms->config.aiboConfig->pack.size(); m++) {
+    stringstream ss;
+    ss << m << " dogSetFocusedMember socketClose";
+    ms->evaluateProgram(ss.str());
+  }
+}
+END_WORD
+REGISTER_WORD(DogDispersePack)
+
+WORD(DogSetFocusedMember)
+virtual void execute(MachineState * ms) {
+  int toSet = 0;
+  GET_INT_ARG(ms, toSet);
+  if ((toSet >= 0) && (toSet < ms->config.aiboConfig->pack.size())) {
+    ms->config.aiboConfig->focusedMember = toSet;
+  } else {
+    CONSOLE_ERROR(ms, "dogSetFocusedMember invalid selection: " << toSet);
+    ms->pushWord("pauseStackExecution"); 
+  }
+}
+END_WORD
+REGISTER_WORD(DogSetFocusedMember)
+
+CONFIG_GETTER_INT(DogFocusedMember, ms->config.aiboConfig->focusedMember);
+
+WORD(DogBark)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("socketSend");
+  ms->pushWord(make_shared<StringWord>("speaker.play(\"bark.wav\");"));
+}
+END_WORD
+REGISTER_WORD(DogBark)
+
+WORD(DogFocusedIP)
+virtual void execute(MachineState * ms) {
+  ms->pushWord(make_shared<StringWord>(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->ip_string));
+}
+END_WORD
+REGISTER_WORD(DogFocusedIP)
+
+WORD(DogNeedsReinit)
+virtual void execute(MachineState * ms) {
+  ms->pushWord(make_shared<IntegerWord>(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->dog_needs_reinit));
+}
+END_WORD
+REGISTER_WORD(DogNeedsReinit)
+
+WORD(DogSignalReinitDone)
+virtual void execute(MachineState * ms) {
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->dog_needs_reinit = 0;
+}
+END_WORD
+REGISTER_WORD(DogSignalReinitDone)
+
+WORD(SocketOpen)
+virtual void execute(MachineState * ms) {
+  signal(SIGCHLD,SIG_IGN);
+  string t_ip;
+  int t_port = 0;
+
+  GET_INT_ARG(ms, t_port);
+  GET_STRING_ARG(ms, t_ip);
+  CONSOLE(ms, "OPening " << ms->config.aiboConfig->focusedMember);
+  // destroy old socket
+  if (ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect) {
+    close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+  }
+  // create socket
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+
+  CONSOLE(ms, "Puppy: " << t_ip);
+  CONSOLE(ms, "Making socket: " << ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+  if (ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc == -1) {
+    CONSOLE_ERROR(ms, "Could not create socket.");
+    ms->pushWord("pauseStackExecution"); 
+    return;
+  }
+
+  //cout << "created socket..." << endl;
+       
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->ip_string = t_ip;
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server.sin_addr.s_addr = inet_addr(t_ip.c_str());
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server.sin_family = AF_INET;
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server.sin_port = htons(t_port);
+
+  //Connect to remote aibo_server
+  if (connect(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc , (struct sockaddr *)&ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server , sizeof(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_server)) < 0) {
+    CONSOLE_ERROR(ms, "connect error");
+    ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 0;
+    ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->dog_needs_reinit = 1;
+    close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+    return;
+  } else {
+    ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect = 1;
+  }
+   
+  //cout << "connected!" << endl;
+
+}
+END_WORD
+REGISTER_WORD(SocketOpen)
+
+
+WORD(DogSocketDidConnect)
+virtual void execute(MachineState * ms) {
+  shared_ptr<IntegerWord> word = std::make_shared<IntegerWord>(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_did_connect);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogSocketDidConnect)
+
+WORD(SocketClose)
+virtual void execute(MachineState * ms) {
+  // destroy old socket
+  close(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc);
+}
+END_WORD
+REGISTER_WORD(SocketClose)
+
+WORD(SocketSend)
+virtual void execute(MachineState * ms) {
+  // send to dog
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  sendOnDogSocket(ms, ms->config.aiboConfig->focusedMember, message);
+}
+END_WORD
+REGISTER_WORD(SocketSend)
+
+WORD(SocketRead)
+virtual void execute(MachineState * ms) {
+  // return if not ready to read.
+  // 1 millisecond timeout
+  struct pollfd fd;
+  int ret;
+
+  fd.fd = ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc;  
+  fd.events = POLLIN;
+  ret = poll(&fd, 1, 1);  
+  switch (ret) {
+    case -1:
+      // Error
+      CONSOLE_ERROR(ms, "file descriptor error during poll...");
+      return;
+    case 0:
+      // Timeout 
+      //cout << "timeout during poll..." << endl;
+      return;
+    default:
+      break;
+  }
+
+  // read from dog
+  int read_size = read(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_socket_desc, ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf, ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf_size);
+  if (read_size <= 0) {
+    CONSOLE_ERROR(ms, "oops, read failed, closing socket...");
+    dogReconnect(ms);
+    return;
+  }
+
+  ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf[read_size] = '\0';
+
+  string message(ms->config.aiboConfig->pack[ms->config.aiboConfig->focusedMember]->aibo_sock_buf);
+
+  //cout << "socketRead read " << read_size << " bytes and contained: " << endl << message << endl;
+}
+END_WORD
+REGISTER_WORD(SocketRead)
+
+
+WORD(DogWhistle)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"192.168.1.127\" 54000 socketOpen");
+}
+END_WORD
+REGISTER_WORD(DogWhistle)
+
+WORD(DogMotorsOn)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"motors on;\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogMotorsOn)
+
+WORD(DogMotorsOff)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"motors off;\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogMotorsOff)
+
+//// start swtrans.u wrappers
+
+WORD(DogLayDown)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.LayDown();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogLayDown)
+
+WORD(DogStandUp)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.StandUp();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogStandUp)
+
+WORD(DogSitDown)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.SitDown();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogSitDown)
+
+//// end swtrans.u wrappers
+
+
+/*
+  robot.walk(duration) : walk for duration milliseconds. 
+                         => Walk backward if duration is negative
+  robot.stopwalk()     : interrupt the walk
+  robot.turn(duration) : turn couterclockwise for duration milliseconds.
+                         => Turn clockwise if duration is negative
+  robot.stopturn()     : interrupt the turn
+
+  robot.initial()   : initial position sitting down (strech and lay)
+  robot.stretch()   : stretching like in the morning...
+  robot.lay()       : laying (sitting down)
+  robot.sit()       : sit on the back
+  robot.beg()       : stand up with knees bent
+  robot.stand()     : stand up
+
+Variables:
+  robot.walkspeed      : speed of walk, the smaller the faster: 
+                         period of a step. Defaults to 1s
+  robot.turnspeed      : speed of turn, the smaller the faster:
+                         period of a step. Defaults to 1s
+
+*/
+
+//// start motion.u wrappers
+
+WORD(DogWalkSeconds)
+virtual void execute(MachineState * ms) {
+  // specify in seconds
+  double duration = 0.0;
+  GET_NUMERIC_ARG(ms, duration);
+  
+  stringstream ss;
+  ss << "\"robot.walk(" << duration*1000 << ");\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogWalkSeconds)
+
+WORD(DogTurnSeconds)
+virtual void execute(MachineState * ms) {
+  // specify in seconds
+  double duration = 0.0;
+  GET_NUMERIC_ARG(ms, duration);
+  
+  stringstream ss;
+  ss << "\"robot.turn(" << duration*1000 << ");\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogTurnSeconds)
+
+WORD(DogWalkMeters)
+virtual void execute(MachineState * ms) {
+  // specify in meters measured with robot.walkspeed = 1s
+  // this is not meant to be very accurate
+  double meters = 0.0;
+  GET_NUMERIC_ARG(ms, meters);
+  
+  stringstream ss;
+  ss << "\"robot.walk(" << meters*12*1000 << ");\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogWalkMeters)
+
+WORD(DogTurnRadians)
+virtual void execute(MachineState * ms) {
+  // specify in meters measured with robot.turnspeed = 1s
+  double radians = 0.0;
+  GET_NUMERIC_ARG(ms, radians);
+  
+  stringstream ss;
+  // ten seconds turns it all the way around
+  ss << "\"robot.turn(" << radians / (2 * 3.1415926) * 10 * 1000 << ");\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogTurnRadians)
+
+// this might not work...
+WORD(DogStopWalkTurn)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.stopturn(), robot.stopwalk();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogStopWalkTurn)
+
+WORD(DogInitial)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.initial();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogInitial)
+
+WORD(DogStretch)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.stretch();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogStretch)
+
+WORD(DogLay)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.lay();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogLay)
+
+WORD(DogSit)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.sit();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogSit)
+
+WORD(DogBeg)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.beg();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogBeg)
+
+WORD(DogStand)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.stand();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(DogStand)
+
+WORD(DogSetTurnSpeed)
+virtual void execute(MachineState * ms) {
+  // specify the period in seconds
+  double seconds = 0.0;
+  GET_NUMERIC_ARG(ms, seconds);
+  
+  stringstream ss;
+  ss << "\"robot.turnspeed = " << seconds  << ";\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogSetTurnSpeed)
+
+WORD(DogSetWalkSpeed)
+virtual void execute(MachineState * ms) {
+  // specify the period in seconds
+  double seconds = 0.0;
+  GET_NUMERIC_ARG(ms, seconds);
+  
+  stringstream ss;
+  ss << "\"robot.walkspeed = " << seconds  << ";\" socketSend";
+  ms->evaluateProgram(ss.str());
+}
+END_WORD
+REGISTER_WORD(DogSetWalkSpeed)
+
+//// end motion.u wrappers
+
+WORD(DogFormatImageDefault)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  ros::NodeHandle n("~");
+  stringstream ss;
+
+
+  ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout";
+  string s = ss.str();
+  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(s,10);
+  Camera * c = new Camera(ms, s, s, s, s);
+  ms->config.cameras.push_back(c);
+
+
+  ms->evaluateProgram("\"camera.format = 0; camera.reconstruct = 0; camera.resolution = 0;\" socketSend 0.5 waitForSeconds");
+}
+END_WORD
+REGISTER_WORD(DogFormatImageDefault)
+
+// XXX this should be redone to detect and handle format using new dog read methods
+WORD(DogGetImage)
+virtual void execute(MachineState * ms) {
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  int p_get_image_timeout = 1000;
+
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the image
+  string image_request("camera.val;");
+  sendOnDogSocket(ms, this_dog, image_request);
+
+  //usleep(400*1000);
+
+  // get specs, verify format, ready image
+  int rows = 160;
+  int cols = 208;
+  ms->config.aiboConfig->pack[this_dog]->snoutImage = Mat(rows, cols, CV_8UC3);
+
+  int yCbCr208x160MessageLength = 99875;
+  int chosenFormatLength = yCbCr208x160MessageLength;
+
+  int dogGottenBytes = getBytesFromDog(ms, this_dog, chosenFormatLength, p_get_image_timeout);
+  if (dogGottenBytes >= chosenFormatLength) {
+    //cout << "dogGetImage: got " << dogGottenBytes << endl;
+
+    if (dogGottenBytes > chosenFormatLength) {
+      //cout << "dogGetImage: got " << dogGottenBytes << " bytes, so the message index is probably more than eight digits. This dog must be tired." << endl;
+    } 
+
+    // start immediately before the good stuff
+    int dataIdx = dogGottenBytes - (rows * cols * 3);
+    for (int y = 0; y < rows; y++) {
+      for (int x = 0; x < cols; x++) {
+	// dog is in YCbCr and opencv uses YCrCb
+	ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[0] = ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[dataIdx];
+	//cout << int( ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[0] ) << " ";
+	dataIdx++;
+	ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[2] = ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[dataIdx];
+	//cout << int( ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[1] ) << " ";
+	dataIdx++;
+	ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[1] = ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[dataIdx];
+	//cout << int( ms->config.aiboConfig->pack[this_dog]->snoutImage.at<Vec3b>(y,x)[2] ) << " ";
+	dataIdx++;
+      }
+    }
+
+    // convert YCrCb explicity to BGR
+    cvtColor(ms->config.aiboConfig->pack[this_dog]->snoutImage, ms->config.aiboConfig->pack[this_dog]->snoutImage, CV_YCrCb2BGR);
+
+    // for now this is done for display purposes only
+    Size p_toBecome(640, 400);
+    cv::resize(ms->config.aiboConfig->pack[this_dog]->snoutImage, ms->config.aiboConfig->pack[this_dog]->snoutCamImage, p_toBecome);
+    ms->config.dogSnoutViewWindow->updateImage(ms->config.aiboConfig->pack[this_dog]->snoutCamImage);
+  } else {
+    CONSOLE_ERROR(ms, "dogGetImage: Failed to get dog image... got " << dogGottenBytes << " bytes." << endl);
+  }
+}
+END_WORD
+REGISTER_WORD(DogGetImage)
+
+WORD(DogPublishSnout)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  {
+    sensor_msgs::Image msg;
+    Mat topub = ms->config.aiboConfig->pack[this_dog]->snoutImage;
+
+    msg.header.stamp = ros::Time::now();
+    msg.width = topub.cols;
+    msg.height = topub.rows;
+    msg.step = topub.cols * topub.elemSize();
+    msg.is_bigendian = false;
+    msg.encoding = sensor_msgs::image_encodings::BGR8;
+    msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
+
+    ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub.publish(msg);
+  }
+}
+END_WORD
+REGISTER_WORD(DogPublishSnout)
+
+WORD(DogGetSensoryMotorStates)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the info 
+  string request("dgsms +begin: legLF1.val; legLF2.val; legLF3.val; legLH1.val; legLH2.val; legLH3.val; legRH1.val; legRH2.val; legRH3.val; legRF1.val; legRF2.val; legRF3.val; neck.val; headPan.val; headTilt.val; tailPan.val; tailTilt.val; mouth.val; legLF1.PGain; legLF2.PGain; legLF3.PGain; legLH1.PGain; legLH2.PGain; legLH3.PGain; legRH1.PGain; legRH2.PGain; legRH3.PGain; legRF1.PGain; legRF2.PGain; legRF3.PGain; neck.PGain; headPan.PGain; headTilt.PGain; tailPan.PGain; tailTilt.PGain; mouth.PGain; legLF1.IGain; legLF2.IGain; legLF3.IGain; legLH1.IGain; legLH2.IGain; legLH3.IGain; legRH1.IGain; legRH2.IGain; legRH3.IGain; legRF1.IGain; legRF2.IGain; legRF3.IGain; neck.IGain; headPan.IGain; headTilt.IGain; tailPan.IGain; tailTilt.IGain; mouth.IGain; legLF1.DGain; legLF2.DGain; legLF3.DGain; legLH1.DGain; legLH2.DGain; legLH3.DGain; legRH1.DGain; legRH2.DGain; legRH3.DGain; legRF1.DGain; legRF2.DGain; legRF3.DGain; neck.DGain; headPan.DGain; headTilt.DGain; tailPan.DGain; tailTilt.DGain; mouth.DGain; distanceNear.val; distance.val; distanceChest.val; accelX.val; accelY.val; accelZ.val; pawLF.val; pawLH.val; pawRF.val; pawRH.val; chinSensor.val; headSensor.val; backSensorR.val; backSensorM.val; dgsms +end: backSensorF.val;");
+
+  sendOnDogSocket(ms, this_dog, request);
+
+  // read until all info is in
+  readBytesFromDogUntilString(ms, this_dog, 5000, string(":dgsms] *** end\n"));
+
+  int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgsms] *** begin\n"), 0);
+  if (startCoreMessage == -1) {
+    return;
+  }
+  //CONSOLE(ms, "Dog buffer: " << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf);
+
+  size_t idx;
+  int nextCoreMessage = startCoreMessage; 
+  double r = 0.0;
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legLH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.legRF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.neck);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.headPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.headTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.tailPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.tailTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->truePose.mouth);
+  ms->config.aiboConfig->pack[this_dog]->jointsDeg2Rad();
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legLH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].legRF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].neck);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].headPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].headTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].tailPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].tailTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[0].mouth);
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legLH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].legRF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].neck);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].headPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].headTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].tailPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].tailTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[1].mouth);
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legLH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRH1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRH2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRH3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].legRF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].neck);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].headPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].headTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].tailPan);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].tailTilt);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueGain[2].mouth);
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceNearSnout);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceFarSnout);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceChest);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[0]);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[1]);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[2]);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.pawLF);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.pawLH);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.pawRF);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.pawRH);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.chinSensor);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.headTouch);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchR);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchM);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchF);
+  ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = ros::Time::now();
+  //cout << "dogGetSensoryMotorStates: finished" << endl;
+  ms->config.aiboConfig->pack[this_dog]->publishJoints();
+  ms->config.aiboConfig->pack[this_dog]->publishMapToBaseLink();
+}
+END_WORD
+REGISTER_WORD(DogGetSensoryMotorStates)
+
+  
+
+WORD(DogGetIndicators)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  // read until there is nothing
+  flushDogBuffer(ms, this_dog); 
+
+  // request the info 
+  string request("dgbi +begin:  ledBFC.val; ledBFW.val; ledBMC.val; ledBMW.val; ledBRC.val; ledBRW.val; ledF1.val; ledF2.val; ledF3.val; ledF4.val; ledF5.val; ledF6.val; ledF7.val; ledF8.val; ledF9.val; ledF10.val; ledF11.val; ledF12.val; ledF13.val; ledF14.val; ledHC.val; modeR.val; modeG.val; modeB.val; earL.val; dgbi +end: earR.val;");
+  sendOnDogSocket(ms, this_dog, request);
+
+  // read until all info is in
+  readBytesFromDogUntilString(ms, this_dog, 250, string(":dgbi] *** end\n"));
+
+  int startCoreMessage = findStringInDogBuffer(ms, this_dog, string(":dgbi] *** begin\n"), 0);
+  if (startCoreMessage == -1) {
+    return;
+  }
+  //cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[startCoreMessage] << endl;
+
+  size_t idx;
+  int nextCoreMessage = startCoreMessage; 
+  double r = 0.0;
+
+  //cout << ms->config.aiboConfig->pack[this_dog]->aibo_sock_buf[nextCoreMessage] << endl;
+  //cout << "dgbi got: " << r << endl;
+
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBFC);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBFW);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBMC);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBMW);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBRC);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBRW);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF1);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF2);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF3);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF4);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF5);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF6);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF7);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF8);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF9);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF10);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF11);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF12);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF13);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF14);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledHC);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeR);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeG);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeB);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.earL);
+  DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueIndicators.earR);
+
+  //cout << "dogGetIndicators: finished" << endl;
+  // parse the info
+}
+END_WORD
+REGISTER_WORD(DogGetIndicators)
+
+#define DOG_SEND_JOINT_VAR(x) << " " << #x << ".val = " << (ms->config.aiboConfig->pack[this_dog]->intendedPose.x *180/M_PI) << ","
+#define DOG_SEND_JOINT_PGAIN_VAR(x) << " " << #x << ".PGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[0].x << ","
+#define DOG_SEND_JOINT_IGAIN_VAR(x) << " " << #x << ".IGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[1].x << ","
+#define DOG_SEND_JOINT_DGAIN_VAR(x) << " " << #x << ".DGain = " << ms->config.aiboConfig->pack[this_dog]->intendedGain[2].x << ","
+#define DOG_SEND_INDICATOR_VAR(x) << " " << #x << ".val = " << ms->config.aiboConfig->pack[this_dog]->intendedIndicators.x << ","
+
+WORD(DogSendMotorState)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  stringstream ss;
+  ss  
+    DOG_SEND_JOINT_VAR(legLF1)
+    DOG_SEND_JOINT_VAR(legLF2)
+    DOG_SEND_JOINT_VAR(legLF3)
+    DOG_SEND_JOINT_VAR(legLH1)
+    DOG_SEND_JOINT_VAR(legLH2)
+    DOG_SEND_JOINT_VAR(legLH3)
+    DOG_SEND_JOINT_VAR(legRH1)
+    DOG_SEND_JOINT_VAR(legRH2)
+    DOG_SEND_JOINT_VAR(legRH3)
+    DOG_SEND_JOINT_VAR(legRF1)
+    DOG_SEND_JOINT_VAR(legRF2)
+    DOG_SEND_JOINT_VAR(legRF3)
+    DOG_SEND_JOINT_VAR(neck)
+    DOG_SEND_JOINT_VAR(headPan)
+    DOG_SEND_JOINT_VAR(headTilt)
+    DOG_SEND_JOINT_VAR(tailPan)
+    DOG_SEND_JOINT_VAR(tailTilt)
+    DOG_SEND_JOINT_VAR(mouth) 
+    DOG_SEND_JOINT_PGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_PGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_PGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_PGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_PGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_PGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_PGAIN_VAR(neck)
+    DOG_SEND_JOINT_PGAIN_VAR(headPan)
+    DOG_SEND_JOINT_PGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_PGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_PGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_PGAIN_VAR(mouth) 
+    DOG_SEND_JOINT_IGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_IGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_IGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_IGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_IGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_IGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_IGAIN_VAR(neck)
+    DOG_SEND_JOINT_IGAIN_VAR(headPan)
+    DOG_SEND_JOINT_IGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_IGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_IGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_IGAIN_VAR(mouth) 
+    DOG_SEND_JOINT_DGAIN_VAR(legLF1)
+    DOG_SEND_JOINT_DGAIN_VAR(legLF2)
+    DOG_SEND_JOINT_DGAIN_VAR(legLF3)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH1)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH2)
+    DOG_SEND_JOINT_DGAIN_VAR(legLH3)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH1)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH2)
+    DOG_SEND_JOINT_DGAIN_VAR(legRH3)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF1)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF2)
+    DOG_SEND_JOINT_DGAIN_VAR(legRF3)
+    DOG_SEND_JOINT_DGAIN_VAR(neck)
+    DOG_SEND_JOINT_DGAIN_VAR(headPan)
+    DOG_SEND_JOINT_DGAIN_VAR(headTilt)
+    DOG_SEND_JOINT_DGAIN_VAR(tailPan)
+    DOG_SEND_JOINT_DGAIN_VAR(tailTilt)
+    DOG_SEND_JOINT_DGAIN_VAR(mouth) 
+  ;
+
+  string message = ss.str();
+  //CONSOLE(ms, "Sending" << message);
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogSendMotorState)
+
+WORD(DogSendIndicators)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  stringstream ss;
+  ss 
+    DOG_SEND_INDICATOR_VAR(ledBFC)
+    DOG_SEND_INDICATOR_VAR(ledBFW)
+    DOG_SEND_INDICATOR_VAR(ledBMC)
+    DOG_SEND_INDICATOR_VAR(ledBMW)
+    DOG_SEND_INDICATOR_VAR(ledBRC)
+    DOG_SEND_INDICATOR_VAR(ledBRW)
+    DOG_SEND_INDICATOR_VAR(ledF1)
+    DOG_SEND_INDICATOR_VAR(ledF2)
+    DOG_SEND_INDICATOR_VAR(ledF3)
+    DOG_SEND_INDICATOR_VAR(ledF4)
+    DOG_SEND_INDICATOR_VAR(ledF5)
+    DOG_SEND_INDICATOR_VAR(ledF6)
+    DOG_SEND_INDICATOR_VAR(ledF7)
+    DOG_SEND_INDICATOR_VAR(ledF8)
+    DOG_SEND_INDICATOR_VAR(ledF9)
+    DOG_SEND_INDICATOR_VAR(ledF10)
+    DOG_SEND_INDICATOR_VAR(ledF11)
+    DOG_SEND_INDICATOR_VAR(ledF12)
+    DOG_SEND_INDICATOR_VAR(ledF13)
+    DOG_SEND_INDICATOR_VAR(ledF14)
+    DOG_SEND_INDICATOR_VAR(ledHC)
+    DOG_SEND_INDICATOR_VAR(modeR)
+    DOG_SEND_INDICATOR_VAR(modeG)
+    DOG_SEND_INDICATOR_VAR(modeB)
+    DOG_SEND_INDICATOR_VAR(earL)
+    DOG_SEND_INDICATOR_VAR(earR)
+  ;
+
+  string message = ss.str();
+  sendOnDogSocket(ms, this_dog, message);
+}
+END_WORD
+REGISTER_WORD(DogSendIndicators)
+
+WORD(DogStay)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  ms->config.aiboConfig->pack[this_dog]->intendedPose = ms->config.aiboConfig->pack[this_dog]->truePose;
+  ms->config.aiboConfig->pack[this_dog]->intendedGain[0] = ms->config.aiboConfig->pack[this_dog]->trueGain[0];
+  ms->config.aiboConfig->pack[this_dog]->intendedGain[1] = ms->config.aiboConfig->pack[this_dog]->trueGain[1];
+  ms->config.aiboConfig->pack[this_dog]->intendedGain[2] = ms->config.aiboConfig->pack[this_dog]->trueGain[2];
+}
+END_WORD
+REGISTER_WORD(DogStay)
+
+WORD(DogIntendedPose)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->config.aiboConfig->pack[this_dog]->intendedPose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogIntendedPose)
+
+WORD(DogTruePose)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->config.aiboConfig->pack[this_dog]->truePose);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogTruePose)
+
+WORD(DogIntendedGain)
+virtual void execute(MachineState * ms) {
+  int t_gain= 0;
+  GET_INT_ARG(ms, t_gain);
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->config.aiboConfig->pack[this_dog]->intendedGain[t_gain]);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogIntendedGain)
+
+WORD(DogTrueGain)
+virtual void execute(MachineState * ms) {
+  int t_gain= 0;
+  GET_INT_ARG(ms, t_gain);
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(ms->config.aiboConfig->pack[this_dog]->trueGain[t_gain]);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogTrueGain)
+
+WORD(DogCreatePose)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  EinAiboJoints toPush;
+
+  GET_NUMERIC_ARG(ms, toPush.mouth);
+  GET_NUMERIC_ARG(ms, toPush.tailTilt);
+  GET_NUMERIC_ARG(ms, toPush.tailPan);
+  GET_NUMERIC_ARG(ms, toPush.headTilt);
+  GET_NUMERIC_ARG(ms, toPush.headPan);
+  GET_NUMERIC_ARG(ms, toPush.neck);
+  GET_NUMERIC_ARG(ms, toPush.legRF3);
+  GET_NUMERIC_ARG(ms, toPush.legRF2);
+  GET_NUMERIC_ARG(ms, toPush.legRF1);
+  GET_NUMERIC_ARG(ms, toPush.legRH3);
+  GET_NUMERIC_ARG(ms, toPush.legRH2);
+  GET_NUMERIC_ARG(ms, toPush.legRH1);
+  GET_NUMERIC_ARG(ms, toPush.legLH3);
+  GET_NUMERIC_ARG(ms, toPush.legLH2);
+  GET_NUMERIC_ARG(ms, toPush.legLH1);
+  GET_NUMERIC_ARG(ms, toPush.legLF3);
+  GET_NUMERIC_ARG(ms, toPush.legLF2);
+  GET_NUMERIC_ARG(ms, toPush.legLF1);
+
+  shared_ptr<AiboPoseWord> word = std::make_shared<AiboPoseWord>(toPush);
+  ms->pushWord(word);
+}
+END_WORD
+REGISTER_WORD(DogCreatePose)
+
+WORD(DogSetIntendedPose)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  shared_ptr<AiboPoseWord> word ;
+  GET_WORD_ARG(ms, AiboPoseWord, word);
+
+  ms->config.aiboConfig->pack[this_dog]->intendedPose = word->value();
+}
+END_WORD
+REGISTER_WORD(DogSetIntendedPose)
+
+WORD(DogSetIntendedGain)
+virtual void execute(MachineState * ms) {
+  int t_gain = 0;
+  GET_INT_ARG(ms, t_gain);
+
+  shared_ptr<AiboPoseWord> word ;
+  GET_WORD_ARG(ms, AiboPoseWord, word);
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  ms->config.aiboConfig->pack[this_dog]->trueGain[t_gain] = word->value();
+}
+END_WORD
+REGISTER_WORD(DogSetIntendedGain)
+
+
+#define AIBO_POSE_ACCESSOR(J, C, D) \
+WORD(AiboPose ## J) \
+virtual void execute(MachineState * ms) { \
+  shared_ptr<AiboPoseWord> word ; \
+  GET_WORD_ARG(ms, AiboPoseWord, word); \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(AiboPose ## J) \
+\
+WORD(SetAiboPose ## J) \
+virtual void execute(MachineState * ms) { \
+  double value; \
+  GET_NUMERIC_ARG(ms, value); \
+   \
+  shared_ptr<AiboPoseWord> word; \
+  GET_WORD_ARG(ms, AiboPoseWord, word); \
+   \
+  EinAiboJoints newPose = word->value(); \
+  D = value; \
+ \
+  shared_ptr<AiboPoseWord> newWord = make_shared<AiboPoseWord>(newPose); \
+ \
+  ms->pushData(newWord); \
+} \
+END_WORD \
+REGISTER_WORD(SetAiboPose ## J) \
+/*
+*/
+
+
+AIBO_POSE_ACCESSOR(LegLF1  , word->value().legLF1  , newPose.legLF1  )                  
+AIBO_POSE_ACCESSOR(LegLF2  , word->value().legLF2  , newPose.legLF2  )                  
+AIBO_POSE_ACCESSOR(LegLF3  , word->value().legLF3  , newPose.legLF3  )                  
+AIBO_POSE_ACCESSOR(LegLH1  , word->value().legLH1  , newPose.legLH1  )                  
+AIBO_POSE_ACCESSOR(LegLH2  , word->value().legLH2  , newPose.legLH2  )                  
+AIBO_POSE_ACCESSOR(LegLH3  , word->value().legLH3  , newPose.legLH3  )                  
+AIBO_POSE_ACCESSOR(LegRH1  , word->value().legRH1  , newPose.legRH1  )                  
+AIBO_POSE_ACCESSOR(LegRH2  , word->value().legRH2  , newPose.legRH2  )                  
+AIBO_POSE_ACCESSOR(LegRH3  , word->value().legRH3  , newPose.legRH3  )                  
+AIBO_POSE_ACCESSOR(LegRF1  , word->value().legRF1  , newPose.legRF1  )                  
+AIBO_POSE_ACCESSOR(LegRF2  , word->value().legRF2  , newPose.legRF2  )                  
+AIBO_POSE_ACCESSOR(LegRF3  , word->value().legRF3  , newPose.legRF3  )                  
+AIBO_POSE_ACCESSOR(Neck    , word->value().neck    , newPose.neck    )                  
+AIBO_POSE_ACCESSOR(HeadPan , word->value().headPan , newPose.headPan )                  
+AIBO_POSE_ACCESSOR(HeadTilt, word->value().headTilt, newPose.headTilt)                  
+AIBO_POSE_ACCESSOR(TailPan , word->value().tailPan , newPose.tailPan )                  
+AIBO_POSE_ACCESSOR(TailTilt, word->value().tailTilt, newPose.tailTilt)                  
+AIBO_POSE_ACCESSOR(Mouth   , word->value().mouth   , newPose.mouth   )                  
+
+#define AIBO_POSE_DELTAS(J, C, D) \
+WORD(Dog ## J ## Up) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  C += D; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Up) \
+\
+WORD(Dog ## J ## Down) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  C -= D; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Down) \
+\
+WORD(Dog ## J ## By) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C += amount; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## By) \
+WORD(Dog ## J ## To) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C = amount; \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## To) \
+
+#define AIBO_POSE_DELTAS_GAIN(J, C, D) \
+WORD(Dog ## J ## Up) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  C += D; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Up) \
+\
+WORD(Dog ## J ## Down) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  C -= D; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## Down) \
+\
+WORD(Dog ## J ## By) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C += amount; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## By) \
+\
+WORD(Dog ## J ## To) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+\
+  double amount = 0.0; \
+  GET_NUMERIC_ARG(ms, amount); \
+  C = amount; \
+  C = min( max( 0.0, C ), 18.0 ); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J ## To) \
+
+
+AIBO_POSE_DELTAS(LegLF1, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF1, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLF2, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF2, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLF3, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLF3, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH1, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH1, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH2, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH2, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegLH3, ms->config.aiboConfig->pack[this_dog]->intendedPose.legLH3, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH1, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH1, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH2, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH2, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRH3, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRH3, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF1, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF1, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF2, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF2, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(LegRF3, ms->config.aiboConfig->pack[this_dog]->intendedPose.legRF3, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(Neck, ms->config.aiboConfig->pack[this_dog]->intendedPose. neck, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(HeadPan, ms->config.aiboConfig->pack[this_dog]->intendedPose.headPan, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(HeadTilt, ms->config.aiboConfig->pack[this_dog]->intendedPose.headTilt, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(TailPan, ms->config.aiboConfig->pack[this_dog]->intendedPose.tailPan, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(TailTilt, ms->config.aiboConfig->pack[this_dog]->intendedPose.tailTilt, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+AIBO_POSE_DELTAS(Mouth, ms->config.aiboConfig->pack[this_dog]->intendedPose.mouth, ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legLH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3PGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].legRF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0]. neck, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].headPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].headTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].tailPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].tailTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthPGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[0].mouth, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legLH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3IGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].legRF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1]. neck, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].headPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].headTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].tailPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].tailTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthIGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[1].mouth, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+
+AIBO_POSE_DELTAS_GAIN(LegLF1DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF2DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLF3DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH1DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH2DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegLH3DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legLH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH1DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRH1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH2DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRH2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRH3DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRH3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF1DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRF1, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF2DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRF2, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(LegRF3DGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].legRF3, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(NeckDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2]. neck, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadPanDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].headPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(HeadTiltDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].headTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailPanDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].tailPan, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(TailTiltDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].tailTilt, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+AIBO_POSE_DELTAS_GAIN(MouthDGain, ms->config.aiboConfig->pack[this_dog]->intendedGain[2].mouth, ms->config.aiboConfig->pack[this_dog]->dogGainGridSize)
+
+WORD(DogSetPoseGridSize)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double newgrid = 0.0;
+  GET_NUMERIC_ARG(ms, newgrid);
+  ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize = newgrid;
+  //cout << "dogSetPoseGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogPoseGridSize << endl;
+}
+END_WORD
+REGISTER_WORD(DogSetPoseGridSize)
+
+WORD(DogSetGainGridSize)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double newgrid = 0.0;
+  GET_NUMERIC_ARG(ms, newgrid);
+  ms->config.aiboConfig->pack[this_dog]->dogGainGridSize = newgrid;
+  //cout << "dogSetGainGridSize: " << ms->config.aiboConfig->pack[this_dog]->dogGainGridSize << endl;
+}
+END_WORD
+REGISTER_WORD(DogSetGainGridSize)
+
+#define AIBO_INDICATOR_ACCESSORS(J, C) \
+WORD(Dog ## J) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J) \
+WORD(DogSet ## J) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  double value; \
+  GET_NUMERIC_ARG(ms, value); \
+   \
+  C = value; \
+} \
+END_WORD \
+REGISTER_WORD(DogSet ## J) \
+
+AIBO_INDICATOR_ACCESSORS(IntendedLedBFC, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBFC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBFW, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBFW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBMC, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBMC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBMW, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBMW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBRC, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBRC);
+AIBO_INDICATOR_ACCESSORS(IntendedLedBRW, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledBRW);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF1, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF1);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF2, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF2);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF3, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF3);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF4, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF4);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF5, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF5);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF6, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF6);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF7, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF7);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF8, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF8);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF9, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF9);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF10, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF10);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF11, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF11);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF12, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF12);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF13, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF13);
+AIBO_INDICATOR_ACCESSORS(IntendedLedF14, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledF14);
+AIBO_INDICATOR_ACCESSORS(IntendedLedHC, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.ledHC);
+AIBO_INDICATOR_ACCESSORS(IntendedModeR, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.modeR);
+AIBO_INDICATOR_ACCESSORS(IntendedModeG, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.modeG);
+AIBO_INDICATOR_ACCESSORS(IntendedModeB, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.modeB);
+AIBO_INDICATOR_ACCESSORS(IntendedEarL, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.earL);
+AIBO_INDICATOR_ACCESSORS(IntendedEarR, ms->config.aiboConfig->pack[this_dog]->intendedIndicators.earR);
+
+#define AIBO_SENSOR_ACCESSORS(J, C) \
+WORD(Dog ## J) \
+virtual void execute(MachineState * ms) { \
+  int this_dog = ms->config.aiboConfig->focusedMember; \
+  shared_ptr<DoubleWord> vword = make_shared<DoubleWord>(C); \
+  ms->pushData(vword); \
+} \
+END_WORD \
+REGISTER_WORD(Dog ## J) \
+
+AIBO_SENSOR_ACCESSORS(TrueLedBFC, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBFC);
+AIBO_SENSOR_ACCESSORS(TrueLedBFW, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBFW);
+AIBO_SENSOR_ACCESSORS(TrueLedBMC, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBMC);
+AIBO_SENSOR_ACCESSORS(TrueLedBMW, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBMW);
+AIBO_SENSOR_ACCESSORS(TrueLedBRC, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBRC);
+AIBO_SENSOR_ACCESSORS(TrueLedBRW, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledBRW);
+AIBO_SENSOR_ACCESSORS(TrueLedF1, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF1);
+AIBO_SENSOR_ACCESSORS(TrueLedF2, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF2);
+AIBO_SENSOR_ACCESSORS(TrueLedF3, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF3);
+AIBO_SENSOR_ACCESSORS(TrueLedF4, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF4);
+AIBO_SENSOR_ACCESSORS(TrueLedF5, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF5);
+AIBO_SENSOR_ACCESSORS(TrueLedF6, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF6);
+AIBO_SENSOR_ACCESSORS(TrueLedF7, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF7);
+AIBO_SENSOR_ACCESSORS(TrueLedF8, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF8);
+AIBO_SENSOR_ACCESSORS(TrueLedF9, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF9);
+AIBO_SENSOR_ACCESSORS(TrueLedF10, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF10);
+AIBO_SENSOR_ACCESSORS(TrueLedF11, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF11);
+AIBO_SENSOR_ACCESSORS(TrueLedF12, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF12);
+AIBO_SENSOR_ACCESSORS(TrueLedF13, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF13);
+AIBO_SENSOR_ACCESSORS(TrueLedF14, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledF14);
+AIBO_SENSOR_ACCESSORS(TrueLedHC, ms->config.aiboConfig->pack[this_dog]->trueIndicators.ledHC);
+AIBO_SENSOR_ACCESSORS(TrueModeR, ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeR);
+AIBO_SENSOR_ACCESSORS(TrueModeG, ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeG);
+AIBO_SENSOR_ACCESSORS(TrueModeB, ms->config.aiboConfig->pack[this_dog]->trueIndicators.modeB);
+AIBO_SENSOR_ACCESSORS(TrueEarL, ms->config.aiboConfig->pack[this_dog]->trueIndicators.earL);
+AIBO_SENSOR_ACCESSORS(TrueEarR, ms->config.aiboConfig->pack[this_dog]->trueIndicators.earR);
+
+AIBO_SENSOR_ACCESSORS(DistanceNearSnout, ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceNearSnout);
+AIBO_SENSOR_ACCESSORS(DistanceFarSnout, ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceFarSnout);
+AIBO_SENSOR_ACCESSORS(DistanceChest, ms->config.aiboConfig->pack[this_dog]->trueSensors.distanceChest);
+AIBO_SENSOR_ACCESSORS(PawLF, ms->config.aiboConfig->pack[this_dog]->trueSensors.pawLF);
+AIBO_SENSOR_ACCESSORS(PawLH, ms->config.aiboConfig->pack[this_dog]->trueSensors.pawLH);
+AIBO_SENSOR_ACCESSORS(PawRF, ms->config.aiboConfig->pack[this_dog]->trueSensors.pawRF);
+AIBO_SENSOR_ACCESSORS(PawRH, ms->config.aiboConfig->pack[this_dog]->trueSensors.pawRH);
+AIBO_SENSOR_ACCESSORS(ChinSensor, ms->config.aiboConfig->pack[this_dog]->trueSensors.chinSensor);
+AIBO_SENSOR_ACCESSORS(HeadTouch, ms->config.aiboConfig->pack[this_dog]->trueSensors.headTouch ); 
+AIBO_SENSOR_ACCESSORS(BackTouchR, ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchR);
+AIBO_SENSOR_ACCESSORS(BackTouchM, ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchM);
+AIBO_SENSOR_ACCESSORS(BackTouchF, ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchF);
+
+AIBO_SENSOR_ACCESSORS(AccelerometerX, ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[0]);
+AIBO_SENSOR_ACCESSORS(AccelerometerY, ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[1]);
+AIBO_SENSOR_ACCESSORS(AccelerometerZ, ms->config.aiboConfig->pack[this_dog]->trueSensors.accelerometer[2]);
+
+WORD(DogReplaceWristImageWithSnoutImage)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  if (!isSketchyMat(ms->config.aiboConfig->pack[this_dog]->snoutCamImage)) {
+    if ( (ms->config.aiboConfig->pack[this_dog]->snoutCamImage.rows == 400) && 
+	 (ms->config.aiboConfig->pack[this_dog]->snoutCamImage.cols== 600) ) {
+      ms->config.wristCamImage = ms->config.aiboConfig->pack[this_dog]->snoutCamImage.clone();
+    } else {
+      Mat tobo;
+      Size p_toBecome(640, 400);
+      cv::resize(ms->config.aiboConfig->pack[this_dog]->snoutCamImage, tobo, p_toBecome);
+      ms->config.wristCamImage = tobo;
+    }
+  } else {
+    CONSOLE_ERROR(ms, "dogReplaceWristImageWithSnoutImage: snoutCamImage was sketchy..." << ms->config.aiboConfig->pack[this_dog]->snoutCamImage.size() << endl);
+  }
+}
+END_WORD
+REGISTER_WORD(DogReplaceWristImageWithSnoutImage)
+
+WORD(DogSendToneSin)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogSendToneSin)
+
+double squareWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    if (t > M_PI) {
+      return -1.0;
+    } else {
+      return 1.0;
+    }
+  } else {
+    if (t > -M_PI) {
+      return -1.0;
+    } else {
+      return 1.0;
+    }
+  }
+}
+
+double sawtoothWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    return ( t/M_PI ) - 1.0;
+  } else {
+    double t2 = t + ( 2.0*M_PI );
+    return ( t2/M_PI ) - 1.0;
+  }
+}
+
+double triangleWave(double t) {
+  t = t - floor(t / (2.0*M_PI))*2.0*M_PI;
+  if (t > 0) {
+    double t2 = max( double(M_PI-t), double(t-M_PI) );
+    return ( 2*t2/M_PI ) - 1.0;
+  } else {
+    double t2 = max( double(-M_PI-t), double(t-(-M_PI)) );
+    return ( 2*t2/M_PI ) - 1.0;
+  }
+}
+
+WORD(DogSendToneSquare)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(v * squareWave(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogSendToneSquare)
+
+WORD(DogMorse)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  //double dmp = ms->config.aiboConfig->pack[this_dog]->dog_morse_period;
+  double dmp = 0.1;
+  GET_NUMERIC_ARG(ms, dmp);
+
+  double f = 400.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double _v = 128.0;
+  GET_NUMERIC_ARG(ms, _v);
+
+  string message;
+  GET_STRING_ARG(ms, message);
+
+  stringstream binarizedss;
+
+  for (int l = 0; l < message.size(); l++) {
+    if (message[l] == ' ') {
+      binarizedss << "0000";
+    } else if ( (message[l] == 'a') || (message[l] == 'A') ) {
+      binarizedss << "10111";
+    } else if ( (message[l] == 'b') || (message[l] == 'B') ) {
+      binarizedss << "111010101";
+    } else if ( (message[l] == 'c') || (message[l] == 'C') ) {
+      binarizedss << "11101011101";
+    } else if ( (message[l] == 'd') || (message[l] == 'D') ) {
+      binarizedss << "1110101";
+    } else if ( (message[l] == 'e') || (message[l] == 'E') ) {
+      binarizedss << "1";
+    } else if ( (message[l] == 'f') || (message[l] == 'F') ) {
+      binarizedss << "101011101";
+    } else if ( (message[l] == 'g') || (message[l] == 'G') ) {
+      binarizedss << "111011101";
+    } else if ( (message[l] == 'h') || (message[l] == 'H') ) {
+      binarizedss << "1010101";
+    } else if ( (message[l] == 'i') || (message[l] == 'I') ) {
+      binarizedss << "101";
+    } else if ( (message[l] == 'j') || (message[l] == 'J') ) {
+      binarizedss << "1011101110111";
+    } else if ( (message[l] == 'k') || (message[l] == 'K') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'l') || (message[l] == 'L') ) {
+      binarizedss << "101110101";
+    } else if ( (message[l] == 'm') || (message[l] == 'M') ) {
+      binarizedss << "1110111";
+    } else if ( (message[l] == 'n') || (message[l] == 'N') ) {
+      binarizedss << "11101";
+    } else if ( (message[l] == 'o') || (message[l] == 'O') ) {
+      binarizedss << "11101110111";
+    } else if ( (message[l] == 'p') || (message[l] == 'P') ) {
+      binarizedss << "10111011101";
+    } else if ( (message[l] == 'q') || (message[l] == 'Q') ) {
+      binarizedss << "1110111010111";
+    } else if ( (message[l] == 'r') || (message[l] == 'R') ) {
+      binarizedss << "1011101";
+    } else if ( (message[l] == 's') || (message[l] == 'S') ) {
+      binarizedss << "10101";
+    } else if ( (message[l] == 't') || (message[l] == 'T') ) {
+      binarizedss << "111";
+    } else if ( (message[l] == 'u') || (message[l] == 'U') ) {
+      binarizedss << "1010111";
+    } else if ( (message[l] == 'v') || (message[l] == 'V') ) {
+      binarizedss << "101010111";
+    } else if ( (message[l] == 'w') || (message[l] == 'W') ) {
+      binarizedss << "101110111";
+    } else if ( (message[l] == 'x') || (message[l] == 'X') ) {
+      binarizedss << "11101010111";
+    } else if ( (message[l] == 'y') || (message[l] == 'Y') ) {
+      binarizedss << "1110101110111";
+    } else if ( (message[l] == 'z') || (message[l] == 'Z') ) {
+      binarizedss << "11101110101";
+    } else if ( (message[l] == '0') ) {
+      binarizedss << "1110111011101110111";
+    } else if ( (message[l] == '1') ) {
+      binarizedss << "10111011101110111";
+    } else if ( (message[l] == '2') ) {
+      binarizedss << "101011101110111";
+    } else if ( (message[l] == '3') ) {
+      binarizedss << "1010101110111";
+    } else if ( (message[l] == '4') ) {
+      binarizedss << "10101010111";
+    } else if ( (message[l] == '5') ) {
+      binarizedss << "101010101";
+    } else if ( (message[l] == '6') ) {
+      binarizedss << "11101010101";
+    } else if ( (message[l] == '7') ) {
+      binarizedss << "1110111010101";
+    } else if ( (message[l] == '8') ) {
+      binarizedss << "111011101110101";
+    } else if ( (message[l] == '9') ) {
+      binarizedss << "11101110111011101";
+    } else {
+    }
+    binarizedss << "000";
+  }
+
+  string binarized = binarizedss.str();
+
+  double samples_per_dmp = 16000 * dmp;
+  double d = dmp * binarized.size();
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  double v = _v;
+
+  for (int i = 0; i < tone_samples; i++) {
+    int this_slot = floor(i / samples_per_dmp);
+    this_slot = max(0, min((int)this_slot, (int)binarized.size()-1));
+
+    if (binarized[this_slot] == '0') {
+      v = 0;
+    } else if (binarized[this_slot] == '1') {
+      v = _v;
+    } else {
+      CONSOLE_ERROR(ms, "Oops, dogMorse encountered an error during encoding." << endl);
+    }
+
+    int16_t intended = int16_t(v * sin(i * f * 2.0 * M_PI / 16000) );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+}
+END_WORD
+REGISTER_WORD(DogMorse)
+
+WORD(DogChirpSin)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogChirpSin)
+
+WORD(DogChirpSquare)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((tone_samples/2.0)-i,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogChirpSquare)
+
+
+WORD(DogWarbleSin)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int sample_idx = i % warb_width_samples;
+    int16_t intended = int16_t(  v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogWarbleSin)
+
+WORD(DogWarbleSquare)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double d = 0.0;
+  GET_NUMERIC_ARG(ms, d);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples = ceil(16000*d);
+  int tone_length = 2*tone_samples;
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < tone_samples; i++) {
+    int sample_idx = i % warb_width_samples;
+    int16_t intended = int16_t(  v * squareWave(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) )  );
+    currentSample[i] = intended;
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogWarbleSquare)
+
+
+WORD(DogVoiceInit)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double seconds = 0;
+  GET_NUMERIC_ARG(ms, seconds);
+
+  if ( ms->config.aiboConfig->pack[this_dog]->voice_buffer != NULL ) {
+    delete ms->config.aiboConfig->pack[this_dog]->voice_buffer;
+  } else {}
+
+  ms->config.aiboConfig->pack[this_dog]->voice_buffer_size = 16000*seconds;
+  ms->config.aiboConfig->pack[this_dog]->voice_buffer = new double[ms->config.aiboConfig->pack[this_dog]->voice_buffer_size];
+
+  //cout << "dogVoiceInit made buffer of " << ms->config.aiboConfig->pack[this_dog]->voice_buffer_size << " samples." << endl;
+}
+END_WORD
+REGISTER_WORD(DogVoiceInit)
+
+WORD(DogVoiceClear)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  if (ms->config.aiboConfig->pack[this_dog]->voice_buffer != NULL) {
+    for (int i = 0; i < ms->config.aiboConfig->pack[this_dog]->voice_buffer_size; i++) {
+      ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] = 0.0;
+    }
+  }
+  //cout << "dogVoiceClear: clearing." << endl;
+}
+END_WORD
+REGISTER_WORD(DogVoiceClear)
+
+WORD(DogVoiceTrackTone)
+virtual void execute(MachineState * ms) {
+// volume frequency start end dogVoiceTrackTone
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * f * 2.0 * M_PI / 16000);
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackTone)
+
+WORD(DogVoiceTrackWarble)
+virtual void execute(MachineState * ms) {
+// volume frequency start end window_sigma repetition_period dogVoiceTrackWarble
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 0.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int sample_idx = i % warb_width_samples;
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackWarble)
+
+WORD(DogVoiceTrackWarbleNotes)
+virtual void execute(MachineState * ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+
+    if (notes[c] == 'R' || notes[c] == 'r') {
+      this_f *= 0;
+    } else if (notes[c] == 'a' || notes[c] == 'A') {
+    } else if (notes[c] == 'b' || notes[c] == 'B') {
+      this_f *= pow(2.0, 2.0/12.0);
+    } else if (notes[c] == 'c' || notes[c] == 'C') {
+      this_f *= pow(2.0, -9.0/12.0);
+    } else if (notes[c] == 'd' || notes[c] == 'D') {
+      this_f *= pow(2.0, -7/12.0);
+    } else if (notes[c] == 'e' || notes[c] == 'E') {
+      this_f *= pow(2.0, -5.0/12.0);
+    } else if (notes[c] == 'f' || notes[c] == 'F') {
+      this_f *= pow(2.0, -4.0/12.0);
+    } else if (notes[c] == 'g' || notes[c] == 'G') {
+      this_f *= pow(2.0, -2.0/12.0);
+    } else if (notes[c] == ' ') {
+      continue;
+    } else {
+    }
+
+    c++;
+    if ( !(c < notes.size()) ) {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " ran out first" << endl;
+      break;
+    }
+
+    if (notes[c] == ' ') {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " hit space first" << endl;
+      continue;
+    } else if (notes[c] == '0') {
+      this_f *= pow(2.0,-4);
+    } else if (notes[c] == '1') {
+      this_f *= pow(2.0,-3);
+    } else if (notes[c] == '2') {
+      this_f *= pow(2.0,-2);
+    } else if (notes[c] == '3') {
+      this_f *= pow(2.0,-1);
+    } else if (notes[c] == '4') {
+    } else if (notes[c] == '5') {
+      this_f *= 2;
+    } else if (notes[c] == '6') {
+      this_f *= 4;
+    } else if (notes[c] == '7') {
+      this_f *= 8;
+    } else if (notes[c] == '8') {
+      this_f *= 16;
+    } else if (notes[c] == '9') {
+      this_f *= 32;
+    } else if (notes[c] == '#') {
+      this_f *= pow(2.0, 1.0/12.0);
+    } else if (notes[c] == 'b') {
+      this_f *= pow(2.0, -1.0/12.0);
+    } else {
+    }
+
+    c++;
+    if ( !(c < notes.size()) ) {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " ran out second" << endl;
+      break;
+    }
+
+    if (notes[c] == ' ') {
+      note_fs.push_back(this_f);
+      cout << "pushing " << this_f << " hit space second" << endl;
+      continue;
+    } else if (notes[c] == '0') {
+      this_f *= pow(2.0,-4);
+    } else if (notes[c] == '1') {
+      this_f *= pow(2.0,-3);
+    } else if (notes[c] == '2') {
+      this_f *= pow(2.0,-2);
+    } else if (notes[c] == '3') {
+      this_f *= pow(2.0,-1);
+    } else if (notes[c] == '4') {
+    } else if (notes[c] == '5') {
+      this_f *= 2;
+    } else if (notes[c] == '6') {
+      this_f *= 4;
+    } else if (notes[c] == '7') {
+      this_f *= 8;
+    } else if (notes[c] == '8') {
+      this_f *= 16;
+    } else if (notes[c] == '9') {
+      this_f *= 32;
+    } else if (notes[c] == '#') {
+      this_f *= pow(2.0, 1.0/12.0);
+    } else if (notes[c] == 'b') {
+      this_f *= pow(2.0, -1.0/12.0);
+    } else {
+    }
+
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " finished" << endl;
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+  int warb_width_samples = ceil(warb_width_seconds * 16000);
+
+  int advance_samples = a * double(warb_width_samples);
+
+  cout << advance_samples << " adv samp " << endl;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i % warb_width_samples;
+    int freq_idx = ( i / warb_width_samples ) % note_fs.size();
+    int this_f = note_fs[ freq_idx ];
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTrackWarbleNotes)
+
+WORD(DogVoiceTimeTrackWarbleSinNotes)
+virtual void execute(MachineState * ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTimeTrackWarbleSinNotes)
+
+WORD(DogVoiceTimeTrackWarbleSquareNotes)
+virtual void execute(MachineState * ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    note_fs.push_back(this_f);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //int sample_arg = min(warb_width_samples-1-sample_idx, sample_idx);
+    //int sample_arg = sample_idx;
+    //int16_t intended = int16_t(  v * sin(advanced_i * f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) )  );
+
+
+//cout << "this_f synth " << this_f << endl;
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * squareWave(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    //ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * sin(i * this_f * 2.0 * M_PI / 16000) * exp( -pow(sample_arg,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTimeTrackWarbleSquareNotes)
+
+WORD(DogVoiceTetraTrackWarbleNotes)
+virtual void execute(MachineState * ms) {
+// volume a4_frequency start end window_sigma repetition_period advance_fraction "A3# B2 C4b R R" dogVoiceTrackWarbleNotes
+  int this_dog = ms->config.aiboConfig->focusedMember;
+
+  string notes;
+  GET_STRING_ARG(ms, notes);
+
+  string wave;
+  GET_STRING_ARG(ms, wave);
+
+  // XXX set wave
+  double (*waveFunction)(double) = &sin;
+  if (wave.compare("sin") == 0) {
+    waveFunction = &sin;
+  } else if (wave.compare("square") == 0) {
+    waveFunction = &squareWave;
+  } else if (wave.compare("triangle") == 0) {
+    waveFunction = &triangleWave;
+  } else if (wave.compare("sawtooth") == 0) {
+    waveFunction = &sawtoothWave;
+  } else {
+    cout << "Unrecognized wave, using sin" << endl;
+    waveFunction = &sin;
+  }
+
+  double a = 0.0;
+  GET_NUMERIC_ARG(ms, a);
+
+  double warb_width_seconds = 1.0;
+  GET_NUMERIC_ARG(ms, warb_width_seconds);
+
+  double sigma = 1.0;
+  GET_NUMERIC_ARG(ms, sigma);
+
+  double e = 0.0;
+  GET_NUMERIC_ARG(ms, e);
+
+  double s = 0.0;
+  GET_NUMERIC_ARG(ms, s);
+
+  double f = 440.0;
+  GET_NUMERIC_ARG(ms, f);
+
+  double v = 0.0;
+  GET_NUMERIC_ARG(ms, v);
+
+  vector<double> note_fs;
+  vector<double> note_ws;
+  vector<double> note_vs;
+  for (int c = 0; c < notes.size(); c++) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+    double this_v = v;
+
+    int parsed = 0;
+
+    while ( (c < notes.size()) ) {
+      cout << notes[c] << " note " << endl;
+      if (notes[c] == ' ') {
+	cout << "breaking " << this_f << " hit space" << endl;
+	break;
+      } else if (notes[c] == 'R' || notes[c] == 'r') {
+	this_f *= 0;
+	this_v *= 0;
+      } else if (notes[c] == 'a' || notes[c] == 'A') {
+      } else if (notes[c] == 'b' || notes[c] == 'B') {
+	this_f *= pow(2.0, 2.0/12.0);
+      } else if (notes[c] == 'c' || notes[c] == 'C') {
+	this_f *= pow(2.0, -9.0/12.0);
+      } else if (notes[c] == 'd' || notes[c] == 'D') {
+	this_f *= pow(2.0, -7/12.0);
+      } else if (notes[c] == 'e' || notes[c] == 'E') {
+	this_f *= pow(2.0, -5.0/12.0);
+      } else if (notes[c] == 'f' || notes[c] == 'F') {
+	this_f *= pow(2.0, -4.0/12.0);
+      } else if (notes[c] == 'g' || notes[c] == 'G') {
+	this_f *= pow(2.0, -2.0/12.0);
+      } else if (notes[c] == '0') {
+	this_f *= pow(2.0,-4);
+      } else if (notes[c] == '1') {
+	this_f *= pow(2.0,-3);
+      } else if (notes[c] == '2') {
+	this_f *= pow(2.0,-2);
+      } else if (notes[c] == '3') {
+	this_f *= pow(2.0,-1);
+      } else if (notes[c] == '4') {
+      } else if (notes[c] == '5') {
+	this_f *= 2;
+      } else if (notes[c] == '6') {
+	this_f *= 4;
+      } else if (notes[c] == '7') {
+	this_f *= 8;
+      } else if (notes[c] == '8') {
+	this_f *= 16;
+      } else if (notes[c] == '9') {
+	this_f *= 32;
+      } else if (notes[c] == '#') {
+	this_f *= pow(2.0, 1.0/12.0);
+      } else if (notes[c] == 'p') {
+	this_f *= pow(2.0, -1.0/12.0);
+      } else if (notes[c] == 'h') {
+	this_w *= 0.5;
+      } else if (notes[c] == 'H') {
+	this_w *= 2;
+      } else if (notes[c] == 't') {
+	this_w *= 1.0/3.0;
+      } else if (notes[c] == 'T') {
+	this_w *= 3.0;
+      } else {
+      }
+      parsed++;
+      c++;
+    }
+
+    if (parsed > 0) {
+      note_fs.push_back(this_f);
+      note_ws.push_back(this_w);
+      note_vs.push_back(this_v);
+      cout << "pushing f w: " << this_f << " " << this_w << " finished" << endl;
+    } else {
+      cout << "did not parse non-whitespace, not pushing" << endl;
+    }
+  }
+
+  if (note_fs.size() == 0) {
+    double this_f = f;
+    double this_w = warb_width_seconds;
+    double this_v = v;
+    note_fs.push_back(this_f);
+    note_ws.push_back(this_w);
+    note_vs.push_back(this_v);
+    cout << "pushing " << this_f << " by default" << endl;
+  } else {}
+
+
+  int tone_samples_start = max( 0, min( int(ceil(16000*s)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+  int tone_samples_end = max( 0, min( int(ceil(16000*e)), ms->config.aiboConfig->pack[this_dog]->voice_buffer_size-1 ) );
+
+
+  int current_note = 0;
+  int num_notes = note_fs.size();
+  int cn_sample_offset = 0;
+  int played_samples = 0;
+
+  for (int i = tone_samples_start; i <= tone_samples_end; i++) {
+    int freq_idx = current_note;
+    double this_f = note_fs[ freq_idx ];
+    double this_w = note_ws[ freq_idx ];
+    double this_v = note_vs[ freq_idx ];
+
+    int warb_width_samples = ceil(this_w * 16000);
+    int advance_samples = a * double(warb_width_samples);
+
+    int advanced_i = (i + advance_samples);
+    int sample_idx = advanced_i - cn_sample_offset;
+
+    //ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += v * squareWave(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+    ms->config.aiboConfig->pack[this_dog]->voice_buffer[i] += this_v * (*waveFunction)(i * this_f * 2.0 * M_PI / 16000) * exp( -pow((warb_width_samples/2.0)-sample_idx,2)/(2.0*pow(sigma,2.0)) );
+  
+    played_samples++;
+    if (played_samples - cn_sample_offset >= warb_width_samples) {
+      current_note++;
+      cn_sample_offset = cn_sample_offset + warb_width_samples;
+      cout << advance_samples << " adv samp, " << played_samples << " " << current_note << endl;
+    } else {}
+  
+    current_note = current_note % num_notes;
+  }
+}
+END_WORD
+REGISTER_WORD(DogVoiceTetraTrackWarbleNotes)
+
+WORD(DogVoiceSing)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  int tone_samples = ms->config.aiboConfig->pack[this_dog]->voice_buffer_size;
+  int tone_length = 2*tone_samples;
+
+  stringstream ss;
+  ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  string header = ss.str();
+
+  int buf_size = tone_length + header.size();
+  char * buf = new char[buf_size];
+  sprintf(buf, "%s", header.c_str());
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < ms->config.aiboConfig->pack[this_dog]->voice_buffer_size; i++) {
+    // clip
+    currentSample[i] = int16_t( max( double(INT16_MIN), min( ms->config.aiboConfig->pack[this_dog]->voice_buffer[i], double(INT16_MAX) ) ) );
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  sendOnDogSocket(ms, this_dog, buf, buf_size);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogVoiceSing)
+
+void write_little_endian(unsigned int word, int num_bytes, uchar *out) {
+  if (num_bytes > 0) {
+    uchar buf;
+    while( num_bytes > 0 ) {   
+      buf = word & 0xff;
+      *out = buf;
+      out++;
+      num_bytes--;
+      word >>= 8;
+    }
+  } else {}
+}
+
+WORD(DogVoiceToPCM)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  int tone_samples = ms->config.aiboConfig->pack[this_dog]->voice_buffer_size;
+  int tone_length = 2*tone_samples;
+
+  string filename;
+  GET_STRING_ARG(ms, filename);
+
+  stringstream ss;
+  //ss << "speaker.val = BIN " << tone_length << " raw 1 16000 16 1;";
+  // 'RIFF'
+  // 4:(overall size - 8 bytes):
+  // 'WAVE'
+  // 'fmt\0'
+  // 4:length of above header:16 
+  // 2:format type, PCM=1:1 
+  // 2:channels:1 
+  // 4:rate:16000 
+  // 4:(sample rate * bits per sample * number of channels) / 8:
+  // 2:(bits per sample * channel)/8:2 
+  // 2:bits per sample:16   
+  // 'data' 
+  // 4:size of data:
+  ss << "RIFF    WAVEfmt                     data    ";
+  string header = ss.str();
+
+  int buf_size = max(int(tone_length + header.size()), int(1 + header.size()));
+  uchar * buf = new uchar[buf_size];
+  sprintf((char*)buf, "%s", header.c_str());
+
+  /*
+  *(int*)(&buf[4]) = buf_size - 8;
+  *(int*)(&buf[16]) = 16;
+  *(uchar*)(&buf[20]) = 1; *(uchar*)(&buf[21]) = 0;
+  *(uchar*)(&buf[22]) = 1; *(uchar*)(&buf[23]) = 0;
+  *(int*)(&buf[24]) = 16000;
+  *(int*)(&buf[28]) = 32000;
+  *(uchar*)(&buf[33]) = 2; *(uchar*)(&buf[34]) = 0;
+  *(uchar*)(&buf[35]) = 16; *(uchar*)(&buf[36]) = 0;
+  *(int*)(&buf[40]) = tone_length;
+  */
+
+  write_little_endian(buf_size-8, 4, &(buf[4])); 
+  write_little_endian(16, 4, &(buf[16])); 
+  write_little_endian(1, 2, &(buf[20])); 
+  write_little_endian(1, 2, &(buf[22])); 
+  write_little_endian(16000, 4, &(buf[24])); 
+  write_little_endian(32000, 4, &(buf[28])); 
+  write_little_endian(2, 2, &(buf[32])); 
+  write_little_endian(16, 2, &(buf[34])); 
+  write_little_endian(tone_length, 4, &(buf[40])); 
+
+  int16_t * currentSample = (int16_t*)(buf + header.size());
+
+  for (int i = 0; i < ms->config.aiboConfig->pack[this_dog]->voice_buffer_size; i++) {
+    // clip
+    //currentSample[i] = int16_t( max( double(INT16_MIN), min( ms->config.aiboConfig->pack[this_dog]->voice_buffer[i], double(INT16_MAX) ) ) );
+    int16_t val = int16_t( max( double(INT16_MIN), min( ms->config.aiboConfig->pack[this_dog]->voice_buffer[i], double(INT16_MAX) ) ) );
+    write_little_endian(val, 2, (uchar*)&(currentSample[i]));
+    //cout << int(currentSample[i]) << " " << intended << endl;;
+  }
+
+  //sendOnDogSocket(ms, this_dog, buf, buf_size);
+  stringstream ss_dir;
+  ss_dir << ms->config.data_directory + "/wav/";
+  mkdir(ss_dir.str().c_str(), 0777);
+
+  stringstream ssf;
+  ssf << ms->config.data_directory + "/wav/" + filename + ".wav";
+
+  FILE *out = fopen(ssf.str().c_str(), "wb");
+  fwrite(buf, 1, buf_size, out);
+  fclose(out);
+
+  delete buf;
+}
+END_WORD
+REGISTER_WORD(DogVoiceToPCM)
+
+
+WORD(DogWriteIntendedFromTrue)
+virtual void execute(MachineState * ms) {
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
+
+  dog->intendedPose = dog->truePose;
+  memcpy(dog->intendedGain, dog->trueGain, 3 * sizeof(EinAiboJoints));
+  dog->intendedIndicators = dog->trueIndicators;
+}
+END_WORD
+REGISTER_WORD(DogWriteIntendedFromTrue)
+
+
+
+/*
+
+WORD(DogVoice)
+virtual void execute(MachineState * ms) {
+}
+END_WORD
+REGISTER_WORD(DogVoice)
+
+WORD(Dog)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\"robot.();\" socketSend");
+}
+END_WORD
+REGISTER_WORD(Dog)
+
+
+WORD(Dog)
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("\";\" socketSend");
+}
+END_WORD
+REGISTER_WORD(Dog)
+
+*/
+ 
+
+  // convert dog image 
+  // loop over relevant pixels
+  // fill out gaussian map
+
+  // convert dog image
+  // loop over relevant pixels
+  // lay down density at parts probably not background
+
+WORD(DogComeToStop)
+virtual void execute(MachineState * ms) {
+  ms->pushWord("dogComeToStopA");
+  ms->pushWord("dogGetSensoryMotorStates");
+  ms->pushWord("endStackCollapseNoop");
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
+
+  ms->config.aiboConfig->aiboStoppedTime = ros::Time(0,0);
+  *ms->config.aiboConfig->stoppedJoints = dog->truePose;
+  ms->config.aiboConfig->aiboComeToStopTime = ros::Time::now();
+}
+END_WORD
+REGISTER_WORD(DogComeToStop)
+
+
+WORD(DogComeToStopA)
+virtual void execute(MachineState * ms) {
+  ros::Duration comeToStopLength = ros::Time::now() - ms->config.aiboConfig->aiboComeToStopTime;
+  //ms->pushWord("dogGetSensoryMotorStates");
+
+  cout << "Length: " << comeToStopLength << endl;
+  if (comeToStopLength > ros::Duration(10, 0)) {
+    return;
+  }
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
+  cout << "Dist: " << ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) << endl;
+  if (ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) < 6.0) {
+    ros::Duration stoppedTime = ros::Time::now()- ms->config.aiboConfig->aiboStoppedTime;
+    if (stoppedTime < ros::Duration(1, 0)) {
+      ms->pushWord("dogComeToStopA");
+    }
+  } else {
+    ms->pushWord("dogComeToStopA");
+    ms->config.aiboConfig->aiboStoppedTime = ros::Time::now();
+    *ms->config.aiboConfig->stoppedJoints = dog->truePose;
+  }
+  ms->pushWord("endStackCollapseNoop");
+}
+END_WORD
+REGISTER_WORD(DogComeToStopA)
+
+WORD(SceneUpdateObservedFromSnout)
+virtual void execute(MachineState * ms) {
+//XXX 
+
+  
+  double dog_z = 0.0;
+  GET_NUMERIC_ARG(ms, dog_z);
+
+  //Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+  //Size sz = camera->cam_ycrcb_img.size();
+
+  int this_dog = ms->config.aiboConfig->focusedMember;
+  Size sz = ms->config.aiboConfig->pack[this_dog]->snoutCamImage.size();
+
+  int imW = sz.width;
+  int imH = sz.height;
+
+  int aahr = (ms->config.angular_aperture_rows-1)/2;
+  int aahc = (ms->config.angular_aperture_cols-1)/2;
+
+  int imHoT = imH/2;
+  int imWoT = imW/2;
+
+  int topx = imWoT - aahc;
+  int botx = imWoT + aahc; 
+  int topy = imHoT - aahr; 
+  int boty = imHoT + aahr; 
+    
+  pixelToGlobalCache data;
+
+  //double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  double z = dog_z;
+  //computePixelToGlobalCache(ms, z, thisPose, &data);
+
+  eePose thisPose, basePose;
+  //int success = getStreamPoseAtTime(ms, camera->lastImageStamp.toSec(), &thisPose, &basePose);
+  thisPose = ms->config.currentEEPose;
+  basePose = ms->config.currentEEPose;
+
+  //computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
+  computePixelToPlaneCache(ms, z, thisPose, basePose, &data);
+  //  imshow("image being used", camera->cam_ycrcb_img);
+  //waitKey(0);
+  cout << "top: " << topx << ", " << topy << endl;
+  cout << "bot: " << botx << ", " << boty << endl;
+
+  for (int px = topx; px < botx; px++) {
+    for (int py = topy; py < boty; py++) {
+  //for (int px = 0; px < imW; px++) 
+    //for (int py = 0; py < imH; py++) 
+      if (isInGripperMask(ms, px, py)) {
+	continue;
+      }
+      double x, y;
+      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
+
+      if (std::isnan(x) || std::isnan(y)) {
+        CONSOLE_ERROR(ms, "Nan in pixel to global; check your calibration! " << x << ", " << y << " from " << px << ", " << py);
+        CONSOLE_ERROR(ms, "Pixel to global cache: " << pixelToGlobalCacheToString(data));
+        return;
+      }
+
+
+      // single sample update
+      int i, j;
+      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
+      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
+      if (cell != NULL) {
+        //Vec3b pixel = camera->cam_ycrcb_img.at<Vec3b>(py, px);
+	Vec3b pixel = ms->config.aiboConfig->pack[this_dog]->snoutCamImage.at<Vec3b>(py, px);
+        cell->newObservation(pixel);
+      }
+    }
+  }
+  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
+  ms->pushWord("sceneRenderObservedMap");
+}
+END_WORD
+REGISTER_WORD(SceneUpdateObservedFromSnout)
+
+
+WORD(MoveCropToProperValueNoUpdate)
+virtual void execute(MachineState * ms) {
+  CONSOLE_ERROR(ms, "Ignore camera config for AIBO!");
+
+}
+END_WORD
+REGISTER_WORD(MoveCropToProperValueNoUpdate)
+
+
+
+}
+
+
+string AiboPoseWord::repr() {
+  stringstream ss;
+  ss << pose.legLF1 << " " << pose.legLF2 << " " << pose.legLF3 << " " << pose.legLH1 << " " << pose.legLH2 << " " << pose.legLH3 << " " << pose.legRH1 << " " << pose.legRH2 << " " << pose.legRH3 << " " << pose.legRF1 << " " << pose.legRF2 << " " << pose.legRF3 << " " << pose.neck << " " << pose.headPan << " " << pose.headTilt << " " << pose.tailPan << " " << pose.tailTilt << " " << pose.mouth << " " << "dogCreatePose";
+  return ss.str();
+}
+
+

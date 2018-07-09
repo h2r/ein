@@ -1,22 +1,18 @@
-#include "ikfast/ikfast_wrapper_left.h"
-#undef IKFAST_NAMESPACE
-#undef IKFAST_SOLVER_CPP
-#undef MY_NAMESPACE
-#include "ikfast/ikfast_wrapper_right.h"
 
 #include "ein_words.h"
 #include "ein.h"
 #include "camera.h"
+#include "eigen_util.h"
 
 namespace ein_words {
 
-CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta)
+CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta, "")
 CONFIG_SETTER_DOUBLE(SetGridSize, ms->config.bDelta)
 
 
-CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh)
+CONFIG_GETTER_DOUBLE(W1GoThresh, ms->config.w1GoThresh, "When we do wait until at current position")
 CONFIG_SETTER_DOUBLE(SetW1GoThresh, ms->config.w1GoThresh)
-CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh)
+CONFIG_GETTER_DOUBLE(W1AngleThresh, ms->config.w1AngleThresh, "When we do wait until at current position")
 CONFIG_SETTER_DOUBLE(SetW1AngleThresh, ms->config.w1AngleThresh)
 
 CONFIG_GETTER_INT(CurrentIKBoundaryMode, ms->config.currentIKBoundaryMode)
@@ -64,15 +60,15 @@ virtual void execute(MachineState * ms) {
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
   ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
-  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPose.position.x);
-  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPose.position.y);
-  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPose.position.z);
+  double dx = (ms->config.currentEEPose.px - ms->config.trueEEPoseEEPose.px);
+  double dy = (ms->config.currentEEPose.py - ms->config.trueEEPoseEEPose.py);
+  double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPoseEEPose.pz);
   double distance = dx*dx + dy*dy + dz*dz;
   
-  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPose.orientation.x));
-  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPose.orientation.y));
-  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPose.orientation.z));
-  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPose.orientation.w));
+  double qx = (fabs(ms->config.currentEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
+  double qy = (fabs(ms->config.currentEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
+  double qz = (fabs(ms->config.currentEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
+  double qw = (fabs(ms->config.currentEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
   double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
   
   if ((distance > ms->config.w1GoThresh*ms->config.w1GoThresh) || (angleDistance > ms->config.w1AngleThresh*ms->config.w1AngleThresh)) {
@@ -184,7 +180,7 @@ virtual void execute(MachineState * ms) {
 	  //cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_KEEP_ON, so doing nothing...";
 	} else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
 	  cout << "waitUntilAtCurrentPositionB: currentWaitMode WAIT_BACK_UP, so...";
-	  ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	  ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
 	  cout << "  backing up just a little to dislodge, then waiting again." << endl;
 	} else {
 	  assert(0);
@@ -470,7 +466,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitX);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXDown)
@@ -482,7 +478,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitX);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitX);
 }
 END_WORD
 REGISTER_WORD(LocalXUp)
@@ -493,7 +489,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitY);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYDown)
@@ -505,7 +501,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitY);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitY);
 }
 END_WORD
 REGISTER_WORD(LocalYUp)
@@ -518,7 +514,7 @@ virtual void execute(MachineState * ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.bDelta * localUnitZ);
+  ms->config.currentEEPose = eePosePlus(ms->config.currentEEPose, ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZUp)
@@ -530,7 +526,7 @@ virtual void execute(MachineState * ms)
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(ms->config.currentEEPose, &localUnitX, &localUnitY, &localUnitZ);
-  ms->config.currentEEPose = ms->config.currentEEPose.minusP(ms->config.bDelta * localUnitZ);
+  ms->config.currentEEPose = eePoseMinus(ms->config.currentEEPose, ms->config.bDelta * localUnitZ);
 }
 END_WORD
 REGISTER_WORD(LocalZDown)
@@ -630,101 +626,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(UntuckArms)
 
-
-
-WORD(SetGripperMovingForce)
-virtual void execute(MachineState * ms) {
-// velocity - Velocity at which a position move will execute 
-// moving_force - Force threshold at which a move will stop 
-// holding_force - Force at which a grasp will continue holding 
-// dead_zone - Position deadband within move considered successful 
-// ALL PARAMETERS (0-100) 
-
-  int amount = 0; 
-  GET_ARG(ms,IntegerWord,amount);
-
-  amount = min(max(0,amount),100);
-
-  cout << "setGripperMovingForce, amount: " << amount << endl;
-
-  char buf[1024]; sprintf(buf, "{\"moving_force\": %d.0}", amount);
-  string argString(buf);
-
-  baxter_core_msgs::EndEffectorCommand command;
-  command.command = baxter_core_msgs::EndEffectorCommand::CMD_CONFIGURE;
-  command.args = argString.c_str();
-  command.id = 65538;
-  ms->config.gripperPub.publish(command);
-}
-END_WORD
-REGISTER_WORD(SetGripperMovingForce)
-
-WORD(CloseGripper)
-CODE('j')
-virtual void execute(MachineState * ms) {
-  baxter_core_msgs::EndEffectorCommand command;
-  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-  command.args = "{\"position\": 0.0}";
-
-  // command id depends on model of gripper
-  // standard
-  command.id = 65538;
-  // legacy
-  //command.id = 65664;
-
-  ms->config.gripperPub.publish(command);
-}
-END_WORD
-REGISTER_WORD(CloseGripper)
-
-WORD(OpenGripper)
-CODE('k')
-virtual void execute(MachineState * ms) {
-  baxter_core_msgs::EndEffectorCommand command;
-  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-  command.args = "{\"position\": 100.0}";
-
-  // command id depends on model of gripper
-  // standard
-  command.id = 65538;
-  // legacy
-  //command.id = 65664;
-
-  ms->config.gripperPub.publish(command);
-  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
-}
-END_WORD
-REGISTER_WORD(OpenGripper)
-
-WORD(OpenGripperInt)
-virtual void execute(MachineState * ms) {
-  cout << "openGripperInt: ";
-
-  int amount = 0; 
-  GET_ARG(ms,IntegerWord,amount);
-
-  amount = min(max(0,amount),100);
-
-  char buf[1024]; sprintf(buf, "{\"position\": %d.0}", amount);
-  string argString(buf);
-
-  cout << "opening gripper to " << amount << endl;
-
-  baxter_core_msgs::EndEffectorCommand command;
-  command.command = baxter_core_msgs::EndEffectorCommand::CMD_GO;
-  command.args = argString.c_str();
-
-  // command id depends on model of gripper
-  // standard
-  command.id = 65538;
-  // legacy
-  //command.id = 65664;
-
-  ms->config.gripperPub.publish(command);
-  ms->config.lastMeasuredClosed = ms->config.gripperPosition;
-}
-END_WORD
-REGISTER_WORD(OpenGripperInt)
 
 
 WORD(SetGridSizeNowThatsCoarse)
@@ -970,7 +871,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(IRCalibrationSpeed)
 
-CONFIG_GETTER_DOUBLE(GetSpeed, ms->config.currentEESpeedRatio)
+CONFIG_GETTER_DOUBLE(GetSpeed, ms->config.currentEESpeedRatio, "")
 WORD(SetSpeed)
 virtual void execute(MachineState * ms) {
   double v1;
@@ -1053,8 +954,8 @@ virtual void execute(MachineState * ms) {
     box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
     box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
     box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
+    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
     box.centroid.px = (box.top.px + box.bot.px) * 0.5;
     box.centroid.py = (box.top.py + box.bot.py) * 0.5;
     box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
@@ -1323,11 +1224,11 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(DecrementTargetMasterSprite)
 
-CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold)
+CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold, "")
 CONFIG_SETTER_DOUBLE(SetArmedThreshold, ms->config.armedThreshold)
-CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold)
+CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold, "")
 CONFIG_SETTER_DOUBLE(SetMovingThreshold, ms->config.movingThreshold)
-CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold)
+CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold, "")
 CONFIG_SETTER_DOUBLE(SetHoverThreshold, ms->config.hoverThreshold)
 
 WORD(ComeToStop)
@@ -1357,7 +1258,7 @@ virtual void execute(MachineState * ms) {
 
       // waitUntilCurrentPosition will time out, make sure that there will
       //  be no cycles introduced
-      ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+      ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
       cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
       ms->pushWord("waitUntilAtCurrentPosition"); 
     }
@@ -1951,189 +1852,7 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetControlModeAngles)
 
-WORD(MoveJointsToAngles)
-virtual void execute(MachineState * ms) {
-  double an[NUM_JOINTS];
-  for (int i = NUM_JOINTS-1; i >= 0; i--) {
-    GET_NUMERIC_ARG(ms, an[i]);
-    ms->config.currentJointPositions.response.joints[0].position[i] = an[i];
-  }
-}
-END_WORD
-REGISTER_WORD(MoveJointsToAngles)
 
-WORD(MoveJointsByAngles)
-virtual void execute(MachineState * ms) {
-  double an[NUM_JOINTS];
-  for (int i = NUM_JOINTS-1; i >= 0; i--) {
-    GET_NUMERIC_ARG(ms, an[i]);
-    ms->config.currentJointPositions.response.joints[0].position[i] += an[i];
-  }
-}
-END_WORD
-REGISTER_WORD(MoveJointsByAngles)
-
-WORD(PrintJointAngles)
-virtual void execute(MachineState * ms) {
-  cout << "currentJointPositions: " << endl;
-  for (int i = 0; i < NUM_JOINTS; i++) {
-    cout << ms->config.currentJointPositions.response.joints[0].position[i] << " ";
-  }
-  cout << "moveJointsToAngles" << endl;
-}
-END_WORD
-REGISTER_WORD(PrintJointAngles)
-
-WORD(PushCurrentJointAngle)
-virtual void execute(MachineState * ms) {
-  int jointToPush = 0; 
-  GET_INT_ARG(ms, jointToPush);
-  ms->pushWord(make_shared<DoubleWord>(ms->config.currentJointPositions.response.joints[0].position[jointToPush]));
-}
-END_WORD
-REGISTER_WORD(PushCurrentJointAngle)
-
-
-WORD(PushCurrentJointAngles)
-virtual void execute(MachineState * ms) {
-  shared_ptr<CompoundWord> angles = make_shared<CompoundWord>();
-  for (int i =  0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
-    int j = ms->config.currentJointPositions.response.joints[0].position.size() - 1 - i;
-    angles->pushWord(make_shared<DoubleWord>(ms->config.currentJointPositions.response.joints[0].position[j]));
-  }
-  ms->pushData(angles);
-}
-END_WORD
-REGISTER_WORD(PushCurrentJointAngles)
-
-WORD(CurrentJointWord)
-virtual void execute(MachineState * ms) {
-  armPose pose;
-  for (int i = NUM_JOINTS-1; i >= 0; i--) {
-    pose.joints[i] = ms->config.currentJointPositions.response.joints[0].position[i];
-  }
-
-  ms->pushWord(make_shared<ArmPoseWord>(pose));
-}
-END_WORD
-REGISTER_WORD(CurrentJointWord)
-
-WORD(MoveArmToPoseWord)
-virtual void execute(MachineState * ms) {
-  armPose pose;
-  GET_ARG(ms, ArmPoseWord, pose);
-
-  for (int i = NUM_JOINTS-1; i >= 0; i--) {
-    ms->config.currentJointPositions.response.joints[0].position[i] = pose.joints[i];
-  }
-}
-END_WORD
-REGISTER_WORD(MoveArmToPoseWord)
-
-WORD(SetCurrentPoseFromJoints)
-virtual void execute(MachineState * ms) {
-
-  vector<double> joint_angles(NUM_JOINTS);
-  for (int i =  0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
-    joint_angles[i] = ms->config.currentJointPositions.response.joints[0].position[i];
-  }
-
-  eePose ikfastEndPointPose;
-  if (ms->config.left_or_right_arm == "left") {
-    ikfastEndPointPose = ikfast_left_ein::ikfast_computeFK(ms, joint_angles);
-  } else if (ms->config.left_or_right_arm == "right") {
-    ikfastEndPointPose = ikfast_right_ein::ikfast_computeFK(ms, joint_angles);
-  } else {
-    assert(0);
-  }
-
-  eePose handFromIkFastEndPoint = {0,0,-0.0661, 0,0,0,1};
-
-  eePose desiredHandPose = handFromIkFastEndPoint.applyAsRelativePoseTo(ikfastEndPointPose);
-  eePose desiredEndPointPose = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
-  // XXX factor1
-
-  ms->config.currentEEPose = desiredEndPointPose;
-
-  cout << "setCurrentPoseFromJoints: doing it " << ms->config.currentEEPose << endl;
-}
-END_WORD
-REGISTER_WORD(SetCurrentPoseFromJoints)
-
-#define ARM_POSE_DELTAS(J, I, C, T, D) \
-WORD(Arm ## J ## Up) \
-virtual void execute(MachineState * ms) { \
-  C += D; \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## Up) \
-\
-WORD(Arm ## J ## Down) \
-virtual void execute(MachineState * ms) { \
-  C -= D; \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## Down) \
-\
-WORD(Arm ## J ## By) \
-virtual void execute(MachineState * ms) { \
-  double amount = 0.0; \
-  GET_NUMERIC_ARG(ms, amount); \
-  C += amount; \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## By) \
-WORD(Arm ## J ## To) \
-virtual void execute(MachineState * ms) { \
-  double amount = 0.0; \
-  GET_NUMERIC_ARG(ms, amount); \
-  C = amount; \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## To) \
-WORD(Arm ## J ## Current) \
-virtual void execute(MachineState * ms) { \
-  ms->pushData(make_shared<DoubleWord>(C)); \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## Current) \
-WORD(Arm ## J ## True) \
-virtual void execute(MachineState * ms) { \
-  ms->pushData(make_shared<DoubleWord>(T)); \
-} \
-END_WORD \
-REGISTER_WORD(Arm ## J ## True) \
-WORD(ArmPose ## J ## Get) \
-virtual void execute(MachineState * ms) { \
-  armPose pose; \
-  GET_ARG(ms, ArmPoseWord, pose); \
-  ms->pushData(make_shared<DoubleWord>(pose.joints[I])); \
-} \
-END_WORD \
-REGISTER_WORD(ArmPose ## J ## Get) \
-WORD(ArmPose ## J ## Set) \
-virtual void execute(MachineState * ms) { \
-  double amount = 0.0; \
-  GET_NUMERIC_ARG(ms, amount); \
-\
-  armPose pose; \
-  GET_ARG(ms, ArmPoseWord, pose); \
-\
-  pose.joints[I] = amount;\
-\
-  ms->pushWord(make_shared<ArmPoseWord>(pose));\
-} \
-END_WORD \
-REGISTER_WORD(ArmPose ## J ## Set) \
-
-// 1 indexed to match aibo
-ARM_POSE_DELTAS(1, 0, ms->config.currentJointPositions.response.joints[0].position[0], ms->config.trueJointPositions[0], ms->config.bDelta)
-ARM_POSE_DELTAS(2, 1, ms->config.currentJointPositions.response.joints[0].position[1], ms->config.trueJointPositions[1], ms->config.bDelta)
-ARM_POSE_DELTAS(3, 2, ms->config.currentJointPositions.response.joints[0].position[2], ms->config.trueJointPositions[2], ms->config.bDelta)
-ARM_POSE_DELTAS(4, 3, ms->config.currentJointPositions.response.joints[0].position[3], ms->config.trueJointPositions[3], ms->config.bDelta)
-ARM_POSE_DELTAS(5, 4, ms->config.currentJointPositions.response.joints[0].position[4], ms->config.trueJointPositions[4], ms->config.bDelta)
-ARM_POSE_DELTAS(6, 5, ms->config.currentJointPositions.response.joints[0].position[5], ms->config.trueJointPositions[5], ms->config.bDelta)
-ARM_POSE_DELTAS(7, 6, ms->config.currentJointPositions.response.joints[0].position[6], ms->config.trueJointPositions[6], ms->config.bDelta)
 
 WORD(FollowPath)
 virtual void execute(MachineState * ms) {
@@ -2247,79 +1966,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(TransformPath)
 
-WORD(ArmPoseToEePose)
-virtual void execute(MachineState * ms) {
-// ComputeFk
-// XXX 
-  armPose armPoseIn;
-  GET_ARG(ms, ArmPoseWord, armPoseIn);
-
-  vector<double> joint_angles(NUM_JOINTS);
-  for (int i =  0; i < ms->config.currentJointPositions.response.joints[0].position.size(); i++) {
-    joint_angles[i] = armPoseIn.joints[i];
-  }
-
-  eePose ikfastEndPointPose;
-  if (ms->config.left_or_right_arm == "left") {
-    ikfastEndPointPose = ikfast_left_ein::ikfast_computeFK(ms, joint_angles);
-  } else if (ms->config.left_or_right_arm == "right") {
-    ikfastEndPointPose = ikfast_right_ein::ikfast_computeFK(ms, joint_angles);
-  } else {
-    assert(0);
-  }
-
-  eePose handFromIkFastEndPoint = {0,0,-0.0661, 0,0,0,1};
-
-  eePose desiredHandPose = handFromIkFastEndPoint.applyAsRelativePoseTo(ikfastEndPointPose);
-  eePose desiredEndPointPose = ms->config.handToRethinkEndPointTransform.applyAsRelativePoseTo(desiredHandPose);
-  // XXX factor1
-
-  ms->pushWord(std::make_shared<EePoseWord>(desiredEndPointPose));
-}
-END_WORD
-REGISTER_WORD(ArmPoseToEePose)
-
-WORD(EePoseToArmPose)
-virtual void execute(MachineState * ms) {
-// ComputeIk
-// XXX 
-  eePose eePoseIn;
-  GET_ARG(ms, EePoseWord, eePoseIn);
-
-  baxter_core_msgs::SolvePositionIK thisIkRequest;
-  fillIkRequest(eePoseIn, &thisIkRequest);
-
-  int ikCallResult = 0;
-  queryIK(ms, &ikCallResult, &thisIkRequest);
-
-  // XXX this maintains history in the solver
-  //  not good form
-  for (int i = NUM_JOINTS-1; i >= 0; i--) {
-    ms->config.currentJointPositions.response.joints[0].position[i] =
-	  thisIkRequest.response.joints[0].position[i];
-  }
-
-  if (ikCallResult && thisIkRequest.response.isValid[0]) {
-    cout << "eePoseToArmPose: got " << thisIkRequest.response.joints.size() << " solutions, using first." << endl;
-    ms->pushWord( 
-      std::make_shared<ArmPoseWord>(  
-	armPose(
-	  thisIkRequest.response.joints[0].position[0],
-	  thisIkRequest.response.joints[0].position[1],
-	  thisIkRequest.response.joints[0].position[2],
-	  thisIkRequest.response.joints[0].position[3],
-	  thisIkRequest.response.joints[0].position[4],
-	  thisIkRequest.response.joints[0].position[5],
-	  thisIkRequest.response.joints[0].position[6]
-	)
-      )
-    );
-  } else {
-    cout << "eePoseToArmPose: ik failed..." << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(EePoseToArmPose)
 
 WORD(WaitUntilOnSideOfPlane)
 virtual void execute(MachineState * ms) {
@@ -2389,7 +2035,7 @@ virtual void execute(MachineState * ms) {
       } else if (ms->config.currentWaitMode == WAIT_BACK_UP) {
 	cout << "waitUntilOnSideOfPlaneB: currentWaitMode WAIT_BACK_UP, so...";
 	cout << " doing nothing!" << endl;
-	//ms->config.currentEEPose.pz = ms->config.trueEEPose.position.z + 0.001;
+	//ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
 	//cout << "  backing up just a little to dislodge, then waiting again." << endl;
       } else {
 	assert(0);
@@ -2720,40 +2366,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(PlanToPointCraneThreeStroke)
 
-WORD(ArmPublishJointPositionCommand)
-virtual void execute(MachineState * ms) {
-  // XXX needs to be an ArmPose reactive variables currentArmPose, trueArmPose
-  baxter_core_msgs::JointCommand myCommand;
-
-  if (!ms->config.jointNamesInit) {
-    ms->config.jointNames.resize(NUM_JOINTS);
-    for (int j = 0; j < NUM_JOINTS; j++) {
-      ms->config.jointNames[j] = ms->config.ikRequest.response.joints[0].name[j];
-    }
-    ms->config.jointNamesInit = 1;
-  }
-
-  myCommand.mode = baxter_core_msgs::JointCommand::POSITION_MODE;
-  myCommand.command.resize(NUM_JOINTS);
-  myCommand.names.resize(NUM_JOINTS);
-
-  ms->config.lastGoodIkRequest.response.joints.resize(1);
-  ms->config.lastGoodIkRequest.response.joints[0].name.resize(NUM_JOINTS);
-  ms->config.lastGoodIkRequest.response.joints[0].position.resize(NUM_JOINTS);
-
-  ms->config.currentJointPositions.response.joints.resize(1);
-  ms->config.currentJointPositions.response.joints[0].name.resize(NUM_JOINTS);
-  ms->config.currentJointPositions.response.joints[0].position.resize(NUM_JOINTS);
-
-  for (int j = 0; j < NUM_JOINTS; j++) {
-    myCommand.names[j] = ms->config.currentJointPositions.response.joints[0].name[j];
-    myCommand.command[j] = ms->config.currentJointPositions.response.joints[0].position[j];
-  }
-
-  ms->config.joint_mover.publish(myCommand);
-}
-END_WORD
-REGISTER_WORD(ArmPublishJointPositionCommand)
 
 WORD(PlanToPointCraneThreeStrokeOpenJointHyperPlanner)
 virtual void execute(MachineState * ms) {

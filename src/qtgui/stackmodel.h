@@ -5,7 +5,13 @@
 #include <QtWidgets>
 #include <QAbstractTableModel>
 
-#include "ein.h"
+
+using namespace std;
+
+#include <vector>
+#include <memory>
+
+class Word;
 
 class StackModel : public QAbstractTableModel
 {

@@ -9,9 +9,6 @@
 
 using namespace std;
 
-extern vector<shared_ptr<Word> > words;
-
-
 // Preprocessor macro to automatically create class structure for words
 // extracted from the case statement of evil (despair)
 // WORD(gName)
@@ -38,7 +35,8 @@ public: \
 #define END_WORD };
 
 #define REGISTER_WORD(gName) \
-  int gName ## _register = register_word(make_shared<gName>());
+  std::vector<std::shared_ptr<Word> > gName ## _register = register_word(make_shared<gName>());
+
 
 #define CONSUME_EEPOSE(x,ms) \
 {\
@@ -197,6 +195,7 @@ virtual void execute(MachineState * ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
+
 #define CONFIG_SETTER_INT(backName, configName)	\
 WORD(backName) \
 virtual void execute(MachineState * ms) { \
@@ -218,13 +217,18 @@ virtual void execute(MachineState * ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
-#define CONFIG_GETTER_DOUBLE(backName, configName)	\
+
+#define CONFIG_GETTER_DOUBLE(backName, configName, desc)	\
 WORD(backName) \
+virtual string description() {\
+  return desc;\
+}\
 virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<DoubleWord>(configName)); \
 } \
 END_WORD \
 REGISTER_WORD(backName) 
+
 
 #define CONFIG_SETTER_DOUBLE(backName, configName)	\
 WORD(backName) \
@@ -236,8 +240,11 @@ virtual void execute(MachineState * ms) { \
 END_WORD \
 REGISTER_WORD(backName) 
 
-#define CONFIG_GETTER_STRING(backName, configName)	\
+#define CONFIG_GETTER_STRING(backName, configName, desc)	\
 WORD(backName) \
+virtual string description() {\
+  return desc;\
+}\
 virtual void execute(MachineState * ms) { \
   ms->pushWord(make_shared<StringWord>(configName)); \
 } \
@@ -391,8 +398,5 @@ if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
   } else {\
     x = "";\
   }
-
-int register_word(shared_ptr<Word> word);
-
 
 #endif /* _EIN_WORDS_H_ */

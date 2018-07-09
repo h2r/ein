@@ -1,8 +1,29 @@
 #include "word.h"
 #include "ein.h"
-
+#include <sstream>
+#include <boost/algorithm/string.hpp>
+using namespace boost::algorithm;
 #include <boost/regex.hpp>
 #include "tokenizer.hpp"
+
+
+/*
+ * We need to have a static variable so taht we don't have to worry
+ * about accessing a global variable in dynamically linked libraries.
+ * The function needs to return the variable in order to give other
+ * people access to it.  Hence the strange design.  If you just want
+ * to read the list of words, pass null when you register.  If you
+ * just want to register, ignore the return value.
+ */
+std::vector<std::shared_ptr<Word> > register_word(std::shared_ptr<Word> word) {
+  static std::vector<std::shared_ptr<Word> > words;
+  if (word != NULL) {
+    words.push_back(word);
+  }
+  return words;
+}
+
+
 
 
 void Word::execute(MachineState * ms) {
@@ -56,6 +77,7 @@ map<string, shared_ptr<Word> > MachineState::wordsInNamespace()
   for (iter = ms->variables.begin(); iter != ms->variables.end(); ++iter) {
     r[iter->first] = iter->second;
   }
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   for (int i = 0; i < words.size(); i++) {
     vector<string> names = words[i]->names();
     for (int j = 0; j < names.size(); j++) {
@@ -344,8 +366,8 @@ std::shared_ptr<Word> nameToWord(string name) {
 }
 
 
-
 void initializeWords() {
+  std::vector<std::shared_ptr<Word> > words = register_word(NULL);
   cout << "Making words: " << words.size() << endl;
   character_code_to_word = create_character_code_to_word(words);
   name_to_word = create_name_to_word(words);
@@ -606,13 +628,6 @@ string EePoseWord::repr() {
 string ArmPoseWord::repr() {
   return std::to_string(pose.joints[0]) + " " + std::to_string(pose.joints[1]) + " " + std::to_string(pose.joints[2]) + " " + std::to_string(pose.joints[3]) + " " + std::to_string(pose.joints[4]) + " " + std::to_string(pose.joints[5]) + " " + std::to_string(pose.joints[6]) + " createArmPose";
 }
-
-string AiboPoseWord::repr() {
-  stringstream ss;
-  ss << pose.legLF1 << " " << pose.legLF2 << " " << pose.legLF3 << " " << pose.legLH1 << " " << pose.legLH2 << " " << pose.legLH3 << " " << pose.legRH1 << " " << pose.legRH2 << " " << pose.legRH3 << " " << pose.legRF1 << " " << pose.legRF2 << " " << pose.legRF3 << " " << pose.neck << " " << pose.headPan << " " << pose.headTilt << " " << pose.tailPan << " " << pose.tailTilt << " " << pose.mouth << " " << "dogCreatePose";
-  return ss.str();
-}
-
 
 
 
