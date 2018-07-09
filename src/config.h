@@ -1,8 +1,28 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include "ein_aibo.h"
+#define EPSILON 1.0e-9
+#define VERYBIGNUMBER 1e12
+
+
+#if defined(USE_ROBOT_AIBO)
+#include "aibo/ein_aibo.h"
+#elif defined(USE_ROBOT_BAXTER)
+#include "baxter/ein_baxter.h"
+#elif defined(USE_ROBOT_PIDRONE)
+#include "pidrone/ein_pidrone.h"
+#elif defined(USE_ROBOT_JACO)
+#include "jaco/ein_jaco.h"
+#elif defined(USE_ROBOT_MOVO)
+#include "movo/ein_movo.h"
+#else
+
+#include "defaultrobot/ein_robot.h"
+#endif
+
 #include "gaussian_map.h"
+#include "ein_util.h"
+#include "eePose.h"
 
 class GaussianMap;
 class TransitionTable;
@@ -10,63 +30,20 @@ class Scene;
 class OrientedRay;
 class Camera;
 
-#include <ros/package.h>
-#include <tf/transform_listener.h>
+#include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Range.h>
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-#include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/UInt16.h>
-#include <std_msgs/UInt32.h>
-#include <std_msgs/Float64.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/Empty.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
-#include <object_recognition_msgs/RecognizedObjectArray.h>
-#include <object_recognition_msgs/RecognizedObject.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
+#include <tf/transform_listener.h>
 #include <rosgraph_msgs/Log.h>
 
-
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/CollisionDetectionState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/SEAJointState.h>
+#include <cv.h>
+#include <ml.h>
 
 
-
-#include <tf/transform_listener.h>
-#include <image_transport/image_transport.h>
-#include <object_recognition_msgs/RecognizedObjectArray.h>
-#include <object_recognition_msgs/RecognizedObject.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/DigitalIOState.h>
-#include <baxter_core_msgs/AnalogIOState.h>
-
-
-#include "eigen_util.h"
 #include <ein/EinState.h>
 #include "distributions.h"
 
@@ -173,11 +150,6 @@ typedef enum {
   GRASP_3D
 } graspMode;
 
-typedef enum {
-  UNKNOWN = -1,
-  FAILURE = 0,
-  SUCCESS = 1
-} operationStatusType;
 
 typedef enum {
   STATIC_PRIOR = 1,
@@ -365,76 +337,6 @@ typedef struct streamLabel {
 } streamLabel;
 
 
-typedef struct pixelToGlobalCache {
-  eePose givenEEPose;
-  double gZ;
-  int x1;
-  int x2;
-  int x3;
-  int x4;
-
-  int y1;
-  int y2;
-  int y3;
-  int y4;
-
-  double z1;
-  double z2;
-  double z3;
-  double z4;
-
-  double reticlePixelX;
-  double reticlePixelY;
-  double reticlePixelXOffset;
-  double reticlePixelYOffset;
-
-  double x_thisZ;
-  double y_thisZ;
-
-  double gXFactor;
-  double gYFactor;
-  double finalXOffset;
-  double finalYOffset;
-
-  Mat un_rot_mat;
-
-  double rotx[3];
-  double roty[3];
-
-  double dx;
-  double cx;
-  double b42x;
-  double b31x;
-  double bDiffx;
-  double bx;
-
-
-  double dy;
-  double cy;
-  double b42y;
-  double b31y;
-  double bDiffy;
-  double by;
-
-  Eigen::Matrix4f p2gComposedZBuilt;
-  Eigen::Matrix4f g2pComposedZBuilt;
-  Eigen::Matrix4f p2gComposedZNotBuilt;
-  Eigen::Matrix4f g2pComposedZNotBuilt;
-
-  Eigen::Matrix4f ap;
-  Eigen::Matrix4f apInv;
-  Eigen::Matrix4f ccpRot;
-  Eigen::Matrix4f ccpRotInv;
-  Eigen::Matrix4f ccpTrans;
-  Eigen::Matrix4f ccpTransInv;
-
-  double mu_x;
-  double mu_y;
-  double kappa_x;
-  double kappa_y;
-
-  Vec4d target_plane;
-} pixelToGlobalCache;
 
 
 
@@ -449,31 +351,25 @@ typedef struct pixelToGlobalCache {
 class Word;
 class CompoundWord;
 
+class EinBaxterConfig;
+class EinAiboConfig;
+class EinPidroneConfig;
+class EinJacoConfig;
+class EinMovoConfig;
+
 class EinConfig {
  public:
 
+  EinBaxterConfig * baxterConfig;
+  EinAiboConfig * aiboConfig;
+  EinPidroneConfig * pidroneConfig;
+  EinJacoConfig * jacoConfig;
+  EinMovoConfig * movoConfig;
 
-  baxter_core_msgs::HeadPanCommand currentHeadPanCommand;
-  std_msgs::Bool currentHeadNodCommand;
-  std_msgs::UInt16 currentSonarCommand;
-  std_msgs::UInt32 currentStiffnessCommand;
   
   tf::TransformListener* tfListener;
-  
-  baxter_core_msgs::SolvePositionIK currentJointPositions;
-  baxter_core_msgs::SolvePositionIK ikRequest;
-  baxter_core_msgs::SolvePositionIK lastGoodIkRequest;
-  
-  ros::ServiceClient ikClient;
-  ros::ServiceClient cameraClient;
-  ros::Publisher joint_mover;
-  ros::Publisher gripperPub;
-  ros::Publisher facePub;
-  ros::Publisher moveSpeedPub;
-  ros::Publisher sonarPub;
-  ros::Publisher headPub;
-  ros::Publisher nodPub;
-  ros::Publisher stiffPub;
+
+  ros::Time lastStatePubTime;
   ros::Publisher einStatePub;
   ros::Publisher einConsolePub;
   ros::Publisher vmMarkerPublisher;
@@ -481,25 +377,12 @@ class EinConfig {
   ros::Publisher markers_blue_memory;
   ros::Publisher ee_target_pub;
 
-  ros::Publisher digital_io_pub;
-  ros::Publisher analog_io_pub;
-
-  ros::Publisher sonar_pub;
-  ros::Publisher red_halo_pub;
-  ros::Publisher green_halo_pub;
-
-  ros::Publisher face_screen_pub;
-
-  int sonar_led_state = 0;
-  double red_halo_state = 100.0;
-  double green_halo_state = 100.0;
-  int repeat_halo = 1;
 
   int zero_g_toggle = 1;
   int publish_commands_mode = 1;
 
 
-  const int epRingBufferSize = 10000;
+  const int epRingBufferSize = 50000;
   const int rgRingBufferSize = 100;
 
   // we make use of a monotonicity assumption
@@ -549,7 +432,10 @@ class EinConfig {
 
   eePose placeTarget;
 
-  Vector3d eeLinearAcceleration;
+  float eeLinearAcceleration[4];
+
+  float irGlobalPositionEEFrame[4];
+
 
   // set color reticles iterator
   int scrI = 0;
@@ -666,34 +552,21 @@ class EinConfig {
 
   double bDelta = GRID_COARSE;
 
+  bool showgui = true;
+
   EinWindow * dogSnoutViewWindow;
 
   EinWindow * rangeogramWindow;
   EinWindow * wristViewWindow;
   EinWindow * renderedWristViewWindow;
   EinWindow * coreViewWindow;
-  EinWindow * rangemapWindow;
-  EinWindow * hiRangemapWindow;
-  EinWindow * hiColorRangemapWindow;
-  EinWindow * graspMemoryWindow;
-  EinWindow * graspMemorySampleWindow;
   EinWindow * mapBackgroundViewWindow;
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
-  //EinWindow * gripperMaskFirstContrastWindow;
-  //EinWindow * gripperMaskSecondContrastWindow;
-  //EinWindow * gripperMaskDifferenceWindow;
-  //EinWindow * gripperMaskMeanWindow;
-  //EinWindow * gripperMaskVarianceWindow;
-  //EinWindow * gripperMaskSquaresWindow;
-
-
   EinWindow * densityViewerWindow;
   EinWindow * objectViewerWindow;
   EinWindow * objectMapViewerWindow;
-  EinWindow * gradientViewerWindow;
-  EinWindow * aerialGradientViewerWindow;
   EinWindow * stereoViewerWindow;
   EinWindow * backgroundWindow;
   EinWindow * discrepancyWindow;
@@ -756,9 +629,8 @@ class EinConfig {
   string robot_description;
   string robot_software_version;
   string ein_software_version;
+  string robot_type;
 
-
-  geometry_msgs::Pose trueEEPose;
   eePose trueEEWrench;
   double averagedWrechAcc = 0;
   double averagedWrechMass = 0;
@@ -796,12 +668,6 @@ class EinConfig {
 
   Mat coreViewImage;
   Mat rangeogramImage;
-  Mat rangemapImage;
-  Mat hiRangemapImage;
-  Mat hiColorRangemapImage;
-  Mat graspMemoryImage;
-  Mat graspMemorySampleImage;
-  Mat heightMemorySampleImage;
 
   Mat wristCamImage;
   int wristCamInit = 0;
@@ -818,51 +684,6 @@ class EinConfig {
 
   double rangeHistory[totalRangeHistoryLength];
   int currentRangeHistoryIndex = 0;
-
-  const static int rmWidth = 21; // must be odd
-  const static int rmHalfWidth = (rmWidth-1)/2; // must be odd
-  const static int rmiCellWidth = 20;
-  const static int rmiHeight = rmiCellWidth*rmWidth;
-  const static int rmiWidth = rmiCellWidth*rmWidth;
-
-
-  constexpr static double rmDelta = 0.01; 
-  int rangeMapTargetSearchPadding = 3;
-  double rangeMap[rmWidth*rmWidth];
-  double rangeMapAccumulator[rmWidth*rmWidth];
-  double rangeMapMass[rmWidth*rmWidth];
-  
-  double rangeMapReg1[rmWidth*rmWidth];
-  double rangeMapReg2[rmWidth*rmWidth];
-  double rangeMapReg3[rmWidth*rmWidth];
-  double rangeMapReg4[rmWidth*rmWidth];
-
-  constexpr static int pfmWidth = 70;
-  double pickFixMap[pfmWidth];
-  eePose pfmAnchorPose;
-
-  // grasp Thompson parameters
-  double graspMemoryTries[4*rmWidth*rmWidth];
-  double graspMemoryPicks[4*rmWidth*rmWidth];
-  double graspMemorySample[4*rmWidth*rmWidth];
-  double graspMemoryReg1[4*rmWidth*rmWidth];
-
-  pickMode currentPickMode = STATIC_MARGINALS;
-  pickMode currentBoundingBoxMode = STATIC_MARGINALS;
-  
-
-  const static int hrmWidth = 211; // must be odd
-  const static int hrmHalfWidth = (hrmWidth-1)/2; // must be odd
-  constexpr static double hrmDelta = 0.001;
-  double hiRangeMap[hrmWidth*hrmWidth];
-  double hiRangeMapAccumulator[hrmWidth*hrmWidth];
-  double hiRangeMapMass[hrmWidth*hrmWidth];
-  
-  double hiColorRangeMapAccumulator[3*hrmWidth*hrmWidth];
-  double hiColorRangeMapMass[hrmWidth*hrmWidth];
-  
-  double hiRangeMapReg1[hrmWidth*hrmWidth];
-  double hiRangeMapReg2[hrmWidth*hrmWidth];
 
 
   double filter[9] = {1.0/16.0, 1.0/8.0, 1.0/16.0, 
@@ -888,81 +709,23 @@ class EinConfig {
   
   // assumptions are made here so if these values changes, the code must
   //  be audited.
-  const static int vmWidth = hrmWidth;
-  const static int vmHalfWidth = hrmHalfWidth;
-  const double vmDelta = hrmDelta;
-  double volumeMap[vmWidth*vmWidth*vmWidth];
-  double volumeMapAccumulator[vmWidth*vmWidth*vmWidth];
-  double volumeMapMass[vmWidth*vmWidth*vmWidth];
-  
-  double vmColorRangeMapAccumulator[3*vmWidth*vmWidth*vmWidth];
-  double vmColorRangeMapMass[vmWidth*vmWidth*vmWidth];
-  
-  const static int parzen3DKernelHalfWidth = 9;
-  const static int parzen3DKernelWidth = 2*parzen3DKernelHalfWidth+1;
-  double parzen3DKernel[parzen3DKernelWidth*parzen3DKernelWidth*parzen3DKernelWidth];
-  double parzen3DKernelSigma = 2.0; 
-  
-  // range map center
-  double rmcX;
-  double rmcY;
-  double rmcZ;
   
   double lastiX = 0;
   double lastiY = 0;
   double thisiX = 0;
   double thisiY = 0;
   
-  
-  int hrmiHeight = hrmWidth;
-  int hrmiWidth = hrmWidth;
-  
-  const static int hmWidth = 4; 
-  int hmiCellWidth = 100;
-  int hmiWidth = hmiCellWidth;
-  int hmiHeight = hmiCellWidth*hmWidth;
-
-
 
   // height Thompson parameters
   constexpr static double minHeight = 0.255;//0.09;//-0.10;
   constexpr static double maxHeight = 0.655;//0.49;//0.3;
-  double heightMemoryTries[hmWidth];
-  double heightMemoryPicks[hmWidth];
-  double heightMemorySample[hmWidth];
+
   
-  double heightAttemptCounter = 0;
-  double heightSuccessCounter = 0;
-  double thompsonTries = 50;
-
-
-  int heightLearningServoTimeout = 10;
+  
+  const static int hmWidth = 4;
   double currentThompsonHeight = 0;
   int currentThompsonHeightIdx = 0;
-
-  int bbLearningMaxTries = 15;
-  int graspLearningMaxTries = 10;
   
-  int thompsonHardCutoff = 0;
-  int thompsonMinTryCutoff = 5;
-  double thompsonMinPassRate = 0.80;
-  int thompsonAdaptiveCutoff = 1;
-  int thompsonPickHaltFlag = 0;
-  int thompsonHeightHaltFlag = 0;
-
-
-  double pickEccentricity = 100.0;
-  double heightEccentricity = 1.0;
-
-
-  // algorithmC accecpt and reject thresholds
-  double algorithmCEPS = 0.2;
-  double algorithmCTarget = 0.7;
-  double algorithmCAT = 0.7;
-  double algorithmCRT = 0.95;
-
-
-
   // the currently equipped depth reticle
   double drX = .02; //.01;
   double drY = .02;
@@ -994,10 +757,6 @@ class EinConfig {
   int castRecentRangeRay = 1;
   int recordRangeMap = 0;
 
-  Quaternionf irGlobalPositionEEFrame;
- 
-
-  
   double w1GoThresh = 0.03;//0.01;
   double w1AngleThresh = 0.02; 
   double synKp = 0.0005;
@@ -1264,8 +1023,6 @@ class EinConfig {
   Mat objectMapViewerImage;
   Mat densityViewerImage;
   Mat wristViewImage;
-  Mat gradientViewerImage;
-  Mat aerialGradientViewerImage;
   Mat faceViewImage;
 
   int mask_gripper_blocks = 0;
@@ -1547,26 +1304,10 @@ class EinConfig {
     return numCollisions;
   }
 
-  ros::Subscriber eeRanger;
-  ros::Subscriber epState;
-  ros::Subscriber gravity_comp_sub;
-  ros::Subscriber torso_fan_sub;
-  ros::Subscriber arm_button_back_sub;
-  ros::Subscriber arm_button_ok_sub;
-  ros::Subscriber arm_button_show_sub;
-  ros::Subscriber cuff_grasp_sub;
-  ros::Subscriber cuff_ok_sub;
-  ros::Subscriber shoulder_sub;
   ros::Subscriber rosout_sub;
 
 
 
-
-  ros::Subscriber collisionDetectionState;
-  ros::Subscriber gripState;
-  ros::Subscriber eeAccelerator;
-  ros::Subscriber eeTarget;
-  ros::Subscriber jointSubscriber;
 
   ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
   ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
@@ -1611,6 +1352,9 @@ class EinConfig {
   int sceneCellCountThreshold = 20;
   int sceneDiscrepancySearchDepth = 3000;
   discrepancyModeState discrepancyMode = DISCREPANCY_POINT;
+
+  int sceneInitWidth  = 901;
+  int sceneInitHeight = 901;
 
   vector<shared_ptr<Scene> > class_scene_models;
   double scene_score_thresh = 0.01;
@@ -1664,12 +1408,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   EinConfig config;
 
-  int focusedMember = 0;
-  std::vector<EinAiboConfig> pack;
-
-  ros::Time aiboStoppedTime;
-  EinAiboJoints stoppedJoints;
-  ros::Time aiboComeToStopTime;
   int execute_stack = 0;
 
   executionMode execution_mode = INSTANT;
@@ -1701,7 +1439,6 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   string currentState();
 
-  void jointCallback(const sensor_msgs::JointState& js);
   void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
 
 
@@ -1709,28 +1446,21 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
   void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
   void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
   void evaluateProgram(const string program);
-  void endpointCallback(const baxter_core_msgs::EndpointState& eps);
-  void collisionDetectionStateCallback(const baxter_core_msgs::CollisionDetectionState& cds);
-  void gripStateCallback(const baxter_core_msgs::EndEffectorState& ees);
   void accelerometerCallback(const sensor_msgs::Imu& moment);
   void rangeCallback(const sensor_msgs::Range& range);
-  void update_baxter(ros::NodeHandle &n);
   void timercallback1(const ros::TimerEvent&);
   void imageCallback(Camera * camera);
-  void gravityCompCallback(const baxter_core_msgs::SEAJointState& seaJ) ;
-  void cuffGraspCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
-  void cuffOkCallback(const baxter_core_msgs::DigitalIOState& cuffDIOS) ;
-  void torsoFanCallback(const baxter_core_msgs::AnalogIOState& dios) ;
-  void shoulderCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armShowButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armBackButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
-  void armOkButtonCallback(const baxter_core_msgs::DigitalIOState& shoulderDIOS) ;
 
   void targetCallback(const geometry_msgs::Point& point);
   void simulatorCallback(const ros::TimerEvent&);
   void einStateCallback(const ein::EinState & msg);
 
   void rosoutCallback(const rosgraph_msgs::Log& js);
+  void publishConsoleMessage(string msg);
+
+  int getStreamPoseAtTime(double tin, eePose * outArm, eePose * outBase);
+  int getStreamPoseAtTimeThreadSafe(double tin, eePose * outArm, eePose * outBase);
+
 };
 
 

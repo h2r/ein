@@ -1,7 +1,9 @@
 #include "ein_words.h"
-#include "ein.h"
+#include "config.h"
 #include "camera.h"
 #include "gaussian_map_words.h"
+#include <sys/stat.h>
+
 
 GaussianMapWord::GaussianMapWord(shared_ptr<GaussianMap> imap)
 {

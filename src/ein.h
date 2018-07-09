@@ -4,68 +4,22 @@
 
 //#define DEBUG_RING_BUFFER // ring buffer
 
-#define EPSILON 1.0e-9
-#define VERYBIGNUMBER 1e12
 
 #define PROGRAM_NAME "ein"
+
+#include <Eigen/Geometry> 
+using namespace Eigen;
 
 #include <ein/EinState.h>
 #include <ein/EinConsole.h>
 
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+
 #include <vector>
 #include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <ctime>
-
-#include <math.h>
-#include <dirent.h>
-#include <signal.h>
-#include <sys/stat.h>
-
-#include <ros/package.h>
-#include <tf/transform_listener.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/Range.h>
-#include <actionlib/client/simple_action_client.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/String.h>
-#include <std_msgs/Int32.h>
-#include <std_msgs/UInt16.h>
-#include <std_msgs/UInt32.h>
-#include <std_msgs/Float64.h>
-#include <std_msgs/Float32.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/Pose.h>
-#include <object_recognition_msgs/RecognizedObjectArray.h>
-#include <object_recognition_msgs/RecognizedObject.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
-
-
-#include <baxter_core_msgs/CameraControl.h>
-#include <baxter_core_msgs/OpenCamera.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/EndEffectorState.h>
-#include <baxter_core_msgs/CollisionDetectionState.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <baxter_core_msgs/SolvePositionIK.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/HeadPanCommand.h>
-#include <baxter_core_msgs/SEAJointState.h>
-#include <baxter_core_msgs/DigitalOutputCommand.h>
-#include <baxter_core_msgs/AnalogOutputCommand.h>
-
 
 #include <cv.h>
-#include <highgui.h>
-#include <ml.h>
-/*#include <opencv2/nonfree/nonfree.hpp>*/
-#include <opencv2/gpu/gpu.hpp>
+#include <Eigen/Geometry> 
 
 
 // slu
@@ -73,10 +27,7 @@
 
 // numpy library 1 (randomkit, for original beta)
 #include "distributions.h"
-#include "eePose.h"
-#include "eigen_util.h"
-#include "ein_util.h"
-#include "ein_ik.h"
+#include "config.h"
 //#include "faces.h"
 
 using namespace std;
@@ -86,10 +37,75 @@ using namespace ein;
 
 
 
+typedef struct pixelToGlobalCache {
+  eePose givenEEPose;
+  double gZ;
+  int x1;
+  int x2;
+  int x3;
+  int x4;
+
+  int y1;
+  int y2;
+  int y3;
+  int y4;
+
+  double z1;
+  double z2;
+  double z3;
+  double z4;
+
+  double reticlePixelX;
+  double reticlePixelY;
+  double reticlePixelXOffset;
+  double reticlePixelYOffset;
+
+  double x_thisZ;
+  double y_thisZ;
+
+  double gXFactor;
+  double gYFactor;
+  double finalXOffset;
+  double finalYOffset;
+
+  Mat un_rot_mat;
+  double rotx[3];
+  double roty[3];
+
+  double dx;
+  double cx;
+  double b42x;
+  double b31x;
+  double bDiffx;
+  double bx;
 
 
-int ARE_GENERIC_PICK_LEARNING(MachineState * ms);
-int ARE_GENERIC_HEIGHT_LEARNING(MachineState * ms);
+  double dy;
+  double cy;
+  double b42y;
+  double b31y;
+  double bDiffy;
+  double by;
+
+  Eigen::Matrix4f p2gComposedZBuilt;
+  Eigen::Matrix4f g2pComposedZBuilt;
+  Eigen::Matrix4f p2gComposedZNotBuilt;
+  Eigen::Matrix4f g2pComposedZNotBuilt;
+
+  Eigen::Matrix4f ap;
+  Eigen::Matrix4f apInv;
+  Eigen::Matrix4f ccpRot;
+  Eigen::Matrix4f ccpRotInv;
+  Eigen::Matrix4f ccpTrans;
+  Eigen::Matrix4f ccpTransInv;
+
+  double mu_x;
+  double mu_y;
+  double kappa_x;
+  double kappa_y;
+
+  Vec4d target_plane;
+} pixelToGlobalCache;
 
 
 int getColorReticleX(MachineState * ms);
@@ -108,6 +124,7 @@ bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, do
 void markMapAsCompleted(MachineState * ms);
 
 
+gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx);
 vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx, int * memoryIdxOfFirst);
 int getBoxMemoryOfLabel(MachineState * ms, string label, int * idxOfLabel, BoxMemory * out);
@@ -162,23 +179,17 @@ void epRingBufferAdvance(MachineState * ms);
 void allRingBuffersAdvance(MachineState * ms, ros::Time t);
 
 void recordReadyRangeReadings(MachineState * ms);
-void doEndpointCallback(MachineState * ms, const baxter_core_msgs::EndpointState& eps);
 int classIdxForName(MachineState * ms, string name);
 
 void initClassFolders(MachineState * ms, string folderName);
 void writeClassToFolder(MachineState * ms, int idx, string folderName);
 void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName);
-void writeAerialGradientsToServoCrop(MachineState * ms, int idx, string servoCrop_file_path);
 void writeThumbnail(MachineState * ms, int idx, string servoCrop_file_path);
-void writeIr2D(MachineState * ms, int idx, string this_range_path);
 void write3dGrasps(MachineState * ms, int idx, string this_grasp_path);
-void writeGraspMemory(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
 
 void saveAccumulatedStreamToPath(MachineState * ms, string path);
-int getStreamPoseAtTime(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
-int getStreamPoseAtTimeThreadSafe(MachineState * ms, double tin, eePose * outArm, eePose * outBase);
-void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * castPointOut, Vector3d * rayDirectionOut);
+void castRangeRay(MachineState * ms, double thisRange, eePose thisPose, Vector3d * rayDirectionOut);
 void update2dRangeMaps(MachineState * ms, Vector3d castPoint);
 
 bool streamRangeComparator(streamRange i, streamRange j);
@@ -226,11 +237,6 @@ bool isInGripperMask(MachineState * ms, int x, int y);
 bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
 bool isGripperGripping(MachineState * ms);
 bool isGripperMoving(MachineState * ms);
-void initialize3DParzen(MachineState * ms);
-void l2Normalize3DParzen(MachineState * ms);
-void initializeParzen(MachineState * ms);
-void l2NormalizeParzen(MachineState * ms);
-void l2NormalizeFilter(MachineState * ms);
 
 
 cv::Vec3b getCRColor(MachineState * ms);
@@ -239,15 +245,11 @@ Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
 
 
 
-void scanXdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
-void scanYdirection(MachineState * ms, double speedOnLines, double speedBetweenLines);
-
 Eigen::Quaternionf getGGRotation(MachineState * ms, int givenGraspGear);
 void setGGRotation(MachineState * ms, int thisGraspGear);
 
 Eigen::Quaternionf getCCRotation(MachineState * ms, int givenGraspGear, double angle);
 void setCCRotation(MachineState * ms, int thisGraspGear);
-void publishVolumetricMap(MachineState * ms);
 
 void endEffectorAngularUpdate(eePose *givenEEPose, eePose *deltaEEPose);
 void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
@@ -261,88 +263,33 @@ void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms);
 
 
-void renderAccumulatedImageAndDensity(MachineState * ms);
 void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
 gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
 
-void pilotInit(MachineState * ms);
-void spinlessPilotMain(MachineState * ms);
 
 int doCalibrateGripper(MachineState * ms);
 int calibrateGripper(MachineState * ms);
 int shouldIPick(MachineState * ms, int classToPick);
-int getLocalGraspGear(MachineState * ms, int globalGraspGearIn);
-int getGlobalGraspGear(MachineState * ms, int localGraspGearIn);
-void convertGlobalGraspIdxToLocal(MachineState * ms, const int rx, const int ry, 
-                                  int * localX, int * localY);
-
-void convertLocalGraspIdxToGlobal(MachineState * ms, const int localX, const int localY,
-                                  int * rx, int * ry);
 
 void changeTargetClass(MachineState * ms, int);
 void changeCamera(MachineState * ms, int);
 
-void zeroGraspMemoryAndRangeMap(MachineState * ms);
-void zeroClassGraspMemory(MachineState * ms);
 void guard3dGrasps(MachineState * ms);
 void guardSceneModels(MachineState * ms);
-void guardGraspMemory(MachineState * ms);
-void loadSampledGraspMemory(MachineState * ms);
-void loadMarginalGraspMemory(MachineState * ms);
-void loadPriorGraspMemory(MachineState * ms, priorType);
-void estimateGlobalGraspGear();
 void drawMapRegisters(MachineState * ms);
 
 
-void guardHeightMemory(MachineState * ms);
-void loadSampledHeightMemory(MachineState * ms);
-void loadMarginalHeightMemory(MachineState * ms);
-void loadPriorHeightMemory(MachineState * ms, priorType);
 double convertHeightIdxToGlobalZ(MachineState * ms, int);
 double convertHeightIdxToLocalZ(MachineState * ms, int);
 void convertHeightGlobalZToIdx(MachineState * ms, double);
 void testHeightConversion(MachineState * ms);
-void drawHeightMemorySample(MachineState * ms);
-void copyHeightMemoryTriesToClassHeightMemoryTries(MachineState * ms);
-
-void applyGraspFilter(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void prepareGraspFilter(MachineState * ms, int i);
-void prepareGraspFilter1(MachineState * ms);
-void prepareGraspFilter2(MachineState * ms);
-void prepareGraspFilter3(MachineState * ms);
-void prepareGraspFilter4(MachineState * ms);
-
-void copyRangeMapRegister(MachineState * ms, double * src, double * target);
-void copyGraspMemoryRegister(MachineState * ms, double * src, double * target);
-void loadGlobalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void loadLocalTargetClassRangeMap(MachineState * ms, double * rangeMapRegA, double * rangeMapRegB);
-void copyGraspMemoryTriesToClassGraspMemoryTries(MachineState * ms);
-void copyClassGraspMemoryTriesToGraspMemoryTries(MachineState * ms);
 
 void selectMaxTarget(MachineState * ms, double minDepth);
 void selectMaxTargetThompsonContinuous2(MachineState * ms, double minDepth);
 
-void recordBoundingBoxSuccess(MachineState * ms);
-void recordBoundingBoxFailure(MachineState * ms);
 
-void restartBBLearning(MachineState * ms);
-
-eePose analyticServoPixelToReticle(MachineState * ms, eePose givenPixel, eePose givenReticle, double angle, eePose givenCameraPose);
 void moveCurrentGripperRayToCameraVanishingRay(MachineState * ms);
 Mat makeGCrop(MachineState * ms, int etaX, int etaY);
-void pixelServo(MachineState * ms, int servoDeltaX, int servoDeltaY, double servoDeltaTheta);
-void gradientServo(MachineState * ms);
-void gradientServoLatentClass(MachineState * ms);
-void continuousServo(MachineState * ms);
-void synchronicServo(MachineState * ms);
-void darkServo(MachineState * ms);
-void faceServo(MachineState * ms, vector<Rect> faces);
-int simulatedServo();
-
-void initRangeMaps(MachineState * ms);
-void initRangeMapsNoLoad(MachineState * ms);
-
-int isThisGraspMaxedOut(MachineState * ms, int i);
 
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY);
 void pixelToGlobal(MachineState * ms, int pX, int pY, double gZ, double * gX, double * gY, eePose givenEEPose);
@@ -376,7 +323,6 @@ void initVectorArcTan(MachineState * ms);
 void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
 void mapBox(MachineState * ms, BoxMemory boxMemory);
 
-void queryIK(MachineState * ms, int * thisResult, baxter_core_msgs::SolvePositionIK * thisRequest);
 
 void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
@@ -410,22 +356,13 @@ void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *cla
                         vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
 
 
-void drawDensity(MachineState * ms, double scale);
-void goCalculateDensity(MachineState * ms);
 void goFindBlueBoxes(MachineState * ms);
 void goClassifyBlueBoxes(MachineState * ms);
 void goFindRedBoxes();
 
-void resetAccumulatedImageAndMass(MachineState * ms);
-void substituteStreamAccumulatedImageQuantities(MachineState * ms);
-void substituteStreamImageQuantities(MachineState * ms);
-
-void substituteAccumulatedImageQuantities(MachineState * ms);
-void substituteLatestImageQuantities(MachineState * ms);
-
 void loadROSParamsFromArgs(MachineState * ms);
 
-void spinlessNodeMain(MachineState * ms);
+void irInit(MachineState * ms);
 void nodeInit(MachineState * ms);
 void detectorsInit(MachineState * ms);
 void initRedBoxes();
@@ -434,11 +371,6 @@ void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *clas
 void clearAllRangeMaps(MachineState * ms);
 
 void processSaliency(Mat in, Mat out);
-
-void happy(MachineState * ms);
-void sad(MachineState * ms);
-void neutral(MachineState * ms);
-
 
 void initializeViewers(MachineState * ms);
 
@@ -460,8 +392,6 @@ void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int t
 void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
 void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
 void mapCallbackFunc(int event, int x, int y, int flags, void* userdata);
-
-void publishConsoleMessage(MachineState * ms, string msg);
 
 void loadConfig(MachineState * ms, string filename);
 void saveConfig(MachineState * ms, string outFileName);

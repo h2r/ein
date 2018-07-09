@@ -16,22 +16,46 @@ dogBark
 */
 
 
-
+"192.168.0.101" "Pluto" store
+"192.168.0.103" "Crystal" store
+"192.168.0.104" "Spot" store
 
 
 
 (
   2 dogSetPackSize
-  0 dogSetFocusedMember "192.168.1.130" 54000 socketOpen
-  1 dogSetFocusedMember "192.168.1.131" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.0.106" 54000 socketOpen
+  1 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
+  dogIncrementFocusedMember
 ) "dogFormPack" store
 
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.0.101" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
-) "dogSummonElla" store
+) "dogSummonPluto" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.0.106" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonPeanut" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.0.104" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonSpot" store
+
+(
+  1 dogSetPackSize
+  0 dogSetFocusedMember 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonDynamic" store
 
 (
   1 dogSetPackSize
@@ -40,12 +64,13 @@ dogBark
   dogFormatImageDefault
 ) "dogSummonEars" store
 
+
 (
   1 dogSetPackSize
-  0 dogSetFocusedMember "192.168.160.143" 54000 socketOpen
+  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
   dogMotorsOn
   dogFormatImageDefault
-) "dogSummonMars" store
+) "dogSummonElla" store
 
 
 (
@@ -104,22 +129,9 @@ dogBark
 
   sceneClearObservedMap 
   dogGetImage
-
-  /*
   dogReplaceWristImageWithSnoutImage
   sceneUpdateObservedFromWrist
-  */
-
-    0.388
-  sceneUpdateObservedFromSnout
-
-  /*
   60 sceneSetBackgroundStdDevY
-  */
-
-  1 sceneSetCellCountThreshold
-  60 sceneSetBackgroundStdDevY
-
   sceneComposePredictedMap
   sceneUpdateDiscrepancy
   sceneDensityFromDiscrepancy
@@ -177,7 +189,7 @@ dogBark
 
 (
   dogWatchOnce sceneSetBackgroundFromObserved sceneSetBackgroundFromObserved
-  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground sceneRenderBackgroundMap now minus print endStackCollapseNoop ) while
+  ( 1 ) ( now dogFormatImageDefault dogWatchOnce 0.7 sceneExponentialAverageObservedIntoBackground now minus print endStackCollapseNoop ) while
 ) "dogWatchForAveragedChanges" store
 
 
@@ -412,16 +424,57 @@ Snare
 ) "dogLocalXUp" store
 
 (
+2 dogWalkSeconds
+) "Walk forward."  "demoDogWalkForward" define
+
+
+(
 -2 dogWalkSeconds
 ) "dogLocalXDown" store
+
+(
+-2 dogWalkSeconds
+) "Walk backward."  "demoDogWalkBackward" define
+
 
 (
 -2 dogTurnSeconds
 ) "dogOXDown" store
 
 (
+-2 dogTurnSeconds
+) "Turn left."  "demoDogTurnLeft" define
+
+(
+( dogEarsUp
+dogEarsDown 0.2 waitForSeconds ) 10 replicateWord
+) "Wiggle your ears."  "demoDogWiggleEars" define
+
+
+(
 2 dogTurnSeconds
 ) "dogOXUp" store
+
+(
+2 dogTurnSeconds
+) "Turn right."  "demoDogTurnRight" define
+
+
+(
+  0 dogEars
+) "Moves the dog ears down." "dogEarsDown" define
+
+(
+  1 dogEars
+) "Moves the dog ears up."  "dogEarsUp" define
+
+(
+  dogGetIndicators
+  dup
+  dogSetIntendedEarL
+  dogSetIntendedEarR
+  dogSendIndicators
+) "Moves the dog ears to the indicated position, passed on the stack.  (0 or 1)." "dogEars" define
 
 
 (
@@ -452,70 +505,15 @@ Snare
   0 dogHeadPanTo 
   0 dogHeadTiltTo 
   dogSendMotorState
-) "dogHeadCenter" store
+) "dogHeadLowerLeft" store
 
 (
   dogGetSensoryMotorStates
   dogWriteIntendedFromTrue
   100 dogHeadPanTo 
-  100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadUpperLeft" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  -100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerRight" store
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  -100 dogHeadPanTo 
   100 dogHeadTiltTo 
   dogSendMotorState
 ) "dogHeadUpperRight" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerLeft" store
-
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  100 dogHeadPanTo 
-  -100 dogHeadTiltTo 
-  dogSendMotorState
-) "dogHeadLowerLeft" store
-
-
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  10 dogSetIntendedEarL
-  10 dogSetIntendedEarR
-  dogSendIndicators
-) "dogEarsOut" store
-
-(
-  dogGetSensoryMotorStates
-  dogWriteIntendedFromTrue
-  0 dogSetIntendedEarL
-  0 dogSetIntendedEarR
-  dogSendIndicators
-) "dogEarsBack" store
 
 
 
@@ -597,41 +595,68 @@ dogComeToStop
 demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDown   demoDogStandUp demoDogSit demoDogLieDown  demoDogStandUp demoDogLieDown  demoDogSit
 ) "dogAllStaticPoses" store
 
+(
+( 1 ) ( dogGetSensoryMotorStates 1 waitForSeconds ) while
+) "dogGetSensoryMotorStatesInfinite" store
+
+1 "walkMultiplier" store
 
 (
+walkMultiplier * dogWalkSeconds
+1 "walkMultiplier" store
+) "Needs a non-negative time argument." "dogWalkForwardSeconds" define
 
-dogLocalXUp dogLocalXUp
-) "demoDogWalkForward" store
+(
+-1 walkMultiplier * "walkMultiplier" store
+walkMultiplier * dogWalkSeconds
+-1 walkMultiplier * "walkMultiplier" store
+) "Needs a non-negative time argument." "dogWalkBackwardSeconds" define
+
+1 "turnMultiplier" store
+
+(
+turnMultiplier * dogTurnSeconds
+1 "turnMultiplier" store
+) "Needs a non-negative time argument." "dogTurnRightSeconds" define
+
+(
+-1 turnMultiplier * "turnMultiplier" store
+turnMultiplier * dogTurnSeconds
+-1 turnMultiplier * "turnMultiplier" store
+) "Needs a non-negative time argument." "dogTurnLeftSeconds" define
+
 
 
 (
-
-dogLocalXDown dogLocalXDown
-) "demoDogWalkBackward" store
-
-(
-
-dogOXUp dogOXUp
-) "demoDogTurnRight" store
-
-
-(
-  ( dogEarsOut 0.15 waitForSeconds
-    dogEarsBack 0.15 waitForSeconds ) 5 replicateWord
-) "demoDogEarWiggle" store
-
-
-(
-
-dogOXDown dogOXDown
-) "demoDogTurnLeft" store
+/*
+First two words:  push the true pose on the stack, and grab the joint angle for the left front leg, first joint.
+Second word:  magic number (I used the current joint angle when the robot is lying down; it's nto the right magic number for standing)
+-: subtract the current joint angle from the magic number
+fabs:  take the absolute value of that.
+0.005: magic number, threshold
+<: less than; return 1 if the number on the stack is less than 0.005. 
+In all this checks that the left front leg first joint is within 0.005 of 0.268.
+*/
+dogTruePose aiboPoseLegLF1  0.268 - abs 0.005 <
+dogTruePose aiboPoseLegRF1  0.268 - abs 0.005 <
+and
 
 /*
-Fix snout view
-Demo dog turn left,m right, forward, backward, turn around
-Ears
-Dance?
-
-Lie down then turn right leads to a bug
-
+* You can do a compound and like so:
+*
+* ( 1 1 1 ) ( and ) accumulate  
+*
+* This applies ( and ) to all the arguments in the compound word.   So above returns 1 on the stack.
+* Below returns zero:
+* ( 0 1 1 ) ( and ) accumulate  
+*
+* However above does not evaluate the symbols in a compound word.  So if you want to do a compound and with the results, you do it with
+* square brackets, like so:
+* [ dogTruePose aiboPoseLegLF1  0.268 - abs 0.005 <   dogTruePose aiboPoseLegRF1  0.268 - abs 0.005 >   ] ( and ) accumulate
+* The square bracket construction evaluates the contents and makes a compound word from what's inside.  Then the and/accumulate construction returns the and of
+p* all the results.
+* If you could put this in the docs, that would be amaaaaazing.  
+* Hope this helps!
 */
+) "Returns true if the true pose is standing." "isStanding" define
+

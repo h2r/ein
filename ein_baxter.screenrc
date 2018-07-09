@@ -24,14 +24,6 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 # turn multiuser mode on so others can connect.
 multiuser on
 
-# add the specified user to this screen session so that they can connect.
-# the initiating user is allowed automatically, but add both so either can
-# run this script without modification.
-
-#acladd gen
-acladd oberlin
-acladd stefie10 
-
 # Starts a new screen with title " MAKE"
 # this is basically equivalent to pressing the following from within screen:
 # `c (starts a new window)
@@ -43,7 +35,7 @@ acladd stefie10
 
 screen -t " einR"
 stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein physical right gui"
 screen -t " replR"
 #stuff "./baxter.sh"
 #stuff "rosrun ein ein_client.py right"
@@ -93,7 +85,7 @@ screen -t " replL"
 stuff "ARM=left screen -m -c src/ein/ein_client.screenrc"
 screen -t " einL"
 stuff "./baxter.sh"
-stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left"
+stuff "catkin_make && gdb --args ./devel/lib/ein/ein  physical left gui"
 screen -t " website"
 stuff "cd src/ein/doc && jekyll serve"
 

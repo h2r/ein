@@ -1,5 +1,5 @@
 #include "stackmodel.h"
-
+#include "word.h"
 
 typedef enum {
   IDX = 0,

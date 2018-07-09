@@ -54,6 +54,8 @@ using namespace std;
 
 #include <opencv2/highgui/highgui_c.h>
 
+
+
 #ifdef HAVE_QT_OPENGL
     #ifdef Q_WS_X11
         #include <GL/glx.h>
@@ -851,7 +853,7 @@ void OpenGlEinViewPort::updateGl()
 
 void OpenGlEinViewPort::initializeGL()
 {
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+  //glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }
 
 void OpenGlEinViewPort::resizeGL(int w, int h)

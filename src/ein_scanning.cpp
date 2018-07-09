@@ -1,8 +1,16 @@
+#include <object_recognition_msgs/RecognizedObjectArray.h>
+
+#include "eigen_util.h"
 #include "ein_words.h"
+
 #include "ein.h"
+#include <dirent.h>
 #include "camera.h"
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
+#include <highgui.h>
+#include <sys/stat.h>
+
 using namespace std;
 using namespace boost::filesystem;
 
@@ -53,9 +61,6 @@ void initializeAndFocusOnTempClass(MachineState * ms) {
   ms->config.numClasses = ms->config.classLabels.size();
 
   // normal initRangeMaps here would try to load nonexistant material for and clobber previous temp objects
-  initRangeMapsNoLoad(ms);
-  guardGraspMemory(ms);
-  guardHeightMemory(ms);
   guardSceneModels(ms);
   guard3dGrasps(ms);
 }
@@ -113,9 +118,6 @@ void initializeAndFocusOnNewClass(MachineState * ms) {
   ms->config.classLabels.push_back(thisLabelName);
   ms->config.numClasses = ms->config.classLabels.size();
 
-  initRangeMaps(ms);
-  guardGraspMemory(ms);
-  guardHeightMemory(ms);
   guardSceneModels(ms);
   guard3dGrasps(ms);
 
@@ -161,51 +163,6 @@ END_WORD
 REGISTER_WORD(SetFocusedClassIdx)
 
 
-WORD(SetTargetClassToLastLabelLearned)
-CODE(1179730)     // capslock + numlock + r
-virtual void execute(MachineState * ms) {
-  for (int i = 0; i < ms->config.numClasses; i++) {
-    if (ms->config.lastLabelLearned.compare(ms->config.classLabels[i]) == 0) {
-      ms->config.targetClass = i;
-      ms->config.focusedClass = ms->config.targetClass;
-      ms->config.focusedClassLabel = ms->config.classLabels[ms->config.focusedClass];
-      cout << "lastLabelLearned classLabels[targetClass]: " << ms->config.lastLabelLearned << " " << ms->config.classLabels[ms->config.targetClass] << endl;
-      changeTargetClass(ms, ms->config.targetClass);
-    }
-  }
-
-  ms->pushWord("drawMapRegisters"); // render register 1
-  // ATTN 10
-  //ms->pushWord(196360); // loadPriorGraspMemory
-  //ms->pushWord(1179721); // set graspMemories from classGraspMemories
-  switch (ms->config.currentPickMode) {
-  case STATIC_PRIOR:
-    {
-      ms->pushWord(196360); // loadPriorGraspMemory
-    }
-    return;
-  case LEARNING_ALGORITHMC:
-  case LEARNING_SAMPLING:
-    {
-      ms->pushWord(1179721); // set graspMemories from classGraspMemories
-      //ms->pushWord(196360); // loadPriorGraspMemory
-    }
-    break;
-  case STATIC_MARGINALS:
-    {
-      ms->pushWord(1179721); // set graspMemories from classGraspMemories
-      //ms->pushWord(196360); // loadPriorGraspMemory
-    }
-    return;
-  default:
-    {
-      assert(0);
-    }
-    return;
-  }
-}
-END_WORD
-REGISTER_WORD(SetTargetClassToLastLabelLearned)
 
 
 WORD(SetLastLabelLearned)
@@ -324,7 +281,7 @@ virtual void execute(MachineState * ms)       {
 END_WORD
 REGISTER_WORD(PushClassLabelsReport)
 
-CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel)
+CONFIG_GETTER_STRING(FocusedClassLabel, ms->config.focusedClassLabel, "The focused class.")
 
 WORD(PushClassLabels)
 virtual string description() {
@@ -433,8 +390,6 @@ virtual void execute(MachineState * ms)  {
     changeTargetClass(ms, 0);
     return;
   }
-
-  initRangeMaps(ms);
 }
 END_WORD
 REGISTER_WORD(SetClassLabels)
@@ -718,8 +673,6 @@ virtual void execute(MachineState * ms)       {
     }
   }
 
-  initRangeMaps(ms);
-
   // save models
   {
     char vocabularyPath[1024];
@@ -861,7 +814,7 @@ REGISTER_WORD(RgbScan)
 WORD(SetPhotoPinHere)
 virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  ms->config.photoPinPose = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
 }
 END_WORD
 REGISTER_WORD(SetPhotoPinHere)
@@ -870,7 +823,7 @@ WORD(PutCameraOverPhotoPin)
 virtual void execute(MachineState * ms) {
   // XXX TODO avoid two steps by using alternate pixelToGlobal and not waiting between
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPose.position.z + ms->config.currentTableZ);
+  eePose underVanishingPointReticle = pixelToGlobalEEPose(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
   eePose toMove = ms->config.photoPinPose.minusP(underVanishingPointReticle);
   eePose nextCurrentPose = ms->config.currentEEPose.plusP(toMove);
   ms->config.currentEEPose.px = nextCurrentPose.px;
@@ -896,510 +849,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(PhotoSpin)
-
-WORD(SetTargetReticleToTheMaxMappedPosition)
-CODE(1048678)  // numlock + f
-virtual void execute(MachineState * ms) {
-  ms->config.trX = ms->config.rmcX + ms->config.rmDelta*(ms->config.maxX-ms->config.rmHalfWidth);
-  ms->config.trY = ms->config.rmcY + ms->config.rmDelta*(ms->config.maxY-ms->config.rmHalfWidth);
-}
-END_WORD
-REGISTER_WORD(SetTargetReticleToTheMaxMappedPosition)
-
-WORD(ClassRangeMapFromRegister1)
-virtual void execute(MachineState * ms) {
-  for (int y = 0; y < ms->config.rmWidth; y++) {
-    for (int x = 0; x < ms->config.rmWidth; x++) {
-      ms->config.rangeMap[x + y*ms->config.rmWidth] = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
-    } 
-  } 
-
-  int tfc = ms->config.focusedClass;
-  if ((tfc > -1) && (tfc < ms->config.classRangeMaps.size()) && (ms->config.classRangeMaps[tfc].rows > 1) && (ms->config.classRangeMaps[tfc].cols > 1)) {
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-	ms->config.classRangeMaps[tfc].at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
-      } 
-    } 
-    cout << "classRangeMapFromRegister1: focused class inside of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
-  } else {
-    cout << "classRangeMapFromRegister1: focused class out of bounds, " << tfc << " " << ms->config.classRangeMaps.size() << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(ClassRangeMapFromRegister1)
-
-WORD(DownsampleIrScan)
-CODE(1048690) // numlock + r
-virtual void execute(MachineState * ms) {
-  // replace unsampled regions with the lowest z reading, highest reading in those maps because they are inverted
-  // 
-  double highestReading = -VERYBIGNUMBER;
-  double highestEpsilonMassReading = -VERYBIGNUMBER;
-  double readingFloor = -1;
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
-        for (int rry = ry*10; rry < (ry+1)*10; rry++) {
-          if (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0.0) {
-            //if ((hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestReading) && (ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] >= readingFloor))
-            if ((ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestEpsilonMassReading) && (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > EPSILON))
-              highestEpsilonMassReading = ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
-
-            if ((ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth] > highestReading) && (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0))
-              highestReading = ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
-          }
-        }
-      }
-    }
-  }
-
-
-  if (highestReading <= -VERYBIGNUMBER) {
-    highestReading = 0;
-  }
-
-	
-  for (int rx = 0; rx < ms->config.rmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.rmWidth; ry++) {
-      double thisSum = 0;
-      double numSamples = 0;
-      for (int rrx = rx*10; rrx < (rx+1)*10; rrx++) {
-        for (int rry = ry*10; rry < (ry+1)*10; rry++) {
-          numSamples += 1.0;
-          if (ms->config.hiRangeMapMass[rrx + rry*ms->config.hrmWidth] > 0.0) {
-            thisSum += ms->config.hiRangeMap[rrx + rry*ms->config.hrmWidth];
-          } else {
-            thisSum += 0;
-          }
-        }
-      }
-      ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = thisSum/numSamples;
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(DownsampleIrScan)
-
-
-
-WORD(ScanObject)
-CODE(196708)     // capslock + D
-virtual string description() {
-  return "Scans an object, including the IR scan.";
-}
-
-virtual void execute(MachineState * ms) {
-  cout << "ENTERING WHOLE FOODS VIDEO MAIN." << endl;
-  cout << "Program will pause shortly. Please adjust height for bounding box servo before unpausing." << endl;
-  cout << "Program will pause a second time. Please adjust height for IR scan before unpausing." << endl;
-  cout << "Program will pause a third time. Please remove any applied contrast agents." << endl;
-
-  ms->config.eepReg2 = ms->config.beeHome;
-  ms->config.eepReg4 = ms->config.beeHome;
-
-  // so that closest servoing doesn't go into gradient servoing.
-  ms->config.targetClass = -1;
-
-
-  // this automatically changes learning mode
-          
-  if (0) {
-    ms->pushWord("beginHeightLearning"); // begin bounding box learning
-
-    ms->pushWord("changeToHeight1"); // change to height 1
-    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  }
-
-  if (0) {
-    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    ms->pushWord("loadPriorGraspMemoryAnalytic");
-    // set target class to the lastLabelLearned 
-    ms->pushWord("setTargetClassToLastLabelLearned");
-    ms->pushWord("trainModels"); // reinitialize and retrain everything
-  }
-
-  // set lastLabelLearned
-  ms->pushWord("setLastLabelLearned");
-
-  ms->pushWord("scanCentered"); 
-  ms->pushWord("setPhotoPinHere");
-
-  // this is a good time to remove a contrast agent
-  //ms->pushWord("pauseStackExecution"); // pause stack execution
-  //ms->pushCopies("beep", 15); // beep
-	  
-  { // do density and gradient, save gradient, do medium scan in two directions, save range map
-    pushGridSign(ms, GRID_COARSE);
-    ms->pushWord("saveCurrentClassDepthAndGraspMaps"); // save current depth map to current class
-    ms->pushWord("neutralScan"); // neutral scan 
-    ms->pushWord("pauseStackExecution"); // pause stack execution
-    ms->pushCopies("beep", 15); // beep
-    pushGridSign(ms, GRID_COARSE);
-
-    ms->pushWord("changeToHeight1"); // change to height 1
-
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("changeToHeight3"); // change to height 3
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("changeToHeight2"); // change to height 2
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("changeToHeight1"); // change to height 1
-    }
-    {
-      ms->pushWord("saveAerialGradientMap"); // save aerial gradient map if there is only one blue box
-      ms->pushWord("gradientServoPrep");
-      ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-      ms->pushWord("changeToHeight0"); // change to height 0
-    }
-  }
-
-  // ATTN 3
-  // start NO bag routine
-  ms->pushWord("initializeAndFocusOnNewClass"); //  make a new class
-
-  ms->pushWord("synchronicServo"); // synchronic servo
-  ms->pushWord("synchronicServoTakeClosest"); // synchronic servo take closest
-  ms->pushWord("sampleHeight"); 
-
-  ms->pushWord("pauseStackExecution"); // pause stack execution
-  ms->pushCopies("beep", 15); // beep
-
-  ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord("changeToHeight2"); // change to height 2
-  pushGridSign(ms, GRID_COARSE);
-
-  ms->pushWord("changeToCounterTable"); // change to counter table
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord('k'); // open gripper
-}
-END_WORD
-REGISTER_WORD(ScanObject)
-
-
-WORD(PrepareForSearch)
-CODE(1114150)     // numlock + &
-virtual void execute(MachineState * ms) {
-  // XXX this should be computed here from the ir sensor offset
-  ms->config.currentEEPose.px = ms->config.rmcX + ms->config.drX;
-  ms->config.currentEEPose.py = ms->config.rmcY + ms->config.drY;
-}
-END_WORD
-REGISTER_WORD(PrepareForSearch)
- 
-
-WORD(TurnOnRecordRangeMap)
-CODE(1048683) 
-virtual void execute(MachineState * ms) {
-  ms->config.recordRangeMap = 1;
-}
-END_WORD
-REGISTER_WORD(TurnOnRecordRangeMap)
-
-WORD(TurnOffScanning)
-CODE(1048684)     // numlock + l
-virtual void execute(MachineState * ms) {
-  ms->config.recordRangeMap = 0;
-}
-END_WORD
-REGISTER_WORD(TurnOffScanning)
-
-WORD(SetRangeMapCenterFromCurrentEEPose)
-virtual void execute(MachineState * ms) {
-  cout << "Set rmcX and rmcY from ms->config.currentEEPose." << endl;
-  ms->config.rmcX = ms->config.currentEEPose.px;
-  ms->config.rmcY = ms->config.currentEEPose.py;
-  //ms->config.rmcZ = ms->config.currentEEPose.pz - ms->config.eeRange;
-}
-END_WORD
-REGISTER_WORD(SetRangeMapCenterFromCurrentEEPose)
-
-WORD(InitDepthScan)
-CODE(1048695) // numlock + w
-virtual void execute(MachineState * ms) {
-  cout << "Set rmcX and rmcY. Resetting maps. " << ms->config.rmcX << " " << ms->config.trueEEPose.position.x << endl;
-  ms->config.rmcX = ms->config.trueEEPose.position.x;
-  ms->config.rmcY = ms->config.trueEEPose.position.y;
-  ms->config.rmcZ = ms->config.trueEEPose.position.z - ms->config.eeRange;
-
-  clearAllRangeMaps(ms);
-}
-END_WORD
-REGISTER_WORD(InitDepthScan)
-
-WORD(ClearAllRangeMaps)
-virtual void execute(MachineState * ms) {
-  cout << "Clearing all range maps." << endl;
-  clearAllRangeMaps(ms);
-}
-END_WORD
-REGISTER_WORD(ClearAllRangeMaps)
-
-
-
-
-WORD(NeutralScan)
-CODE(1048622) // numlock + .
-virtual void execute(MachineState * ms) {
-  ms->pushWord("shiftIntoGraspGear1"); 
-  ms->pushWord("cruisingSpeed");
-  ms->pushWord("neutralScanA");
-  ms->pushWord("rasterScanningSpeed");
-}
-END_WORD
-REGISTER_WORD(NeutralScan)
-
-WORD(NeutralScanA)
-virtual void execute(MachineState * ms) {
-  cout << "Entering neutral scan." << endl;
-  double lineSpeed = GRID_COARSE;//GRID_MEDIUM;//GRID_COARSE;
-  double betweenSpeed = GRID_COARSE;//GRID_MEDIUM;//GRID_COARSE;
-
-  ms->pushWord("turnOffScanning"); // turn off scanning
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-  ms->pushWord("rasterScanningSpeed"); 
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies('s',10);
-  ms->pushWord("approachSpeed");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies('a',6);
-  ms->pushCopies('q',4);
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("shiftGraspGear"); 
-
-
-  ms->pushWord("fullRender"); // full render
-  ms->pushWord("paintReticles"); // render reticle
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord("drawMapRegisters"); // render register 1
-  ms->pushWord("downsampleIrScan"); // load map to register 1
-  {
-    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  }
-  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
-
-  ms->pushWord("cruisingSpeed"); 
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies('w',10);
-  ms->pushWord("departureSpeed");
-
-  ms->pushWord("turnOffScanning"); // turn off scanning
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("initDepthScan"); // clear scan history
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("shiftIntoGraspGear1"); 
-}
-END_WORD
-REGISTER_WORD(NeutralScanA)
-
-WORD(NeutralScanB)
-virtual void execute(MachineState * ms) {
-  cout << "Entering neutralScanB." << endl;
-  double lineSpeed = ms->config.bDelta;
-  double betweenSpeed = ms->config.bDelta;
-
-  ms->pushWord("cruisingSpeed");
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("rasterScanningSpeed");
-}
-END_WORD
-REGISTER_WORD(NeutralScanB)
-
-WORD(NeutralScanH)
-virtual void execute(MachineState * ms) {
-  cout << "Entering HALF neutral scan." << endl;
-  double lineSpeed = GRID_COARSE;//GRID_MEDIUM;//GRID_COARSE;
-  double betweenSpeed = GRID_COARSE;//GRID_MEDIUM;//GRID_COARSE;
-
-  ms->pushWord("fullRender"); // full render
-  ms->pushWord("paintReticles"); // render reticle
-  ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  ms->pushWord("drawMapRegisters"); // render register 1
-  ms->pushWord("downsampleIrScan"); // load map to register 1
-  {
-    ms->pushWord("setTargetReticleToTheMaxMappedPosition"); // target best grasp
-    ms->pushWord("waitUntilAtCurrentPosition"); // w1 wait until at current position
-    ms->pushWord("shiftIntoGraspGear1"); // change to first gear
-  }
-  ms->pushWord("selectBestAvailableGrasp"); // find best grasp
-
-  ms->pushWord("turnOffScanning"); // turn off scanning
-  scanXdirection(ms, lineSpeed, betweenSpeed); // load scan program
-  ms->pushWord("prepareForSearch"); // prepare for search
-
-  ms->pushWord("turnOnRecordRangeMap"); // turn on scanning
-  ms->pushWord("initDepthScan"); // clear scan history
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("shiftIntoGraspGear1"); 
-}
-END_WORD
-REGISTER_WORD(NeutralScanH)
-
-WORD(SaveAerialGradientMap)
-CODE(196730)      // capslock + Z
-virtual void execute(MachineState * ms) {
-  Size sz = ms->config.objectViewerImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-        
-  cout << "save aerial gradient ";
-  if ((ms->config.focusedClass > -1) && (ms->config.frameGraySobel.rows >1) && (ms->config.frameGraySobel.cols > 1)) {
-    string thisLabelName = ms->config.focusedClassLabel;
-
-    char buf[1000];
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoCrops/";
-    string this_range_path;
-
-    // ATTN 16
-    switch (ms->config.currentThompsonHeightIdx) {
-    case 0:
-      {
-        this_range_path = dirToMakePath + "aerialHeight0Gradients.yml";
-      }
-      break;
-    case 1:
-      {
-        this_range_path = dirToMakePath + "aerialHeight1Gradients.yml";
-      }
-      break;
-    case 2:
-      {
-        this_range_path = dirToMakePath + "aerialHeight2Gradients.yml";
-      }
-      break;
-    case 3:
-      {
-        this_range_path = dirToMakePath + "aerialHeight3Gradients.yml";
-      }
-      break;
-    default:
-      {
-        assert(0);
-        break;
-      }
-    }
-
-    mkdir(dirToMakePath.c_str(), 0777);
-
-    //int hbb = ms->config.pilotTargetBlueBoxNumber;
-    //int hbb = 0;
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-    int topCornerX = camera->reticle.px - (ms->config.aerialGradientReticleWidth/2);
-    int topCornerY = camera->reticle.py - (ms->config.aerialGradientReticleWidth/2);
-    int crows = ms->config.aerialGradientReticleWidth;
-    int ccols = ms->config.aerialGradientReticleWidth;
-
-    //int crows = ms->config.bBots[hbb].y - ms->config.bTops[hbb].y;
-    //int ccols = ms->config.bBots[hbb].x - ms->config.bTops[hbb].x;
-    int maxDim = max(crows, ccols);
-    int tRy = (maxDim-crows)/2;
-    int tRx = (maxDim-ccols)/2;
-    Mat gCrop(maxDim, maxDim, ms->config.frameGraySobel.type());
-
-    cout << "crows ccols: " << crows << " " << ccols << " ";
-
-    int nanDisco = 0;
-
-    for (int x = 0; x < maxDim; x++) {
-      for (int y = 0; y < maxDim; y++) {
-        int tx = x - tRx;
-        int ty = y - tRy;
-        int tCtx = topCornerX + tx;
-        int tCty = topCornerY + ty;
-        if ( (tx >= 0 && ty >= 0 && ty < crows && tx < ccols) &&
-             (tCtx > 0) && (tCty > 0) && (tCtx < imW) && (tCty < imH) ) {
-          //gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(ms->config.bTops[hbb].y + ty, ms->config.bTops[hbb].x + tx);
-          gCrop.at<double>(y, x) = ms->config.frameGraySobel.at<double>(tCty, tCtx);
-        } else {
-          gCrop.at<double>(y, x) = 0.0;
-        }
-
-	if (isFiniteNumber(gCrop.at<double>(y, x))) {
-	} else {
-	  nanDisco = 1;
-          gCrop.at<double>(y, x) = 0.0;
-	}
-      }
-    }
-
-    if (nanDisco == 1) {
-      ROS_ERROR_STREAM("saveAerialGradientMap: NaN discovered. Setting to 0."); 
-    } else {
-    }
-  
-
-    Size toBecome(ms->config.aerialGradientWidth, ms->config.aerialGradientWidth);
-    cout << "about to resize to " << toBecome << endl;
-
-    cv::resize(gCrop, gCrop, toBecome);
-
-
-    FileStorage fsvO;
-    cout << "capslock + Z: Writing: " << this_range_path << endl;
-
-    fsvO.open(this_range_path, FileStorage::WRITE);
-
-    // ATTN 16
-    switch (ms->config.currentThompsonHeightIdx) {
-    case 0:
-      {
-        fsvO << "aerialHeight0Gradients" << gCrop;
-	ms->config.classHeight0AerialGradients[ms->config.focusedClass] = gCrop.clone();
-      }
-      break;
-    case 1:
-      {
-        fsvO << "aerialHeight1Gradients" << gCrop;
-	ms->config.classHeight1AerialGradients[ms->config.focusedClass] = gCrop.clone();
-      }
-      break;
-    case 2:
-      {
-        fsvO << "aerialHeight2Gradients" << gCrop;
-	ms->config.classHeight2AerialGradients[ms->config.focusedClass] = gCrop.clone();
-      }
-      break;
-    case 3:
-      {
-        fsvO << "aerialHeight3Gradients" << gCrop;
-	ms->config.classHeight3AerialGradients[ms->config.focusedClass] = gCrop.clone();
-      }
-      break;
-    default:
-      {
-        assert(0);
-      }
-      break;
-    }
-    fsvO.release();
-  } else {
-  } 
-}
-END_WORD
-REGISTER_WORD(SaveAerialGradientMap)
 
 WORD(InitializeAndFocusOnNewClass)
 virtual string description() {
@@ -1484,66 +933,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(WriteFocusedClassGrasps)
 
-WORD(SaveCurrentClassDepthAndGraspMaps)
-CODE(196705) // capslock + A
-virtual void execute(MachineState * ms) {
-  // XXX TODO is this function even ever used anymore?
-  if (ms->config.focusedClass > -1) {
-    // initialize this if we need to
-    guardGraspMemory(ms);
-    guardHeightMemory(ms);
-
-    string thisLabelName = ms->config.focusedClassLabel;
-
-    string dirToMakePath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/ir2d/";
-    string this_range_path = dirToMakePath + "xyzRange.yml";
-
-    Mat rangeMapTemp(ms->config.rmWidth, ms->config.rmWidth, CV_64F);
-    for (int y = 0; y < ms->config.rmWidth; y++) {
-      for (int x = 0; x < ms->config.rmWidth; x++) {
-	rangeMapTemp.at<double>(y,x) = ms->config.rangeMapReg1[x + y*ms->config.rmWidth];
-      } 
-    } 
-
-    mkdir(dirToMakePath.c_str(), 0777);
-
-    FileStorage fsvO;
-    cout << "capslock + A: Writing: " << this_range_path << endl;
-    fsvO.open(this_range_path, FileStorage::WRITE);
-
-    {
-      fsvO << "graspZ" << "[" 
-	<< ms->config.currentGraspZ 
-      << "]";
-
-      if (ms->config.classGraspZs.size() > ms->config.focusedClass) {
-	ms->config.classGraspZs[ms->config.focusedClass] = ms->config.currentGraspZ;
-      }
-      if (ms->config.classGraspZsSet.size() > ms->config.focusedClass) {
-	ms->config.classGraspZsSet[ms->config.focusedClass] = 1;
-      }
-    }
-
-    fsvO << "rangeMap" << rangeMapTemp;
-    copyGraspMemoryTriesToClassGraspMemoryTries(ms);
-    fsvO << "graspMemoryTries1" << ms->config.classGraspMemoryTries1[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks1" << ms->config.classGraspMemoryPicks1[ms->config.focusedClass];
-    fsvO << "graspMemoryTries2" << ms->config.classGraspMemoryTries2[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks2" << ms->config.classGraspMemoryPicks2[ms->config.focusedClass];
-    fsvO << "graspMemoryTries3" << ms->config.classGraspMemoryTries3[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks3" << ms->config.classGraspMemoryPicks3[ms->config.focusedClass];
-    fsvO << "graspMemoryTries4" << ms->config.classGraspMemoryTries4[ms->config.focusedClass];
-    fsvO << "graspMemoryPicks4" << ms->config.classGraspMemoryPicks4[ms->config.focusedClass];
-
-    copyHeightMemoryTriesToClassHeightMemoryTries(ms);
-    fsvO << "heightMemoryTries" << ms->config.classHeightMemoryTries[ms->config.focusedClass];
-    fsvO << "heightMemoryPicks" << ms->config.classHeightMemoryPicks[ms->config.focusedClass];
-
-    fsvO.release();
-  } 
-}
-END_WORD
-REGISTER_WORD(SaveCurrentClassDepthAndGraspMaps)
 
 WORD(ScanCentered)
 virtual void execute(MachineState * ms) {
@@ -1670,61 +1059,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetIROffset)
 
-WORD(ZeroIROffset)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->gear0offset = Eigen::Quaternionf(0.0, 0.0, 0.0, 0.0);
-  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-}
-END_WORD
-REGISTER_WORD(ZeroIROffset)
-
-WORD(SetIROffsetA)
-virtual void execute(MachineState * ms) {
-  // find the maximum in the map
-  // find the coordinate of the maximum
-  // compare the coordinate to the root position
-  // adjust offset
-  // if adjustment was large, recommend running again
-  double minDepth = VERYBIGNUMBER;
-  double maxDepth = 0;
-  int minX=-1, minY=-1;
-  int maxX=-1, maxY=-1;
-
-  for (int rx = 0; rx < ms->config.hrmWidth; rx++) {
-    for (int ry = 0; ry < ms->config.hrmWidth; ry++) {
-      double thisDepth = ms->config.hiRangeMap[rx + ry*ms->config.hrmWidth];
-      if (thisDepth < minDepth) {
-	minDepth = thisDepth;
-	minX = rx;
-	minY = ry;
-      }
-      if (thisDepth > maxDepth) {
-	maxDepth = thisDepth;
-	maxX = rx;
-	maxY = ry;
-      }
-    }
-  }
-
-  double offByX = ((minX-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
-  double offByY = ((minY-ms->config.hrmHalfWidth)*ms->config.hrmDelta);
-
-  cout << "SetIROffsetA, ms->config.hrmHalfWidth minX minY offByX offByY: " << ms->config.hrmHalfWidth << " " << minX << " " << minY << " " << offByX << " " << offByY << endl;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  camera->gear0offset = Eigen::Quaternionf(0.0, 
-    camera->gear0offset.x()+offByX, 
-    camera->gear0offset.y()+offByY, 
-    0.0167228); // z is from TF, good for depth alignment
-
-  Eigen::Quaternionf crane2quat(ms->config.straightDown.qw, ms->config.straightDown.qx, ms->config.straightDown.qy, ms->config.straightDown.qz);
-  ms->config.irGlobalPositionEEFrame = crane2quat.conjugate() * camera->gear0offset * crane2quat;
-}
-END_WORD
-REGISTER_WORD(SetIROffsetA)
 
 WORD(SetHeightReticles)
 virtual void execute(MachineState * ms) {
@@ -1831,34 +1165,7 @@ END_WORD
 REGISTER_WORD(MoveCropToProperValue)
 
 
-WORD(MoveCropToProperValueNoUpdate)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
-  cout << "Setting exposure " << camera->cameraExposure << " gain: " << camera->cameraGain;
-  cout << " wbr: " << camera->cameraWhiteBalanceRed << " wbg: " << camera->cameraWhiteBalanceGreen << " wbb: " << camera->cameraWhiteBalanceBlue << endl;
-  baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-  ocMessage.request.settings.controls.resize(7);
-  ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
-  ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
-  ocMessage.request.settings.controls[2].id = 100;
-  ocMessage.request.settings.controls[2].value = camera->cameraExposure;
-  ocMessage.request.settings.controls[3].id = 101;
-  ocMessage.request.settings.controls[3].value = camera->cameraGain;
-  ocMessage.request.settings.controls[4].id = 102;
-  ocMessage.request.settings.controls[4].value = camera->cameraWhiteBalanceRed;
-  ocMessage.request.settings.controls[5].id = 103;
-  ocMessage.request.settings.controls[5].value = camera->cameraWhiteBalanceGreen;
-  ocMessage.request.settings.controls[6].id = 104;
-  ocMessage.request.settings.controls[6].value = camera->cameraWhiteBalanceBlue;
-
-  int testResult = ms->config.cameraClient.call(ocMessage);
-}
-END_WORD
-REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
 WORD(FixCameraLightingToAutomaticParameters)
 virtual string description() {
@@ -1881,7 +1188,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   p << camera->observedCameraExposure << " " << camera->observedCameraGain << " " << camera->observedCameraWhiteBalanceRed << " " << camera->observedCameraWhiteBalanceGreen << " " << camera->observedCameraWhiteBalanceBlue << " fixCameraLightingNoUpdate ";
-  cout << p.str() << endl;
+  CONSOLE(ms, p.str());
   ms->evaluateProgram(p.str());
 }
 END_WORD
@@ -1891,7 +1198,7 @@ REGISTER_WORD(FixCameraLightingToObservedValues)
 
 WORD(FixCameraLightingNoUpdate)
 virtual void execute(MachineState * ms) {
-  cout << "fixCameraLighting...";
+  CONSOLE(ms, "fixCameraLighting...");
 
   int gain = 0;
   int exposure = 0;
@@ -1933,6 +1240,9 @@ REGISTER_WORD(FixCameraLighting)
 
 
 WORD(SubscribeCameraParameterTrackerToRosOut)
+virtual string description() {
+  return "Subscribe to rosout.  We don't want to do this for long periods since it's very noisy, but this is how we see the current camera parameters, since they aren't published any other way.";
+}
 virtual void execute(MachineState * ms) {
   // there are lots of messages sent, and we're interested in the
   // camera tracker messages.  So we need a big message buffer to make
@@ -1945,6 +1255,9 @@ REGISTER_WORD(SubscribeCameraParameterTrackerToRosOut)
 
 
 WORD(UnsubscribeCameraParameterTrackerToRosOut)
+virtual string description() {
+  return "Unsubscribe from rosout.  We don't want to stay plugged into rosut for very long since it's so noisy.";
+}
 virtual void execute(MachineState * ms) {
   //ms->config.rosout_sub.shutdown();
 }
@@ -1953,23 +1266,10 @@ REGISTER_WORD(UnsubscribeCameraParameterTrackerToRosOut)
 
 
 
-WORD(UnFixCameraLightingNoUpdate)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  baxter_core_msgs::OpenCamera ocMessage;
-  ocMessage.request.name = ms->config.left_or_right_arm + "_hand_camera";
-  ocMessage.request.settings.controls.resize(2);
-  ocMessage.request.settings.controls[0].id = 105;
-  ocMessage.request.settings.controls[0].value = camera->cropUpperLeftCorner.px;
-  ocMessage.request.settings.controls[1].id = 106;
-  ocMessage.request.settings.controls[1].value = camera->cropUpperLeftCorner.py;
-  int testResult = ms->config.cameraClient.call(ocMessage);
-}
-END_WORD
-REGISTER_WORD(UnFixCameraLightingNoUpdate)
-
 WORD(UnFixCameraLighting)
+virtual string description() {
+  return "Let the camera parmeters automatically update (this is the Baxter default).";
+}
 virtual void execute(MachineState * ms) {
   ms->evaluateProgram("subscribeCameraParameterTrackerToRosOut 0.5 waitForSeconds unFixCameraLightingNoUpdate 0.5 waitForSeconds unsubscribeCameraParameterTrackerToRosOut");
 
@@ -1980,6 +1280,9 @@ REGISTER_WORD(UnFixCameraLighting)
 
 
 WORD(MoveCropToCenterVanishingPoint)
+virtual string description() {
+  return "Move the crop to the center/vanishing point of the camera.";
+}
 virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
   int imW = sz.width;
@@ -1994,7 +1297,7 @@ virtual void execute(MachineState * ms) {
   camera->vanishingPointReticle.px -= Vx;
   camera->vanishingPointReticle.py -= Vy;
 
-  cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
+  CONSOLE(ms, "moveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy);
   ms->pushWord("moveCropToProperValue");
 }
 END_WORD
@@ -2250,7 +1553,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -2291,24 +1594,24 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetMagnificationA)
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx], "") 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
 
-CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
+CONFIG_GETTER_DOUBLE(CameraGetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx], "") 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagY, ms->config.cameras[ms->config.focused_camera]->m_y_h[ms->config.currentThompsonHeightIdx]) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
+CONFIG_GETTER_DOUBLE(CameraGetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px, "Vanishing point of camera.") 
 CONFIG_SETTER_DOUBLE(CameraSetVpX, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
+CONFIG_GETTER_DOUBLE(CameraGetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py, "Vanishing point of camera.") 
 CONFIG_SETTER_DOUBLE(CameraSetVpY, ms->config.cameras[ms->config.focused_camera]->vanishingPointReticle.py) 
 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px, "Height reticle x") 
 CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].px) 
 
-CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
+CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py, "Height reticle y") 
 CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
 WORD(SetMagnificationB)
@@ -2327,7 +1630,7 @@ virtual void execute(MachineState * ms) {
   double magStep = 0.01;
 
   for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPose.position.z+ms->config.currentTableZ;
+    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
     int eX=0, eY=0;
     //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
     globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
@@ -2667,16 +1970,6 @@ END_WORD
 REGISTER_WORD(SaveGripperMask)
 
 
-WORD(SetDefaultHandCameraOffset)
-virtual string description() {
-  return "Sets the hand camera offset to the default value (obtained for Baxter's RGB wrist camera.";
-}
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->setDefaultHandCameraOffset();
-}
-END_WORD
-REGISTER_WORD(SetDefaultHandCameraOffset)
 
 WORD(CalibrateRGBCameraIntrinsicsPoint)
 virtual string description() {
@@ -4769,396 +4062,9 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(AddPlaceOverPoint)
 
-CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance) 
+CONFIG_GETTER_DOUBLE(GraspBackoffDistance, ms->config.graspBackoffDistance, "") 
 CONFIG_SETTER_DOUBLE(SetGraspBackoffDistance, ms->config.graspBackoffDistance) 
 
-WORD(AssumeBest3dGrasp)
-virtual void execute(MachineState * ms) {
-  REQUIRE_FOCUSED_CLASS(ms,tfc);
-
-  double p_backoffDistance = ms->config.graspBackoffDistance;
-
-  vector<int> feasible_indeces;
-  for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
-    feasible_indeces.push_back(1);
-  }
-
-  cout << "assumeBest3dGrasp: trying with a backoff distance of " << p_backoffDistance << endl;
-
-  for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
-
-    double max_score = -DBL_MAX;
-    int max_index = -1;
-    for (int mc = 0; mc < ms->config.class3dGrasps[ms->config.targetClass].size(); mc++) {
-      if (feasible_indeces[mc] == 1) {
-
-	Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][mc]);
-
-	int is_maxed_out = 0;
-	{
-	  if (ms->config.currentPickMode == LEARNING_SAMPLING) {
-	    is_maxed_out = ( (thisGrasp->tries >= ms->config.graspLearningMaxTries) );
-	  } else if (ms->config.currentPickMode == LEARNING_ALGORITHMC) {
-	    // ATTN 20
-	    double successes = thisGrasp->successes;
-	    double failures = thisGrasp->tries - thisGrasp->successes;
-
-	    successes = round(successes);
-	    failures = round(failures);
-
-	    double result = cephes_incbet(successes + 1, failures + 1, ms->config.algorithmCTarget);
-	    is_maxed_out = (result > ms->config.algorithmCRT);
-	  } else if (ms->config.currentPickMode == STATIC_MARGINALS) {
-	    //is_maxed_out = (ms->config.graspMemoryTries[i] <= 1);
-	  }
-	}
-	if (is_maxed_out) {
-	  feasible_indeces[mc] = 0;
-	  continue;
-	} else {
-	}
-
-	double thisScore = thisGrasp->successes / thisGrasp->tries;
-	if (thisScore > max_score) {
-	  max_index = mc;
-	  max_score = thisScore;
-	} else {
-	}
-      } else {
-	cout << "assumeBest3dGrasp: skipping infeasible in list... " << mc << endl;
-      }
-    }
-
-    int tc = max_index;
-
-    if ( (tc > -1) && (tc < ms->config.class3dGrasps[ms->config.targetClass].size()) ) {
-    } else {
-      break;
-    }
-
-
-
-
-    eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][tc].grasp_pose;  
-
-    eePose thisBase = ms->config.lastLockedPose;
-    thisBase.pz = -ms->config.currentTableZ;
-
-    cout << "assumeAny3dGrasp, tc: " << tc << endl;
-
-    // this order is important because quaternion multiplication is not commutative
-    //ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
-    //ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
-    eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
-
-    int increments = floor(p_backoffDistance / GRID_COARSE); 
-    Vector3d localUnitX;
-    Vector3d localUnitY;
-    Vector3d localUnitZ;
-    fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
-
-    int ikResultPassedBoth = 1;
-    {
-      cout << "Checking IK for 3D grasp number " << tc << ", "; 
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = graspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-    {
-      cout << "Checking IK for 3D pre-grasp number " << tc << ", ";
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = retractedGraspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-
-    if (ikResultPassedBoth) {
-      ms->config.current3dGraspIndex = tc;
-
-      cout << "Grasp and pre-grasp both passed, accepting." << endl;
-
-      ms->config.currentEEPose = retractedGraspPose;
-      ms->config.lastPickPose = graspPose;
-      int tbb = ms->config.targetBlueBox;
-      if (tbb < ms->config.blueBoxMemories.size()) {
-	ms->config.blueBoxMemories[tbb].pickedPose = ms->config.lastPickPose;  
-      } else {
-	assert(0);
-      }
-
-      if (ms->config.snapToFlushGrasp) {
-	// using twist and effort
-	ms->pushWord("closeGripper");
-	ms->pushWord("pressUntilEffortCombo");
-
-	ms->pushWord("setEffortThresh");
-	ms->pushWord("7.0");
-
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.03");
-
-	ms->pushWord("pressUntilEffortInit");
-	ms->pushWord("comeToStop");
-	ms->pushWord("setMovementStateToMoving");
-	ms->pushWord("comeToStop");
-	ms->pushWord("waitUntilAtCurrentPosition");
-
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.05");
-
-	ms->pushWord("setGridSizeCoarse");
-      } else {
-	ms->pushWord("comeToStop"); 
-	ms->pushWord("waitUntilAtCurrentPosition"); 
-
-	ms->pushCopies("localZUp", increments);
-	ms->pushWord("setGridSizeCoarse");
-	ms->pushWord("approachSpeed");
-      }
-
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      return;
-    } else {
-      feasible_indeces[tc] = 0;
-    }
-  }
-
-  cout << "assumeBest3dGrasp: No 3D grasps were feasible. Proceeding to take any grasp, even during learning!" << endl;
-  
-  feasible_indeces.resize(0);
-  for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
-    feasible_indeces.push_back(1);
-  }
-
-  for (int _tc = 0; _tc < ms->config.class3dGrasps[ms->config.targetClass].size(); _tc++) {
-
-    double max_score = -DBL_MAX;
-    int max_index = -1;
-    for (int mc = 0; mc < ms->config.class3dGrasps[ms->config.targetClass].size(); mc++) {
-      if (feasible_indeces[mc] == 1) {
-
-	Grasp *thisGrasp = &(ms->config.class3dGrasps[tfc][mc]);
-
-	double thisScore = thisGrasp->successes / thisGrasp->tries;
-	if (thisScore > max_score) {
-	  max_index = mc;
-	  max_score = thisScore;
-	} else {
-	}
-      } else {
-	cout << "assumeBest3dGrasp PASS 2: skipping infeasible in list... " << mc << endl;
-      }
-    }
-
-    int tc = max_index;
-
-    if ( (tc > -1) && (tc < ms->config.class3dGrasps[ms->config.targetClass].size()) ) {
-    } else {
-      break;
-    }
-
-    eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][tc].grasp_pose;  
-
-    eePose thisBase = ms->config.lastLockedPose;
-    thisBase.pz = -ms->config.currentTableZ;
-
-    cout << "assumeAny3dGrasp PASS 2, tc: " << tc << endl;
-
-    // this order is important because quaternion multiplication is not commutative
-    //ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
-    //ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
-    eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
-
-    int increments = floor(p_backoffDistance / GRID_COARSE); 
-    Vector3d localUnitX;
-    Vector3d localUnitY;
-    Vector3d localUnitZ;
-    fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
-
-    int ikResultPassedBoth = 1;
-    {
-      cout << "Checking IK for 3D grasp number " << tc << ", "; 
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = graspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-    {
-      cout << "Checking IK for 3D pre-grasp number " << tc << ", ";
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = retractedGraspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-
-    if (ikResultPassedBoth) {
-      ms->config.current3dGraspIndex = tc;
-
-      cout << "Grasp and pre-grasp both passed, accepting." << endl;
-
-      ms->config.currentEEPose = retractedGraspPose;
-      ms->config.lastPickPose = graspPose;
-      int tbb = ms->config.targetBlueBox;
-      if (tbb < ms->config.blueBoxMemories.size()) {
-	ms->config.blueBoxMemories[tbb].pickedPose = ms->config.lastPickPose;  
-      } else {
-	assert(0);
-      }
-
-      if (ms->config.snapToFlushGrasp) {
-	// using twist and effort
-	ms->pushWord("closeGripper");
-	ms->pushWord("pressUntilEffortCombo");
-
-	ms->pushWord("setEffortThresh");
-	ms->pushWord("7.0");
-
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.03");
-
-	ms->pushWord("pressUntilEffortInit");
-	ms->pushWord("comeToStop");
-	ms->pushWord("setMovementStateToMoving");
-	ms->pushWord("comeToStop");
-	ms->pushWord("waitUntilAtCurrentPosition");
-
-	ms->pushWord("setGridSizeCoarse");
-      } else {
-	ms->pushWord("comeToStop"); 
-	ms->pushWord("waitUntilAtCurrentPosition"); 
-
-	ms->pushCopies("localZUp", increments);
-	ms->pushWord("setGridSizeCoarse");
-	ms->pushWord("approachSpeed");
-      }
-
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      ms->pushWord("quarterImpulse");
-      return;
-    } else {
-      feasible_indeces[tc] = 0;
-    }
-  }
-
-  cout << "assumeBest3dGrasp PASS 2: No 3D grasps were feasible after all. Proceeding without attempting a grasp." << endl;
-}
-END_WORD
-REGISTER_WORD(AssumeBest3dGrasp)
 
 WORD(AssumeCurrent3dGrasp)
 virtual void execute(MachineState * ms) {
@@ -5177,7 +4083,7 @@ virtual void execute(MachineState * ms) {
   Vector3d localUnitY;
   Vector3d localUnitZ;
   fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-  eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
+  eePose retractedGraspPose = eePoseMinus(graspPose, p_backoffDistance * localUnitZ);
 
   ms->config.currentEEPose = retractedGraspPose;
   ms->config.lastPickPose = graspPose;
@@ -5201,212 +4107,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(AssumeCurrent3dGrasp)
 
-WORD(AssumeAny3dGrasp)
-virtual void execute(MachineState * ms) {
-  double p_backoffDistance = 0.10;
-
-  for (int tc = 0; tc < ms->config.class3dGrasps[ms->config.targetClass].size(); tc++) {
-    eePose toApply = ms->config.class3dGrasps[ms->config.targetClass][tc].grasp_pose;  
-
-    eePose thisBase = ms->config.lastLockedPose;
-    thisBase.pz = -ms->config.currentTableZ;
-
-    cout << "assumeAny3dGrasp, tc: " << tc << endl;
-
-    // this order is important because quaternion multiplication is not commutative
-    //ms->config.currentEEPose = ms->config.currentEEPose.plusP(ms->config.currentEEPose.applyQTo(toApply));
-    //ms->config.currentEEPose = ms->config.currentEEPose.multQ(toApply);
-    eePose graspPose = toApply.applyAsRelativePoseTo(thisBase);
-
-    int increments = floor(p_backoffDistance / GRID_COARSE); 
-    Vector3d localUnitX;
-    Vector3d localUnitY;
-    Vector3d localUnitZ;
-    fillLocalUnitBasis(graspPose, &localUnitX, &localUnitY, &localUnitZ);
-    eePose retractedGraspPose = graspPose.minusP(p_backoffDistance * localUnitZ);
-
-    int ikResultPassedBoth = 1;
-    {
-      cout << "Checking IK for 3D grasp number " << tc << ", "; 
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = graspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-    {
-      cout << "Checking IK for 3D pre-grasp number " << tc << ", ";
-      int ikCallResult = 0;
-      baxter_core_msgs::SolvePositionIK thisIkRequest;
-      eePose toRequest = retractedGraspPose;
-      fillIkRequest(toRequest, &thisIkRequest);
-      queryIK(ms, &ikCallResult, &thisIkRequest);
-
-      cout << ikCallResult << "." << endl;
-
-      int ikResultFailed = 1;
-      if (ikCallResult && thisIkRequest.response.isValid[0]) {
-	ikResultFailed = 0;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].position.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough positions." << endl;
-      } else if ((thisIkRequest.response.joints.size() == 1) && (thisIkRequest.response.joints[0].name.size() != NUM_JOINTS)) {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, not enough names." << endl;
-      } else if (thisIkRequest.response.joints.size() == 1) {
-	if( ms->config.usePotentiallyCollidingIK ) {
-	  cout << "WARNING: using ik even though result was invalid under presumption of false collision..." << endl;
-	  cout << "Received enough positions and names for ikPose: " << thisIkRequest.request.pose_stamp[0].pose << endl;
-	  ikResultFailed = 0;
-	} else {
-	  ikResultFailed = 1;
-	  cout << "ik result was reported as colliding and we are sensibly rejecting it..." << endl;
-	}
-      } else {
-	ikResultFailed = 1;
-	cout << "Initial IK result appears to be truly invalid, incorrect joint field." << endl;
-      }
-
-      ikResultPassedBoth = ikResultPassedBoth && (!ikResultFailed);
-    }
-
-    if (ikResultPassedBoth) {
-      ms->config.current3dGraspIndex = tc;
-
-      cout << "Grasp and pre-grasp both passed, accepting." << endl;
-
-      ms->config.currentEEPose = retractedGraspPose;
-      ms->config.lastPickPose = graspPose;
-      int tbb = ms->config.targetBlueBox;
-      if (tbb < ms->config.blueBoxMemories.size()) {
-	ms->config.blueBoxMemories[tbb].pickedPose = ms->config.lastPickPose;  
-      } else {
-	assert(0);
-      }
-
-      if (ms->config.snapToFlushGrasp) {
-	// using twist and effort
-	ms->pushWord("closeGripper");
-	ms->pushWord("pressUntilEffortCombo");
-
-	ms->pushWord("setEffortThresh");
-	ms->pushWord("7.0");
-
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.03");
-
-	ms->pushWord("pressUntilEffortInit");
-	ms->pushWord("comeToStop");
-	ms->pushWord("setMovementStateToMoving");
-	ms->pushWord("comeToStop");
-	ms->pushWord("waitUntilAtCurrentPosition");
-
-	ms->pushWord("setSpeed");
-	ms->pushWord("0.05");
-
-	ms->pushWord("setGridSizeCoarse");
-      } else {
-	ms->pushWord("comeToStop"); 
-	ms->pushWord("waitUntilAtCurrentPosition"); 
-
-	ms->pushCopies("localZUp", increments);
-	ms->pushWord("setGridSizeCoarse");
-	ms->pushWord("approachSpeed");
-      }
-
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-      return;
-    }
-  }
-
-  cout << "No 3D grasps were feasible. Continuing." << endl;
-}
-END_WORD
-REGISTER_WORD(AssumeAny3dGrasp)
-
-
-WORD(PreAnnotateCenterGrasp)
-virtual void execute(MachineState * ms) {
-  zeroGraspMemoryAndRangeMap(ms);
-  ms->config.graspMemoryTries[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1;
-  ms->config.graspMemoryPicks[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*0] = 1; 
-  ms->config.rangeMap[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-  ms->config.rangeMapReg1[ms->config.rmHalfWidth + ms->config.rmHalfWidth*ms->config.rmWidth] = ms->config.currentGraspZ;
-}
-END_WORD
-REGISTER_WORD(PreAnnotateCenterGrasp)
-
-WORD(Annotate2dGrasp)
-virtual void execute(MachineState * ms) {
-
-  // this is in mm's for now
-  int gheight = 0;
-  int tgg = 0;
-  int Utgg = 0;
-  int x = ms->config.rmHalfWidth;
-  int y = ms->config.rmHalfWidth;
-
-  GET_ARG(ms, IntegerWord, gheight);
-  GET_ARG(ms, IntegerWord, Utgg);
-  GET_ARG(ms, IntegerWord, y);
-  GET_ARG(ms, IntegerWord, x);
-
-  tgg = Utgg-1;
-
-  tgg = min(max(0, tgg), 3);
-  x = min(max(0, x), ms->config.rmWidth-1);
-  y = min(max(0, y), ms->config.rmWidth-1);
-
-  int class_idx = ms->config.focusedClass;
-  cout << "annotate2dGrasp, class: " << class_idx << endl;
-  if ( (class_idx > -1) && (class_idx < ms->config.classLabels.size()) ) {
-    cout << "  annotating x y Utgg gheight, tgg: " << x << " " << y << " " << Utgg << " " << gheight << ", " << tgg << endl;
-    guardGraspMemory(ms);
-    zeroGraspMemoryAndRangeMap(ms);
-    zeroClassGraspMemory(ms);
-    ms->config.graspMemoryTries[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tgg] = 1;
-    ms->config.graspMemoryPicks[x + y*ms->config.rmWidth + ms->config.rmWidth*ms->config.rmWidth*tgg] = 1; 
-    ms->config.rangeMap[x + y*ms->config.rmWidth] = gheight;
-    ms->config.rangeMapReg1[x + y*ms->config.rmWidth] = gheight;
-
-    ms->config.classRangeMaps[ms->config.targetClass].at<double>(y,x) = -double(gheight)*0.001;
-    ms->config.classGraspMemoryPicks1[ms->config.targetClass].at<double>(y,x) = 1;
-    ms->config.classGraspMemoryPicks2[ms->config.targetClass].at<double>(y,x) = 1;
-    ms->config.classGraspMemoryPicks3[ms->config.targetClass].at<double>(y,x) = 1;
-    ms->config.classGraspMemoryPicks4[ms->config.targetClass].at<double>(y,x) = 1;
-  } else {
-    cout << "  invalid focused class, not annotating." << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(Annotate2dGrasp)
 
 WORD(CollectMoreCrops)
 virtual void execute(MachineState * ms) {
@@ -5426,39 +4126,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(CollectMoreCrops)
-
-WORD(PreAnnotateOffsetGrasp)
-virtual void execute(MachineState * ms) {
-  zeroGraspMemoryAndRangeMap(ms);
-  eePose offsetPose = ms->config.eepReg1;
-  eePose difference = offsetPose.minusP(ms->config.currentEEPose);
-  double offsetX = difference.px / ms->config.rmDelta;
-  double offsetY = difference.py / ms->config.rmDelta;
-  int rx = (int) round(ms->config.rmHalfWidth + offsetX);
-  int ry = (int) round(ms->config.rmHalfWidth + offsetY);
-  
-  cout << "PreAnnotateOffsetGrasp: " << offsetPose << " " << ms->config.currentEEPose << " " << difference << endl <<
-    offsetX << " " << offsetY << " " << rx << " " << ry << endl;
-
-  int padding = ms->config.rangeMapTargetSearchPadding;
-  if ( (rx < padding) || (ry < padding) || 
-       (rx > ms->config.rmWidth-1-padding) || (ry > ms->config.rmWidth-1-padding) ) {
-    ms->clearStack();
-    cout << "Oops, annotation put the grasp point out of bounds. Clearing stack; you should delete this model. Try using setScanModeNotCentered." << endl;
-    // we could push the other annotation here and go to eepReg1 to automatically recover from this
-    return;
-  } else {
-  }
-
-
-  ms->config.graspMemoryTries[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
-  ms->config.graspMemoryPicks[rx + ry*ms->config.rmWidth + ms->config.rmWidth * ms->config.rmWidth * 0] = 1;
-
-  ms->config.rangeMap[rx + ry*ms->config.rmWidth] = ms->config.currentGraspZ;
-  ms->config.rangeMapReg1[rx + ry*ms->config.rmWidth] = ms->config.currentGraspZ;
-}
-END_WORD
-REGISTER_WORD(PreAnnotateOffsetGrasp)
 
 WORD(HistogramDetectionIfBlueBoxes)
 virtual void execute(MachineState * ms)
@@ -5732,13 +4399,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(RetrainVocabOff)
 
-WORD(ReinitRangeMaps)
-virtual void execute(MachineState * ms) {
-  initRangeMaps(ms);
-}
-END_WORD
-REGISTER_WORD(ReinitRangeMaps)
-
 WORD(ResetCurrentFocusedClass)
 virtual void execute(MachineState * ms) {
   int class_idx = ms->config.focusedClass;
@@ -5897,13 +4557,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(IrFixPick)
-
-WORD(SetPickFixMapAnchor)
-virtual void execute(MachineState * ms) {
-  ms->config.pfmAnchorPose = ms->config.currentEEPose;
-}
-END_WORD
-REGISTER_WORD(SetPickFixMapAnchor)
 
 WORD(ClearClass3dGrasps)
 virtual void execute(MachineState * ms) {

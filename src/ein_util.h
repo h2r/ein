@@ -2,23 +2,18 @@
 #define _EIN_UTIL_H_
 
 #include <string>
-#include <iostream>
-#include <assert.h>
 
 #include <cv.h>
-#include <ml.h>
-#include <opencv2/gpu/gpu.hpp>
-#include <geometry_msgs/Pose.h>
-
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_vector.h>
-
-#include "eePose.h"
 
 #include "word.h"
 
-#include "config.h"
 #include "base64.h"
+
+class MachineState;
+
+namespace ros {
+  class Time;
+}
 
 using namespace std;
 using namespace cv;
@@ -30,6 +25,11 @@ using namespace cv;
 #define RANGE_LOWER_INVALID 0.08
 
 
+typedef enum {
+  UNKNOWN = -1,
+  FAILURE = 0,
+  SUCCESS = 1
+} operationStatusType;
 
 
 std::string operationStatusToString(operationStatusType mode) ;
@@ -60,9 +60,7 @@ typedef enum {
 
 void pushGridSign(MachineState * ms, double speed);
 bool isSketchyMat(Mat sketchy);
-eePose rosPoseToEEPose(geometry_msgs::Pose pose);
 
-gsl_matrix * boxMemoryToPolygon(BoxMemory b);
 void initializeMachine(MachineState * ms);
 string formatTime(ros::Time time);
 bool copyDir(string src, string dest);
@@ -79,5 +77,6 @@ string streamDirectory(MachineState * ms, int classIdx);
 string xmlEncode(const string data);
 
 vector<string> glob(const string& pat);
+double deg2rad (double degrees);
 
 #endif /* _EIN_UTIL_H_ */

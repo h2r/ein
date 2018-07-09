@@ -1,4 +1,3 @@
-#include "ein.h"
 #include "config.h"
 
 string pickModeToString(pickMode mode) {
@@ -38,8 +37,8 @@ string MachineState::currentState()
     state.precision(3);
     state << "Target EE (x,y,z): "  << setw(w) << config.currentEEPose.px << " " << setw(w) << config.currentEEPose.py << " " << setw(w) << config.currentEEPose.pz << endl;
     state << "Target EE (x,y,z,w): " << setw(w) << config.currentEEPose.qx << " " << setw(w) << config.currentEEPose.qy << " " << setw(w) << config.currentEEPose.qz << " " << setw(w) << config.currentEEPose.qw << endl;
-    state << "  True EE (x,y,z): " <<  setw(w) << config.trueEEPose.position.x << " " << setw(w) << config.trueEEPose.position.y << " " << setw(w) << config.trueEEPose.position.z << endl;
-    state << "  True EE (x,y,z,w): "  << setw(w) << config.trueEEPose.orientation.x << " " << setw(w) << config.trueEEPose.orientation.y << " " << setw(w) << config.trueEEPose.orientation.z << " " << setw(w) << config.trueEEPose.orientation.w << endl;
+    state << "  True EE (x,y,z): " <<  setw(w) << config.trueEEPoseEEPose.px << " " << setw(w) << config.trueEEPoseEEPose.py << " " << setw(w) << config.trueEEPoseEEPose.pz << endl;
+    state << "  True EE (x,y,z,w): "  << setw(w) << config.trueEEPoseEEPose.qx << " " << setw(w) << config.trueEEPoseEEPose.qy << " " << setw(w) << config.trueEEPoseEEPose.qz << " " << setw(w) << config.trueEEPoseEEPose.qw << endl;
 
     double poseError = eePose::distance(config.trueEEPoseEEPose, config.currentEEPose);
     double orError = eePose::distanceQ(config.trueEEPoseEEPose, config.currentEEPose);
@@ -58,7 +57,7 @@ string MachineState::currentState()
     state << "ikMode: " << ikModeToString(config.currentIKMode) << endl;
     state << "zeroGMode: " << config.zero_g_toggle << endl;
     state << "focusedClass: " << config.focusedClass;
-    if (config.focusedClass != -1) {
+    if (config.focusedClass != -1 && config.classLabels.size() != 0) {
       state << " " << config.classLabels[config.focusedClass];
     }
     state << endl;

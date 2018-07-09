@@ -1,11 +1,16 @@
-#include "ein.h"
+#include "config.h"
 #include "camera.h"
 #include <vector>
 #include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
+#include <highgui.h>
 
+#include <dirent.h>
+
+#include "ein.h"
 using namespace boost::filesystem;
 using namespace boost::system;
 
@@ -84,6 +89,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
     int cfClass = ms->config.focusedClass;
     if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
       double thisNow = msg->header.stamp.toSec();
+      //cout << "     Now: " << msg->header.stamp << endl;
       streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
     }
   }
@@ -668,6 +674,8 @@ void Camera::loadCalibration(string inFileName) {
     FileNodeIterator it = anode.begin(), it_end = anode.end();
     vanishingPointReticle.px = *(it++);
     vanishingPointReticle.py = *(it++);
+    probeReticle = vanishingPointReticle;
+
   }
 
   {
@@ -1002,7 +1010,43 @@ void Camera::setDefaultHandCameraOffset() {
 }
 
 
-void Camera::setHandCameraOffsetFromTf(ros::Time time)
+void Camera::setHandCameraOffsetFromTf()
 {
+  geometry_msgs::PoseStamped pose;
+  pose.pose.position.x = 0;
+  pose.pose.position.y = 0;
+  pose.pose.position.z = 0;
+  pose.pose.orientation.x = 0;
+  pose.pose.orientation.y = 0;
+  pose.pose.orientation.z = 0;
+  pose.pose.orientation.w = 1;
+
+  pose.header.stamp = ros::Time(0);
+  pose.header.frame_id =  tf_camera_link;
+  geometry_msgs::PoseStamped transformed_pose;
+  try {
+    ms->config.tfListener->transformPose(tf_ee_link, pose.header.stamp, pose, tf_camera_link, transformed_pose);
+    handCameraOffset = rosPoseToEEPose(transformed_pose.pose);
+  } catch (tf2::TransformException e) {
+    CONSOLE_ERROR(ms, "TF Exception: " << e.what());
+  }
+}
+
+
+void Camera::initializeConfig(int rows, int cols)
+{
+  if (!isSketchyMat(cam_img)) {
+    if (cam_img.cols != cols || cam_img.rows != rows) {
+      CONSOLE_ERROR(ms, "Given rows and cols does not match image!");
+    }
+  }
+
+  cropUpperLeftCorner = eePose(cols, rows, 0.0,
+                               0.0, 1.0, 0.0, 0.0);
+  centerReticle = eePose(cols/2, rows/2, 0.0,
+                         0.0, 0.0, 0.0, 0.0);
   
+  defaultReticle = centerReticle;
+  probeReticle = centerReticle;
+  vanishingPointReticle = centerReticle;
 }

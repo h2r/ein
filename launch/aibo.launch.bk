@@ -1,0 +1,6 @@
+<launch>
+  <rosparam command="load" param="publish_frequency">50</rosparam>
+  <rosparam command="load" param="tf_prefix">"/base_link"</rosparam>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="aibo_state_publisher" >
+  </node>
+</launch>

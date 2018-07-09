@@ -1,16 +1,18 @@
 #ifndef _EEPOSEH_
 #define _EEPOSEH_
 
-#include <iostream>
-#include "eigen_util.h"
+
+#include <geometry_msgs/Pose.h>
 #include <cv.h>
-#include <ml.h>
-#include <opencv2/gpu/gpu.hpp>
-using namespace cv;
+
+#include <iostream>
+#include <fstream>
 using namespace std;
 
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Pose.h>
+using namespace cv;
+
+
+
 
 typedef struct _eePose{
   double px;
@@ -22,8 +24,6 @@ typedef struct _eePose{
   double qz;
   double qw;
 
-  _eePose plusP(const Vector3d& a) const;
-  _eePose minusP(const Vector3d& a) const;
 
   _eePose plusP(const _eePose& a) const;
   _eePose minusP(const _eePose& a) const;
@@ -63,18 +63,21 @@ typedef struct _eePose{
   static void distanceXYZAndAngle(_eePose pose1, _eePose pose2, double * distance, double * angleDistance);
 
   void getRollPitchYaw(double * roll, double * pitch, double * yaw);
-
+  double qmagnitude();
 
   static _eePose fromRectCentroid(Rect rect);
   static _eePose zero();
   static _eePose identity();
   static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
+  
 
   friend ostream & operator<<(ostream &, const _eePose &);
 
   _eePose(double _px, double _py, double _pz, double _qx, double _qy, double _qz, double _qw);
   _eePose();
 
+  bool operator==(const _eePose& other);
+  bool operator!=(const _eePose& other);
 } eePose;
 
 typedef struct _armPose{
@@ -138,5 +141,7 @@ typedef struct _armPose{
   */
 } armPose;
 
+eePose rosPoseToEEPose(geometry_msgs::Pose pose);
+geometry_msgs::Pose eePoseToRosPose(eePose);
 
 #endif /* _EEPOSEH_ */

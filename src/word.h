@@ -1,18 +1,11 @@
 #ifndef _WORD_H_
 #define _WORD_H_
 
-#include "ein_util.h"
-#include "ein_aibo.h"
-
 using namespace std;
-#include <sstream>
 #include <map>
-#include <boost/algorithm/string.hpp>
-
+#include "eePose.h"
 
 class MachineState;
-
-using namespace boost::algorithm;
 
 class Word:  public enable_shared_from_this<Word> {
   
@@ -487,66 +480,6 @@ class CompoundWord : public Word {
   static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 
-class AiboPoseWord: public Word
-{
-private:
-  EinAiboJoints pose;
-
-public:
-  EinAiboJoints value() {
-    return pose;
-  }
-
-  virtual bool is_value() {
-    return true;
-  }
-
-  static std::shared_ptr<AiboPoseWord> parse(string token) {
-    EinAiboJoints pose;
-    return std::make_shared<AiboPoseWord>(pose);
-  }
-  virtual bool is_static() {
-    return false;
-  }
-  static bool isInteger(string token) {
-    if (token.substr(0,5) == "EinAiboJoints") {
-      return true;
-    } else {
-      return false;
-    }
-  }
-  
-  AiboPoseWord(EinAiboJoints _pose) {
-    pose = _pose;
-  }
-
-  virtual string repr();
-
-  string name() {
-    stringstream ss;
-    //ss << pose;
-    return ss.str();
-    // XXX need to overload << 
-  }
-
-  bool equals(shared_ptr<Word> word) {
-    shared_ptr<AiboPoseWord> w1 = dynamic_pointer_cast<AiboPoseWord>(word);
-    if (w1 == NULL) {
-      return false;
-    } else {
-      //return w1->value().equals(this->value());
-      // XXX not done
-      return false;
-    }
-  }
-  
-  virtual bool to_bool() {
-    return true;
-  }
-  virtual int to_int() {
-    return 1;
-  }
-};
 
 
 
@@ -633,7 +566,9 @@ std::map<string, std::shared_ptr<Word> > create_name_to_word(std::vector<std::sh
 std::shared_ptr<Word> parseToken(MachineState * ms, string token);
 std::shared_ptr<Word> nameToWord(string name);
 
-extern std::vector<std::shared_ptr<Word> > words;
+std::vector<std::shared_ptr<Word> > register_word(std::shared_ptr<Word> word);
+
+//extern std::vector<std::shared_ptr<Word> > words;
 extern std::map<int, std::shared_ptr<Word> > character_code_to_word;
 extern std::map<string, std::shared_ptr<Word> > name_to_word;
 
@@ -655,14 +590,14 @@ REGISTER_WORD()
     { \
   std::stringstream __publish__console__message__stream__ss__; \
   __publish__console__message__stream__ss__ << args; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+  ms->publishConsoleMessage(__publish__console__message__stream__ss__.str()); \
     }
 
 #define CONSOLE_ERROR(ms, args) \
     { \
   std::stringstream __publish__console__message__stream__ss__; \
   __publish__console__message__stream__ss__ << "\033[1;31m" << args << "\033[0m"; \
-  publishConsoleMessage(ms, __publish__console__message__stream__ss__.str()); \
+  ms->publishConsoleMessage(__publish__console__message__stream__ss__.str()); \
     }
 
 

@@ -1,0 +1,217 @@
+
+
+(
+ ( tiltDown 0.1 waitForSeconds ) 10 replicateWord ( tiltUp 0.1 waitForSeconds ) 10 replicateWord
+) "Nod your head."  "movoNod" define
+
+
+(
+ 0 setTargetTiltPos 0 setTargetPanPos
+) "Center the head."  "centerHead" define
+
+(
+  ( openGripper gripperWait closeGripper gripperWait ) 2 replicateWord
+) "Open and close the gripper a few times."  "movoDanceGripper" define
+
+(
+ 0.1 baseSendXVel 1 waitForSeconds 
+ 0.1 baseSendYVel 1 waitForSeconds
+ 0.1 baseSendOZVel 1 waitForSeconds
+ -0.1 baseSendXVel 1 waitForSeconds
+ -0.1 baseSendYVel 1 waitForSeconds
+ -0.1 baseSendOZVel 1 waitForSeconds
+) "Move the base in a little circle."  "movoDanceBase" define
+
+(
+zeroGOn
+moveToHome
+5 waitForSeconds
+moveToTuck
+5 waitForSeconds
+zeroGOff
+movoDanceBase
+movoDanceGripper
+movoNod
+torsoUp 1 waitForSeconds
+torsoDown
+) "Exercise all the stuff that Ein can do with Movo."  "movoDance" define
+
+
+0.555846 0.022954 1.134107 0.068888 -0.062352 -0.797697 0.595858 createEEPose "leftStrumPose" store
+
+0.675415 -0.081037 1.151467 -0.584927 -0.466213 0.335808 0.572485 createEEPose "rightFretPose" store
+
+
+( ( zDown ) 10 replicateWord waitUntilAtCurrentPosition ( zUp ) 10 replicateWord waitUntilAtCurrentPosition ) "Strum a uke, relative to current pose." "strum" define
+
+
+1.272772 3.443345 0.000000 0.000000 0.000000 -0.094473 0.995527 createEEPose "baseDoorPose" store
+
+1 streamSetSisImage
+1 streamSetSisPose
+
+
+( 0 trueTorsoJointVelocity  - abs 0.0001 > ) "Is the torso moving?" "torsoIsMoving" define
+( trueTorsoJointPosition targetTorsoJointPosition  - abs 0.01 < ) "Is the torso at the current position?" "torsoAtCurrentPosition" define
+( ( torsoAtCurrentPosition not ) ( 0.01 waitForSeconds ) while ) "Wait until the torso reaches the target position."  "waitUntilTorsoAtCurrentPosition" define
+( ( torsoIsMoving ) ( 0.01 waitForSeconds ) while ) "Wait until the torso stops moving."  "waitUntilTorsoNotMoving" define
+
+
+
+( 0.46 torsoSetTarget ) "Set the torso to the highest point." "torsoToHighest" define
+( 0 torsoSetTarget ) "Set the torso to the lowest point." "torsoToLowest" define
+( 0.25 torsoSetTarget ) "Set the torso to a middle point." "torsoToMiddle" define
+( 0.4 torsoSetTarget ) "Set the torso to the home height." "torsoToHome" define
+( 0.04 torsoSetTarget ) "Set the torso to the tuck height." "torsoToTuck" define
+
+( torsoToLowest waitUntilTorsoAtCurrentPosition
+1 streamSetSisImage 1 streamSetSisPose activateSensorStreaming 
+torsoToHighest waitUntilTorsoAtCurrentPosition
+deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStreamBuffer" define
+
+(
+ moveToTuck 3 waitForSeconds torsoToMiddle
+ 5 waitForSeconds
+ "Greetings. My name is Movo the robot. We are going to play Movo Says. If I give a command that begins with Movo Says, you must follow the command. If the command does not begin with Movo Says, do not follow the command." say
+) "Explain how to play Movo Says."  "movoSaysBegin" define
+
+(
+ "Thanks for playing Movo Says with me! Goodbye." say
+) "Say goodbye."  "movoSaysEnd" define
+
+(
+ "Movo Says" say 1 waitForSeconds
+) "Say Movo Says."  "movoSays" define
+
+(
+ "Stop." say 1 waitForSeconds
+ moveToTuck 5 waitForSeconds torsoToMiddle
+) "Move back to default tuck position."  "movoSaysStop" define
+
+(
+ "Nod your head" say 2 waitForSeconds
+ movoNod
+) "Movo Says: nod your head."  "movoSaysNod" define
+
+(
+ "Look up" say 2 waitForSeconds
+ ( tiltUp ) 4 replicateWord
+) "Movo Says: look up."  "movoSaysLookUp" define
+
+(
+ "Look down" say 2 waitForSeconds
+ ( tiltDown ) 4 replicateWord
+) "Movo Says: look down."  "movoSaysLookDown" define
+
+(
+ "Look to your right" say 2 waitForSeconds
+ ( panUp ) 4 replicateWord
+) "Movo Says: look right."  "movoSaysLookRight" define
+
+(
+ "Look to your left" say 2 waitForSeconds
+ ( panDown ) 4 replicateWord
+) "Movo Says: look left."  "movoSaysLookLeft" define
+
+(
+ "Sing a song" say 2 waitForSeconds
+ "Domo arigato, Mr. Robot-o." say 3 waitForSeconds
+ "Da Da Da Da Dum. La Laa La La Laalaalaalaalaalaalaalaalaalaalaalaalaalaalaa." say
+) "Movo Says: sing."  "movoSaysSing" define
+
+(
+ "Recite a Haiku. Repeat after me." say 4 waitForSeconds
+ "An old silent pond." say 5 waitForSeconds
+ "A frog jumps into the pond." say 5 waitForSeconds
+ "splash! Silence again." say 5 waitForSeconds
+) "Movo Says: recite a haiku."  "movoSaysHaiku" define
+
+(
+ "Dance" say 1 waitForSeconds
+ moveToHome
+ 3 waitForSeconds
+ moveToTuck
+ 3 waitForSeconds
+ movoDanceBase
+) "Movo Says: dance."  "movoSaysDance" define
+
+0.675343 -0.084596 1.520694 -0.319561 -0.653005 -0.383301 0.569689 createEEPose "poseMovoSaysRightUp" store
+0.796157 -0.114749 1.078569 -0.309158 -0.660967 -0.363480 0.579160 createEEPose "poseMovoSaysRightForward" store
+0.716005 -0.084357 0.738491 -0.319808 -0.653007 -0.383289 0.569556 createEEPose "poseMovoSaysRightDown" store
+
+(
+ "Put your arm up" say 2 waitForSeconds
+  poseMovoSaysRightUp moveEeToPoseWord
+) "Movo Says: right arm up."  "movoSaysArmUp" define
+
+(
+ "Put your arm out" say 2 waitForSeconds
+ poseMovoSaysRightForward moveEeToPoseWord 
+) "Movo Says: right arm forward."  "movoSaysArmOut" define
+
+(
+ "Put your arm down" say 2 waitForSeconds
+ poseMovoSaysRightDown moveEeToPoseWord 
+) "Movo Says: right arm down."  "movoSaysArmDown" define
+
+(
+ "Crouch down" say 2 waitForSeconds
+ torsoToLowest
+) "Movo Says: crouch."  "movoSaysCrouch" define
+
+(
+ "Stand up tall" say 2 waitForSeconds
+ torsoToHighest
+) "Movo Says: stand."  "movoSaysStand" define
+
+(
+ "Open and close your grippers" say 2 waitForSeconds
+ movoDanceGripper
+) "Movo Says: gripper."  "movoSaysGripper" define
+
+(
+ "Step forward" say 2 waitForSeconds
+ 1.0 baseSendXVel
+) "Movo Says: step forward."  "movoSaysMoveForward" define
+
+(
+ "Step backwards" say 2 waitForSeconds
+ -1.0 baseSendXVel
+) "Movo Says: step forward."  "movoSaysMoveBack" define
+
+(
+ "Step to your left" say 2 waitForSeconds
+ 1.0 baseSendYVel
+) "Movo Says: step left."  "movoSaysMoveLeft" define
+
+(
+ "Step to your right" say 2 waitForSeconds
+ -1.0 baseSendYVel
+) "Movo Says: step right."  "movoSaysMoveRight" define
+
+(
+ "Turn to your right" say 2 waitForSeconds
+ -1.0 baseSendOZVel
+) "Movo Says: turn right."  "movoSaysTurnRight" define
+
+(
+ "Turn to your left" say 2 waitForSeconds
+ 1.0 baseSendOZVel
+) "Movo Says: turn left."  "movoSaysTurnLeft" define
+
+( 0 setTargetTiltPos 0.7 setTargetPanPos ) "Look right." "lookRight" define
+( 0 setTargetTiltPos -0.7 setTargetPanPos ) "Look left." "lookLeft" define
+( 0.7 setTargetTiltPos 0 setTargetPanPos ) "Look up." "lookUp" define
+( -0.7 setTargetTiltPos 0 setTargetPanPos ) "Look down." "lookDown" define
+( 0 setTargetTiltPos 0 setTargetPanPos ) "Look straight." "lookStraight" define
+( lookUp 0.8 setTargetPanPos ) "Look smug." "lookSmug" define
+
+( zeroGOn 0.1 waitForSeconds zeroGOff ) "Recalibrate arm pose." "recalibratePose" define
+
+0.831511 -0.274924 1.044420 0.567434 -0.301375 0.149185 0.751622 createEEPose "rightDoorPose" store
+0.697929 -0.091607 0.816265 0.700326 -0.204607 -0.029490 0.683234 createEEPose "rightTablePose" store
+0.625801 -0.175294 0.192804 -0.481044 0.546029 0.481915 0.488064 createEEPose "rightFloorPose" store
+
+0.831590 0.085344 1.044304 0.567266 -0.300907 0.149927 0.751789 createEEPose "leftDoorPose" store
+0.697929 0.091607 0.816265 0.700326 -0.204607 -0.029490 0.683234 createEEPose "leftTablePose" store
+0.625801 0.114000 0.192804 -0.481044 0.546029 0.481915 0.488064 createEEPose "leftFloorPose" store

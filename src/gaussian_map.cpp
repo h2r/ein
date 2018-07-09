@@ -1,3 +1,7 @@
+
+#include <dirent.h>
+#include <sys/stat.h>
+
 #include "gaussian_map.h"
 #include "ein_words.h"
 #include "ein.h"
@@ -6,7 +10,7 @@
 #include "qtgui/discrepancywindow.h"
 #include "camera.h"
 #include <boost/filesystem.hpp>
-
+#include <highgui.h>
 using namespace boost::filesystem;
 
 
@@ -714,7 +718,7 @@ void GaussianMap::loadFromFile(string filename) {
 }
 
 CONFIG_GETTER_INT(SceneNumPredictedObjects, ms->config.scene->predicted_objects.size());
-CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared)
+CONFIG_GETTER_DOUBLE(SceneMinSigmaSquared, ms->config.sceneMinSigmaSquared, "Variance on scene")
 CONFIG_SETTER_DOUBLE(SceneSetMinSigmaSquared, ms->config.sceneMinSigmaSquared)
 
 void GaussianMapChannel::recalculateMusAndSigmas(MachineState * ms) {
@@ -1877,8 +1881,8 @@ void Scene::proposeRegion() {
 void Scene::proposeObject() {
 }
 
-CONFIG_GETTER_DOUBLE(SceneCellWidth, ms->config.scene->cell_width)
-CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh)
+CONFIG_GETTER_DOUBLE(SceneCellWidth, ms->config.scene->cell_width, "Cell width of scene.")
+CONFIG_GETTER_DOUBLE(SceneScoreThresh, ms->config.scene_score_thresh, "Score threshold for discrepancy.")
 CONFIG_SETTER_DOUBLE(SceneSetScoreThresh, ms->config.scene_score_thresh)
 
 void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i) {
@@ -3034,9 +3038,35 @@ void TransitionTable::loadFromFile(string filename) {
 
 
 
+void fillRecognizedObjectArrayFromPredictedMap(MachineState * ms, shared_ptr<Scene> scene, object_recognition_msgs::RecognizedObjectArray * roa) {
+  roa->objects.resize(scene->predicted_objects.size());
+  roa->header.stamp = ros::Time::now();
+  roa->header.frame_id = "/base";
+
+  for (int i = 0; i < scene->predicted_objects.size(); i++) {
+    shared_ptr<SceneObject> tsob = scene->predicted_objects[i];
+    roa->objects[i].pose.pose.pose = eePoseToRosPose(tsob->scene_pose);
+    roa->objects[i].pose.header.frame_id = "base_link";
+    roa->objects[i].type.key = tsob->object_label;
+  }
+  
+}
 
 
 namespace ein_words {
+
+WORD(PublishRecognizedObjectArrayFromPredictedMap)
+virtual string description() {
+  return "Publish recognized obejcts from predicted map.";
+}
+virtual void execute(MachineState * ms) {
+  object_recognition_msgs::RecognizedObjectArray roa;
+  fillRecognizedObjectArrayFromPredictedMap(ms, ms->config.scene, &roa);
+  ms->config.rec_objs_blue_memory.publish(roa);
+}
+END_WORD
+REGISTER_WORD(PublishRecognizedObjectArrayFromPredictedMap)
+
 
 WORD(SceneScoreObjectAtPose)
 virtual void execute(MachineState * ms) {
@@ -3242,6 +3272,9 @@ REGISTER_WORD(SceneInitDefaultBackgroundMap)
 
 WORD(SceneRenderBackgroundMap)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }      
   Mat backgroundImage;
   ms->config.scene->background_map->rgbMuToBgrMat(backgroundImage);
   ms->config.backgroundWindow->updateImage(backgroundImage);
@@ -3815,8 +3848,9 @@ REGISTER_WORD(SceneIsNewConfiguration)
 WORD(SceneInit)
 virtual void execute(MachineState * ms) {
   double p_cell_width = 0.0025;//0.00175; //0.0025; //0.01;
-  int p_width = 901; //1001; //1501; // 1001 // 601;
-  int p_height = 901; //1001; //1501; // 1001 / 601;
+  cout << "Initializing scene with " << ms->config.sceneInitWidth << endl;
+  int p_width = ms->config.sceneInitWidth; //1001; //1501; // 1001 // 601;
+  int p_height = ms->config.sceneInitHeight; //1001; //1501; // 1001 / 601;
   eePose scenePose = eePose::identity();
   scenePose.pz = -ms->config.currentTableZ;
   ms->config.scene = make_shared<Scene>(ms, p_width, p_height, p_cell_width, scenePose);
@@ -3876,6 +3910,17 @@ virtual void execute(MachineState * ms) {
   GET_INT_ARG(ms, p_width);
   GET_NUMERIC_ARG(ms, gridSize);
 
+  if (p_width <= 0) {
+    CONSOLE_ERROR(ms, "p_width must be positive.  Received: " << p_width);
+    ms->pushWord("pauseStackExecution");
+    return;
+  }
+  if (p_height <= 0) {
+    CONSOLE_ERROR(ms, "p_height must be positive.  Received: " << p_height);
+    ms->pushWord("pauseStackExecution");
+    return;
+  }
+
   double p_cell_width = gridSize;
 
   destPose = destPose.multQ(ms->config.straightDown.invQ());
@@ -3926,7 +3971,9 @@ virtual void execute(MachineState * ms) {
   //observedImage = observedImage / 255.0;
   Mat rgb = observedImage.clone();  
   cvtColor(observedImage, rgb, CV_YCrCb2BGR);
-  ms->config.observedWindow->updateImage(rgb);
+  if (ms->config.showgui) {
+    ms->config.observedWindow->updateImage(rgb);
+  }
 }
 END_WORD
 REGISTER_WORD(SceneClearObservedMap)
@@ -4056,85 +4103,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetFocusedSceneStdDevColor)
 
-WORD(SceneUpdateObservedFromSnout)
-virtual void execute(MachineState * ms) {
-//XXX 
-
-  
-  double dog_z = 0.0;
-  GET_NUMERIC_ARG(ms, dog_z);
-
-  //Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  //Size sz = camera->cam_ycrcb_img.size();
-
-  int this_dog = ms->focusedMember;
-  Size sz = ms->pack[this_dog].snoutCamImage.size();
-
-  int imW = sz.width;
-  int imH = sz.height;
-
-  int aahr = (ms->config.angular_aperture_rows-1)/2;
-  int aahc = (ms->config.angular_aperture_cols-1)/2;
-
-  int imHoT = imH/2;
-  int imWoT = imW/2;
-
-  int topx = imWoT - aahc;
-  int botx = imWoT + aahc; 
-  int topy = imHoT - aahr; 
-  int boty = imHoT + aahr; 
-    
-  pixelToGlobalCache data;
-
-  //double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
-  double z = dog_z;
-  //computePixelToGlobalCache(ms, z, thisPose, &data);
-
-  eePose thisPose, basePose;
-  //int success = getStreamPoseAtTime(ms, camera->lastImageStamp.toSec(), &thisPose, &basePose);
-  thisPose = ms->config.currentEEPose;
-  basePose = ms->config.currentEEPose;
-
-  //computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
-  computePixelToPlaneCache(ms, z, thisPose, basePose, &data);
-  //  imshow("image being used", camera->cam_ycrcb_img);
-  //waitKey(0);
-  cout << "top: " << topx << ", " << topy << endl;
-  cout << "bot: " << botx << ", " << boty << endl;
-
-  for (int px = topx; px < botx; px++) {
-    for (int py = topy; py < boty; py++) {
-  //for (int px = 0; px < imW; px++) 
-    //for (int py = 0; py < imH; py++) 
-      if (isInGripperMask(ms, px, py)) {
-	continue;
-      }
-      double x, y;
-      pixelToGlobalFromCache(ms, px, py, &x, &y, &data);
-
-      if (std::isnan(x) || std::isnan(y)) {
-        CONSOLE_ERROR(ms, "Nan in pixel to global; check your calibration! " << x << ", " << y << " from " << px << ", " << py);
-        CONSOLE_ERROR(ms, "Pixel to global cache: " << pixelToGlobalCacheToString(data));
-        return;
-      }
-
-
-      // single sample update
-      int i, j;
-      ms->config.scene->observed_map->metersToCell(x, y, &i, &j);
-      GaussianMapCell * cell = ms->config.scene->observed_map->refAtCell(i, j);
-      if (cell != NULL) {
-        //Vec3b pixel = camera->cam_ycrcb_img.at<Vec3b>(py, px);
-	Vec3b pixel = ms->pack[this_dog].snoutCamImage.at<Vec3b>(py, px);
-        cell->newObservation(pixel);
-      }
-    }
-  }
-  ms->config.scene->observed_map->recalculateMusAndSigmas(ms);
-  ms->pushWord("sceneRenderObservedMap");
-}
-END_WORD
-REGISTER_WORD(SceneUpdateObservedFromSnout)
 
 WORD(SceneUpdateObservedFromWrist)
 virtual void execute(MachineState * ms) {
@@ -4158,11 +4126,11 @@ virtual void execute(MachineState * ms) {
   //for (int px = ; px < ; px++) 
     //for (int py = ; py < ; py++) 
   pixelToGlobalCache data;
-  double z = ms->config.trueEEPose.position.z + ms->config.currentTableZ;
+  double z = ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ;
   //computePixelToGlobalCache(ms, z, thisPose, &data);
 
   eePose thisPose, basePose;
-  int success = getStreamPoseAtTime(ms, camera->lastImageStamp.toSec(), &thisPose, &basePose);
+  int success = ms->getStreamPoseAtTime(camera->lastImageStamp.toSec(), &thisPose, &basePose);
 
   computePixelToPlaneCache(ms, z, thisPose, ms->config.scene->anchor_pose, &data);
   //  imshow("image being used", camera->cam_ycrcb_img);
@@ -4222,7 +4190,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -4356,6 +4324,9 @@ REGISTER_WORD(SceneUpdateObservedFromStreamBuffer)
 
 WORD(SceneRenderObservedMap)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
   {
     Mat image;
     ms->config.scene->observed_map->rgbMuToBgrMat(image);
@@ -4395,6 +4366,9 @@ REGISTER_WORD(SceneComposePredictedMapThreshed)
 WORD(SceneRenderPredictedMap)
 virtual void execute(MachineState * ms) {
   {
+    if (!ms->config.showgui) {
+      return;
+    }    
     Mat image;
     ms->config.scene->predicted_map->rgbMuToMat(image);
     Mat rgb = image.clone();  
@@ -4438,6 +4412,11 @@ REGISTER_WORD(SceneUpdateAllClassDiscrepancies)
 
 WORD(SceneRenderDiscrepancy)
 virtual void execute(MachineState * ms) {
+
+  if (!ms->config.showgui) {
+    return;
+  }    
+  
   Mat image;
   ms->config.scene->discrepancy->rgbDiscrepancyMuToMat(ms, image);
   ms->config.discrepancyWindow->updateImage(image);
@@ -4465,6 +4444,10 @@ REGISTER_WORD(SceneRenderDiscrepancy)
 
 WORD(SceneRenderZ)
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
+  
   Mat toShow;
   ms->config.scene->observed_map->zMuToScaledMat(toShow);
   ms->config.zWindow->updateImage(toShow);
@@ -4487,35 +4470,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneGrabDiscrepantCropAsClass)
-
-WORD(SceneDensityFromDiscrepancy)
-virtual void execute(MachineState * ms) {
-// this enables denisty based models to use the new channel
-// XXX this does not take the rotation of the wrist into account
-  Size sz = ms->config.wristCamImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-  pixelToGlobalCache data;
-  double zToUse = ms->config.currentEEPose.pz+ms->config.currentTableZ;
-  //computePixelToGlobalCache(ms, zToUse, ms->config.currentEEPose, &data);
-  computePixelToPlaneCache(ms, zToUse, ms->config.currentEEPose, ms->config.scene->anchor_pose, &data);
-  for (int y = 0; y < imH; y++) {
-    for (int x = 0; x < imW; x++) {
-      double meter_x = 0;
-      double meter_y = 0;
-      pixelToGlobalFromCache(ms, x, y, &meter_x, &meter_y, &data);
-      int cell_x = 0;
-      int cell_y = 0;
-      ms->config.scene->discrepancy->metersToCell(meter_x, meter_y, &cell_x, &cell_y);
-      if (ms->config.scene->discrepancy->safeAt(cell_x, cell_y)) {
-        ms->config.density[y*imW+x] = ms->config.scene->discrepancy_density.at<double>(cell_x,cell_y);
-      }
-    }
-  }
-  drawDensity(ms, 1);
-}
-END_WORD
-REGISTER_WORD(SceneDensityFromDiscrepancy)
 
 WORD(SceneCountDiscrepantCells)
 virtual void execute(MachineState * ms) {
@@ -4888,9 +4842,9 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetAnnotatedClassNameToFocusedClass)
 
-CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name)
+CONFIG_GETTER_STRING(SceneGetPredictedClassName, ms->config.scene->predicted_class_name, "The predicted class.")
 CONFIG_SETTER_STRING(SceneSetPredictedClassName, ms->config.scene->predicted_class_name)
-CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name)
+CONFIG_GETTER_STRING(SceneGetAnnotatedClassName, ms->config.scene->annotated_class_name, "The annotated class, for evaluation purposes.")
 CONFIG_SETTER_STRING(SceneSetAnnotatedClassName, ms->config.scene->annotated_class_name)
 
 // count the number of equal digits
@@ -5759,7 +5713,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -5964,7 +5918,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6131,7 +6085,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6357,7 +6311,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6583,7 +6537,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -6817,7 +6771,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7050,7 +7004,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7285,7 +7239,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7530,8 +7484,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -7783,8 +7737,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8101,8 +8055,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8419,8 +8373,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -8737,8 +8691,8 @@ virtual void execute(MachineState * ms) {
       // XXX
       double z = z_focal_plane;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        //success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
-        success = getStreamPoseAtTimeThreadSafe(ms, tsi->time, &tArmP, &tBaseP);
+        //success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTimeThreadSafe(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -9001,7 +8955,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -9213,7 +9167,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -9475,7 +9429,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -9619,7 +9573,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -10074,7 +10028,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -11634,73 +11588,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(RayBufferSaveRaw)
 
-WORD(RayBufferPopulateFromRangeBuffer)
-virtual void execute(MachineState * ms) {
-  int p_printSkip = 1000; 
-
-  for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
-    streamRange &tsr = ms->config.streamRangeBuffer[i];
-    eePose tArmP, tBaseP, tRelP;
-    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
-//XXX
-    cout << tBaseP << endl;
-    tBaseP = eePose::identity();
-
-    tRelP = tArmP.getPoseRelativeTo(tBaseP); 
-    double tRange = tsr.range;
-    cout << tsr.range << endl;
-
-    //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
-
-    if (success) {
-
-      ms->config.rmcX = tBaseP.px;
-      ms->config.rmcY = tBaseP.py;
-      ms->config.rmcZ = tBaseP.pz;
-
-      // this allows us to stitch together readings from different scans
-      //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
-      eePose thisCrane = tBaseP;
-      thisCrane.copyQ(ms->config.straightDown); 
-      eePose thisCraneRelativeThisBase = thisCrane.getPoseRelativeTo(tBaseP);
-
-      eePose rebasedRelative = tRelP.applyAsRelativePoseTo(thisCraneRelativeThisBase);
-      eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
-
-      Eigen::Vector3d rayDirection;
-      Eigen::Vector3d castPoint;
-
-      //castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
-      castRangeRay(ms, tRange, tArmP, &castPoint, &rayDirection);
-
-
-      int newIdx = ms->config.rayBuffer.size();
-      ms->config.rayBuffer.resize(newIdx+1);
-
-      OrientedRay * newRay =  &(ms->config.rayBuffer[newIdx]);
-      newRay->pa = eePose::identity();
-      newRay->pa.px = castPoint[0];
-      newRay->pa.py = castPoint[1];
-      newRay->pa.pz = castPoint[2];
-      newRay->pb = newRay->pa;
-      newRay->r = 0;
-      newRay->g = 0;
-      newRay->b = 0;
-      newRay->a = 1;
-      newRay->t = RAY_A;
-
-      if ((i % p_printSkip) == 0) {
-	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
-      } else {
-      }
-    } else {
-      cout << "ray " << i << " failed to get pose, not casting." << endl;
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(RayBufferPopulateFromRangeBuffer)
-
 WORD(RayBufferPopulateFromImageBuffer)
 virtual void execute(MachineState * ms) {
 
@@ -11721,7 +11608,7 @@ virtual void execute(MachineState * ms) {
     bufferImage = tsi.image.clone();
 
     if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-      success = getStreamPoseAtTime(ms, tsi.time, &thisPose, &tBaseP);
+      success = ms->getStreamPoseAtTime(tsi.time, &thisPose, &tBaseP);
     } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
       success = 1;
       thisPose = ms->config.currentEEPose;
@@ -11918,7 +11805,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = z_to_use;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;
@@ -12085,7 +11972,7 @@ virtual void execute(MachineState * ms) {
       int success = 0;
       double z = -0.2;
       if (ms->config.currentSceneFixationMode == FIXATE_STREAM) {
-        success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+        success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
       } else if (ms->config.currentSceneFixationMode == FIXATE_CURRENT) {
         success = 1;
         tArmP = ms->config.currentEEPose;

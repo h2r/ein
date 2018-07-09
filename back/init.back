@@ -7,7 +7,11 @@
 
 "wiki" import
 
+robotType "baxter" =
+(
+
 happyFace
+
 tableInit
 
 (  
@@ -37,5 +41,8 @@ ifte
 
 cameraWristConfig
 
+)
+ift
 
 
+endArgs "baxterNarrowLongFinger" setClassLabels

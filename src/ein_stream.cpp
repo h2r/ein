@@ -2,6 +2,7 @@
 #include "ein.h"
 #include "camera.h"
 #include "qtgui/streamviewerwindow.h"
+#include <highgui.h>
 
 
 int loadStreamImage(MachineState * ms, streamImage * tsi) {
@@ -283,16 +284,13 @@ virtual void execute(MachineState * ms)
   for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
     streamRange &tsr = ms->config.streamRangeBuffer[i];
     eePose tArmP, tBaseP, tRelP;
-    int success = getStreamPoseAtTime(ms, tsr.time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsr.time, &tArmP, &tBaseP);
     tRelP = tArmP.getPoseRelativeTo(tBaseP); 
     double tRange = tsr.range;
 
     //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
 
     if (success) {
-      ms->config.rmcX = tBaseP.px;
-      ms->config.rmcY = tBaseP.py;
-      ms->config.rmcZ = tBaseP.pz;
 
       // this allows us to stitch together readings from different scans
       //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
@@ -304,13 +302,7 @@ virtual void execute(MachineState * ms)
       eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
 
       Eigen::Vector3d rayDirection;
-      Eigen::Vector3d castPoint;
-      castRangeRay(ms, tRange, rebasedArm, &castPoint, &rayDirection);
-      update2dRangeMaps(ms, castPoint);
-      if ((i % p_printSkip) == 0) {
-	cout << "cast rays for measurement " << i << " z: " << castPoint[2] << " range: " << tRange << endl;// << tRelP;// << " " << castPoint << endl;
-      } else {
-      }
+      castRangeRay(ms, tRange, rebasedArm, &rayDirection);
     } else {
       cout << "ray " << i << " failed to get pose, not casting." << endl;
     }
@@ -373,7 +365,7 @@ virtual void execute(MachineState * ms)
     }
 
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
@@ -403,7 +395,7 @@ virtual void execute(MachineState * ms)
     }
 
     eePose tArmP, tBaseP;
-    int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
     double thisZ = tArmP.pz - tBaseP.pz;
     eePose thisVpBaseheight;
@@ -566,7 +558,7 @@ virtual void execute(MachineState * ms)       {
   }
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
@@ -623,7 +615,7 @@ virtual void execute(MachineState * ms)       {
   }
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
 
   double thisZ = tArmP.pz - tBaseP.pz;
   eePose thisVpBaseheight;
@@ -671,52 +663,6 @@ cout << "  saving to " << buf.str() << " with this_crops_path " << this_crops_pa
 END_WORD
 REGISTER_WORD(StreamCenterCropAsFocusedClass)
 
-WORD(SaveAccumulatedStreamToServoImage)
-virtual void execute(MachineState * ms)       {
-  cout << "saveAccumulatedStreamToServoImage ";
-  if ((ms->config.focusedClass > -1) && (ms->config.accumulatedStreamImageBytes.rows >1) && (ms->config.accumulatedStreamImageBytes.cols > 1)) {
-    string thisLabelName = ms->config.classLabels[ms->config.focusedClass];
-
-    string folderPath = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/servoImages/";
-    string filePath;
-
-    // ATTN 16
-    switch (ms->config.currentThompsonHeightIdx) {
-    case 0:
-      {
-        filePath = "aerialHeight0PreGradients.png";
-      }
-      break;
-    case 1:
-      {
-        filePath = "aerialHeight1PreGradients.png";
-      }
-      break;
-    case 2:
-      {
-        filePath = "aerialHeight2PreGradients.png";
-      }
-      break;
-    case 3:
-      {
-        filePath = "aerialHeight3PreGradients.png";
-      }
-      break;
-    default:
-      {
-        assert(0);
-        break;
-      }
-    }
-    string servoImagePath = folderPath + filePath;
-    cout << "saving to " << servoImagePath << endl;
-    saveAccumulatedStreamToPath(ms, servoImagePath);
-  } else {
-    cout << "FAILED." << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(SaveAccumulatedStreamToServoImage)
 
 WORD(IntegrateImageStreamBufferServoImages)
 virtual void execute(MachineState * ms)       {
@@ -770,7 +716,7 @@ virtual void execute(MachineState * ms)       {
   double scaledHeight = ms->config.minHeight + ( (double(thisHeightIdx)/double(tNumHeights-1)) * (ms->config.maxHeight - ms->config.minHeight) ) ;
 
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   eePose thisServoPose = tBaseP;
   thisServoPose.pz = tBaseP.pz + scaledHeight;
 
@@ -1067,6 +1013,9 @@ virtual string description() {
   return "Render the stream buffer window.";
 }
 virtual void execute(MachineState * ms) {
+  if (!ms->config.showgui) {
+    return;
+  }    
   ms->config.streamViewerWindow->update();
 }
 END_WORD
@@ -1081,7 +1030,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   ms->pushWord(make_shared<EePoseWord>(tArmP));
 }
 END_WORD
@@ -1096,7 +1045,7 @@ virtual void execute(MachineState * ms) {
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   streamImage * tsi = camera->currentImage();
   eePose tArmP, tBaseP;
-  int success = getStreamPoseAtTime(ms, tsi->time, &tArmP, &tBaseP);
+  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
   ms->pushWord(make_shared<EePoseWord>(tBaseP));
 }
 END_WORD
