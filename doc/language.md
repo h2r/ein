@@ -101,9 +101,16 @@ For example, `0 "x" store` will store the integer word zero in the
 variable x.  Aftewards, typing `x` will push a `0` on the data stack,
 just as if you had typed `0`.
 
+
+### Compound Words
+
+Compound words are Back's list type.  They are analagous to Lisp lists.
+To push a compound word on the stack, embed a sequence of words in
+parentheses: `( 1 3 4 )`.  The word
+
 You can also use store to define new compound words: 
 
-`( 1 + ) "inc" store` definse a new compound word, `inc` which adds
+`( 1 + ) "inc" store` defines a new compound word, `inc` which adds
 `1` to the argument on the data stack and pushes the result.
 
 
@@ -111,10 +118,74 @@ Finally, the `define` word takes both a word and help text:
 
 `( 1 + ) "Increment the value on the data stack" "inc" define`
 
+Equals is defined for compound words if the two words are the same
+length and all the containing words are equal.
 
+Compound words can also be defined using square brackets: `[ 1 2 3 ]`.
+Square brackets evaluate the program inside and put the result in a
+compound word, something like Python list comprehensions.  For example, the program `[ 1 1 + 2 ]` results in the
+compound word `( 2 2 )` on the data stack.  In contrast, the program `( 1 1 + 2 )` results in exactly that compound word on the data stack.
+
+To access elements of compound words, you can use `car`, `first` or
+`head` to access the first element (all synonyms).  You can use `cdr`,
+`tail` or `rest` to access the rest of the list.
+
+
+#### Exercise:  Brackets
+
+Use square brackets and `replicateWord` to create a compound word with
+10 zeros.
+
+Answer (select to see):
+
+[ ( 0 ) 10 replicateWord ]
+{: style="color:white;" }
+
+
+Now use square brackets, `replicateWord`, and `inc` to produce a
+compound word with the integers from one to ten.
+
+Answer (select to see):
+
+[ 0 ( dup inc ) 10 replicateWord ]
+{: style="color:white;" }
+
+
+### Higher-order Functions
+
+Ein includes `map`, `filter`, and `accumulate` to operate on compound
+words.  For example, map takes a compound word and a lambda word, and
+applies the function to every element of the input:
+
+`( 0 0 0 ) ( 1 + ) map` produces `( 1 1 1)`, adding 1 to each element
+of the input word.  `( 1 1 1 ) ( + ) accumulate )` produces 3.  
+
+#### Exercise:  Squares
+
+Use `map` to create a compound word that contains the squares of the first ten integers.
+
+Answer (select to see):
+
+[ 0 ( dup inc ) 10 replicateWord ] ( dup * ) map
+{: style="color:white;" }
+
+
+### Reactive Variables
 
 Ein gets its power from reactive variables, defined in C, such as
-truePose, which is always set to the value of the current pose of the end effector.   This reactivity 
+`truePose`, which is always set to the value of the current pose of
+the end effector.  This reactivity means that message passing from the
+lower-level OS is hidden; one need only reference `truePose` to get
+the latest estimate on the robot's current pose.  One can define new
+reactive variables.  For example, one can access the current height of
+the end effector with `truePose eePosePZ`.  To create a new variable,
+use `store`:
+
+`( truePose eePosePZ ) "trueHeight" store
+
+This results in a new word, `trueHeight`, which, whenever accessed,
+contains the current height of the arm. Note that this computation is
+done lazily, when the variable is read.
 
 
 
@@ -123,7 +194,7 @@ truePose, which is always set to the value of the current pose of the end effect
 Back includes looping and condition constructs.
 
 `ift` takes two arguments and prints if its argument is true.  Ein
-casts words to booleans followin C's semantics, so zero is false, and
+casts words to booleans following C's semantics, so zero is false, and
 all other values are true (including the empty string).
 
 This version prints "hello":
@@ -141,9 +212,40 @@ This version does not:
 
 `while` takes a condition and a compound word and executes until the
 condition is true.  While collapses the stack and will freeze ein
-unless the condition includes a wait word.
+unless the condition includes a wait word.  For example the following
+program pulses the torso fan forever:
 
-`( 1 ) ( torsoFanOn 1 waitForSeconds )  while`
+`( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while`
+
+
+### Stack Collapse
+
+Ein is constantly processing sensor and gui messages in the
+backaround, and then alternating between processing words.  For Back
+words, the robot will process messages after each word.  However for
+certain words, it can collapse the stack and execute it all at once,
+without performaing message processing.  This collapse will freeze the
+gui and stop message passing from occurring but allows the system to
+devote all its CPU to the computational task, exploiting cache
+efficiency.
+
+For `while` loops and `for` loops, they do not collapse the stack by
+default.  However there exists a `whileCollapsed` word where the inner
+loop is collapsed.  This means that message processing will not be
+done (unless the inner loop contain words that do not collapse the
+stack and instigate message processing.
+
+`( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while`
+
+#### Exercise:  Stack Collapse
+
+Experiment with a program to make an infinite set of ones on the
+stack.  If you use `while` with `( 1 1 + ) ( 1 ) while`, you will see
+the stack continue to grow as the program runs.  Abort the program
+with `clearCallStack`.
+
+Now try `whileCollapsed` which collapses the stack.  Note that Ein is
+frozen, and that clearCallStack no longer stops the program.
 
 
 ### Back files

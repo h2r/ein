@@ -62,7 +62,7 @@
     /*
     pauseStackExecution
     */
-  ) while 
+  ) whileCollapsed 
   
   calibrateHeightReticlesSetAll
 
@@ -83,7 +83,7 @@
 
       tableChrThisHeight 1 -
     "tableChrThisHeight" store
-  ) while 
+  ) whileCollapsed 
 ) "calibrateHeightReticlesSetAll" store
 
 (
@@ -278,7 +278,7 @@
 
       magCalThis magCalDelta + 
     "magCalThis" store
-  ) while
+  ) whileCollapsed
 
   " The winner was " magCalMinVarMag " with a variance of " magCalMinVar + + + print
 
@@ -344,7 +344,7 @@
     /*
     pauseStackExecution
     */
-  ) while 
+  ) whileCollapsed 
 
 /* this one takes images and optimizes each height only on its images */
   
@@ -388,7 +388,7 @@
       tableChrThisHeight 1 +
     "tableChrThisHeight" store
     
-  ) while 
+  ) whileCollapsed 
 
   quarterImpulse
   tableUpdateSpiralPos moveEeToPoseWord
@@ -405,7 +405,7 @@
 
     tableMagCalibrationGridSearcher
     
-  ) while 
+  ) whileCollapsed 
 
   /*
   pauseStackExecution

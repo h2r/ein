@@ -164,9 +164,40 @@ Answer (select to see):
 {: style="color:white;" }
 
 
+
+
+### Program Execution
+
+The Ein view contains a call stack and a data stack.  More information
+about this is available on the [language](../language) page.  Words
+are popped off the call stack and executed one at a time.  When Ein
+encounters an error, it pauses stack execution and prints an error
+message to the console in red.  It does not clear the call stack or
+data stack to allow the programmer
+
+It is important to be aware of the error handling as you write your
+own programs.
+
+#### Exercise:  Make some errors. 
+
+Try creating errors.  For example, enter a word that is not defined,
+such as `asdf`.  Try using arithmetic words such as `+` without the
+correct number of arguments on the stack.  Observe the error messages
+that are printed out on the console.
+
 #### Exercise:  Clear stacks.
 
 If a program is running and you want to halt it, you can can run
 `clearStacks` to halt it.  Try running one of your previous programs to
 move the robot, and then run clear stacks to halt it.
+
+
+#### Exercise:  Write a buggy program. 
+
+Write a program with some good words (e.g., `xUp`) and also some
+nonexisting words.  Make sure the error is in the middle of the
+program.  For example, `xUp xUp asdf xUp xUp`.  Observe the error
+message, and also note the words remaining on the call stack.  You can
+run `clearStacks` to clear the stacks, or press enter to continue
+where it left off.  
 

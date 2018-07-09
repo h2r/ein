@@ -452,7 +452,7 @@ Snare
   0 dogHeadPanTo 
   0 dogHeadTiltTo 
   dogSendMotorState
-) "dogHeadLowerLeft" store
+) "dogHeadCenter" store
 
 (
   dogGetSensoryMotorStates
@@ -460,7 +460,62 @@ Snare
   100 dogHeadPanTo 
   100 dogHeadTiltTo 
   dogSendMotorState
+) "dogHeadUpperLeft" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  -100 dogHeadPanTo 
+  -100 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadLowerRight" store
+
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  -100 dogHeadPanTo 
+  100 dogHeadTiltTo 
+  dogSendMotorState
 ) "dogHeadUpperRight" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  100 dogHeadPanTo 
+  -100 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadLowerLeft" store
+
+
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  100 dogHeadPanTo 
+  -100 dogHeadTiltTo 
+  dogSendMotorState
+) "dogHeadLowerLeft" store
+
+
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  10 dogSetIntendedEarL
+  10 dogSetIntendedEarR
+  dogSendIndicators
+) "dogEarsOut" store
+
+(
+  dogGetSensoryMotorStates
+  dogWriteIntendedFromTrue
+  0 dogSetIntendedEarL
+  0 dogSetIntendedEarR
+  dogSendIndicators
+) "dogEarsBack" store
 
 
 
@@ -543,3 +598,40 @@ demoDogSit demoDogLieDown demoDogStandUp  demoDogSit demoDogStandUp demoDogLieDo
 ) "dogAllStaticPoses" store
 
 
+(
+
+dogLocalXUp dogLocalXUp
+) "demoDogWalkForward" store
+
+
+(
+
+dogLocalXDown dogLocalXDown
+) "demoDogWalkBackward" store
+
+(
+
+dogOXUp dogOXUp
+) "demoDogTurnRight" store
+
+
+(
+  ( dogEarsOut 0.15 waitForSeconds
+    dogEarsBack 0.15 waitForSeconds ) 5 replicateWord
+) "demoDogEarWiggle" store
+
+
+(
+
+dogOXDown dogOXDown
+) "demoDogTurnLeft" store
+
+/*
+Fix snout view
+Demo dog turn left,m right, forward, backward, turn around
+Ears
+Dance?
+
+Lie down then turn right leads to a bug
+
+*/

@@ -140,6 +140,7 @@ void Grasp::readFromFileNode(FileNode& it) {
 
 MachineState::MachineState() {
   this->ms = this;
+  this->nil = make_shared<CompoundWord>();
 }
 
 ostream & operator<<(ostream & os, const Grasp& toPrint)

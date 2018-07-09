@@ -2059,7 +2059,7 @@ void Scene::findBestScoreForObject(int class_idx, int num_orientations, int * l_
 	if ( i % numThreads == thr ) {
 	  if ( ! local_scores[i].loglikelihood_valid ) {
 	    // score should return the delta of including vs not including
-	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_score = scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
 	    if (i % 10000 == 0) {
 	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
@@ -2283,7 +2283,7 @@ void Scene::findBestAffineScoreForObject(int class_idx, int num_orientations, in
 	if ( i % numThreads == thr ) {
 	  if ( ! local_scores[i].loglikelihood_valid ) {
 	    // score should return the delta of including vs not including
-	    local_scores[i].loglikelihood_score = ms->config.scene->scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
+	    local_scores[i].loglikelihood_score = scoreObjectAtPose(local_scores[i].x_m, local_scores[i].y_m, local_scores[i].theta_r, class_idx, p_discrepancy_thresh);
 	    local_scores[i].loglikelihood_valid = true;
 	    if (i % 10000 == 0) {
 	      cout << "  running inference on detection " << i << " of class " << class_idx << " of " << ms->config.classLabels.size() << " detection " << i << "/" << local_scores.size() << " ... ds: " << local_scores[i].discrepancy_score << " ls: " << local_scores[i].loglikelihood_score << " l_max_i: " << *l_max_i << endl;
@@ -2662,6 +2662,7 @@ void Scene::tryToAddBestObjectToScene() {
   if (l_max_class != -1) {
     cout << " " << ms->config.classLabels[l_max_class];
   }
+  cout << " with pose " << l_max_x_meters <<"," << l_max_y_meters << " theta: " << l_max_theta;
   cout << endl;
 
   //if (l_max_x > -1)
@@ -3133,6 +3134,9 @@ REGISTER_WORD(SceneLoadObjectModel)
 
 
 WORD(SceneLoadFocusedObjectModel)
+virtual string description() {
+  return "Load the object model of the focused class from disk.";
+}
 virtual void execute(MachineState * ms) {
   std::stringstream buffer;
   buffer << "\"" << sceneModelFile(ms, ms->config.focusedClassLabel) << "\" sceneLoadSceneRaw";
@@ -3333,6 +3337,10 @@ END_WORD
 REGISTER_WORD(SceneSaveFocusedSceneModel)
 
 WORD(SceneLoadFocusedSceneModel)
+virtual string description() {
+  return "Loads a scene from disk into the scene model for the focused class.  Requires the name of a scene that is saved to disk.";
+}
+
 virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
   guardSceneModels(ms);
@@ -3980,6 +3988,35 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSetBackgroundStdDevColor)
 
+WORD(SceneSetPredictedStdDevY)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->predicted_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->predicted_map->width; x++) {
+      ms->config.scene->predicted_map->refAtCell(x,y)->blue.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetPredictedStdDevY)
+
+WORD(SceneSetPredictedStdDevColor)
+virtual void execute(MachineState * ms) {
+  double stddev = 0;
+  GET_NUMERIC_ARG(ms, stddev);
+
+  for (int y = 0; y < ms->config.scene->predicted_map->height; y++) {
+    for (int x = 0; x < ms->config.scene->predicted_map->width; x++) {
+      ms->config.scene->predicted_map->refAtCell(x,y)->red.sigmasquared = pow(stddev, 2);
+      ms->config.scene->predicted_map->refAtCell(x,y)->green.sigmasquared = pow(stddev, 2);
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneSetPredictedStdDevColor)
+
 WORD(SceneSetFocusedSceneStdDevY)
 virtual void execute(MachineState * ms) {
   REQUIRE_FOCUSED_CLASS(ms,tfc);
@@ -4515,6 +4552,9 @@ END_WORD
 REGISTER_WORD(SceneSmoothDiscrepancyDensity)
 
 WORD(ScenePushSceneObjectPose)
+virtual string description() {
+  return "Takes an index; pushes the pose for this predicted object.";
+}
 virtual void execute(MachineState * ms) {
   int so_idx = 0;
   GET_INT_ARG(ms, so_idx);
@@ -4525,11 +4565,14 @@ virtual void execute(MachineState * ms) {
     eePose objectPoseInBase = ms->config.scene->predicted_objects[so_idx]->scene_pose.applyAsRelativePoseTo(ms->config.scene->anchor_pose);
     ms->pushWord(make_shared<EePoseWord>(objectPoseInBase));
   } else {
-    cout << "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid..." << endl;
+    CONSOLE_ERROR(ms, "scenePushSceneObjectPose: there are " << ms->config.scene->predicted_objects.size() << " objects so " << so_idx << " is invalid...");
+    ms->pushWord("pauseStackExecution");
+
   }
 }
 END_WORD
 REGISTER_WORD(ScenePushSceneObjectPose)
+
 
 WORD(ScenePushNumSceneObjects)
 virtual void execute(MachineState * ms) {
@@ -4549,6 +4592,24 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(ScenePushSceneObjectLabel)
+
+
+WORD(SceneObjectLabelToSceneObjectIdx)
+virtual void execute(MachineState * ms) {
+  string label;
+  GET_STRING_ARG(ms, label);
+  ms->pushWord(")");
+  for (unsigned int i = 0; i < ms->config.scene->predicted_objects.size(); i++) {
+    if (ms->config.scene->predicted_objects[i]->object_label == label) {
+      ms->pushWord(make_shared<IntegerWord>(i));
+    }
+  }
+  ms->pushWord("(");
+
+}
+END_WORD
+REGISTER_WORD(SceneObjectLabelToSceneObjectIdx)
+
 
 WORD(SceneMapSceneObject)
 virtual void execute(MachineState * ms) {
@@ -4627,6 +4688,51 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(SceneZeroBox)
+
+
+WORD(SceneZeroLowerX)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width/2; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerX)
+
+WORD(SceneZeroUpperX)
+virtual void execute(MachineState * ms) {
+  for (int x = ms->config.scene->width/2; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperX)
+
+WORD(SceneZeroLowerY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = 0; y < ms->config.scene->height/2; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroLowerY)
+
+WORD(SceneZeroUpperY)
+virtual void execute(MachineState * ms) {
+  for (int x = 0; x < ms->config.scene->width; x++) {
+    for (int y = ms->config.scene->height/2; y < ms->config.scene->height; y++) {
+      ms->config.scene->observed_map->refAtCell(x,y)->zero();
+    }
+  }
+}
+END_WORD
+REGISTER_WORD(SceneZeroUpperY)
 
 
 CONFIG_GETTER_INT(SceneDiscrepancyMode, ms->config.discrepancyMode);
@@ -4848,13 +4954,15 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
       eePose scene_pose = predictedObject->scene_pose;
+      eePose objectPoseInBase = predictedObject->scene_pose.applyAsRelativePoseTo(this_scene->anchor_pose);
+
       double roll, pitch, yaw;
-      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      objectPoseInBase.getRollPitchYaw(&roll, &pitch, &yaw);
       //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
       double this_theta = yaw;
-      double this_x = scene_pose.px;
-      double this_y = scene_pose.py;
+      double this_x = objectPoseInBase.px;
+      double this_y = objectPoseInBase.py;
       cout << "Got pose: " << this_x << ", " << this_y << " and theta " << this_theta << endl;
       
       // integrate
@@ -4885,13 +4993,15 @@ vector<double> poseVarianceOfEvaluationScenes(MachineState * ms, vector<string> 
       shared_ptr<SceneObject> predictedObject = this_scene->predicted_objects[0];
 
       eePose scene_pose = predictedObject->scene_pose;
+      eePose objectPoseInBase = predictedObject->scene_pose.applyAsRelativePoseTo(this_scene->anchor_pose);
+
       double roll, pitch, yaw;
-      scene_pose.getRollPitchYaw(&roll, &pitch, &yaw);
+      objectPoseInBase.getRollPitchYaw(&roll, &pitch, &yaw);
       //this_scene.findBestObjectAndScore(&this_class, num_orientations, &this_x_cell, &this_y_cell, &this_orient, &this_score, &this_i);
 
       double this_theta = yaw;
-      double this_x = scene_pose.px;
-      double this_y = scene_pose.py;
+      double this_x = objectPoseInBase.px;
+      double this_y = objectPoseInBase.py;
 
 
       double squaredist = pow(mean_x  - this_x, 2) + pow(mean_y - this_y, 2);
@@ -5092,11 +5202,11 @@ virtual void execute(MachineState * ms) {
 	ms->pushWord("sceneSaveSceneAbsolute");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
 	ms->pushWord("endStackCollapseNoop");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	// labels and leaves these detections in the scene
 	ms->pushWord("sceneSetClassNameToFocusedClass");
 	ms->pushWord("scenePredictBestObject");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	ms->pushWord("sceneClearPredictedObjects");
 	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
@@ -5147,7 +5257,7 @@ virtual void execute(MachineState * ms) {
       } else if (dot.compare(epdf->d_name) && dotdot.compare(epdf->d_name)) {
 	CONSOLE_ERROR(ms, dot << " is NOT a directory and " << dotdot << " is NOT a directory.");
 	ms->pushWord("pauseStackExecution");
-	ms->pushWord("tempUpdateMaps");
+	ms->pushWord("tableUpdateMaps");
 	// preserves the prediction that was last saved
 	ms->pushWord("sceneLoadSceneRaw");
 	ms->pushWord( make_shared<StringWord>(thisFullFileName) );
@@ -10812,6 +10922,19 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SceneSaveObservedMapImage)
 
+WORD(SceneSaveDiscrepancyDensityImage)
+virtual void execute(MachineState * ms) {
+  string fname;
+  GET_STRING_ARG(ms, fname);
+  
+  Mat image = ms->config.scene->discrepancy_density;
+  cout << "Writing " << fname << endl;
+  imwrite(fname, 255.0 * image);
+
+}
+END_WORD
+REGISTER_WORD(SceneSaveDiscrepancyDensityImage)
+
 
 WORD(SceneLoadMonochromeBackground)
 virtual void execute(MachineState * ms) {
@@ -11149,10 +11272,10 @@ virtual void execute(MachineState * ms) {
 
   if (minEnergyX == -1 || minEnergyY == -1) {
     CONSOLE_ERROR(ms, "scenePushPixelOfMinVariance: Did not update minEnergy, were there enough samples?  minEnergyX: " 
-      << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
+      << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples);
     return;
   } else {
-    CONSOLE(ms, cout << "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples << endl);
+    CONSOLE(ms, "scenePushPixelOfMinVariance: Updated minEnergy, minEnergyX: " << minEnergyX << " minEnergyY: " << minEnergyY << " maxSamples: " << maxSamples);
   }
   
   double meters_scene_x, meters_scene_y;

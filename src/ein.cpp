@@ -2861,6 +2861,11 @@ bool isGripperGripping(MachineState * ms) {
   return ms->config.gripperGripping; 
 }
 
+bool isGripperMoving(MachineState * ms) {
+  //return (ms->config.gripperPosition >= ms->config.gripperThresh);
+  return ms->config.gripperMoving; 
+}
+
 void initialize3DParzen(MachineState * ms) {
   for (int kx = 0; kx < ms->config.parzen3DKernelWidth; kx++) {
     for (int ky = 0; ky < ms->config.parzen3DKernelWidth; ky++) {
@@ -4787,6 +4792,13 @@ void MachineState::imageCallback(Camera * camera) {
     //QMetaObject::invokeMethod(qtTestWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     //QMetaObject::invokeMethod(ms-.config.wristViewWindow, "updateImage", Qt::QueuedConnection, Q_ARG(Mat, (Mat) ms->config.wristViewImage));
     ms->config.wristViewWindow->updateImage(camera->cam_img);
+
+    if (ms->config.wristViewBrightnessScalar == 1.0) {
+      ms->config.wristViewWindow->updateImage(camera->cam_img);
+    } else {
+      Mat scaledWristViewImage = ms->config.wristViewBrightnessScalar * camera->cam_img;
+      ms->config.wristViewWindow->updateImage(scaledWristViewImage);
+    }
     //Mat firstYCBCR;  cvtColor(ms->config.wristViewImage, firstYCBCR, CV_BGR2YCrCb);
     //ms->config.wristViewWindow->updateImage(firstYCBCR);
   }
@@ -14664,7 +14676,7 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   stateOut->idle_mode = ms->config.currentIdleMode;
   for (int i = 0; i < ms->call_stack.size(); i ++) {
     shared_ptr<Word> w = ms->call_stack[i];
-    stateOut->call_stack.push_back(w->repr());
+    stateOut->call_stack.push_back(w->name());
   }
 
   for (int i = 0; i < ms->data_stack.size(); i ++) {
@@ -14687,7 +14699,10 @@ void fillEinStateMsg(MachineState * ms, EinState * stateOut) {
   }
 
   for (int i = 0; i < words.size(); i++) {
-    stateOut->words.push_back(words[i]->repr());
+    vector<string> names = words[i]->names();
+    for (int j = 0; j < names.size(); j++) {
+      stateOut->words.push_back(names[j]);
+    }
   }
 
   stateOut->state_string = ms->currentState();

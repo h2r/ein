@@ -187,6 +187,15 @@ REGISTER_WORD(ZeroGOff)
 
 WORD(ClearStack)
 CODE('r') 
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("clearCallStack");
+  return result;
+}
+virtual string description() {
+  return "Clear the call stack.";
+}
 virtual void execute(MachineState * ms) {
   ms->clearStack();
 }
@@ -194,6 +203,9 @@ END_WORD
 REGISTER_WORD(ClearStack)
 
 WORD(ClearStacks)
+virtual string description() {
+  return "Clear the call stack and the data stack.";
+}
 virtual void execute(MachineState * ms) {
   ms->clearData();
   ms->clearStack();
@@ -457,6 +469,9 @@ virtual vector<string> names() {
   result.push_back("+");
   return result;
 }
+virtual string description() {
+  return "Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.";
+}
 virtual void execute(MachineState * ms) {
   //double v1;
   //GET_NUMERIC_ARG(ms, v1);
@@ -491,6 +506,32 @@ END_WORD
 REGISTER_WORD(Plus)
 
 
+WORD(Mod)
+CODE('%') 
+virtual string description() {
+  return "Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("%");
+  return result;
+}
+virtual void execute(MachineState * ms) {
+
+  int v1;
+  GET_INT_ARG(ms, v1);
+  int v2;
+  GET_INT_ARG(ms, v2);
+
+  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 % v1);
+  ms->pushWord(newWord);
+
+}
+END_WORD
+REGISTER_WORD(Mod)
+
+
 
 WORD(Sum)
 virtual string description() {
@@ -522,6 +563,9 @@ REGISTER_WORD(Prod)
 
 WORD(Langle)
 CODE('<') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 < returns true, and 3 1 < returns false.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -529,19 +573,34 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 < v1);
-  ms->pushWord(newWord);
+
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result < 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
 }
 END_WORD
 REGISTER_WORD(Langle)
 
 WORD(Rangle)
 CODE('>') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 < returns false, and 3 1 < returns true";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -549,18 +608,30 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
-
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 > v1);
-  ms->pushWord(newWord);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result > 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
 }
 END_WORD
 REGISTER_WORD(Rangle)
 
 WORD(Leq)
+virtual string description() {
+  return "Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -568,18 +639,33 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 <= v1);
-  ms->pushWord(newWord);
+
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result <= 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
 }
 END_WORD
 REGISTER_WORD(Leq)
 
 WORD(Geq)
+virtual string description() {
+  return "Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -587,16 +673,51 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
 
-  std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(v2 >= v1);
-  ms->pushWord(newWord);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    int result = w2->compareTo(w1);
+   
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(result >= 0);
+    ms->pushWord(newWord);
+   
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
 }
 END_WORD
 REGISTER_WORD(Geq)
+
+WORD(Cmp)
+virtual string description() {
+  return "Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.";
+}
+
+virtual void execute(MachineState * ms) {
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
+  
+  try {
+    std::shared_ptr<IntegerWord> newWord = std::make_shared<IntegerWord>(w2->compareTo(w1));
+    ms->pushWord(newWord);
+  } catch (domain_error& e) {
+    CONSOLE_ERROR(ms, "Bad type: " << e.what() << " word " << name());
+    ms->pushWord("pauseStackExecution");   
+    return;
+  }
+
+}
+END_WORD
+REGISTER_WORD(Cmp)
 
 WORD(Times)
 CODE('*') 
@@ -640,6 +761,9 @@ REGISTER_WORD(Divide)
 
 WORD(Minus)
 CODE('-') 
+virtual string description() {
+  return "Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -647,19 +771,34 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
-  double v1;
-  GET_NUMERIC_ARG(ms, v1);
-  double v2;
-  GET_NUMERIC_ARG(ms, v2);
+  shared_ptr<Word> w1;
+  GET_WORD_ARG(ms, Word, w1);
+  shared_ptr<Word> w2;
+  GET_WORD_ARG(ms, Word, w2);
 
-  std::shared_ptr<DoubleWord> newWord = std::make_shared<DoubleWord>(v2 - v1);
-  ms->pushWord(newWord);
+  std::shared_ptr<IntegerWord> i1 = std::dynamic_pointer_cast<IntegerWord>(w1);
+  std::shared_ptr<IntegerWord> i2 = std::dynamic_pointer_cast<IntegerWord>(w2);
+  std::shared_ptr<DoubleWord> d1 = std::dynamic_pointer_cast<DoubleWord>(w1);
+  std::shared_ptr<DoubleWord> d2 = std::dynamic_pointer_cast<DoubleWord>(w2);
+
+  if (i1 != NULL && i2 != NULL) {
+    ms->pushWord(make_shared<IntegerWord>(w2->to_int() - w1->to_int()));
+  } else if ((i1 != NULL && d2 != NULL) || (d1 != NULL && i2 != NULL) || (d1 != NULL && d2 != NULL)) {
+    ms->pushWord(make_shared<DoubleWord>(w2->to_double() - w1->to_double()));
+  } else {
+    CONSOLE_ERROR(ms, "Minus requires numbers.  Got w1: " << w1->repr() << " and w2 " << w2->repr());
+    ms->pushWord("pauseStackExecution");   
+  }
+
 }
 END_WORD
 REGISTER_WORD(Minus)
 
 WORD(Equals)
 CODE('=') 
+virtual string description() {
+  return "Takes two words and returns 1 if they are equal (by value) and 0 otherwise.";
+}
 virtual vector<string> names() {
   vector<string> result;
   result.push_back(name());
@@ -667,14 +806,11 @@ virtual vector<string> names() {
   return result;
 }
 virtual void execute(MachineState * ms) {
+  shared_ptr<Word> p1;
+  GET_WORD_ARG(ms, Word, p1);
+  shared_ptr<Word> p2;
+  GET_WORD_ARG(ms, Word, p2);
 
-  std::shared_ptr<Word> p1 = ms->popData();
-  std::shared_ptr<Word> p2 = ms->popData();
-
-  if (p1 == NULL || p2 == NULL) {
-    cout << "Warning, requires two words on the stack." << endl;
-    return;
-  }
   int new_value;
   if (p1->equals(p2)) {
     new_value = 1;
@@ -712,6 +848,17 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(Not)
 
+
+
+WORD(Inc)
+virtual string description() {
+  return "Adds one to its argument.  1 inc produces 2.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("1 +");
+}
+END_WORD
+REGISTER_WORD(Inc)
 
 
 WORD(Ift)
@@ -920,6 +1067,21 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(EePoseApplyRelativePoseTo)
 
+WORD(EePoseRPYOnQ)
+virtual void execute(MachineState * ms) {
+
+  double roll, pitch, yaw;
+  GET_NUMERIC_ARG(ms, yaw);
+  GET_NUMERIC_ARG(ms, pitch);
+  GET_NUMERIC_ARG(ms, roll);
+
+  eePose base_pose;
+  GET_ARG(ms, EePoseWord, base_pose);
+
+  ms->pushWord(make_shared<EePoseWord>(base_pose.applyRPYTo(roll, pitch, yaw)));
+}
+END_WORD
+REGISTER_WORD(EePoseRPYOnQ)
 
 
 WORD(SetEEPosePX)
@@ -1316,7 +1478,10 @@ virtual void execute(MachineState * ms)
   wordFile.open(wordFileName);
 
   for (int i = 0; i < words.size(); i++) {
-    wordFile << words[i]->name() << " " << words[i]->character_code() << endl;
+    vector<string> names = words[i]->names();
+    for (int j = 0; j < names.size(); j++) {
+      wordFile << names[j] << " " << words[i]->character_code() << endl;
+    }
   }
   wordFile.close();
 }
@@ -1335,7 +1500,16 @@ virtual void execute(MachineState * ms)
   map<string, shared_ptr<Word> > words = ms->wordsInNamespace();
   std::map<std::string, shared_ptr<Word> >::iterator iter;
   for (iter = words.begin(); iter != words.end(); ++iter) {
-    wordFile << "<tr><td>" << xmlEncode(iter->first) << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
+    vector<string> names = iter->second->names();
+    wordFile << "<tr><td>";
+    //for (int j = 0; j < names.size(); j++) {
+    wordFile << xmlEncode(iter->first);
+      //if (j != names.size() - 1) {
+      //  wordFile << ", ";
+      //}
+    //}
+    wordFile << "</td><td>" << xmlEncode(iter->second->description()) << "</td></tr>" << endl;
+
   }
   wordFile << "</table>" << endl;
   wordFile.close();
@@ -2080,7 +2254,68 @@ END_WORD
 REGISTER_WORD(Accumulate)
 
 
+WORD(Get)
+virtual string description() {
+  return "Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.";
+}
+virtual void execute(MachineState * ms)
+{
+  int idx;
+  GET_INT_ARG(ms, idx);
+  
+  shared_ptr<CompoundWord> compoundWord;
+  GET_WORD_ARG(ms, CompoundWord, compoundWord);
+
+  if (idx >= compoundWord->size() || idx < 0) {
+    CONSOLE_ERROR(ms, "Out of bounds: " << idx << " in word " << compoundWord->repr() << " with size " << compoundWord->size());
+    ms->pushWord("pauseStackExecution");
+  } else {
+    ms->pushData(compoundWord->getWord(compoundWord->size() - idx - 1));
+  }
+}
+END_WORD
+REGISTER_WORD(Get)
+
+
+
+WORD(Size)
+virtual string description() {
+  return "Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.";
+}
+virtual void execute(MachineState * ms)
+{
+  shared_ptr<CompoundWord> compoundWord;
+  GET_WORD_ARG(ms, CompoundWord, compoundWord);
+  ms->pushData(make_shared<IntegerWord>(compoundWord->size()));
+}
+END_WORD
+REGISTER_WORD(Size)
+
+
+WORD(Nil)
+virtual string description() {
+  return "The empty list.  ( ) .";
+}
+virtual void execute(MachineState * ms)
+{
+  ms->pushData(ms->nil);
+}
+END_WORD
+REGISTER_WORD(Nil)
+
+
+
 WORD(Car)
+virtual string description() {
+  return "Takes a compound word on the stack and returns the first word in the list.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("First");
+  result.push_back("Head");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> word;
@@ -2113,6 +2348,16 @@ REGISTER_WORD(Append)
 
 
 WORD(Cdr)
+virtual string description() {
+  return "Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("Rest");
+  result.push_back("Tail");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   shared_ptr<CompoundWord> word;
@@ -2362,6 +2607,15 @@ END_WORD
 REGISTER_WORD(PrintStacks)
 
 WORD(ClearData)
+virtual string description() {
+  return "Clear the data stack.";
+}
+virtual vector<string> names() {
+  vector<string> result;
+  result.push_back(name());
+  result.push_back("clearDataStack");
+  return result;
+}
 virtual void execute(MachineState * ms)
 {
   ms->clearData();
@@ -2565,6 +2819,51 @@ REGISTER_WORD(AssertNo)
 
 
 WORD(While)
+virtual string description() {
+  return "While loop.  Usage:  ( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while";
+}
+virtual void execute(MachineState * ms) {
+  shared_ptr<CompoundWord> block;
+  shared_ptr<CompoundWord> condition;
+  GET_WORD_ARG(ms, CompoundWord, block);
+  GET_WORD_ARG(ms, CompoundWord, condition);
+
+  shared_ptr<CompoundWord> whileblock = make_shared<CompoundWord>();
+
+  whileblock->pushWord(ms, "while");
+  whileblock->pushWord(ms, ")");
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
+  whileblock->pushWord(ms, "(");
+  whileblock->pushWord(ms, ")");
+  for (int i = 0; i < condition->size(); i++) {
+    whileblock->pushWord(condition->getWord(i));
+  }
+  whileblock->pushWord(ms, "(");
+
+  for (int i = 0; i < block->size(); i++) {
+    whileblock->pushWord(block->getWord(i));
+  }
+
+  ms->pushWord("ift");
+  ms->pushWord(")");
+  for (int i = 0; i < whileblock->size(); i++) {
+    ms->pushWord(whileblock->getWord(i));
+  }
+  ms->pushWord("endStackCollapseNoop");
+  ms->pushWord("(");
+  ms->pushWord(condition);
+}
+END_WORD
+REGISTER_WORD(While)
+
+
+
+WORD(WhileCollapsed)
+virtual string description() {
+  return "While loop.  Use as in while, but collaspses the stack.  This means that if you don't exit the while, Ein will also never exit the while, and be in an infinite loop, even if you clear the stacks.";
+}
 virtual void execute(MachineState * ms) {
   shared_ptr<CompoundWord> block;
   shared_ptr<CompoundWord> condition;
@@ -2598,7 +2897,7 @@ virtual void execute(MachineState * ms) {
   ms->pushWord(condition);
 }
 END_WORD
-REGISTER_WORD(While)
+REGISTER_WORD(WhileCollapsed)
 
 
 WORD(LeftOrRightArm)
@@ -2616,6 +2915,14 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(IsGripperGripping)
+
+WORD(IsGripperMoving)
+virtual void execute(MachineState * ms) {
+  shared_ptr<IntegerWord> isMoving= make_shared<IntegerWord>(isGripperMoving(ms));
+  ms->pushWord(isMoving);
+}
+END_WORD
+REGISTER_WORD(IsGripperMoving)
 
 
 
@@ -2889,6 +3196,9 @@ END_WORD
 REGISTER_WORD(Time)
 
 WORD(CommandOtherArm)
+virtual string description() {
+  return "Send a command to the other arm.  It takes a string on the stack and sends it as a program to be executed on the other arm.";
+}
 virtual void execute(MachineState * ms) {
   string string_in;
   GET_STRING_ARG(ms, string_in);

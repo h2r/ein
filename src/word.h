@@ -48,6 +48,10 @@ public:
     }
   }
 
+  virtual int compareTo(std::shared_ptr<Word> word) {
+    return false;
+  }
+
   virtual bool to_bool() {
     return true;
   }
@@ -109,7 +113,7 @@ public:
   bool equals(shared_ptr<Word> word) {
     return word->to_double()== this->to_double();
   }
-  
+  virtual int compareTo(std::shared_ptr<Word> word);
   virtual bool to_bool() {
     if (n == 0) {
       return false;
@@ -166,7 +170,8 @@ public:
   bool equals(shared_ptr<Word> word) {
     return word->to_int() == this->to_int();
   }
-  
+  virtual int compareTo(std::shared_ptr<Word> word);
+
   virtual bool to_bool() {
     if (n == 0) {
       return false;
@@ -237,7 +242,7 @@ public:
   }
 
   bool equals(shared_ptr<Word> word);
-
+  virtual int compareTo(std::shared_ptr<Word> word);
   
 };
 
@@ -478,6 +483,7 @@ class CompoundWord : public Word {
   string repr();
   string name();
   string to_string();
+  bool equals(shared_ptr<Word> word);
   static shared_ptr<CompoundWord> copy(shared_ptr<CompoundWord> cw);
 };
 

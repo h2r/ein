@@ -121,6 +121,27 @@ calibration (which, while not perfect, is a reasonable
 initialization).  When you obtain a good calibration (described
 below), save it by running `saveCalibration`.
 
+### Set the hand/camera offset
+
+To check the hand/camera offset, drive the gripper so it is just above
+the table.  Place a marker (e.g., a small washer) exactly in the
+center of the gripper.  The red and green reticles should be exactly
+in the center of the washer, but they are probably not.  Run
+`setDefaultHandCameraOffset` to load a reasonable set of default
+values.  Then run `handCameraOffset print` to print the "createEEPose"
+command.  Copy this command to the repl and run something like: 
+```
+0.014 0.007 0.015890 0.000000 0.000000 0.000000 1.000000 createEEPose setHandCameraOffset
+```
+to adjust the hand camera offset.  The reticles
+should update immediately.  Adjust the x and y terms (the first two
+numbers) until the reticle is directly above the marker.  Then run `1
+changeToHeight` and do it at height 1 (the most common scanning
+height.  Ideally it should be adjusted the same for all heights, but
+if the camera is not mounted perfectly perpendicularly, it will be
+different.  In that case you will need to set a quaternion.  In the
+future we plan to make an automatic calibration process for this term. 
+
 ### Check the calibration
 
 To check the calibration, you need to learn more about the wrist view.

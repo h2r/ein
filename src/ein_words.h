@@ -97,7 +97,7 @@ public: \
   shared_ptr<Word> hWord = ms->popData();\
   if (hWord == NULL) {\
     CONSOLE_ERROR(ms, "Oops, GET_NUMERIC_ARG " << " " << #x << " found no argument..."); \
-    CONSOLE_ERROR(ms, "  Must pass a numeric argument to " << this->name()); \
+    CONSOLE_ERROR(ms, "  Must pass a numeric argument to word '" << this->name() << "'"); \
     ms->pushWord("pauseStackExecution");\
     return;\
   } else {\

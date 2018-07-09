@@ -18,7 +18,7 @@ functionality of opencv.
 Install other Ein dependencies: 
 
 ```
-sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default
+sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default screen
 ```
 
 Create your catkin workspace:

@@ -25,7 +25,7 @@ Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link,
   calibrationDirectory = ms->config.data_directory + ms->config.config_directory + name;
 
   // call after ROS is all set up.
-  error_code ec;
+  boost::system::error_code ec;
   create_directories(calibrationDirectory, ec);
   if (ec) {
     CONSOLE_ERROR(ms, "Unable to create camera calibration directory " << calibrationDirectory << " boost error code: " << ec);

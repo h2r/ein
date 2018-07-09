@@ -1,0 +1,106 @@
+
+( 1 2 3 4 )  car 1 =
+assert
+
+( 1 2 3 4 )  cdr ( 2 3 4 ) =
+assert
+
+( 1 2 3 4 ) ( 1 2 3 4 ) = 
+assert
+
+( 1 2 3 4 ) ( 1 2 3 4 5 ) = 
+assertNo
+
+( 1 2 3 4 ) ( 2 2 3 4 ) = 
+assertNo
+
+
+
+1 2 cmp -1 =
+assert
+
+2 1 cmp 1 = 
+assert
+
+2 2 cmp 0 = 
+assert
+
+
+1.1 2.3 cmp -1 =
+assert
+
+2.3 1 cmp 1 = 
+assert
+
+2 2 cmp 0 = 
+assert
+
+2 2.0 cmp 0 = 
+assert
+
+2 2.000001 cmp -1 = 
+assert
+
+"a" "b" cmp -1 =
+assert
+
+"b" "a" cmp 1 =
+assert
+
+"a" "a" cmp 0 =
+assert
+
+
+"a" "b" > 
+assertNo
+
+"a" "b" >=
+assertNo
+
+"a" "b" < 
+assert
+
+"a" "b" <=
+assert
+
+
+
+
+1 2 < 1 = 
+assert
+
+2 1 < 1 = 
+assertNo
+
+
+1 2 > 1 = 
+assertNo
+
+2 1 > 1 = 
+assert
+
+1.0 2 > 1 = 
+assertNo
+
+2 1.0 > 1 = 
+assert
+
+
+
+
+[ 0 ( dup inc ) 5 replicateWord ] ( dup * ) map
+( 0 1 4 9 16 25 ) = 
+assert
+
+
+
+( 1 2 3 4 ) 2 get 3 = 
+assert
+
+
+( 1 2 3 4 ) 0 get 1 = 
+assert
+
+( 1 2 3 4 ) size 4 = 
+assert
+
