@@ -1,1769 +1,1151 @@
 <table><tr><th>Word</th><th>Description</th></tr>
-<tr><td>!</td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
-<tr><td>%</td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
-<tr><td>&amp;&amp;</td><td></td></tr>
-<tr><td>&apos;</td><td></td></tr>
-<tr><td>(</td><td></td></tr>
-<tr><td>)</td><td></td></tr>
-<tr><td>*</td><td></td></tr>
-<tr><td>+</td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
-<tr><td>-</td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
-<tr><td>/</td><td></td></tr>
-<tr><td>;</td><td></td></tr>
-<tr><td>&lt;</td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
-<tr><td>&lt;=</td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
-<tr><td>=</td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
-<tr><td>&gt;</td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
-<tr><td>&gt;=</td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
-<tr><td>First</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
-<tr><td>Head</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
-<tr><td>Pause</td><td></td></tr>
-<tr><td>Rest</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
-<tr><td>Tail</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
-<tr><td>[</td><td></td></tr>
-<tr><td>]</td><td></td></tr>
-<tr><td>aboutFace</td><td>Rotate the gripper in oZ by 180 degrees.</td></tr>
-<tr><td>accumulate</td><td>Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -&gt; 3.</td></tr>
-<tr><td>accumulatedDensity</td><td></td></tr>
-<tr><td>activateSensorStreaming</td><td>Start streaming data; you might want to set the SiS (&quot;Should I Stream?&quot;) first using setSisFlags or streamSetSis.</td></tr>
-<tr><td>add3dGrasp</td><td>Add the current pose as a 3D grasp relative to the focused object.  Must have locked the 3d grasp first so it knows what pose to use relative to the object.</td></tr>
-<tr><td>add3dGraspPoseWord</td><td>Takes an argument on the stack of an EEPose and adds that pose as a 3d grasp relative to the base object.</td></tr>
-<tr><td>addPlaceOverPoint</td><td></td></tr>
-<tr><td>addPlaceUnderPoint</td><td></td></tr>
-<tr><td>aiboPoseHeadPan</td><td></td></tr>
-<tr><td>aiboPoseHeadTilt</td><td></td></tr>
-<tr><td>aiboPoseLegLF1</td><td></td></tr>
-<tr><td>aiboPoseLegLF2</td><td></td></tr>
-<tr><td>aiboPoseLegLF3</td><td></td></tr>
-<tr><td>aiboPoseLegLH1</td><td></td></tr>
-<tr><td>aiboPoseLegLH2</td><td></td></tr>
-<tr><td>aiboPoseLegLH3</td><td></td></tr>
-<tr><td>aiboPoseLegRF1</td><td></td></tr>
-<tr><td>aiboPoseLegRF2</td><td></td></tr>
-<tr><td>aiboPoseLegRF3</td><td></td></tr>
-<tr><td>aiboPoseLegRH1</td><td></td></tr>
-<tr><td>aiboPoseLegRH2</td><td></td></tr>
-<tr><td>aiboPoseLegRH3</td><td></td></tr>
-<tr><td>aiboPoseMouth</td><td></td></tr>
-<tr><td>aiboPoseNeck</td><td></td></tr>
-<tr><td>aiboPoseTailPan</td><td></td></tr>
-<tr><td>aiboPoseTailTilt</td><td></td></tr>
-<tr><td>analogIOCommand</td><td></td></tr>
-<tr><td>and</td><td></td></tr>
-<tr><td>annotate2dGrasp</td><td></td></tr>
-<tr><td>append</td><td></td></tr>
-<tr><td>applyGraspFilter</td><td></td></tr>
-<tr><td>approachSpeed</td><td></td></tr>
-<tr><td>arm1By</td><td></td></tr>
-<tr><td>arm1Current</td><td></td></tr>
-<tr><td>arm1Down</td><td></td></tr>
-<tr><td>arm1To</td><td></td></tr>
-<tr><td>arm1True</td><td></td></tr>
-<tr><td>arm1Up</td><td></td></tr>
-<tr><td>arm2By</td><td></td></tr>
-<tr><td>arm2Current</td><td></td></tr>
-<tr><td>arm2Down</td><td></td></tr>
-<tr><td>arm2To</td><td></td></tr>
-<tr><td>arm2True</td><td></td></tr>
-<tr><td>arm2Up</td><td></td></tr>
-<tr><td>arm3By</td><td></td></tr>
-<tr><td>arm3Current</td><td></td></tr>
-<tr><td>arm3Down</td><td></td></tr>
-<tr><td>arm3To</td><td></td></tr>
-<tr><td>arm3True</td><td></td></tr>
-<tr><td>arm3Up</td><td></td></tr>
-<tr><td>arm4By</td><td></td></tr>
-<tr><td>arm4Current</td><td></td></tr>
-<tr><td>arm4Down</td><td></td></tr>
-<tr><td>arm4To</td><td></td></tr>
-<tr><td>arm4True</td><td></td></tr>
-<tr><td>arm4Up</td><td></td></tr>
-<tr><td>arm5By</td><td></td></tr>
-<tr><td>arm5Current</td><td></td></tr>
-<tr><td>arm5Down</td><td></td></tr>
-<tr><td>arm5To</td><td></td></tr>
-<tr><td>arm5True</td><td></td></tr>
-<tr><td>arm5Up</td><td></td></tr>
-<tr><td>arm6By</td><td></td></tr>
-<tr><td>arm6Current</td><td></td></tr>
-<tr><td>arm6Down</td><td></td></tr>
-<tr><td>arm6To</td><td></td></tr>
-<tr><td>arm6True</td><td></td></tr>
-<tr><td>arm6Up</td><td></td></tr>
-<tr><td>arm7By</td><td></td></tr>
-<tr><td>arm7Current</td><td></td></tr>
-<tr><td>arm7Down</td><td></td></tr>
-<tr><td>arm7To</td><td></td></tr>
-<tr><td>arm7True</td><td></td></tr>
-<tr><td>arm7Up</td><td></td></tr>
-<tr><td>armBackButtonState</td><td></td></tr>
-<tr><td>armOkButtonState</td><td></td></tr>
-<tr><td>armPose1Get</td><td></td></tr>
-<tr><td>armPose1Set</td><td></td></tr>
-<tr><td>armPose2Get</td><td></td></tr>
-<tr><td>armPose2Set</td><td></td></tr>
-<tr><td>armPose3Get</td><td></td></tr>
-<tr><td>armPose3Set</td><td></td></tr>
-<tr><td>armPose4Get</td><td></td></tr>
-<tr><td>armPose4Set</td><td></td></tr>
-<tr><td>armPose5Get</td><td></td></tr>
-<tr><td>armPose5Set</td><td></td></tr>
-<tr><td>armPose6Get</td><td></td></tr>
-<tr><td>armPose6Set</td><td></td></tr>
-<tr><td>armPose7Get</td><td></td></tr>
-<tr><td>armPose7Set</td><td></td></tr>
-<tr><td>armPoseToEePose</td><td></td></tr>
-<tr><td>armPublishJointPositionCommand</td><td></td></tr>
-<tr><td>armShowButtonState</td><td></td></tr>
-<tr><td>armedThreshold</td><td></td></tr>
-<tr><td>assert</td><td></td></tr>
-<tr><td>assertNo</td><td></td></tr>
-<tr><td>assumeAimedPose</td><td></td></tr>
-<tr><td>assumeAny3dGrasp</td><td></td></tr>
-<tr><td>assumeBackScanningPose</td><td></td></tr>
-<tr><td>assumeBeeHome</td><td></td></tr>
-<tr><td>assumeBest3dGrasp</td><td></td></tr>
-<tr><td>assumeCalibrationPose</td><td></td></tr>
-<tr><td>assumeCrane1</td><td></td></tr>
-<tr><td>assumeCurrent3dGrasp</td><td></td></tr>
-<tr><td>assumeDeliveryPose</td><td></td></tr>
-<tr><td>assumeFacePose</td><td></td></tr>
-<tr><td>assumeHandingPose</td><td></td></tr>
-<tr><td>assumeLastPickOrientation</td><td></td></tr>
-<tr><td>assumePose</td><td></td></tr>
-<tr><td>assumeShrugPose</td><td></td></tr>
-<tr><td>assumeWinningGgAndXyInLocalPose</td><td></td></tr>
-<tr><td>assumeZOfPoseWord</td><td></td></tr>
-<tr><td>banditGetPickMode</td><td></td></tr>
-<tr><td>banditSetPickMode</td><td></td></tr>
-<tr><td>beeHome</td><td></td></tr>
-<tr><td>beep</td><td></td></tr>
-<tr><td>beginHeightLearning</td><td></td></tr>
-<tr><td>blankFace</td><td></td></tr>
-<tr><td>blur</td><td></td></tr>
-<tr><td>bringUpAllNonessentialSystems</td><td>Bring up systems that are not important for streaming data.</td></tr>
-<tr><td>buildClassSimilarityMatrix</td><td>Builds the matrix of gradients of the current class labels.</td></tr>
-<tr><td>buildClassSimilarityMatrixFromDensity</td><td>Builds the matrix of gradients of the current class labels.</td></tr>
-<tr><td>c3dPoseBase</td><td></td></tr>
-<tr><td>cB</td><td></td></tr>
-<tr><td>cP</td><td></td></tr>
-<tr><td>cSB</td><td></td></tr>
-<tr><td>calibrateCameraAToB</td><td></td></tr>
-<tr><td>calibrateGripper</td><td></td></tr>
-<tr><td>calibrateRGBCameraIntrinsicsPoint</td><td>Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.</td></tr>
-<tr><td>cameraCenterX</td><td></td></tr>
-<tr><td>cameraCenterY</td><td></td></tr>
-<tr><td>cameraCreate</td><td>Creates a new camera, usage in kinect2.back</td></tr>
-<tr><td>cameraCropUpperLeftCornerX</td><td></td></tr>
-<tr><td>cameraCropUpperLeftCornerY</td><td></td></tr>
-<tr><td>cameraExposure</td><td></td></tr>
-<tr><td>cameraFitHyperbolic</td><td></td></tr>
-<tr><td>cameraFitQuadratic</td><td></td></tr>
-<tr><td>cameraGain</td><td></td></tr>
-<tr><td>cameraGetCalibrationMode</td><td></td></tr>
-<tr><td>cameraGetCurrentHeightReticleX</td><td></td></tr>
-<tr><td>cameraGetCurrentHeightReticleY</td><td></td></tr>
-<tr><td>cameraGetIdxMagX</td><td></td></tr>
-<tr><td>cameraGetIdxMagY</td><td></td></tr>
-<tr><td>cameraGetTransformMatrix</td><td></td></tr>
-<tr><td>cameraGetVpX</td><td></td></tr>
-<tr><td>cameraGetVpY</td><td></td></tr>
-<tr><td>cameraKappaX</td><td></td></tr>
-<tr><td>cameraKappaY</td><td></td></tr>
-<tr><td>cameraMuX</td><td></td></tr>
-<tr><td>cameraMuY</td><td></td></tr>
-<tr><td>cameraName</td><td></td></tr>
-<tr><td>cameraPrintParams</td><td></td></tr>
-<tr><td>cameraR00</td><td></td></tr>
-<tr><td>cameraR01</td><td></td></tr>
-<tr><td>cameraR10</td><td></td></tr>
-<tr><td>cameraR11</td><td></td></tr>
-<tr><td>cameraSetCalibrationMode</td><td></td></tr>
-<tr><td>cameraSetCurrentHeightReticleX</td><td></td></tr>
-<tr><td>cameraSetCurrentHeightReticleY</td><td></td></tr>
-<tr><td>cameraSetIdxMagX</td><td></td></tr>
-<tr><td>cameraSetIdxMagY</td><td></td></tr>
-<tr><td>cameraSetTransformMatrix</td><td></td></tr>
-<tr><td>cameraSetVpX</td><td></td></tr>
-<tr><td>cameraSetVpY</td><td></td></tr>
-<tr><td>cameraWhiteBalanceBlue</td><td></td></tr>
-<tr><td>cameraWhiteBalanceGreen</td><td></td></tr>
-<tr><td>cameraWhiteBalanceRed</td><td></td></tr>
-<tr><td>cameraZeroNonLinear</td><td></td></tr>
-<tr><td>car</td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
-<tr><td>castToInteger</td><td></td></tr>
-<tr><td>catScan5VarianceTrialAuditClassNames</td><td></td></tr>
-<tr><td>catScan5VarianceTrialAutolabelClassNames</td><td></td></tr>
-<tr><td>catScan5VarianceTrialCalculateAllClassesAccuracy</td><td></td></tr>
-<tr><td>catScan5VarianceTrialCalculateConfigurationAccuracy</td><td></td></tr>
-<tr><td>catScan5VarianceTrialCalculatePoseVariances</td><td></td></tr>
-<tr><td>cdr</td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
-<tr><td>ceil</td><td></td></tr>
-<tr><td>centerHead</td><td></td></tr>
-<tr><td>changeAnimationState</td><td></td></tr>
-<tr><td>changeTargetClassToClosestBlueBox</td><td></td></tr>
-<tr><td>changeToCounterTable</td><td></td></tr>
-<tr><td>changeToHeight</td><td></td></tr>
-<tr><td>changeToHeight0</td><td></td></tr>
-<tr><td>changeToHeight1</td><td></td></tr>
-<tr><td>changeToHeight2</td><td></td></tr>
-<tr><td>changeToHeight3</td><td></td></tr>
-<tr><td>changeToPantryTable</td><td></td></tr>
-<tr><td>checkAndCountGrasp</td><td></td></tr>
-<tr><td>checkGrasp</td><td></td></tr>
-<tr><td>checkIfJammed</td><td></td></tr>
-<tr><td>classRangeMapFromRegister1</td><td></td></tr>
-<tr><td>clearAllRangeMaps</td><td></td></tr>
-<tr><td>clearBlueBoxMemories</td><td></td></tr>
-<tr><td>clearCallStack</td><td>Clear the call stack.</td></tr>
-<tr><td>clearClass3dGrasps</td><td></td></tr>
-<tr><td>clearClassLabels</td><td></td></tr>
-<tr><td>clearConsole</td><td>Prints a lot of newlines to the console to clear it.</td></tr>
-<tr><td>clearData</td><td>Clear the data stack.</td></tr>
-<tr><td>clearDataStack</td><td>Clear the data stack.</td></tr>
-<tr><td>clearIkMap</td><td>Reset the IK Map so that every cell is good.</td></tr>
-<tr><td>clearMapForPatrol</td><td></td></tr>
-<tr><td>clearStack</td><td>Clear the call stack.</td></tr>
-<tr><td>clearStackIntoMappingPatrol</td><td></td></tr>
-<tr><td>clearStacks</td><td>Clear the call stack and the data stack.</td></tr>
-<tr><td>clearStreamBuffers</td><td></td></tr>
-<tr><td>closeGripper</td><td></td></tr>
-<tr><td>cmp</td><td>Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.</td></tr>
-<tr><td>collapseStack</td><td></td></tr>
-<tr><td>collectMoreCrops</td><td></td></tr>
-<tr><td>collectMoreStreams</td><td></td></tr>
-<tr><td>comeToHover</td><td></td></tr>
-<tr><td>comeToHoverA</td><td></td></tr>
-<tr><td>comeToStop</td><td></td></tr>
-<tr><td>comeToStopA</td><td></td></tr>
-<tr><td>commandOtherArm</td><td>Send a command to the other arm.  It takes a string on the stack and sends it as a program to be executed on the other arm.</td></tr>
-<tr><td>continueHeightLearning</td><td></td></tr>
-<tr><td>continuousServo</td><td></td></tr>
-<tr><td>continuousServoA</td><td></td></tr>
-<tr><td>continuousServoL</td><td></td></tr>
-<tr><td>continuousServoPrep</td><td></td></tr>
-<tr><td>copyIkMapToHeightIdx</td><td>Copy the ik map to the height index.</td></tr>
-<tr><td>cornellMugsOnTables</td><td></td></tr>
-<tr><td>cos</td><td></td></tr>
-<tr><td>countGrasp</td><td></td></tr>
-<tr><td>createArmPose</td><td></td></tr>
-<tr><td>createCachedClassifierFromClassLabels</td><td></td></tr>
-<tr><td>createEEPose</td><td></td></tr>
-<tr><td>cruisingSpeed</td><td></td></tr>
-<tr><td>currentBackgroundMap</td><td>Pushes the current background map on the stack.</td></tr>
-<tr><td>currentIKBoundaryMode</td><td></td></tr>
-<tr><td>currentIKFastMode</td><td></td></tr>
-<tr><td>currentIKMode</td><td></td></tr>
-<tr><td>currentIKModeString</td><td></td></tr>
-<tr><td>currentJointWord</td><td></td></tr>
-<tr><td>currentObservedMap</td><td>Pushes the current observed map on the stack.</td></tr>
-<tr><td>currentPose</td><td></td></tr>
-<tr><td>currentPoseToWord</td><td></td></tr>
-<tr><td>currentPredictedMap</td><td>Pushes the current predicted map on the stack.</td></tr>
-<tr><td>currentScene</td><td>Pushes the current scene on the stack.</td></tr>
-<tr><td>currentSceneFixationMode</td><td></td></tr>
-<tr><td>currentTableZ</td><td></td></tr>
-<tr><td>darkServo</td><td></td></tr>
-<tr><td>darkServoA</td><td></td></tr>
-<tr><td>darkServoB</td><td></td></tr>
-<tr><td>dataDirectory</td><td></td></tr>
-<tr><td>dateString</td><td></td></tr>
-<tr><td>deactivateSensorStreaming</td><td>Stop streaming data.</td></tr>
-<tr><td>decMx</td><td></td></tr>
-<tr><td>decMy</td><td></td></tr>
-<tr><td>decrementCamera</td><td></td></tr>
-<tr><td>decrementCurrentCornellTable</td><td></td></tr>
-<tr><td>decrementGraspGear</td><td></td></tr>
-<tr><td>decrementTargetClass</td><td></td></tr>
-<tr><td>decrementTargetInstanceSprite</td><td></td></tr>
-<tr><td>decrementTargetMasterSprite</td><td></td></tr>
-<tr><td>define</td><td>Store a new compound word with specified body, description, and name.  Usage:  &lt;compound word&gt; &lt; help text &gt; &lt; name &gt; define. </td></tr>
-<tr><td>deliverObject</td><td></td></tr>
-<tr><td>deliverTargetBoxMemory</td><td></td></tr>
-<tr><td>deliverTargetObject</td><td></td></tr>
-<tr><td>density</td><td></td></tr>
-<tr><td>densityA</td><td></td></tr>
-<tr><td>departureSpeed</td><td></td></tr>
-<tr><td>deref</td><td>Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  &lt; symbol word &gt; deref -&gt; &lt; value &gt; </td></tr>
-<tr><td>derefToTruth</td><td>Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  &lt; symbol word &gt; deref -&gt; &lt; value &gt; </td></tr>
-<tr><td>destroyObjectInEndEffector</td><td></td></tr>
-<tr><td>destroyTargetInstanceSprite</td><td></td></tr>
-<tr><td>detectionSpin</td><td></td></tr>
-<tr><td>diagnosticRelativePose</td><td></td></tr>
-<tr><td>digitalIOCommand</td><td></td></tr>
-<tr><td>disableDiskStreaming</td><td></td></tr>
-<tr><td>disableRobot</td><td></td></tr>
-<tr><td>dislodgeEndEffectorFromTable</td><td></td></tr>
-<tr><td>divide</td><td></td></tr>
-<tr><td>dogAccelerometerX</td><td></td></tr>
-<tr><td>dogAccelerometerY</td><td></td></tr>
-<tr><td>dogAccelerometerZ</td><td></td></tr>
-<tr><td>dogBackTouchF</td><td></td></tr>
-<tr><td>dogBackTouchM</td><td></td></tr>
-<tr><td>dogBackTouchR</td><td></td></tr>
-<tr><td>dogBark</td><td></td></tr>
-<tr><td>dogBeg</td><td></td></tr>
-<tr><td>dogChinSensor</td><td></td></tr>
-<tr><td>dogChirpSin</td><td></td></tr>
-<tr><td>dogChirpSquare</td><td></td></tr>
-<tr><td>dogComeToStop</td><td></td></tr>
-<tr><td>dogComeToStopA</td><td></td></tr>
-<tr><td>dogCreatePose</td><td></td></tr>
-<tr><td>dogDecrementPackMember</td><td></td></tr>
-<tr><td>dogDispersePack</td><td></td></tr>
-<tr><td>dogDistanceChest</td><td></td></tr>
-<tr><td>dogDistanceFarSnout</td><td></td></tr>
-<tr><td>dogDistanceNearSnout</td><td></td></tr>
-<tr><td>dogDoPack</td><td></td></tr>
-<tr><td>dogFocusedIP</td><td></td></tr>
-<tr><td>dogFocusedMember</td><td></td></tr>
-<tr><td>dogFormatImageDefault</td><td></td></tr>
-<tr><td>dogGetImage</td><td></td></tr>
-<tr><td>dogGetIndicators</td><td></td></tr>
-<tr><td>dogGetSensoryMotorStates</td><td></td></tr>
-<tr><td>dogHeadPanBy</td><td></td></tr>
-<tr><td>dogHeadPanDGainBy</td><td></td></tr>
-<tr><td>dogHeadPanDGainDown</td><td></td></tr>
-<tr><td>dogHeadPanDGainTo</td><td></td></tr>
-<tr><td>dogHeadPanDGainUp</td><td></td></tr>
-<tr><td>dogHeadPanDown</td><td></td></tr>
-<tr><td>dogHeadPanIGainBy</td><td></td></tr>
-<tr><td>dogHeadPanIGainDown</td><td></td></tr>
-<tr><td>dogHeadPanIGainTo</td><td></td></tr>
-<tr><td>dogHeadPanIGainUp</td><td></td></tr>
-<tr><td>dogHeadPanPGainBy</td><td></td></tr>
-<tr><td>dogHeadPanPGainDown</td><td></td></tr>
-<tr><td>dogHeadPanPGainTo</td><td></td></tr>
-<tr><td>dogHeadPanPGainUp</td><td></td></tr>
-<tr><td>dogHeadPanTo</td><td></td></tr>
-<tr><td>dogHeadPanUp</td><td></td></tr>
-<tr><td>dogHeadTiltBy</td><td></td></tr>
-<tr><td>dogHeadTiltDGainBy</td><td></td></tr>
-<tr><td>dogHeadTiltDGainDown</td><td></td></tr>
-<tr><td>dogHeadTiltDGainTo</td><td></td></tr>
-<tr><td>dogHeadTiltDGainUp</td><td></td></tr>
-<tr><td>dogHeadTiltDown</td><td></td></tr>
-<tr><td>dogHeadTiltIGainBy</td><td></td></tr>
-<tr><td>dogHeadTiltIGainDown</td><td></td></tr>
-<tr><td>dogHeadTiltIGainTo</td><td></td></tr>
-<tr><td>dogHeadTiltIGainUp</td><td></td></tr>
-<tr><td>dogHeadTiltPGainBy</td><td></td></tr>
-<tr><td>dogHeadTiltPGainDown</td><td></td></tr>
-<tr><td>dogHeadTiltPGainTo</td><td></td></tr>
-<tr><td>dogHeadTiltPGainUp</td><td></td></tr>
-<tr><td>dogHeadTiltTo</td><td></td></tr>
-<tr><td>dogHeadTiltUp</td><td></td></tr>
-<tr><td>dogHeadTouch</td><td></td></tr>
-<tr><td>dogIncrementFocusedMember</td><td></td></tr>
-<tr><td>dogInitial</td><td></td></tr>
-<tr><td>dogIntendedEarL</td><td></td></tr>
-<tr><td>dogIntendedEarR</td><td></td></tr>
-<tr><td>dogIntendedLedBFC</td><td></td></tr>
-<tr><td>dogIntendedLedBFW</td><td></td></tr>
-<tr><td>dogIntendedLedBMC</td><td></td></tr>
-<tr><td>dogIntendedLedBMW</td><td></td></tr>
-<tr><td>dogIntendedLedBRC</td><td></td></tr>
-<tr><td>dogIntendedLedBRW</td><td></td></tr>
-<tr><td>dogIntendedLedF1</td><td></td></tr>
-<tr><td>dogIntendedLedF10</td><td></td></tr>
-<tr><td>dogIntendedLedF11</td><td></td></tr>
-<tr><td>dogIntendedLedF12</td><td></td></tr>
-<tr><td>dogIntendedLedF13</td><td></td></tr>
-<tr><td>dogIntendedLedF14</td><td></td></tr>
-<tr><td>dogIntendedLedF2</td><td></td></tr>
-<tr><td>dogIntendedLedF3</td><td></td></tr>
-<tr><td>dogIntendedLedF4</td><td></td></tr>
-<tr><td>dogIntendedLedF5</td><td></td></tr>
-<tr><td>dogIntendedLedF6</td><td></td></tr>
-<tr><td>dogIntendedLedF7</td><td></td></tr>
-<tr><td>dogIntendedLedF8</td><td></td></tr>
-<tr><td>dogIntendedLedF9</td><td></td></tr>
-<tr><td>dogIntendedLedHC</td><td></td></tr>
-<tr><td>dogIntendedModeB</td><td></td></tr>
-<tr><td>dogIntendedModeG</td><td></td></tr>
-<tr><td>dogIntendedModeR</td><td></td></tr>
-<tr><td>dogLay</td><td></td></tr>
-<tr><td>dogLayDown</td><td></td></tr>
-<tr><td>dogLegLF1By</td><td></td></tr>
-<tr><td>dogLegLF1DGainBy</td><td></td></tr>
-<tr><td>dogLegLF1DGainDown</td><td></td></tr>
-<tr><td>dogLegLF1DGainTo</td><td></td></tr>
-<tr><td>dogLegLF1DGainUp</td><td></td></tr>
-<tr><td>dogLegLF1Down</td><td></td></tr>
-<tr><td>dogLegLF1IGainBy</td><td></td></tr>
-<tr><td>dogLegLF1IGainDown</td><td></td></tr>
-<tr><td>dogLegLF1IGainTo</td><td></td></tr>
-<tr><td>dogLegLF1IGainUp</td><td></td></tr>
-<tr><td>dogLegLF1PGainBy</td><td></td></tr>
-<tr><td>dogLegLF1PGainDown</td><td></td></tr>
-<tr><td>dogLegLF1PGainTo</td><td></td></tr>
-<tr><td>dogLegLF1PGainUp</td><td></td></tr>
-<tr><td>dogLegLF1To</td><td></td></tr>
-<tr><td>dogLegLF1Up</td><td></td></tr>
-<tr><td>dogLegLF2By</td><td></td></tr>
-<tr><td>dogLegLF2DGainBy</td><td></td></tr>
-<tr><td>dogLegLF2DGainDown</td><td></td></tr>
-<tr><td>dogLegLF2DGainTo</td><td></td></tr>
-<tr><td>dogLegLF2DGainUp</td><td></td></tr>
-<tr><td>dogLegLF2Down</td><td></td></tr>
-<tr><td>dogLegLF2IGainBy</td><td></td></tr>
-<tr><td>dogLegLF2IGainDown</td><td></td></tr>
-<tr><td>dogLegLF2IGainTo</td><td></td></tr>
-<tr><td>dogLegLF2IGainUp</td><td></td></tr>
-<tr><td>dogLegLF2PGainBy</td><td></td></tr>
-<tr><td>dogLegLF2PGainDown</td><td></td></tr>
-<tr><td>dogLegLF2PGainTo</td><td></td></tr>
-<tr><td>dogLegLF2PGainUp</td><td></td></tr>
-<tr><td>dogLegLF2To</td><td></td></tr>
-<tr><td>dogLegLF2Up</td><td></td></tr>
-<tr><td>dogLegLF3By</td><td></td></tr>
-<tr><td>dogLegLF3DGainBy</td><td></td></tr>
-<tr><td>dogLegLF3DGainDown</td><td></td></tr>
-<tr><td>dogLegLF3DGainTo</td><td></td></tr>
-<tr><td>dogLegLF3DGainUp</td><td></td></tr>
-<tr><td>dogLegLF3Down</td><td></td></tr>
-<tr><td>dogLegLF3IGainBy</td><td></td></tr>
-<tr><td>dogLegLF3IGainDown</td><td></td></tr>
-<tr><td>dogLegLF3IGainTo</td><td></td></tr>
-<tr><td>dogLegLF3IGainUp</td><td></td></tr>
-<tr><td>dogLegLF3PGainBy</td><td></td></tr>
-<tr><td>dogLegLF3PGainDown</td><td></td></tr>
-<tr><td>dogLegLF3PGainTo</td><td></td></tr>
-<tr><td>dogLegLF3PGainUp</td><td></td></tr>
-<tr><td>dogLegLF3To</td><td></td></tr>
-<tr><td>dogLegLF3Up</td><td></td></tr>
-<tr><td>dogLegLH1By</td><td></td></tr>
-<tr><td>dogLegLH1DGainBy</td><td></td></tr>
-<tr><td>dogLegLH1DGainDown</td><td></td></tr>
-<tr><td>dogLegLH1DGainTo</td><td></td></tr>
-<tr><td>dogLegLH1DGainUp</td><td></td></tr>
-<tr><td>dogLegLH1Down</td><td></td></tr>
-<tr><td>dogLegLH1IGainBy</td><td></td></tr>
-<tr><td>dogLegLH1IGainDown</td><td></td></tr>
-<tr><td>dogLegLH1IGainTo</td><td></td></tr>
-<tr><td>dogLegLH1IGainUp</td><td></td></tr>
-<tr><td>dogLegLH1PGainBy</td><td></td></tr>
-<tr><td>dogLegLH1PGainDown</td><td></td></tr>
-<tr><td>dogLegLH1PGainTo</td><td></td></tr>
-<tr><td>dogLegLH1PGainUp</td><td></td></tr>
-<tr><td>dogLegLH1To</td><td></td></tr>
-<tr><td>dogLegLH1Up</td><td></td></tr>
-<tr><td>dogLegLH2By</td><td></td></tr>
-<tr><td>dogLegLH2DGainBy</td><td></td></tr>
-<tr><td>dogLegLH2DGainDown</td><td></td></tr>
-<tr><td>dogLegLH2DGainTo</td><td></td></tr>
-<tr><td>dogLegLH2DGainUp</td><td></td></tr>
-<tr><td>dogLegLH2Down</td><td></td></tr>
-<tr><td>dogLegLH2IGainBy</td><td></td></tr>
-<tr><td>dogLegLH2IGainDown</td><td></td></tr>
-<tr><td>dogLegLH2IGainTo</td><td></td></tr>
-<tr><td>dogLegLH2IGainUp</td><td></td></tr>
-<tr><td>dogLegLH2PGainBy</td><td></td></tr>
-<tr><td>dogLegLH2PGainDown</td><td></td></tr>
-<tr><td>dogLegLH2PGainTo</td><td></td></tr>
-<tr><td>dogLegLH2PGainUp</td><td></td></tr>
-<tr><td>dogLegLH2To</td><td></td></tr>
-<tr><td>dogLegLH2Up</td><td></td></tr>
-<tr><td>dogLegLH3By</td><td></td></tr>
-<tr><td>dogLegLH3DGainBy</td><td></td></tr>
-<tr><td>dogLegLH3DGainDown</td><td></td></tr>
-<tr><td>dogLegLH3DGainTo</td><td></td></tr>
-<tr><td>dogLegLH3DGainUp</td><td></td></tr>
-<tr><td>dogLegLH3Down</td><td></td></tr>
-<tr><td>dogLegLH3IGainBy</td><td></td></tr>
-<tr><td>dogLegLH3IGainDown</td><td></td></tr>
-<tr><td>dogLegLH3IGainTo</td><td></td></tr>
-<tr><td>dogLegLH3IGainUp</td><td></td></tr>
-<tr><td>dogLegLH3PGainBy</td><td></td></tr>
-<tr><td>dogLegLH3PGainDown</td><td></td></tr>
-<tr><td>dogLegLH3PGainTo</td><td></td></tr>
-<tr><td>dogLegLH3PGainUp</td><td></td></tr>
-<tr><td>dogLegLH3To</td><td></td></tr>
-<tr><td>dogLegLH3Up</td><td></td></tr>
-<tr><td>dogLegRF1By</td><td></td></tr>
-<tr><td>dogLegRF1DGainBy</td><td></td></tr>
-<tr><td>dogLegRF1DGainDown</td><td></td></tr>
-<tr><td>dogLegRF1DGainTo</td><td></td></tr>
-<tr><td>dogLegRF1DGainUp</td><td></td></tr>
-<tr><td>dogLegRF1Down</td><td></td></tr>
-<tr><td>dogLegRF1IGainBy</td><td></td></tr>
-<tr><td>dogLegRF1IGainDown</td><td></td></tr>
-<tr><td>dogLegRF1IGainTo</td><td></td></tr>
-<tr><td>dogLegRF1IGainUp</td><td></td></tr>
-<tr><td>dogLegRF1PGainBy</td><td></td></tr>
-<tr><td>dogLegRF1PGainDown</td><td></td></tr>
-<tr><td>dogLegRF1PGainTo</td><td></td></tr>
-<tr><td>dogLegRF1PGainUp</td><td></td></tr>
-<tr><td>dogLegRF1To</td><td></td></tr>
-<tr><td>dogLegRF1Up</td><td></td></tr>
-<tr><td>dogLegRF2By</td><td></td></tr>
-<tr><td>dogLegRF2DGainBy</td><td></td></tr>
-<tr><td>dogLegRF2DGainDown</td><td></td></tr>
-<tr><td>dogLegRF2DGainTo</td><td></td></tr>
-<tr><td>dogLegRF2DGainUp</td><td></td></tr>
-<tr><td>dogLegRF2Down</td><td></td></tr>
-<tr><td>dogLegRF2IGainBy</td><td></td></tr>
-<tr><td>dogLegRF2IGainDown</td><td></td></tr>
-<tr><td>dogLegRF2IGainTo</td><td></td></tr>
-<tr><td>dogLegRF2IGainUp</td><td></td></tr>
-<tr><td>dogLegRF2PGainBy</td><td></td></tr>
-<tr><td>dogLegRF2PGainDown</td><td></td></tr>
-<tr><td>dogLegRF2PGainTo</td><td></td></tr>
-<tr><td>dogLegRF2PGainUp</td><td></td></tr>
-<tr><td>dogLegRF2To</td><td></td></tr>
-<tr><td>dogLegRF2Up</td><td></td></tr>
-<tr><td>dogLegRF3By</td><td></td></tr>
-<tr><td>dogLegRF3DGainBy</td><td></td></tr>
-<tr><td>dogLegRF3DGainDown</td><td></td></tr>
-<tr><td>dogLegRF3DGainTo</td><td></td></tr>
-<tr><td>dogLegRF3DGainUp</td><td></td></tr>
-<tr><td>dogLegRF3Down</td><td></td></tr>
-<tr><td>dogLegRF3IGainBy</td><td></td></tr>
-<tr><td>dogLegRF3IGainDown</td><td></td></tr>
-<tr><td>dogLegRF3IGainTo</td><td></td></tr>
-<tr><td>dogLegRF3IGainUp</td><td></td></tr>
-<tr><td>dogLegRF3PGainBy</td><td></td></tr>
-<tr><td>dogLegRF3PGainDown</td><td></td></tr>
-<tr><td>dogLegRF3PGainTo</td><td></td></tr>
-<tr><td>dogLegRF3PGainUp</td><td></td></tr>
-<tr><td>dogLegRF3To</td><td></td></tr>
-<tr><td>dogLegRF3Up</td><td></td></tr>
-<tr><td>dogLegRH1By</td><td></td></tr>
-<tr><td>dogLegRH1DGainBy</td><td></td></tr>
-<tr><td>dogLegRH1DGainDown</td><td></td></tr>
-<tr><td>dogLegRH1DGainTo</td><td></td></tr>
-<tr><td>dogLegRH1DGainUp</td><td></td></tr>
-<tr><td>dogLegRH1Down</td><td></td></tr>
-<tr><td>dogLegRH1IGainBy</td><td></td></tr>
-<tr><td>dogLegRH1IGainDown</td><td></td></tr>
-<tr><td>dogLegRH1IGainTo</td><td></td></tr>
-<tr><td>dogLegRH1IGainUp</td><td></td></tr>
-<tr><td>dogLegRH1PGainBy</td><td></td></tr>
-<tr><td>dogLegRH1PGainDown</td><td></td></tr>
-<tr><td>dogLegRH1PGainTo</td><td></td></tr>
-<tr><td>dogLegRH1PGainUp</td><td></td></tr>
-<tr><td>dogLegRH1To</td><td></td></tr>
-<tr><td>dogLegRH1Up</td><td></td></tr>
-<tr><td>dogLegRH2By</td><td></td></tr>
-<tr><td>dogLegRH2DGainBy</td><td></td></tr>
-<tr><td>dogLegRH2DGainDown</td><td></td></tr>
-<tr><td>dogLegRH2DGainTo</td><td></td></tr>
-<tr><td>dogLegRH2DGainUp</td><td></td></tr>
-<tr><td>dogLegRH2Down</td><td></td></tr>
-<tr><td>dogLegRH2IGainBy</td><td></td></tr>
-<tr><td>dogLegRH2IGainDown</td><td></td></tr>
-<tr><td>dogLegRH2IGainTo</td><td></td></tr>
-<tr><td>dogLegRH2IGainUp</td><td></td></tr>
-<tr><td>dogLegRH2PGainBy</td><td></td></tr>
-<tr><td>dogLegRH2PGainDown</td><td></td></tr>
-<tr><td>dogLegRH2PGainTo</td><td></td></tr>
-<tr><td>dogLegRH2PGainUp</td><td></td></tr>
-<tr><td>dogLegRH2To</td><td></td></tr>
-<tr><td>dogLegRH2Up</td><td></td></tr>
-<tr><td>dogLegRH3By</td><td></td></tr>
-<tr><td>dogLegRH3DGainBy</td><td></td></tr>
-<tr><td>dogLegRH3DGainDown</td><td></td></tr>
-<tr><td>dogLegRH3DGainTo</td><td></td></tr>
-<tr><td>dogLegRH3DGainUp</td><td></td></tr>
-<tr><td>dogLegRH3Down</td><td></td></tr>
-<tr><td>dogLegRH3IGainBy</td><td></td></tr>
-<tr><td>dogLegRH3IGainDown</td><td></td></tr>
-<tr><td>dogLegRH3IGainTo</td><td></td></tr>
-<tr><td>dogLegRH3IGainUp</td><td></td></tr>
-<tr><td>dogLegRH3PGainBy</td><td></td></tr>
-<tr><td>dogLegRH3PGainDown</td><td></td></tr>
-<tr><td>dogLegRH3PGainTo</td><td></td></tr>
-<tr><td>dogLegRH3PGainUp</td><td></td></tr>
-<tr><td>dogLegRH3To</td><td></td></tr>
-<tr><td>dogLegRH3Up</td><td></td></tr>
-<tr><td>dogMorse</td><td></td></tr>
-<tr><td>dogMotorsOff</td><td></td></tr>
-<tr><td>dogMotorsOn</td><td></td></tr>
-<tr><td>dogMouthBy</td><td></td></tr>
-<tr><td>dogMouthDGainBy</td><td></td></tr>
-<tr><td>dogMouthDGainDown</td><td></td></tr>
-<tr><td>dogMouthDGainTo</td><td></td></tr>
-<tr><td>dogMouthDGainUp</td><td></td></tr>
-<tr><td>dogMouthDown</td><td></td></tr>
-<tr><td>dogMouthIGainBy</td><td></td></tr>
-<tr><td>dogMouthIGainDown</td><td></td></tr>
-<tr><td>dogMouthIGainTo</td><td></td></tr>
-<tr><td>dogMouthIGainUp</td><td></td></tr>
-<tr><td>dogMouthPGainBy</td><td></td></tr>
-<tr><td>dogMouthPGainDown</td><td></td></tr>
-<tr><td>dogMouthPGainTo</td><td></td></tr>
-<tr><td>dogMouthPGainUp</td><td></td></tr>
-<tr><td>dogMouthTo</td><td></td></tr>
-<tr><td>dogMouthUp</td><td></td></tr>
-<tr><td>dogNeckBy</td><td></td></tr>
-<tr><td>dogNeckDGainBy</td><td></td></tr>
-<tr><td>dogNeckDGainDown</td><td></td></tr>
-<tr><td>dogNeckDGainTo</td><td></td></tr>
-<tr><td>dogNeckDGainUp</td><td></td></tr>
-<tr><td>dogNeckDown</td><td></td></tr>
-<tr><td>dogNeckIGainBy</td><td></td></tr>
-<tr><td>dogNeckIGainDown</td><td></td></tr>
-<tr><td>dogNeckIGainTo</td><td></td></tr>
-<tr><td>dogNeckIGainUp</td><td></td></tr>
-<tr><td>dogNeckPGainBy</td><td></td></tr>
-<tr><td>dogNeckPGainDown</td><td></td></tr>
-<tr><td>dogNeckPGainTo</td><td></td></tr>
-<tr><td>dogNeckPGainUp</td><td></td></tr>
-<tr><td>dogNeckTo</td><td></td></tr>
-<tr><td>dogNeckUp</td><td></td></tr>
-<tr><td>dogNeedsReinit</td><td></td></tr>
-<tr><td>dogPawLF</td><td></td></tr>
-<tr><td>dogPawLH</td><td></td></tr>
-<tr><td>dogPawRF</td><td></td></tr>
-<tr><td>dogPawRH</td><td></td></tr>
-<tr><td>dogPublishSnout</td><td></td></tr>
-<tr><td>dogPushIntendedGain</td><td></td></tr>
-<tr><td>dogPushIntendedPose</td><td></td></tr>
-<tr><td>dogPushTrueGain</td><td></td></tr>
-<tr><td>dogReplaceWristImageWithSnoutImage</td><td></td></tr>
-<tr><td>dogSendIndicators</td><td></td></tr>
-<tr><td>dogSendMotorState</td><td></td></tr>
-<tr><td>dogSendPack</td><td></td></tr>
-<tr><td>dogSendToneSin</td><td></td></tr>
-<tr><td>dogSendToneSquare</td><td></td></tr>
-<tr><td>dogSetFocusedMember</td><td></td></tr>
-<tr><td>dogSetGainGridSize</td><td></td></tr>
-<tr><td>dogSetIntendedEarL</td><td></td></tr>
-<tr><td>dogSetIntendedEarR</td><td></td></tr>
-<tr><td>dogSetIntendedGain</td><td></td></tr>
-<tr><td>dogSetIntendedLedBFC</td><td></td></tr>
-<tr><td>dogSetIntendedLedBFW</td><td></td></tr>
-<tr><td>dogSetIntendedLedBMC</td><td></td></tr>
-<tr><td>dogSetIntendedLedBMW</td><td></td></tr>
-<tr><td>dogSetIntendedLedBRC</td><td></td></tr>
-<tr><td>dogSetIntendedLedBRW</td><td></td></tr>
-<tr><td>dogSetIntendedLedF1</td><td></td></tr>
-<tr><td>dogSetIntendedLedF10</td><td></td></tr>
-<tr><td>dogSetIntendedLedF11</td><td></td></tr>
-<tr><td>dogSetIntendedLedF12</td><td></td></tr>
-<tr><td>dogSetIntendedLedF13</td><td></td></tr>
-<tr><td>dogSetIntendedLedF14</td><td></td></tr>
-<tr><td>dogSetIntendedLedF2</td><td></td></tr>
-<tr><td>dogSetIntendedLedF3</td><td></td></tr>
-<tr><td>dogSetIntendedLedF4</td><td></td></tr>
-<tr><td>dogSetIntendedLedF5</td><td></td></tr>
-<tr><td>dogSetIntendedLedF6</td><td></td></tr>
-<tr><td>dogSetIntendedLedF7</td><td></td></tr>
-<tr><td>dogSetIntendedLedF8</td><td></td></tr>
-<tr><td>dogSetIntendedLedF9</td><td></td></tr>
-<tr><td>dogSetIntendedLedHC</td><td></td></tr>
-<tr><td>dogSetIntendedModeB</td><td></td></tr>
-<tr><td>dogSetIntendedModeG</td><td></td></tr>
-<tr><td>dogSetIntendedModeR</td><td></td></tr>
-<tr><td>dogSetIntendedPose</td><td></td></tr>
-<tr><td>dogSetPackSize</td><td></td></tr>
-<tr><td>dogSetPoseGridSize</td><td></td></tr>
-<tr><td>dogSetTurnSpeed</td><td></td></tr>
-<tr><td>dogSetWalkSpeed</td><td></td></tr>
-<tr><td>dogSignalReinitDone</td><td></td></tr>
-<tr><td>dogSit</td><td></td></tr>
-<tr><td>dogSitDown</td><td></td></tr>
-<tr><td>dogSocketDidConnect</td><td></td></tr>
-<tr><td>dogStand</td><td></td></tr>
-<tr><td>dogStandUp</td><td></td></tr>
-<tr><td>dogStay</td><td></td></tr>
-<tr><td>dogStop</td><td></td></tr>
-<tr><td>dogStopWalkTurn</td><td></td></tr>
-<tr><td>dogStretch</td><td></td></tr>
-<tr><td>dogTailPanBy</td><td></td></tr>
-<tr><td>dogTailPanDGainBy</td><td></td></tr>
-<tr><td>dogTailPanDGainDown</td><td></td></tr>
-<tr><td>dogTailPanDGainTo</td><td></td></tr>
-<tr><td>dogTailPanDGainUp</td><td></td></tr>
-<tr><td>dogTailPanDown</td><td></td></tr>
-<tr><td>dogTailPanIGainBy</td><td></td></tr>
-<tr><td>dogTailPanIGainDown</td><td></td></tr>
-<tr><td>dogTailPanIGainTo</td><td></td></tr>
-<tr><td>dogTailPanIGainUp</td><td></td></tr>
-<tr><td>dogTailPanPGainBy</td><td></td></tr>
-<tr><td>dogTailPanPGainDown</td><td></td></tr>
-<tr><td>dogTailPanPGainTo</td><td></td></tr>
-<tr><td>dogTailPanPGainUp</td><td></td></tr>
-<tr><td>dogTailPanTo</td><td></td></tr>
-<tr><td>dogTailPanUp</td><td></td></tr>
-<tr><td>dogTailTiltBy</td><td></td></tr>
-<tr><td>dogTailTiltDGainBy</td><td></td></tr>
-<tr><td>dogTailTiltDGainDown</td><td></td></tr>
-<tr><td>dogTailTiltDGainTo</td><td></td></tr>
-<tr><td>dogTailTiltDGainUp</td><td></td></tr>
-<tr><td>dogTailTiltDown</td><td></td></tr>
-<tr><td>dogTailTiltIGainBy</td><td></td></tr>
-<tr><td>dogTailTiltIGainDown</td><td></td></tr>
-<tr><td>dogTailTiltIGainTo</td><td></td></tr>
-<tr><td>dogTailTiltIGainUp</td><td></td></tr>
-<tr><td>dogTailTiltPGainBy</td><td></td></tr>
-<tr><td>dogTailTiltPGainDown</td><td></td></tr>
-<tr><td>dogTailTiltPGainTo</td><td></td></tr>
-<tr><td>dogTailTiltPGainUp</td><td></td></tr>
-<tr><td>dogTailTiltTo</td><td></td></tr>
-<tr><td>dogTailTiltUp</td><td></td></tr>
-<tr><td>dogTrueEarL</td><td></td></tr>
-<tr><td>dogTrueEarR</td><td></td></tr>
-<tr><td>dogTrueLedBFC</td><td></td></tr>
-<tr><td>dogTrueLedBFW</td><td></td></tr>
-<tr><td>dogTrueLedBMC</td><td></td></tr>
-<tr><td>dogTrueLedBMW</td><td></td></tr>
-<tr><td>dogTrueLedBRC</td><td></td></tr>
-<tr><td>dogTrueLedBRW</td><td></td></tr>
-<tr><td>dogTrueLedF1</td><td></td></tr>
-<tr><td>dogTrueLedF10</td><td></td></tr>
-<tr><td>dogTrueLedF11</td><td></td></tr>
-<tr><td>dogTrueLedF12</td><td></td></tr>
-<tr><td>dogTrueLedF13</td><td></td></tr>
-<tr><td>dogTrueLedF14</td><td></td></tr>
-<tr><td>dogTrueLedF2</td><td></td></tr>
-<tr><td>dogTrueLedF3</td><td></td></tr>
-<tr><td>dogTrueLedF4</td><td></td></tr>
-<tr><td>dogTrueLedF5</td><td></td></tr>
-<tr><td>dogTrueLedF6</td><td></td></tr>
-<tr><td>dogTrueLedF7</td><td></td></tr>
-<tr><td>dogTrueLedF8</td><td></td></tr>
-<tr><td>dogTrueLedF9</td><td></td></tr>
-<tr><td>dogTrueLedHC</td><td></td></tr>
-<tr><td>dogTrueModeB</td><td></td></tr>
-<tr><td>dogTrueModeG</td><td></td></tr>
-<tr><td>dogTrueModeR</td><td></td></tr>
-<tr><td>dogTurnRadians</td><td></td></tr>
-<tr><td>dogTurnSeconds</td><td></td></tr>
-<tr><td>dogVoiceClear</td><td></td></tr>
-<tr><td>dogVoiceInit</td><td></td></tr>
-<tr><td>dogVoiceSing</td><td></td></tr>
-<tr><td>dogVoiceTetraTrackWarbleNotes</td><td></td></tr>
-<tr><td>dogVoiceTimeTrackWarbleSinNotes</td><td></td></tr>
-<tr><td>dogVoiceTimeTrackWarbleSquareNotes</td><td></td></tr>
-<tr><td>dogVoiceToPCM</td><td></td></tr>
-<tr><td>dogVoiceTrackTone</td><td></td></tr>
-<tr><td>dogVoiceTrackWarble</td><td></td></tr>
-<tr><td>dogVoiceTrackWarbleNotes</td><td></td></tr>
-<tr><td>dogWalkMeters</td><td></td></tr>
-<tr><td>dogWalkSeconds</td><td></td></tr>
-<tr><td>dogWarbleSin</td><td></td></tr>
-<tr><td>dogWarbleSquare</td><td></td></tr>
-<tr><td>dogWhistle</td><td></td></tr>
-<tr><td>dogWriteIntendedFromTrue</td><td></td></tr>
-<tr><td>downsampleIrScan</td><td></td></tr>
-<tr><td>drand48</td><td></td></tr>
-<tr><td>drawMapRegisters</td><td></td></tr>
-<tr><td>dsr</td><td></td></tr>
-<tr><td>ducksInARow</td><td></td></tr>
-<tr><td>dup</td><td></td></tr>
-<tr><td>eePoseApplyRelativePoseTo</td><td></td></tr>
-<tr><td>eePoseGetPoseRelativeTo</td><td></td></tr>
-<tr><td>eePosePX</td><td></td></tr>
-<tr><td>eePosePY</td><td></td></tr>
-<tr><td>eePosePZ</td><td></td></tr>
-<tr><td>eePoseQW</td><td></td></tr>
-<tr><td>eePoseQX</td><td></td></tr>
-<tr><td>eePoseQY</td><td></td></tr>
-<tr><td>eePoseQZ</td><td></td></tr>
-<tr><td>eePoseRPYOnQ</td><td></td></tr>
-<tr><td>eePoseToArmPose</td><td></td></tr>
-<tr><td>eeRange</td><td></td></tr>
-<tr><td>eeRangeMaxValue</td><td></td></tr>
-<tr><td>effortThresh</td><td></td></tr>
-<tr><td>eighthTurn</td><td></td></tr>
-<tr><td>einSoftwareVersion</td><td></td></tr>
-<tr><td>enableDiskStreaming</td><td></td></tr>
-<tr><td>enableRobot</td><td></td></tr>
-<tr><td>endArgs</td><td></td></tr>
-<tr><td>endStackCollapse</td><td></td></tr>
-<tr><td>endStackCollapseNoop</td><td></td></tr>
-<tr><td>equals</td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
-<tr><td>eval</td><td>Takes a string from the data stack; evaluates the string as a back program.  Usage:  &lt; string &gt; eval -&gt; whatever the program does</td></tr>
-<tr><td>exec</td><td></td></tr>
-<tr><td>executePreparedGrasp</td><td></td></tr>
-<tr><td>executeStack</td><td></td></tr>
-<tr><td>executionModeInstant</td><td></td></tr>
-<tr><td>executionModeStep</td><td></td></tr>
-<tr><td>exp</td><td></td></tr>
-<tr><td>expand</td><td></td></tr>
-<tr><td>exportDoc</td><td></td></tr>
-<tr><td>exportWords</td><td></td></tr>
-<tr><td>faceAnimationFindEmotions</td><td></td></tr>
-<tr><td>faceAnimationGetMode</td><td></td></tr>
-<tr><td>faceAnimationGetRate</td><td></td></tr>
-<tr><td>faceAnimationLoadAllEmotions</td><td></td></tr>
-<tr><td>faceAnimationLoadEmotion</td><td></td></tr>
-<tr><td>faceAnimationSetEmotionValue</td><td></td></tr>
-<tr><td>faceAnimationSetMode</td><td></td></tr>
-<tr><td>faceAnimationSetRate</td><td></td></tr>
-<tr><td>fakeBBWidth</td><td></td></tr>
-<tr><td>fasterRasterScanningSpeed</td><td></td></tr>
-<tr><td>fetch</td><td></td></tr>
-<tr><td>fileClose</td><td>Close the file.  If you forget to do this, it will be closed automatically when the word is deallocated.</td></tr>
-<tr><td>fileOpenInput</td><td>Open an input file for reading; takes a file name as an argument.</td></tr>
-<tr><td>fileOpenOutput</td><td>Open an output file for writing; takes a file name as an argument.</td></tr>
-<tr><td>fileReadAll</td><td>Read the contents of the file into a string and push it on the data stack.</td></tr>
-<tr><td>fileReadLine</td><td>Read one line from the file into a string and leave it on the data stack.</td></tr>
-<tr><td>fileWrite</td><td>Write a string to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.</td></tr>
-<tr><td>fileWriteLine</td><td>Write a line to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.</td></tr>
-<tr><td>fillClearanceMap</td><td></td></tr>
-<tr><td>fillIkMap</td><td>Fill the IK map for the current range starting at the i and j and height on the stack.</td></tr>
-<tr><td>fillIkMapAtCurrentHeight</td><td>Fill the IK map using data at the current EE height.  We run at height 2 usually.</td></tr>
-<tr><td>fillIkMapAtHeights</td><td>Fill the IK map at different heights.</td></tr>
-<tr><td>fillIkMapFromCachedHeightIdx</td><td>Fill the IK map by taking the height idx from the cache.</td></tr>
-<tr><td>fillIkMapFromCachedHeights</td><td>Fill the IK map by taking the and of the result at all the different heights.</td></tr>
-<tr><td>filterBoxMemories</td><td></td></tr>
-<tr><td>findBestOfFourGraspsUsingMemory</td><td></td></tr>
-<tr><td>fixCameraLighting</td><td>Fix the camera lighting.  Usage:  &lt;exposure&gt; &lt;gain&gt; &lt;red&gt; &lt;green&gt; &lt;blue&gt; fixCameraLighting.  You can see the current values with cameraGain, cameraExposure, cameraWhiteBalanceRed, cameraWhiteBlanaceGreen, cameraWhiteBalanceBlue.</td></tr>
-<tr><td>fixCameraLightingNoUpdate</td><td></td></tr>
-<tr><td>fixCameraLightingToAutomaticParameters</td><td>Fix the camera lighting using autogain.  The camera parameters will first adjust automatically, then ein will fix them to the automatically adjusted values.</td></tr>
-<tr><td>fixCameraLightingToObservedValues</td><td></td></tr>
-<tr><td>floor</td><td></td></tr>
-<tr><td>focusedClassLabel</td><td></td></tr>
-<tr><td>focusedGraspLearning</td><td></td></tr>
-<tr><td>focusedGraspLearningA</td><td></td></tr>
-<tr><td>followPath</td><td></td></tr>
-<tr><td>fullImpulse</td><td></td></tr>
-<tr><td>fullRender</td><td></td></tr>
-<tr><td>gaitAnchoredTranslation</td><td></td></tr>
-<tr><td>geq</td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
-<tr><td>get</td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
-<tr><td>getSpeed</td><td></td></tr>
-<tr><td>goClassifyBlueBoxes</td><td></td></tr>
-<tr><td>goFindBlueBoxes</td><td></td></tr>
-<tr><td>goToLastPickPose</td><td></td></tr>
-<tr><td>goToPrePickPose</td><td></td></tr>
-<tr><td>gradientServo</td><td></td></tr>
-<tr><td>gradientServoA</td><td></td></tr>
-<tr><td>gradientServoB</td><td></td></tr>
-<tr><td>gradientServoHardMaxIterations</td><td></td></tr>
-<tr><td>gradientServoIfBlueBoxes</td><td></td></tr>
-<tr><td>gradientServoMode</td><td></td></tr>
-<tr><td>gradientServoPrep</td><td></td></tr>
-<tr><td>gradientServoSoftMaxIterations</td><td></td></tr>
-<tr><td>gradientServoTakeClosest</td><td></td></tr>
-<tr><td>graspBackoffDistance</td><td></td></tr>
-<tr><td>gridSize</td><td></td></tr>
-<tr><td>gripperMaskThresh</td><td></td></tr>
-<tr><td>guiCustom1</td><td></td></tr>
-<tr><td>guiHideAll</td><td></td></tr>
-<tr><td>guiShowAll</td><td></td></tr>
-<tr><td>halfImpulse</td><td></td></tr>
-<tr><td>handCameraOffset</td><td></td></tr>
-<tr><td>handEndEffectorOffset</td><td></td></tr>
-<tr><td>happyFace</td><td></td></tr>
-<tr><td>help</td><td>Return help text for a word.  Takes a compound word as an argument with a single word inside.  Usage:  ( word ) help.</td></tr>
-<tr><td>histgramAllExamplesFocusedClass</td><td></td></tr>
-<tr><td>histogramDetection</td><td></td></tr>
-<tr><td>histogramDetectionIfBlueBoxes</td><td></td></tr>
-<tr><td>histogramDetectionInit</td><td></td></tr>
-<tr><td>histogramDetectionNormalize</td><td></td></tr>
-<tr><td>histogramDetectionReport</td><td></td></tr>
-<tr><td>histogramExampleAsFocusedClass</td><td></td></tr>
-<tr><td>hover</td><td></td></tr>
-<tr><td>hoverA</td><td></td></tr>
-<tr><td>hoverThreshold</td><td></td></tr>
-<tr><td>hundredthImpulse</td><td></td></tr>
-<tr><td>iRCalibrationSpeed</td><td></td></tr>
-<tr><td>idler</td><td></td></tr>
-<tr><td>ifGrasp</td><td></td></tr>
-<tr><td>ifNoGrasp</td><td></td></tr>
-<tr><td>ift</td><td>Takes two words on the stack, executes the second word if the first word is true.  For example, &quot; ( &quot;hello&quot; print ) 1 ift&quot; will print hello, while &quot; ( &quot;hello&quot; print ) 0 ift&quot; will not do it.</td></tr>
-<tr><td>ifte</td><td>If then else takes two compound words and a condition and does the first one if the condition is true and the second if it is false.   Usage: 0 ( &quot;condition was true&quot; print ) ( &quot;condition was false&quot; print )   ifte</td></tr>
-<tr><td>ikMapEndHeight</td><td></td></tr>
-<tr><td>ikMapStartHeight</td><td></td></tr>
-<tr><td>ikModeIkFast</td><td></td></tr>
-<tr><td>ikModeIkFastDebug</td><td></td></tr>
-<tr><td>ikModeService</td><td></td></tr>
-<tr><td>imageStreamBufferLoadCurrent</td><td></td></tr>
-<tr><td>import</td><td></td></tr>
-<tr><td>inc</td><td>Adds one to its argument.  1 inc produces 2.</td></tr>
-<tr><td>incMx</td><td></td></tr>
-<tr><td>incMy</td><td></td></tr>
-<tr><td>incrementCamera</td><td></td></tr>
-<tr><td>incrementCurrentCornellTable</td><td></td></tr>
-<tr><td>incrementGraspGear</td><td></td></tr>
-<tr><td>incrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.  Loads it into memory and kicks it out when done.</td></tr>
-<tr><td>incrementImageStreamBufferNoLoad</td><td>Increments the current location in the image stream buffer.  Does not load the image into memory, but kicks it out when done.</td></tr>
-<tr><td>incrementImageStreamBufferNoLoadNoKick</td><td>Increments the current location in the image stream buffer.  Does not load the image into memory or kick it out when done.</td></tr>
-<tr><td>incrementTargetClass</td><td></td></tr>
-<tr><td>incrementTargetInstanceSprite</td><td></td></tr>
-<tr><td>incrementTargetMasterSprite</td><td></td></tr>
-<tr><td>initCumulativeGripperMask</td><td></td></tr>
-<tr><td>initDepthScan</td><td></td></tr>
-<tr><td>initializeAndFocusOnNewClass</td><td>Initialize a new class with a default date-based name and focus on it.  It will be created in the file system with default values and focused on.</td></tr>
-<tr><td>initializeAndFocusOnTempClass</td><td></td></tr>
-<tr><td>initializeConfig</td><td></td></tr>
-<tr><td>initializeKdlTree</td><td></td></tr>
-<tr><td>initializeMap</td><td></td></tr>
-<tr><td>integrateImageStreamBufferCrops</td><td></td></tr>
-<tr><td>integrateImageStreamBufferServoImages</td><td></td></tr>
-<tr><td>integrateRangeStreamBuffer</td><td></td></tr>
-<tr><td>interlaceBottom</td><td></td></tr>
-<tr><td>interlaceTop</td><td></td></tr>
-<tr><td>interpolatePath</td><td></td></tr>
-<tr><td>irFixPick</td><td></td></tr>
-<tr><td>isAtCurrentPosition</td><td></td></tr>
-<tr><td>isGripperGripping</td><td></td></tr>
-<tr><td>isGripperMoving</td><td></td></tr>
-<tr><td>iterateIsbAndAccumulateHeightImages</td><td></td></tr>
-<tr><td>join</td><td>Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -&gt; 3.</td></tr>
-<tr><td>langle</td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
-<tr><td>leftOrRightArm</td><td></td></tr>
-<tr><td>leq</td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
-<tr><td>lightsOff</td><td></td></tr>
-<tr><td>lightsOn</td><td></td></tr>
-<tr><td>loadCalibration</td><td></td></tr>
-<tr><td>loadCalibrationRaw</td><td></td></tr>
-<tr><td>loadConfig</td><td></td></tr>
-<tr><td>loadDefaultCalibration</td><td></td></tr>
-<tr><td>loadGripperMask</td><td></td></tr>
-<tr><td>loadIkMap</td><td></td></tr>
-<tr><td>loadIkMapAtHeight</td><td></td></tr>
-<tr><td>loadMarginalGraspMemory</td><td></td></tr>
-<tr><td>loadMarginalHeightMemory</td><td></td></tr>
-<tr><td>loadPriorGraspMemoryAnalytic</td><td></td></tr>
-<tr><td>loadPriorGraspMemoryUniform</td><td></td></tr>
-<tr><td>loadPriorHeightMemoryAnalytic</td><td></td></tr>
-<tr><td>loadPriorHeightMemoryUniform</td><td></td></tr>
-<tr><td>loadSampledGraspMemory</td><td></td></tr>
-<tr><td>loadSampledHeightMemory</td><td></td></tr>
-<tr><td>loadTargetClassRangeMapIntoRegister1</td><td></td></tr>
-<tr><td>localXDown</td><td></td></tr>
-<tr><td>localXUp</td><td></td></tr>
-<tr><td>localYDown</td><td></td></tr>
-<tr><td>localYUp</td><td></td></tr>
-<tr><td>localZDown</td><td></td></tr>
-<tr><td>localZUp</td><td></td></tr>
-<tr><td>lock3dGraspBase</td><td></td></tr>
-<tr><td>lockTargetIfBlueBoxes</td><td></td></tr>
-<tr><td>map</td><td></td></tr>
-<tr><td>mapAndPick</td><td></td></tr>
-<tr><td>mapAndPickL</td><td></td></tr>
-<tr><td>mapClosestBlueBox</td><td></td></tr>
-<tr><td>mapEmptySpace</td><td></td></tr>
-<tr><td>mapFreeSpacePixelSkirt</td><td></td></tr>
-<tr><td>mapGrayBoxPixelSkirtCols</td><td></td></tr>
-<tr><td>mapGrayBoxPixelSkirtRows</td><td></td></tr>
-<tr><td>mapGrayBoxPixelWaistCols</td><td></td></tr>
-<tr><td>mapGrayBoxPixelWaistRows</td><td></td></tr>
-<tr><td>mapLocal</td><td></td></tr>
-<tr><td>mapSearchFenceXMax</td><td></td></tr>
-<tr><td>mapSearchFenceXMin</td><td></td></tr>
-<tr><td>mapSearchFenceYMax</td><td></td></tr>
-<tr><td>mapSearchFenceYMin</td><td></td></tr>
-<tr><td>mapServo</td><td></td></tr>
-<tr><td>mapWaypoints</td><td>Maps objects at locations specified by EePoseWords underneath.</td></tr>
-<tr><td>mappingPatrol</td><td></td></tr>
-<tr><td>mappingPatrolA</td><td></td></tr>
-<tr><td>mappingServoTimeout</td><td></td></tr>
-<tr><td>markMapAsCompleted</td><td></td></tr>
-<tr><td>max</td><td></td></tr>
-<tr><td>measureTime</td><td></td></tr>
-<tr><td>measureTimeA</td><td></td></tr>
-<tr><td>measureTimeEnd</td><td></td></tr>
-<tr><td>measureTimeInit</td><td></td></tr>
-<tr><td>measureTimeInitSinceStart</td><td></td></tr>
-<tr><td>measureTimeSetPeriod</td><td></td></tr>
-<tr><td>measureTimeSinceStart</td><td></td></tr>
-<tr><td>measureTimeStart</td><td></td></tr>
-<tr><td>min</td><td></td></tr>
-<tr><td>minus</td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
-<tr><td>mkdir</td><td></td></tr>
-<tr><td>mkdirs</td><td></td></tr>
-<tr><td>mod</td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
-<tr><td>mostRecentUntabledZ</td><td></td></tr>
-<tr><td>moveAndStreamAimedShot</td><td></td></tr>
-<tr><td>moveArmToPoseWord</td><td></td></tr>
-<tr><td>moveCropToCenter</td><td></td></tr>
-<tr><td>moveCropToCenterVanishingPoint</td><td></td></tr>
-<tr><td>moveCropToCenterVanishingPointSlideHeightReticles</td><td></td></tr>
-<tr><td>moveCropToProperValue</td><td></td></tr>
-<tr><td>moveCropToProperValueNoUpdate</td><td></td></tr>
-<tr><td>moveEeToPoseWord</td><td></td></tr>
-<tr><td>moveJointsByAngles</td><td></td></tr>
-<tr><td>moveJointsToAngles</td><td></td></tr>
-<tr><td>moveObjectBetweenObjectAndObject</td><td></td></tr>
-<tr><td>moveObjectToObjectByAmount</td><td></td></tr>
-<tr><td>moveObjectToPose</td><td></td></tr>
-<tr><td>moveTargetObjectToPose</td><td></td></tr>
-<tr><td>moveToCurrentCornellTable</td><td></td></tr>
-<tr><td>moveToEEPose</td><td></td></tr>
-<tr><td>moveToMappingHeight</td><td></td></tr>
-<tr><td>moveToNextMapPosition</td><td></td></tr>
-<tr><td>moveToRegister</td><td></td></tr>
-<tr><td>moveToRegister1</td><td></td></tr>
-<tr><td>moveToRegister2</td><td></td></tr>
-<tr><td>moveToRegister3</td><td></td></tr>
-<tr><td>moveToRegister4</td><td></td></tr>
-<tr><td>moveToRegister5</td><td></td></tr>
-<tr><td>moveToRegister6</td><td></td></tr>
-<tr><td>moveToSetVanishingPointHeightHigh</td><td></td></tr>
-<tr><td>moveToSetVanishingPointHeightLow</td><td></td></tr>
-<tr><td>moveToTargetZAndGrasp</td><td></td></tr>
-<tr><td>moveToTargetZAndGraspA</td><td></td></tr>
-<tr><td>movingThreshold</td><td></td></tr>
-<tr><td>neutralFace</td><td></td></tr>
-<tr><td>neutralScan</td><td></td></tr>
-<tr><td>neutralScanA</td><td></td></tr>
-<tr><td>neutralScanB</td><td></td></tr>
-<tr><td>neutralScanH</td><td></td></tr>
-<tr><td>next</td><td></td></tr>
-<tr><td>nil</td><td>The empty list.  ( ) .</td></tr>
-<tr><td>nod</td><td></td></tr>
-<tr><td>noop</td><td></td></tr>
-<tr><td>not</td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
-<tr><td>now</td><td></td></tr>
-<tr><td>numBlueBoxes</td><td></td></tr>
-<tr><td>numCameras</td><td></td></tr>
-<tr><td>numClasses</td><td></td></tr>
-<tr><td>oB</td><td></td></tr>
-<tr><td>oP</td><td></td></tr>
-<tr><td>oSB</td><td></td></tr>
-<tr><td>oXDown</td><td></td></tr>
-<tr><td>oXUp</td><td></td></tr>
-<tr><td>oYDown</td><td></td></tr>
-<tr><td>oYUp</td><td></td></tr>
-<tr><td>oZDown</td><td></td></tr>
-<tr><td>oZUp</td><td></td></tr>
-<tr><td>observedCameraExposure</td><td></td></tr>
-<tr><td>observedCameraFlip</td><td></td></tr>
-<tr><td>observedCameraGain</td><td></td></tr>
-<tr><td>observedCameraMirror</td><td></td></tr>
-<tr><td>observedCameraWhiteBalanceBlue</td><td></td></tr>
-<tr><td>observedCameraWhiteBalanceGreen</td><td></td></tr>
-<tr><td>observedCameraWhiteBalanceRed</td><td></td></tr>
-<tr><td>observedCameraWindowX</td><td></td></tr>
-<tr><td>observedCameraWindowY</td><td></td></tr>
-<tr><td>openGripper</td><td></td></tr>
-<tr><td>openGripperInt</td><td></td></tr>
-<tr><td>or</td><td></td></tr>
-<tr><td>paintReticles</td><td></td></tr>
-<tr><td>pauseAndReset</td><td></td></tr>
-<tr><td>pauseStackExecution</td><td></td></tr>
-<tr><td>perturbPosition</td><td></td></tr>
-<tr><td>perturbPositionScale</td><td></td></tr>
-<tr><td>photoSpin</td><td></td></tr>
-<tr><td>pi</td><td></td></tr>
-<tr><td>pickAllBlueBoxes</td><td></td></tr>
-<tr><td>pickClosestBlueBox</td><td></td></tr>
-<tr><td>pickFlushFactor</td><td></td></tr>
-<tr><td>pickFocusedClass</td><td></td></tr>
-<tr><td>pickObjectUnderEndEffector</td><td></td></tr>
-<tr><td>pixelGlobalTest</td><td></td></tr>
-<tr><td>pixelServo</td><td></td></tr>
-<tr><td>pixelServoA</td><td></td></tr>
-<tr><td>pixelServoPickUnderVanishingPoint</td><td></td></tr>
-<tr><td>pixelServoPutGripperUnderVanishingPoint</td><td></td></tr>
-<tr><td>pixelServoPutVanishingPointUnderGripper</td><td></td></tr>
-<tr><td>placeHeldObjectOnObject</td><td></td></tr>
-<tr><td>placeObjectInDeliveryZone</td><td></td></tr>
-<tr><td>placeObjectInEndEffector</td><td></td></tr>
-<tr><td>planCommandJointsAtRateSpin</td><td></td></tr>
-<tr><td>planToPointCraneFourStroke</td><td></td></tr>
-<tr><td>planToPointCraneThreeStroke</td><td></td></tr>
-<tr><td>planToPointCraneThreeStrokeOpenJointHyperPlanner</td><td></td></tr>
-<tr><td>playLoop</td><td></td></tr>
-<tr><td>playLoopL</td><td></td></tr>
-<tr><td>playLoopP</td><td></td></tr>
-<tr><td>plus</td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
-<tr><td>pointToClearanceMap</td><td></td></tr>
-<tr><td>pop</td><td></td></tr>
-<tr><td>populateStreamBuffers</td><td></td></tr>
-<tr><td>pow</td><td></td></tr>
-<tr><td>preAnnotateCenterGrasp</td><td></td></tr>
-<tr><td>preAnnotateOffsetGrasp</td><td></td></tr>
-<tr><td>prepareForAndExecuteGraspFromMemory</td><td></td></tr>
-<tr><td>prepareForAndExecuteGraspFromMemoryLearning</td><td></td></tr>
-<tr><td>prepareForGraspFromMemory</td><td></td></tr>
-<tr><td>prepareForSearch</td><td></td></tr>
-<tr><td>prepareToApplyGraspFilterFor1</td><td></td></tr>
-<tr><td>prepareToApplyGraspFilterFor2</td><td></td></tr>
-<tr><td>prepareToApplyGraspFilterFor3</td><td></td></tr>
-<tr><td>prepareToApplyGraspFilterFor4</td><td></td></tr>
-<tr><td>pressAndGrasp</td><td></td></tr>
-<tr><td>pressAndGraspA</td><td></td></tr>
-<tr><td>pressAndRelease</td><td></td></tr>
-<tr><td>pressAndReleaseA</td><td></td></tr>
-<tr><td>pressUntilEffort</td><td></td></tr>
-<tr><td>pressUntilEffortA</td><td></td></tr>
-<tr><td>pressUntilEffortAllInOne</td><td>Push down until there is effort sensed; top level word that can be called all in one.</td></tr>
-<tr><td>pressUntilEffortCombo</td><td>Press down until effort is larger than a threshold.  Pushes down once more quickly with a coarse press, then does a fine-grained press (to unwined the springs), so at the end you are lightly touching the surface.</td></tr>
-<tr><td>pressUntilEffortInit</td><td>Initialize parameters for pressUntilEffort.</td></tr>
-<tr><td>pressUntilEffortOrTwist</td><td></td></tr>
-<tr><td>pressUntilEffortOrTwistA</td><td></td></tr>
-<tr><td>pressUntilEffortOrTwistInit</td><td></td></tr>
-<tr><td>pressUntilEffortStart</td><td></td></tr>
-<tr><td>print</td><td>Pop a word from the stack and print it to the Ein console.</td></tr>
-<tr><td>printClassLabels</td><td>Print class labels to standard output.</td></tr>
-<tr><td>printJointAngles</td><td></td></tr>
-<tr><td>printStacks</td><td></td></tr>
-<tr><td>printState</td><td></td></tr>
-<tr><td>prod</td><td>Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -&gt; 1.</td></tr>
-<tr><td>publishCommandsMode</td><td></td></tr>
-<tr><td>publishCommandsOff</td><td>Do not publish commands to the robot; useful if someone else (like MoveIt) is going to move the robot.</td></tr>
-<tr><td>publishCommandsOn</td><td>Turn on publishing movement commands and other changing commands (lights, sonar).</td></tr>
-<tr><td>publishImageFileToFace</td><td></td></tr>
-<tr><td>publishImageToFace</td><td></td></tr>
-<tr><td>publishRecognizedObjectArrayFromBlueBoxMemory</td><td></td></tr>
-<tr><td>publishState</td><td></td></tr>
-<tr><td>publishWristViewToFace</td><td></td></tr>
-<tr><td>pursuitProximity</td><td></td></tr>
-<tr><td>pushClassLabels</td><td>Push the class labels on the stack.</td></tr>
-<tr><td>pushClassLabelsReport</td><td></td></tr>
-<tr><td>pushCurrentJointAngle</td><td></td></tr>
-<tr><td>pushCurrentJointAngles</td><td></td></tr>
-<tr><td>pushHelp</td><td>Push help text for the word on the data stack.</td></tr>
-<tr><td>pushState</td><td></td></tr>
-<tr><td>putCameraOverPhotoPin</td><td></td></tr>
-<tr><td>quarterImpulse</td><td></td></tr>
-<tr><td>quarterTurn</td><td></td></tr>
-<tr><td>quiveringPalm</td><td></td></tr>
-<tr><td>rangle</td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
-<tr><td>rasterScanningSpeed</td><td></td></tr>
-<tr><td>rayBufferInit</td><td></td></tr>
-<tr><td>rayBufferPopulateFromImageBuffer</td><td></td></tr>
-<tr><td>rayBufferPopulateFromRangeBuffer</td><td></td></tr>
-<tr><td>rayBufferSaveRaw</td><td></td></tr>
-<tr><td>rayBufferSize</td><td></td></tr>
-<tr><td>recordAllBlueBoxes</td><td></td></tr>
-<tr><td>recordAllExamplesFocusedClass</td><td></td></tr>
-<tr><td>recordExampleAsFocusedClass</td><td></td></tr>
-<tr><td>recordGraspZ</td><td></td></tr>
-<tr><td>recordHeightLearnTrial</td><td></td></tr>
-<tr><td>recordPostTargetLock</td><td></td></tr>
-<tr><td>recordPreTargetLock</td><td></td></tr>
-<tr><td>registerEffort</td><td></td></tr>
-<tr><td>registerEffortA</td><td></td></tr>
-<tr><td>registerWrench</td><td></td></tr>
-<tr><td>registerWrenchA</td><td></td></tr>
-<tr><td>reinitRangeMaps</td><td></td></tr>
-<tr><td>reloadCamera</td><td></td></tr>
-<tr><td>reloadClassLabels</td><td></td></tr>
-<tr><td>renameFocusedClass</td><td></td></tr>
-<tr><td>renderSetWristViewBrightnessScalar</td><td></td></tr>
-<tr><td>renderWristViewBrightnessScalar</td><td></td></tr>
-<tr><td>repeatHalo</td><td></td></tr>
-<tr><td>replaceBlueBoxesWithFocusedClass</td><td></td></tr>
-<tr><td>replaceBlueBoxesWithHistogramWinner</td><td></td></tr>
-<tr><td>replicateWord</td><td></td></tr>
-<tr><td>repr</td><td>Takes an argument from the data stack pushes the string representation onto the data stack.  Usage:  &lt; word &gt; repr -&gt; string</td></tr>
-<tr><td>resetAccumulatedDensity</td><td></td></tr>
-<tr><td>resetAccumulatedStreamImage</td><td></td></tr>
-<tr><td>resetAerialGradientTemporalFrameAverage</td><td></td></tr>
-<tr><td>resetAuxiliary</td><td></td></tr>
-<tr><td>resetAveragedWrenchNorm</td><td></td></tr>
-<tr><td>resetCurrentFocusedClass</td><td></td></tr>
-<tr><td>resetTemporalMap</td><td></td></tr>
-<tr><td>resetW1ThreshToDefault</td><td></td></tr>
-<tr><td>restoreIkShare</td><td></td></tr>
-<tr><td>retrainVocabOff</td><td></td></tr>
-<tr><td>retrainVocabOn</td><td></td></tr>
-<tr><td>returnObject</td><td></td></tr>
-<tr><td>reverseCompound</td><td></td></tr>
-<tr><td>reversePath</td><td></td></tr>
-<tr><td>rewindImageStreamBuffer</td><td></td></tr>
-<tr><td>rewindImageStreamBufferNLNK</td><td></td></tr>
-<tr><td>rgbScan</td><td></td></tr>
-<tr><td>robotSerial</td><td></td></tr>
-<tr><td>robotSoftwareVersion</td><td></td></tr>
-<tr><td>rock</td><td></td></tr>
-<tr><td>rockA</td><td></td></tr>
-<tr><td>rockB</td><td></td></tr>
-<tr><td>rockC</td><td></td></tr>
-<tr><td>rockD</td><td></td></tr>
-<tr><td>rockDA</td><td></td></tr>
-<tr><td>rockInit</td><td></td></tr>
-<tr><td>roll</td><td></td></tr>
-<tr><td>sB</td><td></td></tr>
-<tr><td>sP</td><td></td></tr>
-<tr><td>sadFace</td><td></td></tr>
-<tr><td>sampleHeight</td><td></td></tr>
-<tr><td>save3dGrasps</td><td></td></tr>
-<tr><td>saveAccumulatedStreamToServoImage</td><td></td></tr>
-<tr><td>saveAerialGradientMap</td><td></td></tr>
-<tr><td>saveCalibration</td><td></td></tr>
-<tr><td>saveCalibrationToClass</td><td></td></tr>
-<tr><td>saveConfig</td><td></td></tr>
-<tr><td>saveCurrentClassDepthAndGraspMaps</td><td></td></tr>
-<tr><td>saveGripperMask</td><td></td></tr>
-<tr><td>saveIkMap</td><td></td></tr>
-<tr><td>saveIkMapAtHeight</td><td></td></tr>
-<tr><td>saveRegister1</td><td></td></tr>
-<tr><td>saveRegister2</td><td></td></tr>
-<tr><td>saveRegister3</td><td></td></tr>
-<tr><td>saveRegister4</td><td></td></tr>
-<tr><td>scanCentered</td><td></td></tr>
-<tr><td>scanGroup</td><td></td></tr>
-<tr><td>scanLoop</td><td></td></tr>
-<tr><td>scanObject</td><td>Scans an object, including the IR scan.</td></tr>
-<tr><td>scanObjectFast</td><td>Scans an object without an IR scan, and with an annotated grasp.</td></tr>
-<tr><td>scanObjectScene</td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
-<tr><td>scanObjectStream</td><td>Scans an object in stream mode with an annotated grasp.</td></tr>
-<tr><td>scanObjectStreamAnnotated</td><td>Scans an object in stream mode with an annotated grasp.</td></tr>
-<tr><td>scanObjectStreamWaypoints</td><td>Scans a stack of objects in stream mode with an annotated grasps in stack.</td></tr>
-<tr><td>scanObjectStreamWaypoints3d</td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
-<tr><td>scanObjectStreamWaypoints3dNoPick</td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
-<tr><td>scanObjectStreamWaypointsIR</td><td>Scans a stack of objects in stream mode using IR raster scan to infer grasp points.</td></tr>
-<tr><td>sceneAddDiscrepantPredictedToObserved</td><td></td></tr>
-<tr><td>sceneAddPredictedFocusedObject</td><td></td></tr>
-<tr><td>sceneAddPredictedObject</td><td></td></tr>
-<tr><td>sceneAddPredictedToObserved</td><td></td></tr>
-<tr><td>sceneAnchorPose</td><td>Takes a gaussian map on the stack and returns its anchor eePose.</td></tr>
-<tr><td>sceneAngularApertureCols</td><td></td></tr>
-<tr><td>sceneAngularApertureRows</td><td></td></tr>
-<tr><td>sceneAngularBaffleCols</td><td></td></tr>
-<tr><td>sceneAngularBaffleRows</td><td></td></tr>
-<tr><td>sceneBackgroundMap</td><td>Takes a scene on the stack and returns its background map.</td></tr>
-<tr><td>sceneCellCountThreshold</td><td></td></tr>
-<tr><td>sceneCellWidth</td><td></td></tr>
-<tr><td>sceneClearDepthStack</td><td></td></tr>
-<tr><td>sceneClearObservedMap</td><td></td></tr>
-<tr><td>sceneClearPredictedObjects</td><td></td></tr>
-<tr><td>sceneCoalesceClassHarmonics</td><td></td></tr>
-<tr><td>sceneComposePredictedMap</td><td></td></tr>
-<tr><td>sceneComposePredictedMapThreshed</td><td></td></tr>
-<tr><td>sceneComputeProbabilityOfMap</td><td></td></tr>
-<tr><td>sceneComputeScore</td><td></td></tr>
-<tr><td>sceneCopyGaussianMap</td><td>Takes a gaussian map on the stack and performs a deep copy, leaving a new gaussian map on the stack.</td></tr>
-<tr><td>sceneCopyObservedToReprojectionBuffer</td><td></td></tr>
-<tr><td>sceneCopyScene</td><td>Takes a scene on the stack and performs a deep copy, leaving a new scene on the stack.</td></tr>
-<tr><td>sceneCountDiscrepantCells</td><td></td></tr>
-<tr><td>sceneCropToDiscrepantRegion</td><td></td></tr>
-<tr><td>sceneDensityFromDiscrepancy</td><td></td></tr>
-<tr><td>sceneDepthPatchHalfWidth</td><td></td></tr>
-<tr><td>sceneDepthStackLoadAndCropRaw</td><td></td></tr>
-<tr><td>sceneDepthStackLoadAndMarginalizeRaw</td><td></td></tr>
-<tr><td>sceneDepthStackLoadAndMinRaw</td><td></td></tr>
-<tr><td>sceneDepthStackLoadAndPushRaw</td><td></td></tr>
-<tr><td>sceneDepthStackSavePngRaw</td><td></td></tr>
-<tr><td>sceneDepthStackSaveRaw</td><td></td></tr>
-<tr><td>sceneDiscrepancyMode</td><td></td></tr>
-<tr><td>sceneDiscrepancySearchDepth</td><td></td></tr>
-<tr><td>sceneExponentialAverageObservedIntoBackground</td><td></td></tr>
-<tr><td>sceneFabricateIdealBlockModel</td><td></td></tr>
-<tr><td>sceneFlattenUncertainZWithDepthStack</td><td></td></tr>
-<tr><td>sceneGetAnnotatedClassName</td><td></td></tr>
-<tr><td>sceneGetClassificationMode</td><td></td></tr>
-<tr><td>sceneGetFixationMode</td><td></td></tr>
-<tr><td>sceneGetPredictedClassName</td><td></td></tr>
-<tr><td>sceneGrabDiscrepantCropAsClass</td><td></td></tr>
-<tr><td>sceneHighPrecisionBeforeAfterDiffOfLogs</td><td></td></tr>
-<tr><td>sceneInit</td><td></td></tr>
-<tr><td>sceneInitDefaultBackgroundMap</td><td>Check if the map exists; otherwise create a default one.</td></tr>
-<tr><td>sceneInitDimensions</td><td></td></tr>
-<tr><td>sceneInitFromEePose</td><td></td></tr>
-<tr><td>sceneInitFromEePoseScale</td><td></td></tr>
-<tr><td>sceneInitFromEePoseScaleDimensions</td><td></td></tr>
-<tr><td>sceneInitRegisterMax</td><td></td></tr>
-<tr><td>sceneInitRegisterZero</td><td></td></tr>
-<tr><td>sceneInitSmall</td><td></td></tr>
-<tr><td>sceneIsNewConfiguration</td><td></td></tr>
-<tr><td>sceneLoadBackgroundMap</td><td></td></tr>
-<tr><td>sceneLoadDiscrepancyMap</td><td></td></tr>
-<tr><td>sceneLoadFocusedObjectModel</td><td>Load the object model of the focused class from disk.</td></tr>
-<tr><td>sceneLoadFocusedSceneModel</td><td>Loads a scene from disk into the scene model for the focused class.  Requires the name of a scene that is saved to disk.</td></tr>
-<tr><td>sceneLoadGaussianMap</td><td>Takes a string, loads the gaussian map and puts it on the stack.</td></tr>
-<tr><td>sceneLoadLightingModelFromGaussianMapFile</td><td></td></tr>
-<tr><td>sceneLoadMonochromeBackground</td><td></td></tr>
-<tr><td>sceneLoadObjectModel</td><td>Load the object model.  Takes an object name as argument, which must be a directory name in the objects directory.</td></tr>
-<tr><td>sceneLoadObservedMap</td><td></td></tr>
-<tr><td>sceneLoadScene</td><td></td></tr>
-<tr><td>sceneLoadSceneRaw</td><td></td></tr>
-<tr><td>sceneMapSceneObject</td><td></td></tr>
-<tr><td>sceneMarginalizeDepthStackIntoRegister</td><td></td></tr>
-<tr><td>sceneMinDepthStackIntoRegister</td><td></td></tr>
-<tr><td>sceneMinIntoRegister</td><td></td></tr>
-<tr><td>sceneMinSigmaSquared</td><td></td></tr>
-<tr><td>sceneNumPredictedObjects</td><td></td></tr>
-<tr><td>sceneObjectLabelToSceneObjectIdx</td><td></td></tr>
-<tr><td>sceneObservedMap</td><td>Takes a scene on the stack and returns its observed map.</td></tr>
-<tr><td>scenePredictBestObject</td><td></td></tr>
-<tr><td>scenePredictFocusedObject</td><td></td></tr>
-<tr><td>scenePredictedMap</td><td>Takes a scene on the stack and returns its predicted map.</td></tr>
-<tr><td>scenePushAnchorPose</td><td></td></tr>
-<tr><td>scenePushAverageCrCbSigmaSquared</td><td></td></tr>
-<tr><td>scenePushDepthStackSize</td><td></td></tr>
-<tr><td>scenePushFocusedClassModelArea</td><td></td></tr>
-<tr><td>scenePushFocusedClassTotalDiscrepancy</td><td></td></tr>
-<tr><td>scenePushLightingModel</td><td></td></tr>
-<tr><td>scenePushNumSceneObjects</td><td></td></tr>
-<tr><td>scenePushOntoDepthStack</td><td></td></tr>
-<tr><td>scenePushPixelOfMinStackVariance</td><td></td></tr>
-<tr><td>scenePushPixelOfMinVariance</td><td></td></tr>
-<tr><td>scenePushSceneObjectLabel</td><td></td></tr>
-<tr><td>scenePushSceneObjectPose</td><td>Takes an index; pushes the pose for this predicted object.</td></tr>
-<tr><td>scenePushTotalDiscrepancy</td><td></td></tr>
-<tr><td>scenePushTotalDiscrepancyMagnitude</td><td></td></tr>
-<tr><td>scenePushTotalLogDiscrepancy</td><td></td></tr>
-<tr><td>scenePushTotalRelevantOneMinusDiscrepancy</td><td></td></tr>
-<tr><td>sceneRecalculateObservedMusAndSigmas</td><td></td></tr>
-<tr><td>sceneRecallDepthStackIndex</td><td></td></tr>
-<tr><td>sceneRecallFromRegister</td><td></td></tr>
-<tr><td>sceneRegularizeSceneL2</td><td></td></tr>
-<tr><td>sceneRenderBackgroundMap</td><td></td></tr>
-<tr><td>sceneRenderDiscrepancy</td><td></td></tr>
-<tr><td>sceneRenderObservedMap</td><td></td></tr>
-<tr><td>sceneRenderPredictedMap</td><td></td></tr>
-<tr><td>sceneRenderScene</td><td></td></tr>
-<tr><td>sceneRenderZ</td><td></td></tr>
-<tr><td>sceneSaveBackgroundMap</td><td></td></tr>
-<tr><td>sceneSaveDiscrepancyDensityImage</td><td></td></tr>
-<tr><td>sceneSaveDiscrepancyMap</td><td></td></tr>
-<tr><td>sceneSaveFocusedSceneModel</td><td></td></tr>
-<tr><td>sceneSaveGaussianMap</td><td>Takes a string and saves a gaussian map to that string.</td></tr>
-<tr><td>sceneSaveLightingModelToGaussianMapFile</td><td></td></tr>
-<tr><td>sceneSaveObservedMap</td><td></td></tr>
-<tr><td>sceneSaveObservedMapImage</td><td></td></tr>
-<tr><td>sceneSaveScene</td><td></td></tr>
-<tr><td>sceneSaveSceneAbsolute</td><td></td></tr>
-<tr><td>sceneScoreObjectAtPose</td><td></td></tr>
-<tr><td>sceneScoreThresh</td><td></td></tr>
-<tr><td>sceneSetAngularApertureCols</td><td></td></tr>
-<tr><td>sceneSetAngularApertureRows</td><td></td></tr>
-<tr><td>sceneSetAngularBaffleCols</td><td></td></tr>
-<tr><td>sceneSetAngularBaffleRows</td><td></td></tr>
-<tr><td>sceneSetAnnotatedClassName</td><td></td></tr>
-<tr><td>sceneSetAnnotatedClassNameToFocusedClass</td><td></td></tr>
-<tr><td>sceneSetBackgroundFromObserved</td><td></td></tr>
-<tr><td>sceneSetBackgroundMap</td><td>Takes a scene and a background map and sets the scene with the background map. </td></tr>
-<tr><td>sceneSetBackgroundStdDevColor</td><td></td></tr>
-<tr><td>sceneSetBackgroundStdDevY</td><td></td></tr>
-<tr><td>sceneSetCellCountThreshold</td><td></td></tr>
-<tr><td>sceneSetClassificationMode</td><td></td></tr>
-<tr><td>sceneSetCurrentScene</td><td>Sets the current scene with its argument.</td></tr>
-<tr><td>sceneSetDepthPatchHalfWidth</td><td></td></tr>
-<tr><td>sceneSetDiscrepancyDensityFromZ</td><td></td></tr>
-<tr><td>sceneSetDiscrepancyModeDot</td><td></td></tr>
-<tr><td>sceneSetDiscrepancyModeNoisyAnd</td><td></td></tr>
-<tr><td>sceneSetDiscrepancyModeNoisyOr</td><td></td></tr>
-<tr><td>sceneSetDiscrepancyModePoint</td><td></td></tr>
-<tr><td>sceneSetDiscrepancySearchDepth</td><td></td></tr>
-<tr><td>sceneSetFixationMode</td><td></td></tr>
-<tr><td>sceneSetFocusedSceneStdDevColor</td><td></td></tr>
-<tr><td>sceneSetFocusedSceneStdDevY</td><td></td></tr>
-<tr><td>sceneSetHeightReticleFromPixel</td><td></td></tr>
-<tr><td>sceneSetHeightReticleFromVariance</td><td></td></tr>
-<tr><td>sceneSetLightModelFromDiscrepancy</td><td></td></tr>
-<tr><td>sceneSetLightingModelFromStack</td><td></td></tr>
-<tr><td>sceneSetLightingModelStdDevColor</td><td></td></tr>
-<tr><td>sceneSetLightingModelStdDevY</td><td></td></tr>
-<tr><td>sceneSetMinSigmaSquared</td><td></td></tr>
-<tr><td>sceneSetObservedMap</td><td>Takes a scene and an observed map and sets the scene with the observed map. </td></tr>
-<tr><td>sceneSetObservedRGBFromVariance</td><td></td></tr>
-<tr><td>sceneSetObservedRGBFromZ</td><td></td></tr>
-<tr><td>sceneSetPredictedClassName</td><td></td></tr>
-<tr><td>sceneSetPredictedClassNameToFocusedClass</td><td></td></tr>
-<tr><td>sceneSetPredictedStdDevColor</td><td></td></tr>
-<tr><td>sceneSetPredictedStdDevY</td><td></td></tr>
-<tr><td>sceneSetScoreThresh</td><td></td></tr>
-<tr><td>sceneSetVanishingPointFromPixel</td><td></td></tr>
-<tr><td>sceneSetVanishingPointFromVariance</td><td></td></tr>
-<tr><td>sceneSmoothDepthStackInZ</td><td></td></tr>
-<tr><td>sceneSmoothDiscrepancyDensity</td><td></td></tr>
-<tr><td>sceneSmoothSquaredCountsAndSamplesXY</td><td></td></tr>
-<tr><td>sceneSpawnClassHarmonics</td><td></td></tr>
-<tr><td>sceneStoreObservedInRegister</td><td></td></tr>
-<tr><td>sceneTakeAfterDensity</td><td></td></tr>
-<tr><td>sceneTakeBeforeDensity</td><td></td></tr>
-<tr><td>sceneTrimDepthWithDiscrepancy</td><td></td></tr>
-<tr><td>sceneUpdateAllClassDiscrepancies</td><td></td></tr>
-<tr><td>sceneUpdateDiscrepancy</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromReprojectionBufferAtZNoRecalc</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromSnout</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBuffer</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZ</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalc</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAll</td><td>Updates the observed map from the stream buffer in a big for loop; fastest version without GPU.  This is the one to copy and call.</td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnlyRising</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlareRising</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderGlareOnly</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderWithoutGlare</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcEPI</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderGlareOnly</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderWithoutGlare</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderGlareOnly</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderWithoutGlare</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferDepthMap</td><td>Updates the observed map from the stream buffer as a depth map.  Used for the Kinect 2.</td></tr>
-<tr><td>sceneUpdateObservedFromStreamBufferNoRecalc</td><td></td></tr>
-<tr><td>sceneUpdateObservedFromWrist</td><td></td></tr>
-<tr><td>sceneZeroBox</td><td></td></tr>
-<tr><td>sceneZeroLowerX</td><td></td></tr>
-<tr><td>sceneZeroLowerY</td><td></td></tr>
-<tr><td>sceneZeroUpperX</td><td></td></tr>
-<tr><td>sceneZeroUpperY</td><td></td></tr>
-<tr><td>searchProximity</td><td></td></tr>
-<tr><td>seeHz</td><td></td></tr>
-<tr><td>selectBestAvailableGrasp</td><td></td></tr>
-<tr><td>selectMaxTargetCumulative</td><td></td></tr>
-<tr><td>selectMaxTargetNotCumulative</td><td></td></tr>
-<tr><td>setAerialGradientsToBarsLengthWidthGap</td><td></td></tr>
-<tr><td>setAiboPoseHeadPan</td><td></td></tr>
-<tr><td>setAiboPoseHeadTilt</td><td></td></tr>
-<tr><td>setAiboPoseLegLF1</td><td></td></tr>
-<tr><td>setAiboPoseLegLF2</td><td></td></tr>
-<tr><td>setAiboPoseLegLF3</td><td></td></tr>
-<tr><td>setAiboPoseLegLH1</td><td></td></tr>
-<tr><td>setAiboPoseLegLH2</td><td></td></tr>
-<tr><td>setAiboPoseLegLH3</td><td></td></tr>
-<tr><td>setAiboPoseLegRF1</td><td></td></tr>
-<tr><td>setAiboPoseLegRF2</td><td></td></tr>
-<tr><td>setAiboPoseLegRF3</td><td></td></tr>
-<tr><td>setAiboPoseLegRH1</td><td></td></tr>
-<tr><td>setAiboPoseLegRH2</td><td></td></tr>
-<tr><td>setAiboPoseLegRH3</td><td></td></tr>
-<tr><td>setAiboPoseMouth</td><td></td></tr>
-<tr><td>setAiboPoseNeck</td><td></td></tr>
-<tr><td>setAiboPoseTailPan</td><td></td></tr>
-<tr><td>setAiboPoseTailTilt</td><td></td></tr>
-<tr><td>setArmedThreshold</td><td></td></tr>
-<tr><td>setBeeHome</td><td></td></tr>
-<tr><td>setBoundingBoxModeToLearningAlgorithmC</td><td></td></tr>
-<tr><td>setBoundingBoxModeToLearningSampling</td><td></td></tr>
-<tr><td>setBoundingBoxModeToMapping</td><td></td></tr>
-<tr><td>setBoundingBoxModeToStaticMarginals</td><td></td></tr>
-<tr><td>setBoundingBoxModeToStaticPrior</td><td></td></tr>
-<tr><td>setBreakGraspTiesWithNoise</td><td></td></tr>
-<tr><td>setC3dPoseBase</td><td></td></tr>
-<tr><td>setCameraCenterX</td><td></td></tr>
-<tr><td>setCameraCenterY</td><td></td></tr>
-<tr><td>setCameraCropUpperLeftCornerX</td><td></td></tr>
-<tr><td>setCameraCropUpperLeftCornerY</td><td></td></tr>
-<tr><td>setCameraKappaX</td><td></td></tr>
-<tr><td>setCameraKappaY</td><td></td></tr>
-<tr><td>setCameraMuX</td><td></td></tr>
-<tr><td>setCameraMuY</td><td></td></tr>
-<tr><td>setCameraR00</td><td></td></tr>
-<tr><td>setCameraR01</td><td></td></tr>
-<tr><td>setCameraR10</td><td></td></tr>
-<tr><td>setCameraR11</td><td></td></tr>
-<tr><td>setClassLabels</td><td>Set the active classes.  useage:  endArgs &quot;class1&quot; &quot;class2&quot; setClassLabels.  The class names must be directorys in the ein/default/objects folder.</td></tr>
-<tr><td>setClassLabelsBaseClassAbsolute</td><td></td></tr>
-<tr><td>setClassLabelsObjectFolderAbsolute</td><td></td></tr>
-<tr><td>setClosestBlueBoxMemoryToFocusedClass</td><td></td></tr>
-<tr><td>setColorReticles</td><td></td></tr>
-<tr><td>setColorReticlesA</td><td></td></tr>
-<tr><td>setControlModeAngles</td><td></td></tr>
-<tr><td>setControlModeEePosition</td><td></td></tr>
-<tr><td>setCurrentCornellTableToZero</td><td></td></tr>
-<tr><td>setCurrentIKBoundaryMode</td><td></td></tr>
-<tr><td>setCurrentIKFastMode</td><td></td></tr>
-<tr><td>setCurrentPoseFromJoints</td><td></td></tr>
-<tr><td>setCurrentPoseToTruePose</td><td></td></tr>
-<tr><td>setCurrentTableZ</td><td></td></tr>
-<tr><td>setDefaultHandCameraOffset</td><td>Sets the hand camera offset to the default value (obtained for Baxter&apos;s RGB wrist camera.</td></tr>
-<tr><td>setEEPosePX</td><td></td></tr>
-<tr><td>setEEPosePY</td><td></td></tr>
-<tr><td>setEEPosePZ</td><td></td></tr>
-<tr><td>setEEPoseQW</td><td></td></tr>
-<tr><td>setEEPoseQX</td><td></td></tr>
-<tr><td>setEEPoseQY</td><td></td></tr>
-<tr><td>setEEPoseQZ</td><td></td></tr>
-<tr><td>setEffortHere</td><td></td></tr>
-<tr><td>setEffortThresh</td><td></td></tr>
-<tr><td>setExpectedCropsToStream</td><td></td></tr>
-<tr><td>setFakeBBWidth</td><td></td></tr>
-<tr><td>setFocusedClass</td><td></td></tr>
-<tr><td>setFocusedClassIdx</td><td></td></tr>
-<tr><td>setGradientServoHardMaxIterations</td><td></td></tr>
-<tr><td>setGradientServoMode</td><td></td></tr>
-<tr><td>setGradientServoSoftMaxIterations</td><td></td></tr>
-<tr><td>setGraspBackoffDistance</td><td></td></tr>
-<tr><td>setGraspMemoriesFromClassGraspMemories</td><td></td></tr>
-<tr><td>setGraspModeTo3D</td><td></td></tr>
-<tr><td>setGraspModeToCrane</td><td></td></tr>
-<tr><td>setGreenHalo</td><td></td></tr>
-<tr><td>setGridSize</td><td></td></tr>
-<tr><td>setGridSizeCoarse</td><td></td></tr>
-<tr><td>setGridSizeCoarser</td><td></td></tr>
-<tr><td>setGridSizeEvenCoarser</td><td></td></tr>
-<tr><td>setGridSizeFine</td><td></td></tr>
-<tr><td>setGridSizeMedium</td><td></td></tr>
-<tr><td>setGridSizeNowThatsCoarse</td><td></td></tr>
-<tr><td>setGridSizeVeryFine</td><td></td></tr>
-<tr><td>setGripperMask</td><td></td></tr>
-<tr><td>setGripperMaskA</td><td></td></tr>
-<tr><td>setGripperMaskAA</td><td></td></tr>
-<tr><td>setGripperMaskB</td><td></td></tr>
-<tr><td>setGripperMaskBA</td><td></td></tr>
-<tr><td>setGripperMaskCA</td><td></td></tr>
-<tr><td>setGripperMaskCB</td><td></td></tr>
-<tr><td>setGripperMaskOnes</td><td></td></tr>
-<tr><td>setGripperMaskThresh</td><td></td></tr>
-<tr><td>setGripperMaskWithMotion</td><td></td></tr>
-<tr><td>setGripperMaskWithMotionA</td><td></td></tr>
-<tr><td>setGripperMovingForce</td><td></td></tr>
-<tr><td>setGripperThresh</td><td></td></tr>
-<tr><td>setHandCameraOffset</td><td></td></tr>
-<tr><td>setHandEndEffectorOffset</td><td></td></tr>
-<tr><td>setHeadPanTargetSpeed</td><td></td></tr>
-<tr><td>setHeightMemoriesFromClassHeightMemories</td><td></td></tr>
-<tr><td>setHeightReticles</td><td></td></tr>
-<tr><td>setHeightReticlesA</td><td></td></tr>
-<tr><td>setHelp</td><td>Make a new compound word with specified description text.  Usage:  &lt;compound word&gt; &lt; help text &gt; setHelp -&gt; &lt; compound word with help text &gt;. </td></tr>
-<tr><td>setHoverThreshold</td><td></td></tr>
-<tr><td>setIROffset</td><td></td></tr>
-<tr><td>setIROffsetA</td><td></td></tr>
-<tr><td>setIdleModeToCrane</td><td></td></tr>
-<tr><td>setIdleModeToEmpty</td><td></td></tr>
-<tr><td>setIdleModeToPatrol</td><td></td></tr>
-<tr><td>setIdleModeToShrug</td><td></td></tr>
-<tr><td>setIdleModeToStopClear</td><td></td></tr>
-<tr><td>setLastLabelLearned</td><td></td></tr>
-<tr><td>setMagnification</td><td></td></tr>
-<tr><td>setMagnificationA</td><td></td></tr>
-<tr><td>setMagnificationB</td><td></td></tr>
-<tr><td>setMapAutoPick</td><td></td></tr>
-<tr><td>setMapFreeSpacePixelSkirt</td><td></td></tr>
-<tr><td>setMapGrayBoxPixelSkirtCols</td><td></td></tr>
-<tr><td>setMapGrayBoxPixelSkirtRows</td><td></td></tr>
-<tr><td>setMapGrayBoxPixelWaistCols</td><td></td></tr>
-<tr><td>setMapGrayBoxPixelWaistRows</td><td></td></tr>
-<tr><td>setMapSearchFenceXMax</td><td></td></tr>
-<tr><td>setMapSearchFenceXMin</td><td></td></tr>
-<tr><td>setMapSearchFenceYMax</td><td></td></tr>
-<tr><td>setMapSearchFenceYMin</td><td></td></tr>
-<tr><td>setMapServoMode</td><td></td></tr>
-<tr><td>setMappingServoTimeout</td><td></td></tr>
-<tr><td>setMovementStateToMoving</td><td></td></tr>
-<tr><td>setMovingThreshold</td><td></td></tr>
-<tr><td>setNumClasses</td><td></td></tr>
-<tr><td>setPatrolModeToLoop</td><td></td></tr>
-<tr><td>setPatrolModeToOnce</td><td></td></tr>
-<tr><td>setPatrolStateToHanding</td><td></td></tr>
-<tr><td>setPatrolStateToIdling</td><td></td></tr>
-<tr><td>setPatrolStateToPatrolling</td><td></td></tr>
-<tr><td>setPatrolStateToPicking</td><td></td></tr>
-<tr><td>setPatrolStateToPlacing</td><td></td></tr>
-<tr><td>setPhotoPinHere</td><td></td></tr>
-<tr><td>setPickFixMapAnchor</td><td></td></tr>
-<tr><td>setPickFlushFactor</td><td></td></tr>
-<tr><td>setPickModeToLearningAlgorithmC</td><td></td></tr>
-<tr><td>setPickModeToLearningSampling</td><td></td></tr>
-<tr><td>setPickModeToStaticMarginals</td><td></td></tr>
-<tr><td>setPickModeToStaticPrior</td><td></td></tr>
-<tr><td>setPlaceModeToHand</td><td></td></tr>
-<tr><td>setPlaceModeToHold</td><td></td></tr>
-<tr><td>setPlaceModeToRegister</td><td></td></tr>
-<tr><td>setPlaceModeToShake</td><td></td></tr>
-<tr><td>setPressPose</td><td></td></tr>
-<tr><td>setPursuitProximity</td><td></td></tr>
-<tr><td>setRandomOrientationForPhotospin</td><td></td></tr>
-<tr><td>setRandomPositionAfterPick</td><td></td></tr>
-<tr><td>setRandomPositionAndOrientationForHeightLearning</td><td></td></tr>
-<tr><td>setRangeMapCenterFromCurrentEEPose</td><td></td></tr>
-<tr><td>setRedHalo</td><td></td></tr>
-<tr><td>setRepeatHalo</td><td></td></tr>
-<tr><td>setScanGroup</td><td></td></tr>
-<tr><td>setScanModeCentered</td><td></td></tr>
-<tr><td>setScanModeNotCentered</td><td></td></tr>
-<tr><td>setSearchProximity</td><td></td></tr>
-<tr><td>setSisFlags</td><td>Set whether we should save different sensor streams. &lt;pose&gt; &lt;range&gt; &lt;image&gt; &lt;joints&gt; &lt;word&gt; &lt;label&gt; setSisFlags</td></tr>
-<tr><td>setSnapToFlushGrasp</td><td></td></tr>
-<tr><td>setSonarLed</td><td></td></tr>
-<tr><td>setSpeed</td><td></td></tr>
-<tr><td>setStiffness</td><td></td></tr>
-<tr><td>setStreamPicks</td><td></td></tr>
-<tr><td>setTable</td><td></td></tr>
-<tr><td>setTableA</td><td></td></tr>
-<tr><td>setTargetClass</td><td></td></tr>
-<tr><td>setTargetClassIdx</td><td></td></tr>
-<tr><td>setTargetClassToLastLabelLearned</td><td></td></tr>
-<tr><td>setTargetReticleToTheMaxMappedPosition</td><td></td></tr>
-<tr><td>setTheYcbTable</td><td></td></tr>
-<tr><td>setTorsoFanLevel</td><td></td></tr>
-<tr><td>setTrackbarLoHi</td><td></td></tr>
-<tr><td>setTwistThresh</td><td></td></tr>
-<tr><td>setVanishingPoint</td><td></td></tr>
-<tr><td>setVanishingPointA</td><td></td></tr>
-<tr><td>setVanishingPointB</td><td></td></tr>
-<tr><td>setVanishingPointPrep</td><td></td></tr>
-<tr><td>setW1AngleThresh</td><td></td></tr>
-<tr><td>setW1GoThresh</td><td></td></tr>
-<tr><td>shakeHeadNegative</td><td></td></tr>
-<tr><td>shakeHeadPositive</td><td></td></tr>
-<tr><td>shakeItOff1</td><td></td></tr>
-<tr><td>shakeItUpAndDown</td><td></td></tr>
-<tr><td>shiftGraspGear</td><td></td></tr>
-<tr><td>shiftIntoGraspGear1</td><td></td></tr>
-<tr><td>shiftIntoGraspGear2</td><td></td></tr>
-<tr><td>shiftIntoGraspGear3</td><td></td></tr>
-<tr><td>shiftIntoGraspGear4</td><td></td></tr>
-<tr><td>shutdownAllNonessentialSystems</td><td>Shut down all systems that are not important for streaming data, to maximize the framerate we stream.</td></tr>
-<tr><td>shutdownToSensorsAndMovement</td><td></td></tr>
-<tr><td>silenceSonar</td><td></td></tr>
-<tr><td>sin</td><td></td></tr>
-<tr><td>size</td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
-<tr><td>slide</td><td></td></tr>
-<tr><td>slip</td><td></td></tr>
-<tr><td>socketClose</td><td></td></tr>
-<tr><td>socketOpen</td><td></td></tr>
-<tr><td>socketRead</td><td></td></tr>
-<tr><td>socketSend</td><td></td></tr>
-<tr><td>spawnTargetClassAtEndEffector</td><td></td></tr>
-<tr><td>spawnTargetMasterSpriteAtEndEffector</td><td></td></tr>
-<tr><td>spinForSeconds</td><td></td></tr>
-<tr><td>spinForSecondsA</td><td></td></tr>
-<tr><td>spinForSecondsInit</td><td></td></tr>
-<tr><td>squeezeDuck</td><td></td></tr>
-<tr><td>start</td><td></td></tr>
-<tr><td>start3dGraspAnnotation</td><td></td></tr>
-<tr><td>start3dGraspAnnotationNoChange</td><td></td></tr>
-<tr><td>stay</td><td></td></tr>
-<tr><td>stayNoRoll</td><td></td></tr>
-<tr><td>stayZOnly</td><td></td></tr>
-<tr><td>stereoCalculate</td><td></td></tr>
-<tr><td>stereoDisplay</td><td></td></tr>
-<tr><td>stereoPair</td><td></td></tr>
-<tr><td>stereoPairCache1</td><td></td></tr>
-<tr><td>stereoPairCache2</td><td></td></tr>
-<tr><td>stereoPrep</td><td></td></tr>
-<tr><td>store</td><td>Create a new variable.  Usage  &lt;value&gt; &quot;&lt;name&gt;&quot; store.  After that you can say &lt;name&gt; and it will push its contents on the call stack.</td></tr>
-<tr><td>streamBasePoseForCurrentImage</td><td>Push the arm pose for the current image in the stream buffer.</td></tr>
-<tr><td>streamCenterCropAsFocusedClass</td><td></td></tr>
-<tr><td>streamCropsAsFocusedClass</td><td></td></tr>
-<tr><td>streamDisableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
-<tr><td>streamDiskStreaming</td><td></td></tr>
-<tr><td>streamEnableAllSisFlags</td><td>Enable all SIS flags.</td></tr>
-<tr><td>streamEnableSisImageAndPoses</td><td>Configure Ein to stream images and poses only.</td></tr>
-<tr><td>streamGraspResult</td><td></td></tr>
-<tr><td>streamImageBufferCurrentIdx</td><td></td></tr>
-<tr><td>streamImageBufferSize</td><td></td></tr>
-<tr><td>streamImageSpeed</td><td></td></tr>
-<tr><td>streamIncrementImageStreamBuffer</td><td>Increments the current location in the image stream buffer.  The new default word, which does no load and no kick.</td></tr>
-<tr><td>streamJointBufferSize</td><td></td></tr>
-<tr><td>streamLabel</td><td></td></tr>
-<tr><td>streamLabelBufferSize</td><td></td></tr>
-<tr><td>streamPlayStreamBuffer</td><td>Play back the stream buffer.  Plays back at a constant rate; is not careful to wait the &apos;correct&apos; amount of time between frames.</td></tr>
-<tr><td>streamPoseBufferSize</td><td></td></tr>
-<tr><td>streamPoseForCurrentImage</td><td>Push the pose for the current image in the stream buffer.</td></tr>
-<tr><td>streamRangeBufferSize</td><td></td></tr>
-<tr><td>streamRenderStreamWindow</td><td>Render the stream buffer window.</td></tr>
-<tr><td>streamScanCentered</td><td></td></tr>
-<tr><td>streamSetDiskStreaming</td><td></td></tr>
-<tr><td>streamSetImageBufferCurrentIdx</td><td></td></tr>
-<tr><td>streamSetSisImage</td><td></td></tr>
-<tr><td>streamSetSisJoints</td><td></td></tr>
-<tr><td>streamSetSisLabel</td><td></td></tr>
-<tr><td>streamSetSisPose</td><td></td></tr>
-<tr><td>streamSetSisRange</td><td></td></tr>
-<tr><td>streamSetSisWord</td><td></td></tr>
-<tr><td>streamSisImage</td><td></td></tr>
-<tr><td>streamSisJoints</td><td></td></tr>
-<tr><td>streamSisLabel</td><td></td></tr>
-<tr><td>streamSisPose</td><td></td></tr>
-<tr><td>streamSisRange</td><td></td></tr>
-<tr><td>streamSisWord</td><td></td></tr>
-<tr><td>streamSpin</td><td></td></tr>
-<tr><td>streamWordBufferSize</td><td></td></tr>
-<tr><td>streamWriteBuffersToDisk</td><td>Write what is in the stream buffer to disk.</td></tr>
-<tr><td>streamedAccumulatedDensity</td><td></td></tr>
-<tr><td>streamedDensity</td><td></td></tr>
-<tr><td>subscribeCameraParameterTrackerToRosOut</td><td></td></tr>
-<tr><td>sum</td><td>Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -&gt; 3.</td></tr>
-<tr><td>swap</td><td></td></tr>
-<tr><td>switchSonarLed</td><td></td></tr>
-<tr><td>synchronicServo</td><td></td></tr>
-<tr><td>synchronicServoA</td><td></td></tr>
-<tr><td>synchronicServoDoNotTakeClosest</td><td></td></tr>
-<tr><td>synchronicServoRepeat</td><td></td></tr>
-<tr><td>synchronicServoTakeClosest</td><td></td></tr>
-<tr><td>tenthImpulse</td><td></td></tr>
-<tr><td>throw</td><td></td></tr>
-<tr><td>throwOpenCV</td><td></td></tr>
-<tr><td>time</td><td></td></tr>
-<tr><td>times</td><td></td></tr>
-<tr><td>toggleDrawClearanceMap</td><td></td></tr>
-<tr><td>toggleDrawIKMap</td><td></td></tr>
-<tr><td>toggleShouldIDoIK</td><td></td></tr>
-<tr><td>toggleShouldIRender</td><td></td></tr>
-<tr><td>toggleUseFade</td><td></td></tr>
-<tr><td>toggleUseGlow</td><td></td></tr>
-<tr><td>torsoFanAuto</td><td></td></tr>
-<tr><td>torsoFanOff</td><td></td></tr>
-<tr><td>torsoFanOn</td><td></td></tr>
-<tr><td>torsoFanState</td><td></td></tr>
-<tr><td>touchDown</td><td></td></tr>
-<tr><td>trainAndWriteFocusedClassKnn</td><td></td></tr>
-<tr><td>trainModels</td><td>Rebuild the kNN model for the detectors.</td></tr>
-<tr><td>trainModelsFromLabels</td><td></td></tr>
-<tr><td>transformPath</td><td></td></tr>
-<tr><td>trueCameraPose</td><td></td></tr>
-<tr><td>truePose</td><td></td></tr>
-<tr><td>tryToMoveToTheLastPickHeight</td><td></td></tr>
-<tr><td>tryToMoveToTheLastPrePickHeight</td><td></td></tr>
-<tr><td>tuckArms</td><td></td></tr>
-<tr><td>turnAboutY</td><td></td></tr>
-<tr><td>turnOffScanning</td><td></td></tr>
-<tr><td>turnOnRecordRangeMap</td><td></td></tr>
-<tr><td>twistThresh</td><td></td></tr>
-<tr><td>twistWords</td><td></td></tr>
-<tr><td>twoDPatrolContinue</td><td></td></tr>
-<tr><td>twoDPatrolStart</td><td></td></tr>
-<tr><td>twoPartPlaceObjectOnObject</td><td></td></tr>
-<tr><td>unFixCameraLighting</td><td></td></tr>
-<tr><td>unFixCameraLightingNoUpdate</td><td></td></tr>
-<tr><td>unSilenceSonar</td><td></td></tr>
-<tr><td>unTurnAboutY</td><td></td></tr>
-<tr><td>uniformlySampleHeight</td><td></td></tr>
-<tr><td>unmapTargetBlueBox</td><td></td></tr>
-<tr><td>unsubscribeCameraParameterTrackerToRosOut</td><td></td></tr>
-<tr><td>untuckArms</td><td></td></tr>
-<tr><td>uploadObjectToDatabase</td><td></td></tr>
-<tr><td>visionCycle</td><td></td></tr>
-<tr><td>visionCycleNoClassify</td><td></td></tr>
-<tr><td>voidCurrentMapRegion</td><td></td></tr>
-<tr><td>w1AngleThresh</td><td></td></tr>
-<tr><td>w1GoThresh</td><td></td></tr>
-<tr><td>waitForSeconds</td><td></td></tr>
-<tr><td>waitForSecondsA</td><td></td></tr>
-<tr><td>waitForTugThenOpenGripper</td><td></td></tr>
-<tr><td>waitForTugThenOpenGripperA</td><td></td></tr>
-<tr><td>waitGetCurrentWaitMode</td><td></td></tr>
-<tr><td>waitSetCurrentWaitMode</td><td></td></tr>
-<tr><td>waitUntilAccelerometerCallbackReceived</td><td></td></tr>
-<tr><td>waitUntilAccelerometerCallbackReceivedA</td><td></td></tr>
-<tr><td>waitUntilAtCurrentPosition</td><td></td></tr>
-<tr><td>waitUntilAtCurrentPositionB</td><td></td></tr>
-<tr><td>waitUntilAtCurrentPositionCollapse</td><td></td></tr>
-<tr><td>waitUntilEffort</td><td></td></tr>
-<tr><td>waitUntilEffortA</td><td></td></tr>
-<tr><td>waitUntilEndpointCallbackReceived</td><td></td></tr>
-<tr><td>waitUntilEndpointCallbackReceivedA</td><td></td></tr>
-<tr><td>waitUntilGripperNotMoving</td><td></td></tr>
-<tr><td>waitUntilGripperNotMovingB</td><td></td></tr>
-<tr><td>waitUntilGripperNotMovingC</td><td></td></tr>
-<tr><td>waitUntilImageCallbackReceived</td><td></td></tr>
-<tr><td>waitUntilImageCallbackReceivedA</td><td></td></tr>
-<tr><td>waitUntilOnSideOfPlane</td><td></td></tr>
-<tr><td>waitUntilOnSideOfPlaneB</td><td></td></tr>
-<tr><td>waitUntilRingBufferImageAtCurrentPosition</td><td></td></tr>
-<tr><td>while</td><td>While loop.  Usage:  ( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while</td></tr>
-<tr><td>whileCollapsed</td><td>While loop.  Use as in while, but collaspses the stack.  This means that if you don&apos;t exit the while, Ein will also never exit the while, and be in an infinite loop, even if you clear the stacks.</td></tr>
-<tr><td>writeAlphaObjectToBetaFolders</td><td></td></tr>
-<tr><td>writeAlphaObjectToBetaFoldersA</td><td></td></tr>
-<tr><td>writeFocusedClass</td><td></td></tr>
-<tr><td>writeFocusedClassGrasps</td><td></td></tr>
-<tr><td>writeXMLEnvironment</td><td></td></tr>
-<tr><td>xDown</td><td></td></tr>
-<tr><td>xUp</td><td>Move end effector up in the x dimension one unit.  Change unit size with setGridSize.  Usage:  xUp</td></tr>
-<tr><td>yDown</td><td></td></tr>
-<tr><td>yUp</td><td></td></tr>
-<tr><td>zDown</td><td></td></tr>
-<tr><td>zUp</td><td></td></tr>
-<tr><td>zeroGMode</td><td></td></tr>
-<tr><td>zeroGOff</td><td>Turns off zero gravity mode, so Ein will publish the current pose as the desired target position.</td></tr>
-<tr><td>zeroGOn</td><td>Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.</td></tr>
-<tr><td>zeroGToggle</td><td>Toggle zero gravity mode.</td></tr>
-<tr><td>zeroIROffset</td><td></td></tr>
-<tr><td>{</td><td></td></tr>
-<tr><td>|B</td><td></td></tr>
-<tr><td>|S</td><td></td></tr>
-<tr><td>||</td><td></td></tr>
-<tr><td>}</td><td></td></tr>
+<tr><td>not<br/>!<br/></td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
+<tr><td>mod<br/>%<br/></td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
+<tr><td>and<br/>&amp;&amp;<br/></td><td>Returns logical and of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.</td></tr>
+<tr><td>slide<br/>&apos;<br/></td><td>Moves a word from the call stack to the data stack.</td></tr>
+<tr><td>oP<br/>(<br/></td><td>Open paren; begin a compound word.</td></tr>
+<tr><td>cP<br/>)<br/></td><td>Close paren; end a compound word.</td></tr>
+<tr><td>times<br/>*<br/></td><td>Multiply two numeric arguments.</td></tr>
+<tr><td>plus<br/>+<br/></td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
+<tr><td>minus<br/>-<br/></td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
+<tr><td>divide<br/>/<br/></td><td>Divide two numeric arguments.</td></tr>
+<tr><td>executeStack<br/>;<br/></td><td></td></tr>
+<tr><td>langle<br/>&lt;<br/></td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
+<tr><td>leq<br/>&lt;=<br/></td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>equals<br/>=<br/></td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
+<tr><td>rangle<br/>&gt;<br/></td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
+<tr><td>geq<br/>&gt;=<br/></td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>car<br/>First<br/>Head<br/></td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
+<tr><td>car<br/>First<br/>Head<br/></td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
+<tr><td>pauseStackExecution<br/>Pause<br/></td><td></td></tr>
+<tr><td>cdr<br/>Rest<br/>Tail<br/></td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
+<tr><td>cdr<br/>Rest<br/>Tail<br/></td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
+<tr><td>oSB<br/>[<br/></td><td></td></tr>
+<tr><td>cSB<br/>]<br/></td><td></td></tr>
+<tr><td>aboutFace<br/></td><td>Rotate the gripper in oZ by 180 degrees.</td></tr>
+<tr><td>abs<br/></td><td>Returns the absolute value of its argument.</td></tr>
+<tr><td>accumulate<br/></td><td>Accumulate entries in a compound word using an operator word.  Usage:  ( 1 1 1 ) ( + ) accumulate -&gt; 3.</td></tr>
+<tr><td>activateSensorStreaming<br/></td><td>Start streaming data; you might want to set the SiS (&quot;Should I Stream?&quot;) first using setSisFlags or streamSetSis.</td></tr>
+<tr><td>add3dGrasp<br/></td><td>Add the current pose as a 3D grasp relative to the focused object.  Must have locked the 3d grasp first so it knows what pose to use relative to the object.</td></tr>
+<tr><td>add3dGraspPoseWord<br/></td><td>Takes an argument on the stack of an EEPose and adds that pose as a 3d grasp relative to the base object.</td></tr>
+<tr><td>addPlaceOverPoint<br/></td><td></td></tr>
+<tr><td>addPlaceUnderPoint<br/></td><td></td></tr>
+<tr><td>analogIOCommand<br/></td><td></td></tr>
+<tr><td>and<br/>&amp;&amp;<br/></td><td>Returns logical and of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.</td></tr>
+<tr><td>append<br/></td><td></td></tr>
+<tr><td>approachSpeed<br/></td><td></td></tr>
+<tr><td>arm1By<br/></td><td></td></tr>
+<tr><td>arm1Current<br/></td><td></td></tr>
+<tr><td>arm1Down<br/></td><td></td></tr>
+<tr><td>arm1To<br/></td><td></td></tr>
+<tr><td>arm1True<br/></td><td></td></tr>
+<tr><td>arm1Up<br/></td><td></td></tr>
+<tr><td>arm2By<br/></td><td></td></tr>
+<tr><td>arm2Current<br/></td><td></td></tr>
+<tr><td>arm2Down<br/></td><td></td></tr>
+<tr><td>arm2To<br/></td><td></td></tr>
+<tr><td>arm2True<br/></td><td></td></tr>
+<tr><td>arm2Up<br/></td><td></td></tr>
+<tr><td>arm3By<br/></td><td></td></tr>
+<tr><td>arm3Current<br/></td><td></td></tr>
+<tr><td>arm3Down<br/></td><td></td></tr>
+<tr><td>arm3To<br/></td><td></td></tr>
+<tr><td>arm3True<br/></td><td></td></tr>
+<tr><td>arm3Up<br/></td><td></td></tr>
+<tr><td>arm4By<br/></td><td></td></tr>
+<tr><td>arm4Current<br/></td><td></td></tr>
+<tr><td>arm4Down<br/></td><td></td></tr>
+<tr><td>arm4To<br/></td><td></td></tr>
+<tr><td>arm4True<br/></td><td></td></tr>
+<tr><td>arm4Up<br/></td><td></td></tr>
+<tr><td>arm5By<br/></td><td></td></tr>
+<tr><td>arm5Current<br/></td><td></td></tr>
+<tr><td>arm5Down<br/></td><td></td></tr>
+<tr><td>arm5To<br/></td><td></td></tr>
+<tr><td>arm5True<br/></td><td></td></tr>
+<tr><td>arm5Up<br/></td><td></td></tr>
+<tr><td>arm6By<br/></td><td></td></tr>
+<tr><td>arm6Current<br/></td><td></td></tr>
+<tr><td>arm6Down<br/></td><td></td></tr>
+<tr><td>arm6To<br/></td><td></td></tr>
+<tr><td>arm6True<br/></td><td></td></tr>
+<tr><td>arm6Up<br/></td><td></td></tr>
+<tr><td>arm7By<br/></td><td></td></tr>
+<tr><td>arm7Current<br/></td><td></td></tr>
+<tr><td>arm7Down<br/></td><td></td></tr>
+<tr><td>arm7To<br/></td><td></td></tr>
+<tr><td>arm7True<br/></td><td></td></tr>
+<tr><td>arm7Up<br/></td><td></td></tr>
+<tr><td>armBackButtonState<br/></td><td></td></tr>
+<tr><td>armOkButtonState<br/></td><td></td></tr>
+<tr><td>armPose1Get<br/></td><td></td></tr>
+<tr><td>armPose1Set<br/></td><td></td></tr>
+<tr><td>armPose2Get<br/></td><td></td></tr>
+<tr><td>armPose2Set<br/></td><td></td></tr>
+<tr><td>armPose3Get<br/></td><td></td></tr>
+<tr><td>armPose3Set<br/></td><td></td></tr>
+<tr><td>armPose4Get<br/></td><td></td></tr>
+<tr><td>armPose4Set<br/></td><td></td></tr>
+<tr><td>armPose5Get<br/></td><td></td></tr>
+<tr><td>armPose5Set<br/></td><td></td></tr>
+<tr><td>armPose6Get<br/></td><td></td></tr>
+<tr><td>armPose6Set<br/></td><td></td></tr>
+<tr><td>armPose7Get<br/></td><td></td></tr>
+<tr><td>armPose7Set<br/></td><td></td></tr>
+<tr><td>armPoseToEePose<br/></td><td></td></tr>
+<tr><td>armPublishJointPositionCommand<br/></td><td></td></tr>
+<tr><td>armShowButtonState<br/></td><td></td></tr>
+<tr><td>armedThreshold<br/></td><td></td></tr>
+<tr><td>assert<br/></td><td></td></tr>
+<tr><td>assertNo<br/></td><td></td></tr>
+<tr><td>assumeAimedPose<br/></td><td></td></tr>
+<tr><td>assumeAny3dGrasp<br/></td><td></td></tr>
+<tr><td>assumeBackScanningPose<br/></td><td></td></tr>
+<tr><td>assumeBeeHome<br/></td><td></td></tr>
+<tr><td>assumeBest3dGrasp<br/></td><td></td></tr>
+<tr><td>assumeCalibrationPose<br/></td><td></td></tr>
+<tr><td>assumeCrane1<br/></td><td></td></tr>
+<tr><td>assumeCurrent3dGrasp<br/></td><td></td></tr>
+<tr><td>assumeDeliveryPose<br/></td><td></td></tr>
+<tr><td>assumeFacePose<br/></td><td></td></tr>
+<tr><td>assumeHandingPose<br/></td><td></td></tr>
+<tr><td>assumePose<br/></td><td></td></tr>
+<tr><td>assumeShrugPose<br/></td><td></td></tr>
+<tr><td>assumeZOfPoseWord<br/></td><td></td></tr>
+<tr><td>beeHome<br/></td><td></td></tr>
+<tr><td>beep<br/></td><td></td></tr>
+<tr><td>blankFace<br/></td><td></td></tr>
+<tr><td>blur<br/></td><td></td></tr>
+<tr><td>bringUpAllNonessentialSystems<br/></td><td>Bring up systems that are not important for streaming data.</td></tr>
+<tr><td>buildClassSimilarityMatrix<br/></td><td>Builds the matrix of gradients of the current class labels.</td></tr>
+<tr><td>buildClassSimilarityMatrixFromDensity<br/></td><td>Builds the matrix of gradients of the current class labels.</td></tr>
+<tr><td>c3dPoseBase<br/></td><td></td></tr>
+<tr><td>cB<br/>}<br/></td><td></td></tr>
+<tr><td>cP<br/>)<br/></td><td>Close paren; end a compound word.</td></tr>
+<tr><td>cSB<br/>]<br/></td><td></td></tr>
+<tr><td>calibrateCameraAToB<br/></td><td></td></tr>
+<tr><td>calibrateGripper<br/></td><td></td></tr>
+<tr><td>calibrateRGBCameraIntrinsicsPoint<br/></td><td>Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.</td></tr>
+<tr><td>cameraCenterX<br/></td><td></td></tr>
+<tr><td>cameraCenterY<br/></td><td></td></tr>
+<tr><td>cameraCreate<br/></td><td>Creates a new camera, usage in kinect2.back</td></tr>
+<tr><td>cameraCropUpperLeftCornerX<br/></td><td></td></tr>
+<tr><td>cameraCropUpperLeftCornerY<br/></td><td></td></tr>
+<tr><td>cameraExposure<br/></td><td></td></tr>
+<tr><td>cameraFitHyperbolic<br/></td><td></td></tr>
+<tr><td>cameraFitQuadratic<br/></td><td></td></tr>
+<tr><td>cameraGain<br/></td><td></td></tr>
+<tr><td>cameraGetCalibrationMode<br/></td><td></td></tr>
+<tr><td>cameraGetCurrentHeightReticleX<br/></td><td>Height reticle x</td></tr>
+<tr><td>cameraGetCurrentHeightReticleY<br/></td><td>Height reticle y</td></tr>
+<tr><td>cameraGetIdxMagX<br/></td><td></td></tr>
+<tr><td>cameraGetIdxMagY<br/></td><td></td></tr>
+<tr><td>cameraGetTransformMatrix<br/></td><td></td></tr>
+<tr><td>cameraGetVpX<br/></td><td>Vanishing point of camera.</td></tr>
+<tr><td>cameraGetVpY<br/></td><td>Vanishing point of camera.</td></tr>
+<tr><td>cameraInitializeConfig<br/></td><td>Initialize the configuration of the camera (reticles) with reasonable default values based on image size.</td></tr>
+<tr><td>cameraKappaX<br/></td><td></td></tr>
+<tr><td>cameraKappaY<br/></td><td></td></tr>
+<tr><td>cameraMuX<br/></td><td></td></tr>
+<tr><td>cameraMuY<br/></td><td></td></tr>
+<tr><td>cameraName<br/></td><td>The name of the focused camera.</td></tr>
+<tr><td>cameraPrintParams<br/></td><td></td></tr>
+<tr><td>cameraR00<br/></td><td></td></tr>
+<tr><td>cameraR01<br/></td><td></td></tr>
+<tr><td>cameraR10<br/></td><td></td></tr>
+<tr><td>cameraR11<br/></td><td></td></tr>
+<tr><td>cameraSetCalibrationMode<br/></td><td></td></tr>
+<tr><td>cameraSetCurrentHeightReticleX<br/></td><td></td></tr>
+<tr><td>cameraSetCurrentHeightReticleY<br/></td><td></td></tr>
+<tr><td>cameraSetIdxMagX<br/></td><td></td></tr>
+<tr><td>cameraSetIdxMagY<br/></td><td></td></tr>
+<tr><td>cameraSetTransformMatrix<br/></td><td></td></tr>
+<tr><td>cameraSetVpX<br/></td><td></td></tr>
+<tr><td>cameraSetVpY<br/></td><td></td></tr>
+<tr><td>cameraWhiteBalanceBlue<br/></td><td></td></tr>
+<tr><td>cameraWhiteBalanceGreen<br/></td><td></td></tr>
+<tr><td>cameraWhiteBalanceRed<br/></td><td></td></tr>
+<tr><td>cameraZeroNonLinear<br/></td><td></td></tr>
+<tr><td>car<br/>First<br/>Head<br/></td><td>Takes a compound word on the stack and returns the first word in the list.</td></tr>
+<tr><td>castToInteger<br/></td><td></td></tr>
+<tr><td>catScan5VarianceTrialAuditClassNames<br/></td><td></td></tr>
+<tr><td>catScan5VarianceTrialAutolabelClassNames<br/></td><td></td></tr>
+<tr><td>catScan5VarianceTrialCalculateAllClassesAccuracy<br/></td><td></td></tr>
+<tr><td>catScan5VarianceTrialCalculateConfigurationAccuracy<br/></td><td></td></tr>
+<tr><td>catScan5VarianceTrialCalculatePoseVariances<br/></td><td></td></tr>
+<tr><td>cdr<br/>Rest<br/>Tail<br/></td><td>Takes a compound word on the stack and returns the rest of the word (as a compound word), minus the first word.</td></tr>
+<tr><td>ceil<br/></td><td></td></tr>
+<tr><td>centerHead<br/></td><td></td></tr>
+<tr><td>changeAnimationState<br/></td><td></td></tr>
+<tr><td>changeTargetClassToClosestBlueBox<br/></td><td></td></tr>
+<tr><td>changeToCounterTable<br/></td><td></td></tr>
+<tr><td>changeToHeight<br/></td><td></td></tr>
+<tr><td>changeToHeight0<br/></td><td></td></tr>
+<tr><td>changeToHeight1<br/></td><td></td></tr>
+<tr><td>changeToHeight2<br/></td><td></td></tr>
+<tr><td>changeToHeight3<br/></td><td></td></tr>
+<tr><td>changeToPantryTable<br/></td><td></td></tr>
+<tr><td>checkAndCountGrasp<br/></td><td></td></tr>
+<tr><td>checkGrasp<br/></td><td></td></tr>
+<tr><td>checkIfJammed<br/></td><td></td></tr>
+<tr><td>clearBlueBoxMemories<br/></td><td></td></tr>
+<tr><td>clearStack<br/>clearCallStack<br/></td><td>Clear the call stack.</td></tr>
+<tr><td>clearClass3dGrasps<br/></td><td></td></tr>
+<tr><td>clearClassLabels<br/></td><td></td></tr>
+<tr><td>clearConsole<br/></td><td>Prints a lot of newlines to the console to clear it.</td></tr>
+<tr><td>clearData<br/>clearDataStack<br/></td><td>Clear the data stack.</td></tr>
+<tr><td>clearData<br/>clearDataStack<br/></td><td>Clear the data stack.</td></tr>
+<tr><td>clearIkMap<br/></td><td>Reset the IK Map so that every cell is good.</td></tr>
+<tr><td>clearMapForPatrol<br/></td><td></td></tr>
+<tr><td>clearStack<br/>clearCallStack<br/></td><td>Clear the call stack.</td></tr>
+<tr><td>clearStackIntoMappingPatrol<br/></td><td></td></tr>
+<tr><td>clearStacks<br/></td><td>Clear the call stack and the data stack.</td></tr>
+<tr><td>clearStreamBuffers<br/></td><td></td></tr>
+<tr><td>closeGripper<br/></td><td></td></tr>
+<tr><td>cmp<br/></td><td>Takes two words and returns 0 if they are equal, -1 if they are less than, and 1 if they are greater than.  Works on integers, doubles and strings.</td></tr>
+<tr><td>collapseStack<br/></td><td></td></tr>
+<tr><td>collectMoreCrops<br/></td><td></td></tr>
+<tr><td>collectMoreStreams<br/></td><td></td></tr>
+<tr><td>comeToHover<br/></td><td></td></tr>
+<tr><td>comeToHoverA<br/></td><td></td></tr>
+<tr><td>comeToStop<br/></td><td></td></tr>
+<tr><td>comeToStopA<br/></td><td></td></tr>
+<tr><td>commandOtherArm<br/></td><td>Send a command to the other arm.  It takes a string on the stack and sends it as a program to be executed on the other arm.</td></tr>
+<tr><td>copyIkMapToHeightIdx<br/></td><td>Copy the ik map to the height index.</td></tr>
+<tr><td>cornellMugsOnTables<br/></td><td></td></tr>
+<tr><td>cos<br/></td><td></td></tr>
+<tr><td>createArmPose<br/></td><td></td></tr>
+<tr><td>createCachedClassifierFromClassLabels<br/></td><td></td></tr>
+<tr><td>createEEPose<br/></td><td></td></tr>
+<tr><td>cruisingSpeed<br/></td><td></td></tr>
+<tr><td>currentBackgroundMap<br/></td><td>Pushes the current background map on the stack.</td></tr>
+<tr><td>currentIKBoundaryMode<br/></td><td></td></tr>
+<tr><td>currentIKFastMode<br/></td><td></td></tr>
+<tr><td>currentIKMode<br/></td><td></td></tr>
+<tr><td>currentIKModeString<br/></td><td></td></tr>
+<tr><td>currentJointWord<br/></td><td></td></tr>
+<tr><td>currentObservedMap<br/></td><td>Pushes the current observed map on the stack.</td></tr>
+<tr><td>currentPose<br/></td><td></td></tr>
+<tr><td>currentPoseToWord<br/></td><td></td></tr>
+<tr><td>currentPredictedMap<br/></td><td>Pushes the current predicted map on the stack.</td></tr>
+<tr><td>currentScene<br/></td><td>Pushes the current scene on the stack.</td></tr>
+<tr><td>currentSceneFixationMode<br/></td><td></td></tr>
+<tr><td>currentTableZ<br/></td><td>Current location of the table at z in base.</td></tr>
+<tr><td>dataDirectory<br/></td><td>The directory where data is stored.</td></tr>
+<tr><td>dateString<br/></td><td></td></tr>
+<tr><td>deactivateSensorStreaming<br/></td><td>Stop streaming data.</td></tr>
+<tr><td>decMx<br/></td><td></td></tr>
+<tr><td>decMy<br/></td><td></td></tr>
+<tr><td>decrementCamera<br/></td><td></td></tr>
+<tr><td>decrementCurrentCornellTable<br/></td><td></td></tr>
+<tr><td>decrementTargetClass<br/></td><td></td></tr>
+<tr><td>decrementTargetInstanceSprite<br/></td><td></td></tr>
+<tr><td>decrementTargetMasterSprite<br/></td><td></td></tr>
+<tr><td>define<br/></td><td>Store a new compound word with specified body, description, and name.  Usage:  &lt;compound word&gt; &lt; help text &gt; &lt; name &gt; define. </td></tr>
+<tr><td>deliverObject<br/></td><td></td></tr>
+<tr><td>deliverTargetBoxMemory<br/></td><td></td></tr>
+<tr><td>deliverTargetObject<br/></td><td></td></tr>
+<tr><td>density<br/></td><td></td></tr>
+<tr><td>departureSpeed<br/></td><td></td></tr>
+<tr><td>deref<br/></td><td>Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  &lt; symbol word &gt; deref -&gt; &lt; value &gt; </td></tr>
+<tr><td>derefToTruth<br/></td><td>Takes a symbol word argument from the data stack and pushes its current value back onto the data stack.  Usage:  &lt; symbol word &gt; deref -&gt; &lt; value &gt; </td></tr>
+<tr><td>destroyObjectInEndEffector<br/></td><td></td></tr>
+<tr><td>destroyTargetInstanceSprite<br/></td><td></td></tr>
+<tr><td>detectionSpin<br/></td><td></td></tr>
+<tr><td>diagnosticRelativePose<br/></td><td></td></tr>
+<tr><td>digitalIOCommand<br/></td><td></td></tr>
+<tr><td>disableDiskStreaming<br/></td><td></td></tr>
+<tr><td>disableRobot<br/></td><td></td></tr>
+<tr><td>dislodgeEndEffectorFromTable<br/></td><td></td></tr>
+<tr><td>divide<br/>/<br/></td><td>Divide two numeric arguments.</td></tr>
+<tr><td>drand48<br/></td><td></td></tr>
+<tr><td>dsr<br/></td><td></td></tr>
+<tr><td>ducksInARow<br/></td><td></td></tr>
+<tr><td>dup<br/></td><td></td></tr>
+<tr><td>eePoseApplyRelativePoseTo<br/></td><td></td></tr>
+<tr><td>eePoseGetPoseRelativeTo<br/></td><td></td></tr>
+<tr><td>eePosePX<br/></td><td></td></tr>
+<tr><td>eePosePY<br/></td><td></td></tr>
+<tr><td>eePosePZ<br/></td><td></td></tr>
+<tr><td>eePoseQW<br/></td><td></td></tr>
+<tr><td>eePoseQX<br/></td><td></td></tr>
+<tr><td>eePoseQY<br/></td><td></td></tr>
+<tr><td>eePoseQZ<br/></td><td></td></tr>
+<tr><td>eePoseRPYOnQ<br/></td><td></td></tr>
+<tr><td>eePoseToArmPose<br/></td><td></td></tr>
+<tr><td>eeRange<br/></td><td>Range reading.</td></tr>
+<tr><td>eeRangeMaxValue<br/></td><td>Range max value.</td></tr>
+<tr><td>effortThresh<br/></td><td></td></tr>
+<tr><td>eighthTurn<br/></td><td></td></tr>
+<tr><td>einSoftwareVersion<br/></td><td>Ein&apos;s version.</td></tr>
+<tr><td>enableDiskStreaming<br/></td><td></td></tr>
+<tr><td>enableRobot<br/></td><td></td></tr>
+<tr><td>endArgs<br/></td><td></td></tr>
+<tr><td>endStackCollapse<br/></td><td></td></tr>
+<tr><td>endStackCollapseNoop<br/></td><td></td></tr>
+<tr><td>equals<br/>=<br/></td><td>Takes two words and returns 1 if they are equal (by value) and 0 otherwise.</td></tr>
+<tr><td>eval<br/></td><td>Takes a string from the data stack; evaluates the string as a back program.  Usage:  &lt; string &gt; eval -&gt; whatever the program does</td></tr>
+<tr><td>exec<br/></td><td></td></tr>
+<tr><td>executePreparedGrasp<br/></td><td></td></tr>
+<tr><td>executeStack<br/>;<br/></td><td></td></tr>
+<tr><td>executionModeInstant<br/></td><td></td></tr>
+<tr><td>executionModeStep<br/></td><td></td></tr>
+<tr><td>exp<br/></td><td></td></tr>
+<tr><td>expand<br/></td><td></td></tr>
+<tr><td>exportDoc<br/></td><td>Export words to an html file which is displayed on the website.</td></tr>
+<tr><td>exportWords<br/></td><td>Export words to a text file for documentation purposes.</td></tr>
+<tr><td>faceAnimationFindEmotions<br/></td><td></td></tr>
+<tr><td>faceAnimationGetMode<br/></td><td></td></tr>
+<tr><td>faceAnimationGetRate<br/></td><td>Rate of the face animation in hz</td></tr>
+<tr><td>faceAnimationLoadAllEmotions<br/></td><td></td></tr>
+<tr><td>faceAnimationLoadEmotion<br/></td><td></td></tr>
+<tr><td>faceAnimationSetEmotionValue<br/></td><td></td></tr>
+<tr><td>faceAnimationSetMode<br/></td><td></td></tr>
+<tr><td>faceAnimationSetRate<br/></td><td></td></tr>
+<tr><td>fakeBBWidth<br/></td><td></td></tr>
+<tr><td>fasterRasterScanningSpeed<br/></td><td></td></tr>
+<tr><td>fetch<br/></td><td></td></tr>
+<tr><td>fileClose<br/></td><td>Close the file.  If you forget to do this, it will be closed automatically when the word is deallocated.</td></tr>
+<tr><td>fileOpenInput<br/></td><td>Open an input file for reading; takes a file name as an argument.</td></tr>
+<tr><td>fileOpenOutput<br/></td><td>Open an output file for writing; takes a file name as an argument.</td></tr>
+<tr><td>fileReadAll<br/></td><td>Read the contents of the file into a string and push it on the data stack.</td></tr>
+<tr><td>fileReadLine<br/></td><td>Read one line from the file into a string and leave it on the data stack.</td></tr>
+<tr><td>fileWrite<br/></td><td>Write a string to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.</td></tr>
+<tr><td>fileWriteLine<br/></td><td>Write a line to the file.  Takes a file and a word, which is written.  if it is a string, writes it as-is.  Otherwise writes it with repr.</td></tr>
+<tr><td>fillClearanceMap<br/></td><td></td></tr>
+<tr><td>fillIkMap<br/></td><td>Fill the IK map for the current range starting at the i and j and height on the stack.</td></tr>
+<tr><td>fillIkMapAtCurrentHeight<br/></td><td>Fill the IK map using data at the current EE height.  We run at height 2 usually.</td></tr>
+<tr><td>fillIkMapAtHeights<br/></td><td>Fill the IK map at different heights.</td></tr>
+<tr><td>fillIkMapFromCachedHeightIdx<br/></td><td>Fill the IK map by taking the height idx from the cache.</td></tr>
+<tr><td>fillIkMapFromCachedHeights<br/></td><td>Fill the IK map by taking the and of the result at all the different heights.</td></tr>
+<tr><td>filterBoxMemories<br/></td><td></td></tr>
+<tr><td>fixCameraLighting<br/></td><td>Fix the camera lighting.  Usage:  &lt;exposure&gt; &lt;gain&gt; &lt;red&gt; &lt;green&gt; &lt;blue&gt; fixCameraLighting.  You can see the current values with cameraGain, cameraExposure, cameraWhiteBalanceRed, cameraWhiteBlanaceGreen, cameraWhiteBalanceBlue.</td></tr>
+<tr><td>fixCameraLightingNoUpdate<br/></td><td></td></tr>
+<tr><td>fixCameraLightingToAutomaticParameters<br/></td><td>Fix the camera lighting using autogain.  The camera parameters will first adjust automatically, then ein will fix them to the automatically adjusted values.</td></tr>
+<tr><td>fixCameraLightingToObservedValues<br/></td><td></td></tr>
+<tr><td>floor<br/></td><td></td></tr>
+<tr><td>focusedCamera<br/></td><td></td></tr>
+<tr><td>focusedClassLabel<br/></td><td>The focused class.</td></tr>
+<tr><td>followPath<br/></td><td></td></tr>
+<tr><td>fullImpulse<br/></td><td></td></tr>
+<tr><td>gaitAnchoredTranslation<br/></td><td></td></tr>
+<tr><td>geq<br/>&gt;=<br/></td><td>Takes two words and returns 1 if they are greater than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>get<br/></td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
+<tr><td>getSpeed<br/></td><td></td></tr>
+<tr><td>goClassifyBlueBoxes<br/></td><td></td></tr>
+<tr><td>goFindBlueBoxes<br/></td><td></td></tr>
+<tr><td>gradientServoHardMaxIterations<br/></td><td></td></tr>
+<tr><td>gradientServoMode<br/></td><td></td></tr>
+<tr><td>gradientServoSoftMaxIterations<br/></td><td></td></tr>
+<tr><td>graspBackoffDistance<br/></td><td></td></tr>
+<tr><td>gridSize<br/></td><td></td></tr>
+<tr><td>gripperMaskThresh<br/></td><td>Threshold for the gripper mask bmp.</td></tr>
+<tr><td>guiCustom1<br/></td><td></td></tr>
+<tr><td>guiHideAll<br/></td><td></td></tr>
+<tr><td>guiShowAll<br/></td><td></td></tr>
+<tr><td>halfImpulse<br/></td><td></td></tr>
+<tr><td>handCameraOffset<br/></td><td></td></tr>
+<tr><td>handEndEffectorOffset<br/></td><td></td></tr>
+<tr><td>happyFace<br/></td><td></td></tr>
+<tr><td>help<br/></td><td>Return help text for a word.  Takes a compound word as an argument with a single word inside.  Usage:  ( word ) help.</td></tr>
+<tr><td>histgramAllExamplesFocusedClass<br/></td><td></td></tr>
+<tr><td>histogramDetection<br/></td><td></td></tr>
+<tr><td>histogramDetectionIfBlueBoxes<br/></td><td></td></tr>
+<tr><td>histogramDetectionInit<br/></td><td></td></tr>
+<tr><td>histogramDetectionNormalize<br/></td><td></td></tr>
+<tr><td>histogramDetectionReport<br/></td><td></td></tr>
+<tr><td>histogramExampleAsFocusedClass<br/></td><td></td></tr>
+<tr><td>hover<br/></td><td></td></tr>
+<tr><td>hoverA<br/></td><td></td></tr>
+<tr><td>hoverThreshold<br/></td><td></td></tr>
+<tr><td>hundredthImpulse<br/></td><td></td></tr>
+<tr><td>iRCalibrationSpeed<br/></td><td></td></tr>
+<tr><td>idler<br/></td><td></td></tr>
+<tr><td>ifGrasp<br/></td><td></td></tr>
+<tr><td>ifNoGrasp<br/></td><td></td></tr>
+<tr><td>ift<br/></td><td>Takes two words on the stack, executes the second word if the first word is true.  For example, &quot; ( &quot;hello&quot; print ) 1 ift&quot; will print hello, while &quot; ( &quot;hello&quot; print ) 0 ift&quot; will not do it.</td></tr>
+<tr><td>ifte<br/></td><td>If then else takes two compound words and a condition and does the first one if the condition is true and the second if it is false.   Usage: 0 ( &quot;condition was true&quot; print ) ( &quot;condition was false&quot; print )   ifte</td></tr>
+<tr><td>ikMapEndHeight<br/></td><td>End height for making the IP map.</td></tr>
+<tr><td>ikMapStartHeight<br/></td><td>Start height at which we make the IK map.</td></tr>
+<tr><td>ikModeIkFast<br/></td><td></td></tr>
+<tr><td>ikModeIkFastDebug<br/></td><td></td></tr>
+<tr><td>ikModeService<br/></td><td></td></tr>
+<tr><td>imageStreamBufferLoadCurrent<br/></td><td></td></tr>
+<tr><td>import<br/></td><td></td></tr>
+<tr><td>inc<br/></td><td>Adds one to its argument.  1 inc produces 2.</td></tr>
+<tr><td>incMx<br/></td><td></td></tr>
+<tr><td>incMy<br/></td><td></td></tr>
+<tr><td>incrementCamera<br/></td><td></td></tr>
+<tr><td>incrementCurrentCornellTable<br/></td><td></td></tr>
+<tr><td>incrementImageStreamBuffer<br/></td><td>Increments the current location in the image stream buffer.  Loads it into memory and kicks it out when done.</td></tr>
+<tr><td>incrementImageStreamBufferNoLoad<br/></td><td>Increments the current location in the image stream buffer.  Does not load the image into memory, but kicks it out when done.</td></tr>
+<tr><td>incrementImageStreamBufferNoLoadNoKick<br/></td><td>Increments the current location in the image stream buffer.  Does not load the image into memory or kick it out when done.</td></tr>
+<tr><td>incrementTargetClass<br/></td><td></td></tr>
+<tr><td>incrementTargetInstanceSprite<br/></td><td></td></tr>
+<tr><td>incrementTargetMasterSprite<br/></td><td></td></tr>
+<tr><td>initCumulativeGripperMask<br/></td><td></td></tr>
+<tr><td>initializeAndFocusOnNewClass<br/></td><td>Initialize a new class with a default date-based name and focus on it.  It will be created in the file system with default values and focused on.</td></tr>
+<tr><td>initializeAndFocusOnTempClass<br/></td><td></td></tr>
+<tr><td>initializeConfig<br/></td><td></td></tr>
+<tr><td>initializeMap<br/></td><td></td></tr>
+<tr><td>integrateImageStreamBufferCrops<br/></td><td></td></tr>
+<tr><td>integrateImageStreamBufferServoImages<br/></td><td></td></tr>
+<tr><td>integrateRangeStreamBuffer<br/></td><td></td></tr>
+<tr><td>interlaceBottom<br/></td><td></td></tr>
+<tr><td>interlaceTop<br/></td><td></td></tr>
+<tr><td>interpolatePath<br/></td><td></td></tr>
+<tr><td>irFixPick<br/></td><td></td></tr>
+<tr><td>isAtCurrentPosition<br/></td><td></td></tr>
+<tr><td>isGripperGripping<br/></td><td></td></tr>
+<tr><td>isGripperMoving<br/></td><td></td></tr>
+<tr><td>iterateIsbAndAccumulateHeightImages<br/></td><td></td></tr>
+<tr><td>sum<br/>join<br/></td><td>Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -&gt; 3.</td></tr>
+<tr><td>langle<br/>&lt;<br/></td><td>Takes two words and returns 1 if they are less than (by value) and 0 otherwise.  1 3 &lt; returns true, and 3 1 &lt; returns false.</td></tr>
+<tr><td>leftOrRightArm<br/></td><td></td></tr>
+<tr><td>leq<br/>&lt;=<br/></td><td>Takes two words and returns 1 if they are less than or equal to (by value) and 0 otherwise.</td></tr>
+<tr><td>lightsOff<br/></td><td></td></tr>
+<tr><td>lightsOn<br/></td><td></td></tr>
+<tr><td>loadCalibration<br/></td><td></td></tr>
+<tr><td>loadCalibrationRaw<br/></td><td></td></tr>
+<tr><td>loadConfig<br/></td><td></td></tr>
+<tr><td>loadDefaultCalibration<br/></td><td></td></tr>
+<tr><td>loadGripperMask<br/></td><td></td></tr>
+<tr><td>loadIkMap<br/></td><td></td></tr>
+<tr><td>loadIkMapAtHeight<br/></td><td></td></tr>
+<tr><td>localXDown<br/></td><td></td></tr>
+<tr><td>localXUp<br/></td><td></td></tr>
+<tr><td>localYDown<br/></td><td></td></tr>
+<tr><td>localYUp<br/></td><td></td></tr>
+<tr><td>localZDown<br/></td><td></td></tr>
+<tr><td>localZUp<br/></td><td></td></tr>
+<tr><td>lock3dGraspBase<br/></td><td></td></tr>
+<tr><td>map<br/></td><td></td></tr>
+<tr><td>mapAndPick<br/></td><td></td></tr>
+<tr><td>mapAndPickL<br/></td><td></td></tr>
+<tr><td>mapClosestBlueBox<br/></td><td></td></tr>
+<tr><td>mapEmptySpace<br/></td><td></td></tr>
+<tr><td>mapFreeSpacePixelSkirt<br/></td><td></td></tr>
+<tr><td>mapGrayBoxPixelSkirtCols<br/></td><td></td></tr>
+<tr><td>mapGrayBoxPixelSkirtRows<br/></td><td></td></tr>
+<tr><td>mapGrayBoxPixelWaistCols<br/></td><td></td></tr>
+<tr><td>mapGrayBoxPixelWaistRows<br/></td><td></td></tr>
+<tr><td>mapLocal<br/></td><td></td></tr>
+<tr><td>mapSearchFenceXMax<br/></td><td>Xmax for the map in base.</td></tr>
+<tr><td>mapSearchFenceXMin<br/></td><td>Xmin for the map in base.</td></tr>
+<tr><td>mapSearchFenceYMax<br/></td><td>YMax for the map in base.</td></tr>
+<tr><td>mapSearchFenceYMin<br/></td><td>Ymin for the map in base.</td></tr>
+<tr><td>mapServo<br/></td><td></td></tr>
+<tr><td>mapWaypoints<br/></td><td>Maps objects at locations specified by EePoseWords underneath.</td></tr>
+<tr><td>mappingPatrol<br/></td><td></td></tr>
+<tr><td>mappingPatrolA<br/></td><td></td></tr>
+<tr><td>mappingServoTimeout<br/></td><td></td></tr>
+<tr><td>markMapAsCompleted<br/></td><td></td></tr>
+<tr><td>max<br/></td><td></td></tr>
+<tr><td>measureTime<br/></td><td></td></tr>
+<tr><td>measureTimeA<br/></td><td></td></tr>
+<tr><td>measureTimeEnd<br/></td><td></td></tr>
+<tr><td>measureTimeInit<br/></td><td></td></tr>
+<tr><td>measureTimeInitSinceStart<br/></td><td></td></tr>
+<tr><td>measureTimeSetPeriod<br/></td><td></td></tr>
+<tr><td>measureTimeSinceStart<br/></td><td></td></tr>
+<tr><td>measureTimeStart<br/></td><td></td></tr>
+<tr><td>min<br/></td><td></td></tr>
+<tr><td>minus<br/>-<br/></td><td>Takes two numbers and subtracts them.  `2 1 - ` produces 1.  1 2 - produces -1.</td></tr>
+<tr><td>mkdir<br/></td><td></td></tr>
+<tr><td>mkdirs<br/></td><td></td></tr>
+<tr><td>mod<br/>%<br/></td><td>Takes two ints and pushes the mod of the two ints on the stack.  25 4 % returns 1.</td></tr>
+<tr><td>mostRecentUntabledZ<br/></td><td></td></tr>
+<tr><td>moveAndStreamAimedShot<br/></td><td></td></tr>
+<tr><td>moveArmToPoseWord<br/></td><td></td></tr>
+<tr><td>moveCropToCenter<br/></td><td></td></tr>
+<tr><td>moveCropToCenterVanishingPoint<br/></td><td>Move the crop to the center/vanishing point of the camera.</td></tr>
+<tr><td>moveCropToCenterVanishingPointSlideHeightReticles<br/></td><td></td></tr>
+<tr><td>moveCropToProperValue<br/></td><td></td></tr>
+<tr><td>moveCropToProperValueNoUpdate<br/></td><td></td></tr>
+<tr><td>moveEeToPoseWord<br/></td><td></td></tr>
+<tr><td>moveJointsByAngles<br/></td><td></td></tr>
+<tr><td>moveJointsToAngles<br/></td><td></td></tr>
+<tr><td>moveObjectBetweenObjectAndObject<br/></td><td></td></tr>
+<tr><td>moveObjectToObjectByAmount<br/></td><td></td></tr>
+<tr><td>moveObjectToPose<br/></td><td></td></tr>
+<tr><td>moveTargetObjectToPose<br/></td><td></td></tr>
+<tr><td>moveToCurrentCornellTable<br/></td><td></td></tr>
+<tr><td>moveToEEPose<br/></td><td></td></tr>
+<tr><td>moveToNextMapPosition<br/></td><td></td></tr>
+<tr><td>moveToRegister<br/></td><td></td></tr>
+<tr><td>moveToRegister1<br/></td><td></td></tr>
+<tr><td>moveToRegister2<br/></td><td></td></tr>
+<tr><td>moveToRegister3<br/></td><td></td></tr>
+<tr><td>moveToRegister4<br/></td><td></td></tr>
+<tr><td>moveToRegister5<br/></td><td></td></tr>
+<tr><td>moveToRegister6<br/></td><td></td></tr>
+<tr><td>moveToSetVanishingPointHeightHigh<br/></td><td></td></tr>
+<tr><td>moveToSetVanishingPointHeightLow<br/></td><td></td></tr>
+<tr><td>moveToTargetZAndGrasp<br/></td><td></td></tr>
+<tr><td>moveToTargetZAndGraspA<br/></td><td></td></tr>
+<tr><td>movingThreshold<br/></td><td></td></tr>
+<tr><td>neutralFace<br/></td><td></td></tr>
+<tr><td>next<br/></td><td></td></tr>
+<tr><td>nil<br/></td><td>The empty list.  ( ) .</td></tr>
+<tr><td>nod<br/></td><td></td></tr>
+<tr><td>noop<br/></td><td></td></tr>
+<tr><td>not<br/>!<br/></td><td>Pops a word; pushes a 0 or a 1 depending on its truth value.</td></tr>
+<tr><td>now<br/></td><td></td></tr>
+<tr><td>numBlueBoxes<br/></td><td></td></tr>
+<tr><td>numCameras<br/></td><td></td></tr>
+<tr><td>numClasses<br/></td><td></td></tr>
+<tr><td>oB<br/>{<br/></td><td></td></tr>
+<tr><td>oP<br/>(<br/></td><td>Open paren; begin a compound word.</td></tr>
+<tr><td>oSB<br/>[<br/></td><td></td></tr>
+<tr><td>oXDown<br/></td><td></td></tr>
+<tr><td>oXUp<br/></td><td></td></tr>
+<tr><td>oYDown<br/></td><td></td></tr>
+<tr><td>oYUp<br/></td><td></td></tr>
+<tr><td>oZDown<br/></td><td></td></tr>
+<tr><td>oZUp<br/></td><td></td></tr>
+<tr><td>observedCameraExposure<br/></td><td></td></tr>
+<tr><td>observedCameraFlip<br/></td><td></td></tr>
+<tr><td>observedCameraGain<br/></td><td></td></tr>
+<tr><td>observedCameraMirror<br/></td><td></td></tr>
+<tr><td>observedCameraWhiteBalanceBlue<br/></td><td></td></tr>
+<tr><td>observedCameraWhiteBalanceGreen<br/></td><td></td></tr>
+<tr><td>observedCameraWhiteBalanceRed<br/></td><td></td></tr>
+<tr><td>observedCameraWindowX<br/></td><td></td></tr>
+<tr><td>observedCameraWindowY<br/></td><td></td></tr>
+<tr><td>openGripper<br/></td><td></td></tr>
+<tr><td>openGripperInt<br/></td><td></td></tr>
+<tr><td>or<br/>||<br/></td><td>Returns logical or of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.</td></tr>
+<tr><td>pauseAndReset<br/></td><td></td></tr>
+<tr><td>pauseStackExecution<br/>Pause<br/></td><td></td></tr>
+<tr><td>perturbPosition<br/></td><td></td></tr>
+<tr><td>perturbPositionScale<br/></td><td></td></tr>
+<tr><td>photoSpin<br/></td><td></td></tr>
+<tr><td>pi<br/></td><td></td></tr>
+<tr><td>pickAllBlueBoxes<br/></td><td></td></tr>
+<tr><td>pickClosestBlueBox<br/></td><td></td></tr>
+<tr><td>pickFlushFactor<br/></td><td>How close we get when picking.</td></tr>
+<tr><td>pickObjectUnderEndEffector<br/></td><td></td></tr>
+<tr><td>pixelGlobalTest<br/></td><td></td></tr>
+<tr><td>placeHeldObjectOnObject<br/></td><td></td></tr>
+<tr><td>placeObjectInDeliveryZone<br/></td><td></td></tr>
+<tr><td>placeObjectInEndEffector<br/></td><td></td></tr>
+<tr><td>planCommandJointsAtRateSpin<br/></td><td></td></tr>
+<tr><td>planToPointCraneFourStroke<br/></td><td></td></tr>
+<tr><td>planToPointCraneThreeStroke<br/></td><td></td></tr>
+<tr><td>planToPointCraneThreeStrokeOpenJointHyperPlanner<br/></td><td></td></tr>
+<tr><td>plus<br/>+<br/></td><td>Takes two numbers and adds them.  If two ints, returns an int; otherwise returns a double; otherwise does string.</td></tr>
+<tr><td>pointToClearanceMap<br/></td><td></td></tr>
+<tr><td>pop<br/></td><td></td></tr>
+<tr><td>populateStreamBuffers<br/></td><td></td></tr>
+<tr><td>pow<br/></td><td></td></tr>
+<tr><td>prepareForAndExecuteGraspFromMemory<br/></td><td></td></tr>
+<tr><td>pressAndGrasp<br/></td><td></td></tr>
+<tr><td>pressAndGraspA<br/></td><td></td></tr>
+<tr><td>pressAndRelease<br/></td><td></td></tr>
+<tr><td>pressAndReleaseA<br/></td><td></td></tr>
+<tr><td>pressUntilEffort<br/></td><td></td></tr>
+<tr><td>pressUntilEffortA<br/></td><td></td></tr>
+<tr><td>pressUntilEffortAllInOne<br/></td><td>Push down until there is effort sensed; top level word that can be called all in one.</td></tr>
+<tr><td>pressUntilEffortCombo<br/></td><td>Press down until effort is larger than a threshold.  Pushes down once more quickly with a coarse press, then does a fine-grained press (to unwined the springs), so at the end you are lightly touching the surface.</td></tr>
+<tr><td>pressUntilEffortInit<br/></td><td>Initialize parameters for pressUntilEffort.</td></tr>
+<tr><td>pressUntilEffortOrTwist<br/></td><td></td></tr>
+<tr><td>pressUntilEffortOrTwistA<br/></td><td></td></tr>
+<tr><td>pressUntilEffortOrTwistInit<br/></td><td></td></tr>
+<tr><td>pressUntilEffortStart<br/></td><td></td></tr>
+<tr><td>print<br/></td><td>Pop a word from the stack and print it to the Ein console.</td></tr>
+<tr><td>printClassLabels<br/></td><td>Print class labels to standard output.</td></tr>
+<tr><td>printJointAngles<br/></td><td></td></tr>
+<tr><td>printStacks<br/></td><td></td></tr>
+<tr><td>printState<br/></td><td></td></tr>
+<tr><td>prod<br/></td><td>Pops a compound word; multiplies the entries; pushes the result.  Usage:  ( 1 1 1 ) prod -&gt; 1.</td></tr>
+<tr><td>publishCommandsMode<br/></td><td></td></tr>
+<tr><td>publishCommandsOff<br/></td><td>Do not publish commands to the robot; useful if someone else (like MoveIt) is going to move the robot.</td></tr>
+<tr><td>publishCommandsOn<br/></td><td>Turn on publishing movement commands and other changing commands (lights, sonar).</td></tr>
+<tr><td>publishImageFileToFace<br/></td><td></td></tr>
+<tr><td>publishImageToFace<br/></td><td></td></tr>
+<tr><td>publishRecognizedObjectArrayFromBlueBoxMemory<br/></td><td></td></tr>
+<tr><td>publishRecognizedObjectArrayFromPredictedMap<br/></td><td>Publish recognized obejcts from predicted map.</td></tr>
+<tr><td>publishState<br/></td><td></td></tr>
+<tr><td>publishWristViewToFace<br/></td><td></td></tr>
+<tr><td>pursuitProximity<br/></td><td></td></tr>
+<tr><td>pushClassLabels<br/></td><td>Push the class labels on the stack.</td></tr>
+<tr><td>pushClassLabelsReport<br/></td><td></td></tr>
+<tr><td>pushCurrentJointAngle<br/></td><td></td></tr>
+<tr><td>pushCurrentJointAngles<br/></td><td></td></tr>
+<tr><td>pushHelp<br/></td><td>Push help text for the word on the data stack.</td></tr>
+<tr><td>pushState<br/></td><td></td></tr>
+<tr><td>putCameraOverPhotoPin<br/></td><td></td></tr>
+<tr><td>quarterImpulse<br/></td><td></td></tr>
+<tr><td>quarterTurn<br/></td><td></td></tr>
+<tr><td>quiveringPalm<br/></td><td></td></tr>
+<tr><td>rangle<br/>&gt;<br/></td><td>Takes two words and returns 1 if they are greater than (by value) and 0 otherwise.  1 3 &lt; returns false, and 3 1 &lt; returns true</td></tr>
+<tr><td>rasterScanningSpeed<br/></td><td></td></tr>
+<tr><td>rayBufferInit<br/></td><td></td></tr>
+<tr><td>rayBufferPopulateFromImageBuffer<br/></td><td></td></tr>
+<tr><td>rayBufferSaveRaw<br/></td><td></td></tr>
+<tr><td>rayBufferSize<br/></td><td></td></tr>
+<tr><td>recordAllBlueBoxes<br/></td><td></td></tr>
+<tr><td>recordAllExamplesFocusedClass<br/></td><td></td></tr>
+<tr><td>recordExampleAsFocusedClass<br/></td><td></td></tr>
+<tr><td>recordGraspZ<br/></td><td></td></tr>
+<tr><td>recordPostTargetLock<br/></td><td></td></tr>
+<tr><td>recordPreTargetLock<br/></td><td></td></tr>
+<tr><td>registerEffort<br/></td><td></td></tr>
+<tr><td>registerEffortA<br/></td><td></td></tr>
+<tr><td>registerWrench<br/></td><td></td></tr>
+<tr><td>registerWrenchA<br/></td><td></td></tr>
+<tr><td>reloadCamera<br/></td><td></td></tr>
+<tr><td>reloadClassLabels<br/></td><td></td></tr>
+<tr><td>renameFocusedClass<br/></td><td></td></tr>
+<tr><td>renderSetWristViewBrightnessScalar<br/></td><td></td></tr>
+<tr><td>renderWristViewBrightnessScalar<br/></td><td></td></tr>
+<tr><td>repeatHalo<br/></td><td></td></tr>
+<tr><td>replaceBlueBoxesWithFocusedClass<br/></td><td></td></tr>
+<tr><td>replaceBlueBoxesWithHistogramWinner<br/></td><td></td></tr>
+<tr><td>replicateWord<br/></td><td></td></tr>
+<tr><td>repr<br/></td><td>Takes an argument from the data stack pushes the string representation onto the data stack.  Usage:  &lt; word &gt; repr -&gt; string</td></tr>
+<tr><td>resetAccumulatedStreamImage<br/></td><td></td></tr>
+<tr><td>resetAuxiliary<br/></td><td></td></tr>
+<tr><td>resetAveragedWrenchNorm<br/></td><td></td></tr>
+<tr><td>resetCurrentFocusedClass<br/></td><td></td></tr>
+<tr><td>resetTemporalMap<br/></td><td></td></tr>
+<tr><td>resetW1ThreshToDefault<br/></td><td></td></tr>
+<tr><td>restoreIkShare<br/></td><td></td></tr>
+<tr><td>retrainVocabOff<br/></td><td></td></tr>
+<tr><td>retrainVocabOn<br/></td><td></td></tr>
+<tr><td>returnObject<br/></td><td></td></tr>
+<tr><td>reverseCompound<br/></td><td></td></tr>
+<tr><td>reversePath<br/></td><td></td></tr>
+<tr><td>rewindImageStreamBuffer<br/></td><td></td></tr>
+<tr><td>rewindImageStreamBufferNLNK<br/></td><td></td></tr>
+<tr><td>rgbScan<br/></td><td></td></tr>
+<tr><td>robotSerial<br/></td><td>The robot serial number, used for naming configuration files uniquely.</td></tr>
+<tr><td>robotSoftwareVersion<br/></td><td>The robot software version.  used for baxter sdk versions.</td></tr>
+<tr><td>robotType<br/></td><td>The type of the robot.</td></tr>
+<tr><td>sB<br/>|B<br/></td><td></td></tr>
+<tr><td>sP<br/>|S<br/></td><td></td></tr>
+<tr><td>sadFace<br/></td><td></td></tr>
+<tr><td>save3dGrasps<br/></td><td></td></tr>
+<tr><td>saveCalibration<br/></td><td></td></tr>
+<tr><td>saveCalibrationToClass<br/></td><td></td></tr>
+<tr><td>saveConfig<br/></td><td></td></tr>
+<tr><td>saveGripperMask<br/></td><td></td></tr>
+<tr><td>saveIkMap<br/></td><td></td></tr>
+<tr><td>saveIkMapAtHeight<br/></td><td></td></tr>
+<tr><td>saveRegister1<br/></td><td></td></tr>
+<tr><td>saveRegister2<br/></td><td></td></tr>
+<tr><td>saveRegister3<br/></td><td></td></tr>
+<tr><td>saveRegister4<br/></td><td></td></tr>
+<tr><td>scanCentered<br/></td><td></td></tr>
+<tr><td>scanGroup<br/></td><td>The scan group, for saving groups of scans organized by objects.</td></tr>
+<tr><td>scanObjectFast<br/></td><td>Scans an object without an IR scan, and with an annotated grasp.</td></tr>
+<tr><td>scanObjectScene<br/></td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
+<tr><td>scanObjectStream<br/></td><td>Scans an object in stream mode with an annotated grasp.</td></tr>
+<tr><td>scanObjectStreamAnnotated<br/></td><td>Scans an object in stream mode with an annotated grasp.</td></tr>
+<tr><td>scanObjectStreamWaypoints<br/></td><td>Scans a stack of objects in stream mode with an annotated grasps in stack.</td></tr>
+<tr><td>scanObjectStreamWaypoints3d<br/></td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
+<tr><td>scanObjectStreamWaypoints3dNoPick<br/></td><td>Scans a stack of objects in stream mode with an annotated 3d grasps in stack.</td></tr>
+<tr><td>scanObjectStreamWaypointsIR<br/></td><td>Scans a stack of objects in stream mode using IR raster scan to infer grasp points.</td></tr>
+<tr><td>sceneAddDiscrepantPredictedToObserved<br/></td><td></td></tr>
+<tr><td>sceneAddPredictedFocusedObject<br/></td><td></td></tr>
+<tr><td>sceneAddPredictedObject<br/></td><td></td></tr>
+<tr><td>sceneAddPredictedToObserved<br/></td><td></td></tr>
+<tr><td>sceneAnchorPose<br/></td><td>Takes a gaussian map on the stack and returns its anchor eePose.</td></tr>
+<tr><td>sceneAngularApertureCols<br/></td><td></td></tr>
+<tr><td>sceneAngularApertureRows<br/></td><td></td></tr>
+<tr><td>sceneAngularBaffleCols<br/></td><td></td></tr>
+<tr><td>sceneAngularBaffleRows<br/></td><td></td></tr>
+<tr><td>sceneBackgroundMap<br/></td><td>Takes a scene on the stack and returns its background map.</td></tr>
+<tr><td>sceneCellCountThreshold<br/></td><td></td></tr>
+<tr><td>sceneCellWidth<br/></td><td>Cell width of scene.</td></tr>
+<tr><td>sceneClearDepthStack<br/></td><td></td></tr>
+<tr><td>sceneClearObservedMap<br/></td><td></td></tr>
+<tr><td>sceneClearPredictedObjects<br/></td><td></td></tr>
+<tr><td>sceneCoalesceClassHarmonics<br/></td><td></td></tr>
+<tr><td>sceneComposePredictedMap<br/></td><td></td></tr>
+<tr><td>sceneComposePredictedMapThreshed<br/></td><td></td></tr>
+<tr><td>sceneComputeProbabilityOfMap<br/></td><td></td></tr>
+<tr><td>sceneComputeScore<br/></td><td></td></tr>
+<tr><td>sceneCopyGaussianMap<br/></td><td>Takes a gaussian map on the stack and performs a deep copy, leaving a new gaussian map on the stack.</td></tr>
+<tr><td>sceneCopyObservedToReprojectionBuffer<br/></td><td></td></tr>
+<tr><td>sceneCopyScene<br/></td><td>Takes a scene on the stack and performs a deep copy, leaving a new scene on the stack.</td></tr>
+<tr><td>sceneCountDiscrepantCells<br/></td><td></td></tr>
+<tr><td>sceneCropToDiscrepantRegion<br/></td><td></td></tr>
+<tr><td>sceneDepthPatchHalfWidth<br/></td><td></td></tr>
+<tr><td>sceneDepthStackLoadAndCropRaw<br/></td><td></td></tr>
+<tr><td>sceneDepthStackLoadAndMarginalizeRaw<br/></td><td></td></tr>
+<tr><td>sceneDepthStackLoadAndMinRaw<br/></td><td></td></tr>
+<tr><td>sceneDepthStackLoadAndPushRaw<br/></td><td></td></tr>
+<tr><td>sceneDepthStackSavePngRaw<br/></td><td></td></tr>
+<tr><td>sceneDepthStackSaveRaw<br/></td><td></td></tr>
+<tr><td>sceneDiscrepancyMode<br/></td><td></td></tr>
+<tr><td>sceneDiscrepancySearchDepth<br/></td><td></td></tr>
+<tr><td>sceneExponentialAverageObservedIntoBackground<br/></td><td></td></tr>
+<tr><td>sceneFabricateIdealBlockModel<br/></td><td></td></tr>
+<tr><td>sceneFlattenUncertainZWithDepthStack<br/></td><td></td></tr>
+<tr><td>sceneGetAnnotatedClassName<br/></td><td>The annotated class, for evaluation purposes.</td></tr>
+<tr><td>sceneGetClassificationMode<br/></td><td></td></tr>
+<tr><td>sceneGetFixationMode<br/></td><td></td></tr>
+<tr><td>sceneGetPredictedClassName<br/></td><td>The predicted class.</td></tr>
+<tr><td>sceneGrabDiscrepantCropAsClass<br/></td><td></td></tr>
+<tr><td>sceneHighPrecisionBeforeAfterDiffOfLogs<br/></td><td></td></tr>
+<tr><td>sceneInit<br/></td><td></td></tr>
+<tr><td>sceneInitDefaultBackgroundMap<br/></td><td>Check if the map exists; otherwise create a default one.</td></tr>
+<tr><td>sceneInitDimensions<br/></td><td></td></tr>
+<tr><td>sceneInitFromEePose<br/></td><td></td></tr>
+<tr><td>sceneInitFromEePoseScale<br/></td><td></td></tr>
+<tr><td>sceneInitFromEePoseScaleDimensions<br/></td><td></td></tr>
+<tr><td>sceneInitRegisterMax<br/></td><td></td></tr>
+<tr><td>sceneInitRegisterZero<br/></td><td></td></tr>
+<tr><td>sceneInitSmall<br/></td><td></td></tr>
+<tr><td>sceneIsNewConfiguration<br/></td><td></td></tr>
+<tr><td>sceneLoadBackgroundMap<br/></td><td></td></tr>
+<tr><td>sceneLoadDiscrepancyMap<br/></td><td></td></tr>
+<tr><td>sceneLoadFocusedObjectModel<br/></td><td>Load the object model of the focused class from disk.</td></tr>
+<tr><td>sceneLoadFocusedSceneModel<br/></td><td>Loads a scene from disk into the scene model for the focused class.  Requires the name of a scene that is saved to disk.</td></tr>
+<tr><td>sceneLoadGaussianMap<br/></td><td>Takes a string, loads the gaussian map and puts it on the stack.</td></tr>
+<tr><td>sceneLoadLightingModelFromGaussianMapFile<br/></td><td></td></tr>
+<tr><td>sceneLoadMonochromeBackground<br/></td><td></td></tr>
+<tr><td>sceneLoadObjectModel<br/></td><td>Load the object model.  Takes an object name as argument, which must be a directory name in the objects directory.</td></tr>
+<tr><td>sceneLoadObservedMap<br/></td><td></td></tr>
+<tr><td>sceneLoadScene<br/></td><td></td></tr>
+<tr><td>sceneLoadSceneRaw<br/></td><td></td></tr>
+<tr><td>sceneMapSceneObject<br/></td><td></td></tr>
+<tr><td>sceneMarginalizeDepthStackIntoRegister<br/></td><td></td></tr>
+<tr><td>sceneMinDepthStackIntoRegister<br/></td><td></td></tr>
+<tr><td>sceneMinIntoRegister<br/></td><td></td></tr>
+<tr><td>sceneMinSigmaSquared<br/></td><td>Variance on scene</td></tr>
+<tr><td>sceneNumPredictedObjects<br/></td><td></td></tr>
+<tr><td>sceneObjectLabelToSceneObjectIdx<br/></td><td></td></tr>
+<tr><td>sceneObservedMap<br/></td><td>Takes a scene on the stack and returns its observed map.</td></tr>
+<tr><td>scenePredictBestObject<br/></td><td></td></tr>
+<tr><td>scenePredictFocusedObject<br/></td><td></td></tr>
+<tr><td>scenePredictedMap<br/></td><td>Takes a scene on the stack and returns its predicted map.</td></tr>
+<tr><td>scenePushAnchorPose<br/></td><td></td></tr>
+<tr><td>scenePushAverageCrCbSigmaSquared<br/></td><td></td></tr>
+<tr><td>scenePushDepthStackSize<br/></td><td></td></tr>
+<tr><td>scenePushFocusedClassModelArea<br/></td><td></td></tr>
+<tr><td>scenePushFocusedClassTotalDiscrepancy<br/></td><td></td></tr>
+<tr><td>scenePushLightingModel<br/></td><td></td></tr>
+<tr><td>scenePushNumSceneObjects<br/></td><td></td></tr>
+<tr><td>scenePushOntoDepthStack<br/></td><td></td></tr>
+<tr><td>scenePushPixelOfMinStackVariance<br/></td><td></td></tr>
+<tr><td>scenePushPixelOfMinVariance<br/></td><td></td></tr>
+<tr><td>scenePushSceneObjectLabel<br/></td><td></td></tr>
+<tr><td>scenePushSceneObjectPose<br/></td><td>Takes an index; pushes the pose for this predicted object.</td></tr>
+<tr><td>scenePushTotalDiscrepancy<br/></td><td></td></tr>
+<tr><td>scenePushTotalDiscrepancyMagnitude<br/></td><td></td></tr>
+<tr><td>scenePushTotalLogDiscrepancy<br/></td><td></td></tr>
+<tr><td>scenePushTotalRelevantOneMinusDiscrepancy<br/></td><td></td></tr>
+<tr><td>sceneRecalculateObservedMusAndSigmas<br/></td><td></td></tr>
+<tr><td>sceneRecallDepthStackIndex<br/></td><td></td></tr>
+<tr><td>sceneRecallFromRegister<br/></td><td></td></tr>
+<tr><td>sceneRegularizeSceneL2<br/></td><td></td></tr>
+<tr><td>sceneRenderBackgroundMap<br/></td><td></td></tr>
+<tr><td>sceneRenderDiscrepancy<br/></td><td></td></tr>
+<tr><td>sceneRenderObservedMap<br/></td><td></td></tr>
+<tr><td>sceneRenderPredictedMap<br/></td><td></td></tr>
+<tr><td>sceneRenderScene<br/></td><td></td></tr>
+<tr><td>sceneRenderZ<br/></td><td></td></tr>
+<tr><td>sceneSaveBackgroundMap<br/></td><td></td></tr>
+<tr><td>sceneSaveDiscrepancyDensityImage<br/></td><td></td></tr>
+<tr><td>sceneSaveDiscrepancyMap<br/></td><td></td></tr>
+<tr><td>sceneSaveFocusedSceneModel<br/></td><td></td></tr>
+<tr><td>sceneSaveGaussianMap<br/></td><td>Takes a string and saves a gaussian map to that string.</td></tr>
+<tr><td>sceneSaveLightingModelToGaussianMapFile<br/></td><td></td></tr>
+<tr><td>sceneSaveObservedMap<br/></td><td></td></tr>
+<tr><td>sceneSaveObservedMapImage<br/></td><td></td></tr>
+<tr><td>sceneSaveScene<br/></td><td></td></tr>
+<tr><td>sceneSaveSceneAbsolute<br/></td><td></td></tr>
+<tr><td>sceneScoreObjectAtPose<br/></td><td></td></tr>
+<tr><td>sceneScoreThresh<br/></td><td>Score threshold for discrepancy.</td></tr>
+<tr><td>sceneSetAngularApertureCols<br/></td><td></td></tr>
+<tr><td>sceneSetAngularApertureRows<br/></td><td></td></tr>
+<tr><td>sceneSetAngularBaffleCols<br/></td><td></td></tr>
+<tr><td>sceneSetAngularBaffleRows<br/></td><td></td></tr>
+<tr><td>sceneSetAnnotatedClassName<br/></td><td></td></tr>
+<tr><td>sceneSetAnnotatedClassNameToFocusedClass<br/></td><td></td></tr>
+<tr><td>sceneSetBackgroundFromObserved<br/></td><td></td></tr>
+<tr><td>sceneSetBackgroundMap<br/></td><td>Takes a scene and a background map and sets the scene with the background map. </td></tr>
+<tr><td>sceneSetBackgroundStdDevColor<br/></td><td></td></tr>
+<tr><td>sceneSetBackgroundStdDevY<br/></td><td></td></tr>
+<tr><td>sceneSetCellCountThreshold<br/></td><td></td></tr>
+<tr><td>sceneSetClassificationMode<br/></td><td></td></tr>
+<tr><td>sceneSetCurrentScene<br/></td><td>Sets the current scene with its argument.</td></tr>
+<tr><td>sceneSetDepthPatchHalfWidth<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancyDensityFromZ<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancyModeDot<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancyModeNoisyAnd<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancyModeNoisyOr<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancyModePoint<br/></td><td></td></tr>
+<tr><td>sceneSetDiscrepancySearchDepth<br/></td><td></td></tr>
+<tr><td>sceneSetFixationMode<br/></td><td></td></tr>
+<tr><td>sceneSetFocusedSceneStdDevColor<br/></td><td></td></tr>
+<tr><td>sceneSetFocusedSceneStdDevY<br/></td><td></td></tr>
+<tr><td>sceneSetHeightReticleFromPixel<br/></td><td></td></tr>
+<tr><td>sceneSetHeightReticleFromVariance<br/></td><td></td></tr>
+<tr><td>sceneSetLightModelFromDiscrepancy<br/></td><td></td></tr>
+<tr><td>sceneSetLightingModelFromStack<br/></td><td></td></tr>
+<tr><td>sceneSetLightingModelStdDevColor<br/></td><td></td></tr>
+<tr><td>sceneSetLightingModelStdDevY<br/></td><td></td></tr>
+<tr><td>sceneSetMinSigmaSquared<br/></td><td></td></tr>
+<tr><td>sceneSetObservedMap<br/></td><td>Takes a scene and an observed map and sets the scene with the observed map. </td></tr>
+<tr><td>sceneSetObservedRGBFromVariance<br/></td><td></td></tr>
+<tr><td>sceneSetObservedRGBFromZ<br/></td><td></td></tr>
+<tr><td>sceneSetPredictedClassName<br/></td><td></td></tr>
+<tr><td>sceneSetPredictedClassNameToFocusedClass<br/></td><td></td></tr>
+<tr><td>sceneSetPredictedStdDevColor<br/></td><td></td></tr>
+<tr><td>sceneSetPredictedStdDevY<br/></td><td></td></tr>
+<tr><td>sceneSetScoreThresh<br/></td><td></td></tr>
+<tr><td>sceneSetVanishingPointFromPixel<br/></td><td></td></tr>
+<tr><td>sceneSetVanishingPointFromVariance<br/></td><td></td></tr>
+<tr><td>sceneSmoothDepthStackInZ<br/></td><td></td></tr>
+<tr><td>sceneSmoothDiscrepancyDensity<br/></td><td></td></tr>
+<tr><td>sceneSmoothSquaredCountsAndSamplesXY<br/></td><td></td></tr>
+<tr><td>sceneSpawnClassHarmonics<br/></td><td></td></tr>
+<tr><td>sceneStoreObservedInRegister<br/></td><td></td></tr>
+<tr><td>sceneTakeAfterDensity<br/></td><td></td></tr>
+<tr><td>sceneTakeBeforeDensity<br/></td><td></td></tr>
+<tr><td>sceneTrimDepthWithDiscrepancy<br/></td><td></td></tr>
+<tr><td>sceneUpdateAllClassDiscrepancies<br/></td><td></td></tr>
+<tr><td>sceneUpdateDiscrepancy<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArray<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromRegisterAtZNoRecalcPhasedArrayKernel<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromReprojectionBufferAtZNoRecalc<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBuffer<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZ<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalc<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAll<br/></td><td>Updates the observed map from the stream buffer in a big for loop; fastest version without GPU.  This is the one to copy and call.</td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnly<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderGlareOnlyRising<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlare<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllLightModelRenderWithoutGlareRising<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllOOP<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderGlareOnly<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcAllSelfModelRenderWithoutGlare<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcEPI<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcPhasedArray<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageArray<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcSecondStageAsymmetricArray<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAll<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderGlareOnly<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCLightModelRenderWithoutGlare<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderGlareOnly<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferAtZNoRecalcViewSynthAllGCSelfRenderWithoutGlare<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferDepthMap<br/></td><td>Updates the observed map from the stream buffer as a depth map.  Used for the Kinect 2.</td></tr>
+<tr><td>sceneUpdateObservedFromStreamBufferNoRecalc<br/></td><td></td></tr>
+<tr><td>sceneUpdateObservedFromWrist<br/></td><td></td></tr>
+<tr><td>sceneZeroBox<br/></td><td></td></tr>
+<tr><td>sceneZeroLowerX<br/></td><td></td></tr>
+<tr><td>sceneZeroLowerY<br/></td><td></td></tr>
+<tr><td>sceneZeroUpperX<br/></td><td></td></tr>
+<tr><td>sceneZeroUpperY<br/></td><td></td></tr>
+<tr><td>searchProximity<br/></td><td></td></tr>
+<tr><td>seeHz<br/></td><td></td></tr>
+<tr><td>setArmedThreshold<br/></td><td></td></tr>
+<tr><td>setBeeHome<br/></td><td></td></tr>
+<tr><td>setBreakGraspTiesWithNoise<br/></td><td></td></tr>
+<tr><td>setC3dPoseBase<br/></td><td></td></tr>
+<tr><td>setCameraCenterX<br/></td><td></td></tr>
+<tr><td>setCameraCenterY<br/></td><td></td></tr>
+<tr><td>setCameraCropUpperLeftCornerX<br/></td><td></td></tr>
+<tr><td>setCameraCropUpperLeftCornerY<br/></td><td></td></tr>
+<tr><td>setCameraKappaX<br/></td><td></td></tr>
+<tr><td>setCameraKappaY<br/></td><td></td></tr>
+<tr><td>setCameraMuX<br/></td><td></td></tr>
+<tr><td>setCameraMuY<br/></td><td></td></tr>
+<tr><td>setCameraR00<br/></td><td></td></tr>
+<tr><td>setCameraR01<br/></td><td></td></tr>
+<tr><td>setCameraR10<br/></td><td></td></tr>
+<tr><td>setCameraR11<br/></td><td></td></tr>
+<tr><td>setClassLabels<br/></td><td>Set the active classes.  useage:  endArgs &quot;class1&quot; &quot;class2&quot; setClassLabels.  The class names must be directorys in the ein/default/objects folder.</td></tr>
+<tr><td>setClassLabelsBaseClassAbsolute<br/></td><td></td></tr>
+<tr><td>setClassLabelsObjectFolderAbsolute<br/></td><td></td></tr>
+<tr><td>setColorReticles<br/></td><td></td></tr>
+<tr><td>setColorReticlesA<br/></td><td></td></tr>
+<tr><td>setControlModeAngles<br/></td><td></td></tr>
+<tr><td>setControlModeEePosition<br/></td><td></td></tr>
+<tr><td>setCurrentCornellTableToZero<br/></td><td></td></tr>
+<tr><td>setCurrentIKBoundaryMode<br/></td><td></td></tr>
+<tr><td>setCurrentIKFastMode<br/></td><td></td></tr>
+<tr><td>setCurrentPoseFromJoints<br/></td><td></td></tr>
+<tr><td>setCurrentPoseToTruePose<br/></td><td></td></tr>
+<tr><td>setCurrentTableZ<br/></td><td></td></tr>
+<tr><td>setDefaultHandCameraOffset<br/></td><td>Sets the hand camera offset to the default value (obtained for Baxter&apos;s RGB wrist camera.</td></tr>
+<tr><td>setEEPosePX<br/></td><td></td></tr>
+<tr><td>setEEPosePY<br/></td><td></td></tr>
+<tr><td>setEEPosePZ<br/></td><td></td></tr>
+<tr><td>setEEPoseQW<br/></td><td></td></tr>
+<tr><td>setEEPoseQX<br/></td><td></td></tr>
+<tr><td>setEEPoseQY<br/></td><td></td></tr>
+<tr><td>setEEPoseQZ<br/></td><td></td></tr>
+<tr><td>setEffortHere<br/></td><td></td></tr>
+<tr><td>setEffortThresh<br/></td><td></td></tr>
+<tr><td>setExpectedCropsToStream<br/></td><td></td></tr>
+<tr><td>setFakeBBWidth<br/></td><td></td></tr>
+<tr><td>setFocusedClass<br/>setTargetClass<br/></td><td></td></tr>
+<tr><td>setFocusedClassIdx<br/>setTargetClassIdx<br/></td><td></td></tr>
+<tr><td>setGradientServoHardMaxIterations<br/></td><td></td></tr>
+<tr><td>setGradientServoMode<br/></td><td></td></tr>
+<tr><td>setGradientServoSoftMaxIterations<br/></td><td></td></tr>
+<tr><td>setGraspBackoffDistance<br/></td><td></td></tr>
+<tr><td>setGraspModeTo3D<br/></td><td></td></tr>
+<tr><td>setGraspModeToCrane<br/></td><td></td></tr>
+<tr><td>setGreenHalo<br/></td><td></td></tr>
+<tr><td>setGridSize<br/></td><td></td></tr>
+<tr><td>setGridSizeCoarse<br/></td><td></td></tr>
+<tr><td>setGridSizeCoarser<br/></td><td></td></tr>
+<tr><td>setGridSizeEvenCoarser<br/></td><td></td></tr>
+<tr><td>setGridSizeFine<br/></td><td></td></tr>
+<tr><td>setGridSizeMedium<br/></td><td></td></tr>
+<tr><td>setGridSizeNowThatsCoarse<br/></td><td></td></tr>
+<tr><td>setGridSizeVeryFine<br/></td><td></td></tr>
+<tr><td>setGripperMask<br/></td><td></td></tr>
+<tr><td>setGripperMaskA<br/></td><td></td></tr>
+<tr><td>setGripperMaskAA<br/></td><td></td></tr>
+<tr><td>setGripperMaskB<br/></td><td></td></tr>
+<tr><td>setGripperMaskBA<br/></td><td></td></tr>
+<tr><td>setGripperMaskCA<br/></td><td></td></tr>
+<tr><td>setGripperMaskCB<br/></td><td></td></tr>
+<tr><td>setGripperMaskOnes<br/></td><td></td></tr>
+<tr><td>setGripperMaskThresh<br/></td><td></td></tr>
+<tr><td>setGripperMaskWithMotion<br/></td><td></td></tr>
+<tr><td>setGripperMaskWithMotionA<br/></td><td></td></tr>
+<tr><td>setGripperMovingForce<br/></td><td>Set the moving force of the gripper.  Takes an integer between 0-100. </td></tr>
+<tr><td>setGripperThresh<br/></td><td></td></tr>
+<tr><td>setHandCameraOffset<br/></td><td></td></tr>
+<tr><td>setHandCameraOffsetFromTf<br/></td><td>Sets the hand camera  from tf using the links.</td></tr>
+<tr><td>setHandEndEffectorOffset<br/></td><td></td></tr>
+<tr><td>setHeadPanTargetSpeed<br/></td><td></td></tr>
+<tr><td>setHeightReticles<br/></td><td></td></tr>
+<tr><td>setHeightReticlesA<br/></td><td></td></tr>
+<tr><td>setHelp<br/></td><td>Make a new compound word with specified description text.  Usage:  &lt;compound word&gt; &lt; help text &gt; setHelp -&gt; &lt; compound word with help text &gt;. </td></tr>
+<tr><td>setHoverThreshold<br/></td><td></td></tr>
+<tr><td>setIROffset<br/></td><td></td></tr>
+<tr><td>setIdleModeToCrane<br/></td><td></td></tr>
+<tr><td>setIdleModeToEmpty<br/></td><td></td></tr>
+<tr><td>setIdleModeToPatrol<br/></td><td></td></tr>
+<tr><td>setIdleModeToShrug<br/></td><td></td></tr>
+<tr><td>setIdleModeToStopClear<br/></td><td></td></tr>
+<tr><td>setLastLabelLearned<br/></td><td></td></tr>
+<tr><td>setMagnification<br/></td><td></td></tr>
+<tr><td>setMagnificationA<br/></td><td></td></tr>
+<tr><td>setMagnificationB<br/></td><td></td></tr>
+<tr><td>setMapAutoPick<br/></td><td></td></tr>
+<tr><td>setMapFreeSpacePixelSkirt<br/></td><td></td></tr>
+<tr><td>setMapGrayBoxPixelSkirtCols<br/></td><td></td></tr>
+<tr><td>setMapGrayBoxPixelSkirtRows<br/></td><td></td></tr>
+<tr><td>setMapGrayBoxPixelWaistCols<br/></td><td></td></tr>
+<tr><td>setMapGrayBoxPixelWaistRows<br/></td><td></td></tr>
+<tr><td>setMapSearchFenceXMax<br/></td><td></td></tr>
+<tr><td>setMapSearchFenceXMin<br/></td><td></td></tr>
+<tr><td>setMapSearchFenceYMax<br/></td><td></td></tr>
+<tr><td>setMapSearchFenceYMin<br/></td><td></td></tr>
+<tr><td>setMapServoMode<br/></td><td></td></tr>
+<tr><td>setMappingServoTimeout<br/></td><td></td></tr>
+<tr><td>setMovementStateToMoving<br/></td><td></td></tr>
+<tr><td>setMovingThreshold<br/></td><td></td></tr>
+<tr><td>setNumClasses<br/></td><td></td></tr>
+<tr><td>setPatrolModeToLoop<br/></td><td></td></tr>
+<tr><td>setPatrolModeToOnce<br/></td><td></td></tr>
+<tr><td>setPatrolStateToHanding<br/></td><td></td></tr>
+<tr><td>setPatrolStateToIdling<br/></td><td></td></tr>
+<tr><td>setPatrolStateToPatrolling<br/></td><td></td></tr>
+<tr><td>setPatrolStateToPicking<br/></td><td></td></tr>
+<tr><td>setPatrolStateToPlacing<br/></td><td></td></tr>
+<tr><td>setPhotoPinHere<br/></td><td></td></tr>
+<tr><td>setPickFlushFactor<br/></td><td></td></tr>
+<tr><td>setPlaceModeToHand<br/></td><td></td></tr>
+<tr><td>setPlaceModeToHold<br/></td><td></td></tr>
+<tr><td>setPlaceModeToRegister<br/></td><td></td></tr>
+<tr><td>setPlaceModeToShake<br/></td><td></td></tr>
+<tr><td>setPressPose<br/></td><td></td></tr>
+<tr><td>setPursuitProximity<br/></td><td></td></tr>
+<tr><td>setRandomOrientationForPhotospin<br/></td><td></td></tr>
+<tr><td>setRandomPositionAfterPick<br/></td><td></td></tr>
+<tr><td>setRedHalo<br/></td><td></td></tr>
+<tr><td>setRepeatHalo<br/></td><td></td></tr>
+<tr><td>setScanGroup<br/></td><td></td></tr>
+<tr><td>setScanModeCentered<br/></td><td></td></tr>
+<tr><td>setScanModeNotCentered<br/></td><td></td></tr>
+<tr><td>setSearchProximity<br/></td><td></td></tr>
+<tr><td>setSisFlags<br/></td><td>Set whether we should save different sensor streams. &lt;pose&gt; &lt;range&gt; &lt;image&gt; &lt;joints&gt; &lt;word&gt; &lt;label&gt; setSisFlags</td></tr>
+<tr><td>setSnapToFlushGrasp<br/></td><td></td></tr>
+<tr><td>setSonarLed<br/></td><td></td></tr>
+<tr><td>setSpeed<br/></td><td></td></tr>
+<tr><td>setStiffness<br/></td><td></td></tr>
+<tr><td>setStreamPicks<br/></td><td></td></tr>
+<tr><td>setTable<br/></td><td></td></tr>
+<tr><td>setTableA<br/></td><td></td></tr>
+<tr><td>setFocusedClass<br/>setTargetClass<br/></td><td></td></tr>
+<tr><td>setFocusedClassIdx<br/>setTargetClassIdx<br/></td><td></td></tr>
+<tr><td>setTheYcbTable<br/></td><td></td></tr>
+<tr><td>setTorsoFanLevel<br/></td><td></td></tr>
+<tr><td>setTrackbarLoHi<br/></td><td></td></tr>
+<tr><td>setTwistThresh<br/></td><td></td></tr>
+<tr><td>setVanishingPoint<br/></td><td></td></tr>
+<tr><td>setVanishingPointA<br/></td><td></td></tr>
+<tr><td>setVanishingPointB<br/></td><td></td></tr>
+<tr><td>setVanishingPointPrep<br/></td><td></td></tr>
+<tr><td>setW1AngleThresh<br/></td><td></td></tr>
+<tr><td>setW1GoThresh<br/></td><td></td></tr>
+<tr><td>shakeHeadNegative<br/></td><td></td></tr>
+<tr><td>shakeHeadPositive<br/></td><td></td></tr>
+<tr><td>shakeItOff1<br/></td><td></td></tr>
+<tr><td>shakeItUpAndDown<br/></td><td></td></tr>
+<tr><td>shutdownAllNonessentialSystems<br/></td><td>Shut down all systems that are not important for streaming data, to maximize the framerate we stream.</td></tr>
+<tr><td>shutdownToSensorsAndMovement<br/></td><td></td></tr>
+<tr><td>silenceSonar<br/></td><td></td></tr>
+<tr><td>sin<br/></td><td></td></tr>
+<tr><td>size<br/></td><td>Takes a compound word on the stack and an int.  Returns the ith entry of the compound word.  Uses zero based indexing.</td></tr>
+<tr><td>slide<br/>&apos;<br/></td><td>Moves a word from the call stack to the data stack.</td></tr>
+<tr><td>slip<br/></td><td>Moves a word from the data stack to the call stack.</td></tr>
+<tr><td>spawnTargetClassAtEndEffector<br/></td><td></td></tr>
+<tr><td>spawnTargetMasterSpriteAtEndEffector<br/></td><td></td></tr>
+<tr><td>spinForSeconds<br/></td><td></td></tr>
+<tr><td>spinForSecondsA<br/></td><td></td></tr>
+<tr><td>spinForSecondsInit<br/></td><td></td></tr>
+<tr><td>squeezeDuck<br/></td><td></td></tr>
+<tr><td>start<br/></td><td></td></tr>
+<tr><td>start3dGraspAnnotation<br/></td><td></td></tr>
+<tr><td>start3dGraspAnnotationNoChange<br/></td><td></td></tr>
+<tr><td>stay<br/></td><td></td></tr>
+<tr><td>stayNoRoll<br/></td><td></td></tr>
+<tr><td>stayZOnly<br/></td><td></td></tr>
+<tr><td>stereoCalculate<br/></td><td></td></tr>
+<tr><td>stereoDisplay<br/></td><td></td></tr>
+<tr><td>stereoPair<br/></td><td></td></tr>
+<tr><td>stereoPairCache1<br/></td><td></td></tr>
+<tr><td>stereoPairCache2<br/></td><td></td></tr>
+<tr><td>stereoPrep<br/></td><td></td></tr>
+<tr><td>store<br/></td><td>Create a new variable.  Usage  &lt;value&gt; &quot;&lt;name&gt;&quot; store.  After that you can say &lt;name&gt; and it will push its contents on the call stack.</td></tr>
+<tr><td>streamBasePoseForCurrentImage<br/></td><td>Push the arm pose for the current image in the stream buffer.</td></tr>
+<tr><td>streamCenterCropAsFocusedClass<br/></td><td></td></tr>
+<tr><td>streamCropsAsFocusedClass<br/></td><td></td></tr>
+<tr><td>streamDisableAllSisFlags<br/></td><td>Enable all SIS flags.</td></tr>
+<tr><td>streamDiskStreaming<br/></td><td></td></tr>
+<tr><td>streamEnableAllSisFlags<br/></td><td>Enable all SIS flags.</td></tr>
+<tr><td>streamEnableSisImageAndPoses<br/></td><td>Configure Ein to stream images and poses only.</td></tr>
+<tr><td>streamGraspResult<br/></td><td></td></tr>
+<tr><td>streamImageBufferCurrentIdx<br/></td><td></td></tr>
+<tr><td>streamImageBufferSize<br/></td><td></td></tr>
+<tr><td>streamImageSpeed<br/></td><td></td></tr>
+<tr><td>streamIncrementImageStreamBuffer<br/></td><td>Increments the current location in the image stream buffer.  The new default word, which does no load and no kick.</td></tr>
+<tr><td>streamJointBufferSize<br/></td><td></td></tr>
+<tr><td>streamLabel<br/></td><td></td></tr>
+<tr><td>streamLabelBufferSize<br/></td><td></td></tr>
+<tr><td>streamPlayStreamBuffer<br/></td><td>Play back the stream buffer.  Plays back at a constant rate; is not careful to wait the &apos;correct&apos; amount of time between frames.</td></tr>
+<tr><td>streamPoseBufferSize<br/></td><td></td></tr>
+<tr><td>streamPoseForCurrentImage<br/></td><td>Push the pose for the current image in the stream buffer.</td></tr>
+<tr><td>streamRangeBufferSize<br/></td><td></td></tr>
+<tr><td>streamRenderStreamWindow<br/></td><td>Render the stream buffer window.</td></tr>
+<tr><td>streamScanCentered<br/></td><td></td></tr>
+<tr><td>streamSetDiskStreaming<br/></td><td></td></tr>
+<tr><td>streamSetImageBufferCurrentIdx<br/></td><td></td></tr>
+<tr><td>streamSetSisImage<br/></td><td></td></tr>
+<tr><td>streamSetSisJoints<br/></td><td></td></tr>
+<tr><td>streamSetSisLabel<br/></td><td></td></tr>
+<tr><td>streamSetSisPose<br/></td><td></td></tr>
+<tr><td>streamSetSisRange<br/></td><td></td></tr>
+<tr><td>streamSetSisWord<br/></td><td></td></tr>
+<tr><td>streamSisImage<br/></td><td></td></tr>
+<tr><td>streamSisJoints<br/></td><td></td></tr>
+<tr><td>streamSisLabel<br/></td><td></td></tr>
+<tr><td>streamSisPose<br/></td><td></td></tr>
+<tr><td>streamSisRange<br/></td><td></td></tr>
+<tr><td>streamSisWord<br/></td><td></td></tr>
+<tr><td>streamSpin<br/></td><td></td></tr>
+<tr><td>streamWordBufferSize<br/></td><td></td></tr>
+<tr><td>streamWriteBuffersToDisk<br/></td><td>Write what is in the stream buffer to disk.</td></tr>
+<tr><td>subscribeCameraParameterTrackerToRosOut<br/></td><td>Subscribe to rosout.  We don&apos;t want to do this for long periods since it&apos;s very noisy, but this is how we see the current camera parameters, since they aren&apos;t published any other way.</td></tr>
+<tr><td>sum<br/>join<br/></td><td>Pops a compound word; sums the entries; pushes the result.  Usage:  ( 1 1 1 ) sum -&gt; 3.</td></tr>
+<tr><td>swap<br/></td><td></td></tr>
+<tr><td>switchSonarLed<br/></td><td></td></tr>
+<tr><td>tenthImpulse<br/></td><td></td></tr>
+<tr><td>throw<br/></td><td></td></tr>
+<tr><td>throwOpenCV<br/></td><td></td></tr>
+<tr><td>time<br/></td><td></td></tr>
+<tr><td>times<br/>*<br/></td><td>Multiply two numeric arguments.</td></tr>
+<tr><td>toggleDrawClearanceMap<br/></td><td></td></tr>
+<tr><td>toggleDrawIKMap<br/></td><td></td></tr>
+<tr><td>toggleShouldIDoIK<br/></td><td></td></tr>
+<tr><td>toggleShouldIRender<br/></td><td></td></tr>
+<tr><td>toggleUseFade<br/></td><td></td></tr>
+<tr><td>toggleUseGlow<br/></td><td></td></tr>
+<tr><td>torsoFanAuto<br/></td><td></td></tr>
+<tr><td>torsoFanOff<br/></td><td></td></tr>
+<tr><td>torsoFanOn<br/></td><td></td></tr>
+<tr><td>torsoFanState<br/></td><td></td></tr>
+<tr><td>touchDown<br/></td><td></td></tr>
+<tr><td>trainAndWriteFocusedClassKnn<br/></td><td></td></tr>
+<tr><td>trainModels<br/></td><td>Rebuild the kNN model for the detectors.</td></tr>
+<tr><td>trainModelsFromLabels<br/></td><td></td></tr>
+<tr><td>transformPath<br/></td><td></td></tr>
+<tr><td>trueCameraPose<br/></td><td></td></tr>
+<tr><td>truePose<br/></td><td></td></tr>
+<tr><td>tryToMoveToTheLastPickHeight<br/></td><td></td></tr>
+<tr><td>tryToMoveToTheLastPrePickHeight<br/></td><td></td></tr>
+<tr><td>tuckArms<br/></td><td></td></tr>
+<tr><td>turnAboutY<br/></td><td></td></tr>
+<tr><td>twistThresh<br/></td><td></td></tr>
+<tr><td>twistWords<br/></td><td></td></tr>
+<tr><td>twoPartPlaceObjectOnObject<br/></td><td></td></tr>
+<tr><td>unFixCameraLighting<br/></td><td>Let the camera parmeters automatically update (this is the Baxter default).</td></tr>
+<tr><td>unFixCameraLightingNoUpdate<br/></td><td></td></tr>
+<tr><td>unSilenceSonar<br/></td><td></td></tr>
+<tr><td>unTurnAboutY<br/></td><td></td></tr>
+<tr><td>unmapTargetBlueBox<br/></td><td></td></tr>
+<tr><td>unsubscribeCameraParameterTrackerToRosOut<br/></td><td>Unsubscribe from rosout.  We don&apos;t want to stay plugged into rosut for very long since it&apos;s so noisy.</td></tr>
+<tr><td>untuckArms<br/></td><td></td></tr>
+<tr><td>uploadObjectToDatabase<br/></td><td></td></tr>
+<tr><td>visionCycle<br/></td><td></td></tr>
+<tr><td>visionCycleNoClassify<br/></td><td></td></tr>
+<tr><td>voidCurrentMapRegion<br/></td><td></td></tr>
+<tr><td>w1AngleThresh<br/></td><td>When we do wait until at current position</td></tr>
+<tr><td>w1GoThresh<br/></td><td>When we do wait until at current position</td></tr>
+<tr><td>waitForSeconds<br/></td><td></td></tr>
+<tr><td>waitForSecondsA<br/></td><td></td></tr>
+<tr><td>waitForTugThenOpenGripper<br/></td><td></td></tr>
+<tr><td>waitForTugThenOpenGripperA<br/></td><td></td></tr>
+<tr><td>waitGetCurrentWaitMode<br/></td><td></td></tr>
+<tr><td>waitSetCurrentWaitMode<br/></td><td></td></tr>
+<tr><td>waitUntilAccelerometerCallbackReceived<br/></td><td></td></tr>
+<tr><td>waitUntilAccelerometerCallbackReceivedA<br/></td><td></td></tr>
+<tr><td>waitUntilAtCurrentPosition<br/></td><td></td></tr>
+<tr><td>waitUntilAtCurrentPositionB<br/></td><td></td></tr>
+<tr><td>waitUntilAtCurrentPositionCollapse<br/></td><td></td></tr>
+<tr><td>waitUntilEffort<br/></td><td></td></tr>
+<tr><td>waitUntilEffortA<br/></td><td></td></tr>
+<tr><td>waitUntilEndpointCallbackReceived<br/></td><td></td></tr>
+<tr><td>waitUntilEndpointCallbackReceivedA<br/></td><td></td></tr>
+<tr><td>waitUntilGripperNotMoving<br/></td><td></td></tr>
+<tr><td>waitUntilGripperNotMovingB<br/></td><td></td></tr>
+<tr><td>waitUntilGripperNotMovingC<br/></td><td></td></tr>
+<tr><td>waitUntilImageCallbackReceived<br/></td><td></td></tr>
+<tr><td>waitUntilImageCallbackReceivedA<br/></td><td></td></tr>
+<tr><td>waitUntilOnSideOfPlane<br/></td><td></td></tr>
+<tr><td>waitUntilOnSideOfPlaneB<br/></td><td></td></tr>
+<tr><td>waitUntilRingBufferImageAtCurrentPosition<br/></td><td></td></tr>
+<tr><td>while<br/></td><td>While loop.  Usage:  ( 1 ) ( torsoFanOn 1 waitForSeconds torsoFanOff 1 waitForSeconds )  while</td></tr>
+<tr><td>whileCollapsed<br/></td><td>While loop.  Use as in while, but collaspses the stack.  This means that if you don&apos;t exit the while, Ein will also never exit the while, and be in an infinite loop, even if you clear the stacks.</td></tr>
+<tr><td>writeAlphaObjectToBetaFolders<br/></td><td></td></tr>
+<tr><td>writeAlphaObjectToBetaFoldersA<br/></td><td></td></tr>
+<tr><td>writeFocusedClass<br/></td><td></td></tr>
+<tr><td>writeFocusedClassGrasps<br/></td><td></td></tr>
+<tr><td>writeXMLEnvironment<br/></td><td></td></tr>
+<tr><td>xDown<br/></td><td></td></tr>
+<tr><td>xUp<br/></td><td>Move end effector up in the x dimension one unit.  Change unit size with setGridSize.  Usage:  xUp</td></tr>
+<tr><td>yDown<br/></td><td></td></tr>
+<tr><td>yUp<br/></td><td></td></tr>
+<tr><td>zDown<br/></td><td></td></tr>
+<tr><td>zUp<br/></td><td></td></tr>
+<tr><td>zeroGMode<br/></td><td></td></tr>
+<tr><td>zeroGOff<br/></td><td>Turns off zero gravity mode, so Ein will publish the current pose as the desired target position.</td></tr>
+<tr><td>zeroGOn<br/></td><td>Turns on zero gravity mode, so that you can move the arm where you want and it will stay there.  Ein will publish the true joint position as the desired joint position.</td></tr>
+<tr><td>zeroGToggle<br/></td><td>Toggle zero gravity mode.</td></tr>
+<tr><td>oB<br/>{<br/></td><td></td></tr>
+<tr><td>sB<br/>|B<br/></td><td></td></tr>
+<tr><td>sP<br/>|S<br/></td><td></td></tr>
+<tr><td>or<br/>||<br/></td><td>Returns logical or of its numeric arguments. Back does not have booleans so it treats 0 (and 0.0) as false, and all other numbers as true.</td></tr>
+<tr><td>cB<br/>}<br/></td><td></td></tr>
 </table>

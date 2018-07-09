@@ -36,7 +36,12 @@ git clone http://github.com/h2r/ein
 
 Use wstool to check out the Baxter SDK.  These commands check out the
 most recent version of the SDK; if you are running an older version
-you will need to check out the correct branch. 
+you will need to check out the correct branch.  If you are using the
+jaco, instead install the JACO SDK.  If pidrone, install pidrone_pkg.
+The build will automatically detect which robot packages are in your
+workspace and compile Ein for that robot.  This switch is done with a
+conditional flag in the CMakefile, so edit the CMakefile directly to
+force it to compile for a particular robot.
 
 ```
 wstool init .
@@ -65,6 +70,9 @@ ROS_MASTER_URI.
 cd ~/catkin_ws
 ./baxter.sh
 ```
+
+If using another robot, copy setup.sh to the root directory.  If you
+are using baxter, modify setup.sh to source Rethink's baxter.sh script.
 
 Now build again; this build should succeed:
 

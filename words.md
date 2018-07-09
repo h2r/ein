@@ -6,7 +6,11 @@ order: 99
 ---
 
 This page contains all the words in Ein and their help text.  You can
-access this within Ein by running <br>`( word ) help`.
+access this within Ein by running <br>`( word ) help`.  Note that
+different compiles of Ein (for different robots) will contain
+different words.  For example, if you have compiled Ein for Jaco, then
+the Baxter-specific words will not appear in this index, and
+vice-versa if you have compiled Ein for Baxter and not Jaco. 
 
 <style>
 

@@ -416,6 +416,16 @@ the set of class labels to the scene.  After that run
 To reset, you can run `sceneClearPredictedObjects` and
 `tableUpdateMaps` to view them.
 
+### Generic Grasping
+
+We have a grasp mode that works for any object by trying to find
+locations where it can "pinch" discrepancy.  It runs a filter that
+slides around the table and tries to "pinch" discrepancy.  This filter
+works well on a variety of objects and exploits the light field's
+ability to perform foreground/background segmentation.  To enage it
+run `tableSwapToBlocks` and then run the rest of the inference as
+normal.
+
 
 ### Class Labels
 
