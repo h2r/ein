@@ -63,3 +63,10 @@ torsoDown
 1 streamSetSisImage 1 streamSetSisPose activateSensorStreaming 
 torsoToHighest waitUntilTorsoAtCurrentPosition
 deactivateSensorStreaming ) "Take a stream buffer with movo."  "movoTakeTorsoStreamBuffer" define
+
+0.985101 0.119677 0.751782 -0.584766 -0.466652 0.336738 0.571744 createEEPose "rightTestPose" store
+0.844181 0.119740 0.040801 0.746307 0.028947 -0.611803 -0.260548 createEEPose "rightCraneFront" store
+
+
+
+
