@@ -36,7 +36,6 @@ void EinJacoConfig::endpointCallback(const geometry_msgs::PoseStamped& p) {
   ms->config.lastEndpointCallbackReceived = ros::Time::now();
 
   setRingPoseAtTime(ms, ms->config.lastEndpointCallbackReceived, p.pose);
-  ms->config.trueEEPose = p.pose;
   ms->config.trueEEPoseEEPose = ep;
 }
 
@@ -58,6 +57,11 @@ void robotUpdate(MachineState * ms) {
   }
   
 
+}
+
+void robotInitializeSerial(MachineState * ms) {
+  ms->config.robot_serial = "jaco";
+  ms->config.robot_software_version = "";
 }
 
 void robotInitializeConfig(MachineState * ms) {
@@ -202,8 +206,8 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(AssumeCalibrationPose)
 
-CONFIG_GETTER_DOUBLE(Finger1, ms->config.jacoConfig->finger1)
-CONFIG_GETTER_DOUBLE(Finger2, ms->config.jacoConfig->finger2)
-CONFIG_GETTER_DOUBLE(Finger3, ms->config.jacoConfig->finger3)
+CONFIG_GETTER_DOUBLE(Finger1, ms->config.jacoConfig->finger1, "Finger 1 position.")
+CONFIG_GETTER_DOUBLE(Finger2, ms->config.jacoConfig->finger2, "Finger 2 position.")
+CONFIG_GETTER_DOUBLE(Finger3, ms->config.jacoConfig->finger3, "Finger 3 position.")
 
 }

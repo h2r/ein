@@ -58,6 +58,9 @@ move the focused end effector using MoveIt.  Many of the tutorial
 instructions for the [[getstarted]] page apply directly to MOVO to
 move the end effector.
 
+If you want to launch moveit yourself, run the following command on movo2:
+`roslaunch movo_7dof_moveit_config movo_moveit_planning_execution.launch debug:=true`.
+
 ### Gripper
 
 The gripper is sort of complicated. Our Movo has the Jaco kg3 gripper.
@@ -108,6 +111,19 @@ result in the base moving.  You need to have set up gmapper with a map
 and localization and the navigation action following the movo
 instructions.
 
+There is a known bug that it does not update the currentPose when you
+switch end effectors, so the pose that Ein tries to move to will still
+be from the 'old' end effector.  I plan to make it save the last good
+current pose when you switch end effectors and write it back when you
+switch back.
+
+For now, you should switch to zero gravity mode (zeroGToggle), which
+tells Ein to set the currentPose to the truePose.  This will update
+the currentPose to the end effector's current position and then the
+`xUp` words will start working from there.
+
+
+
 ### Movo Status
 
 There are a variety of reactive variable words that record the robot's
@@ -144,6 +160,17 @@ when offboard over wireless is quite slow, so this feature is a pain
 to add.  Movo plans to add faster wifi by the end of summer.  Perhaps
 we can do this now by plugging into the wired ethernet...
 
+### Movo Says
+
+Movo can play the children's game Simon Says!
+
+* Move to the tuck position and explain the rules with `movoSaysBegin`
+* Say goodbye with `movoSaysEnd`
+* All commands are named movoSays. Movo gives a command and executes.
+* Check movo.back for an up-to-date list of commands.
+* To say "Movo Says" before a command, use `movoSays movoSaysCommand`
+* Use `movoSaysStop` to move back to the tuck position
+
 
 ### TODO
 
@@ -153,7 +180,11 @@ we can do this now by plugging into the wired ethernet...
 
 * zero g (reactive mode) as described on github. 
 
-* figuring useful "default" poses for the arms for various tasks.
+* figuring useful "default" poses for the arms for various tasks.  I
+  would like to find default poses for:
+   * front reaching (opening a door or cupboard or pushing an elevator)
+   * picking up from the floor
+   * picking up from the table
 
 * Try to teleop opening a door.
 
@@ -162,3 +193,7 @@ we can do this now by plugging into the wired ethernet...
 * try google cartographer.
 
 * See if you can map without providing an initial pose.
+
+* add isBaseMoving, isGripperMoving, isArmMoving, isGripperGripping, etc.
+
+* add ein joint position control and stuff.

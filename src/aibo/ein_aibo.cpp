@@ -352,12 +352,12 @@ bool dogIsStopped(MachineState * ms, int member) {
 
 void sendOnDogSocket(MachineState * ms, int member, string message) {
   int p_send_poll_timeout = 5000;
-  CONSOLE(ms, "sending to " << member);
+  //CONSOLE(ms, "sending to " << member);
   if (ms->config.aiboConfig->pack.size() == 0) {
     CONSOLE_ERROR(ms, "No pack; need to initialize.");
     return;
   }
-  CONSOLE(ms, "Socket desc: " << ms->config.aiboConfig->pack[member]->aibo_socket_desc);
+  //CONSOLE(ms, "Socket desc: " << ms->config.aiboConfig->pack[member]->aibo_socket_desc);
   struct pollfd fd = { ms->config.aiboConfig->pack[member]->aibo_socket_desc, POLLOUT, 0 };
   if (poll(&fd, 1, p_send_poll_timeout) != 1) {
     CONSOLE_ERROR(ms, "poll says unavailable for sending after " << p_send_poll_timeout << " ms" << endl);

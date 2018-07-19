@@ -66,6 +66,14 @@ dogBark
 
 
 (
+  1 dogSetPackSize
+  0 dogSetFocusedMember "192.168.43.30" 54000 socketOpen
+  dogMotorsOn
+  dogFormatImageDefault
+) "dogSummonElla" store
+
+
+(
   dogFormatImageDefault
   ( 1 ) (
     dogGetImage 
