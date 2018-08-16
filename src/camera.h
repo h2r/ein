@@ -45,7 +45,7 @@ class Camera {
   int gripperMaskCounts;
   Mat gripperMask;
   Mat cumulativeGripperMask;
-  double gripperMaskThresh = 0.02;
+  double gripperMaskThresh = 0.04;
 
   string name;
   string calibrationDirectory;

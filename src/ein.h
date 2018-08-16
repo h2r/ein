@@ -238,6 +238,9 @@ bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
 bool isGripperGripping(MachineState * ms);
 bool isGripperMoving(MachineState * ms);
 
+void accumulateImage(MachineState * ms);
+void resetAccumulatedImageAndMass(MachineState * ms);
+
 
 cv::Vec3b getCRColor(MachineState * ms);
 cv::Vec3b getCRColor(MachineState * ms, Mat im);

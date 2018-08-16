@@ -1060,89 +1060,6 @@ END_WORD
 REGISTER_WORD(SetIROffset)
 
 
-WORD(SetHeightReticles)
-virtual void execute(MachineState * ms) {
-
-  int heightWaits = 100;
-  int numPause = 4; 
-  
-
-  ms->pushWord("setHeightReticlesA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
-  ms->pushWord("resetAccumulatedDensity");
-  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
-    ms->pushWord("comeToStop");
-    ms->pushWord("setMovementStateToMoving");
-  }
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight3");
-
-  ms->pushWord("setHeightReticlesA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
-  ms->pushWord("resetAccumulatedDensity");
-  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
-    ms->pushWord("comeToStop");
-    ms->pushWord("setMovementStateToMoving");
-  }
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight2");
-
-  ms->pushWord("setHeightReticlesA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
-  ms->pushWord("resetAccumulatedDensity");
-  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
-    ms->pushWord("comeToStop");
-    ms->pushWord("setMovementStateToMoving");
-  }
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight1");
-
-  ms->pushWord("setHeightReticlesA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", heightWaits);
-  ms->pushWord("resetAccumulatedDensity");
-  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
-    ms->pushWord("comeToStop");
-    ms->pushWord("setMovementStateToMoving");
-  }
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight0");
-
-}
-END_WORD
-REGISTER_WORD(SetHeightReticles)
-
-
-WORD(SetHeightReticlesA)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  int darkX = 0;
-  int darkY = 0;
-  findDarkness(ms, &darkX, &darkY);
-
-  ms->config.pilotTarget.px = darkX;
-  ms->config.pilotTarget.py = darkY;
-
-  camera->heightReticles[ms->config.currentThompsonHeightIdx].px = darkX;
-  camera->heightReticles[ms->config.currentThompsonHeightIdx].py = darkY;
-
-  cout << "setHeightReticles,  currentThompsonHeightIdx: " << ms->config.currentThompsonHeightIdx << endl;
-  eePose::print(camera->heightReticles[0]); cout << endl;
-  eePose::print(camera->heightReticles[1]); cout << endl;
-  eePose::print(camera->heightReticles[2]); cout << endl;
-  eePose::print(camera->heightReticles[3]); cout << endl;
-}
-END_WORD
-REGISTER_WORD(SetHeightReticlesA)
-
 WORD(MoveCropToCenter)
 virtual void execute(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
@@ -1277,323 +1194,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(UnFixCameraLighting)
 
-
-
-WORD(MoveCropToCenterVanishingPoint)
-virtual string description() {
-  return "Move the crop to the center/vanishing point of the camera.";
-}
-virtual void execute(MachineState * ms) {
-  Size sz = ms->config.accumulatedImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  double Vx = camera->vanishingPointReticle.px - (imW/2);
-  double Vy = camera->vanishingPointReticle.py - (imH/2);
-
-  camera->cropUpperLeftCorner.px += Vx;
-  camera->cropUpperLeftCorner.py += Vy;
-  camera->vanishingPointReticle.px -= Vx;
-  camera->vanishingPointReticle.py -= Vy;
-
-  CONSOLE(ms, "moveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy);
-  ms->pushWord("moveCropToProperValue");
-}
-END_WORD
-REGISTER_WORD(MoveCropToCenterVanishingPoint)
-
-WORD(MoveCropToCenterVanishingPointSlideHeightReticles)
-virtual void execute(MachineState * ms) {
-  Size sz = ms->config.accumulatedImage.size();
-  int imW = sz.width;
-  int imH = sz.height;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  double Vx = camera->vanishingPointReticle.px - (imW/2);
-  double Vy = camera->vanishingPointReticle.py - (imH/2);
-
-  camera->cropUpperLeftCorner.px += Vx;
-  camera->cropUpperLeftCorner.py += Vy;
-  camera->vanishingPointReticle.px -= Vx;
-  camera->vanishingPointReticle.py -= Vy;
-
-  camera->heightReticles[0].px -= Vx;
-  camera->heightReticles[1].px -= Vx;
-  camera->heightReticles[2].px -= Vx;
-  camera->heightReticles[3].px -= Vx;
-
-  camera->heightReticles[0].py -= Vy;
-  camera->heightReticles[1].py -= Vy;
-  camera->heightReticles[2].py -= Vy;
-  camera->heightReticles[3].py -= Vy;
-
-  cout << "MoveCropToCenterVanishingPoint Vx Vy: " << Vx << " " << Vy << endl;
-  ms->pushWord("moveCropToProperValue");
-}
-END_WORD
-REGISTER_WORD(MoveCropToCenterVanishingPointSlideHeightReticles)
-
-
-WORD(MoveToSetVanishingPointHeightLow)
-virtual void execute(MachineState * ms) {
-  ms->config.currentEEPose.pz = ms->config.minHeight - ms->config.currentTableZ;
-}
-END_WORD
-REGISTER_WORD(MoveToSetVanishingPointHeightLow)
-
-WORD(MoveToSetVanishingPointHeightHigh)
-virtual void execute(MachineState * ms) {
-  ms->config.currentEEPose.pz = ((0.75*ms->config.maxHeight)+(0.25*ms->config.minHeight)) - ms->config.currentTableZ;
-}
-END_WORD
-REGISTER_WORD(MoveToSetVanishingPointHeightHigh)
-
-WORD(SetVanishingPoint)
-virtual void execute(MachineState * ms) {
-
-  ms->config.setVanishingPointIterations = 0;
-  // go low, wait
-  ms->pushWord("setVanishingPointA");
-  // is darkest point in current vp? loop here until it is so then rise and go to B
-  ms->pushWord("setVanishingPointPrep");
-}
-END_WORD
-REGISTER_WORD(SetVanishingPoint)
-
-WORD(SetVanishingPointPrep)
-virtual void execute(MachineState * ms) {
-  ms->pushWord("darkServo");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToSetVanishingPointHeightLow");
-}
-END_WORD
-REGISTER_WORD(SetVanishingPointPrep)
-
-WORD(SetVanishingPointA)
-virtual void execute(MachineState * ms) {
-  int numPause = 4;
-
-  ms->config.setVanishingPointIterations++;
-  ms->pushWord("setVanishingPointB");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 100);
-  ms->pushWord("resetAccumulatedDensity");
-  for (int pauseCounter = 0; pauseCounter < numPause; pauseCounter++){
-    ms->pushWord("comeToStop");
-    ms->pushWord("setMovementStateToMoving");
-  }
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToSetVanishingPointHeightHigh");
-}
-END_WORD
-REGISTER_WORD(SetVanishingPointA)
-
-WORD(SetVanishingPointB)
-virtual void execute(MachineState * ms) {
-
-  // where is the darkest point now? did it move? move vp to darkest point and possibly run again
-  int darkX = 0;
-  int darkY = 0;
-  findDarkness(ms, &darkX, &darkY);
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  ms->config.pilotTarget.px = darkX;
-  ms->config.pilotTarget.py = darkY;
-
-  int Px = darkX - camera->vanishingPointReticle.px;
-  int Py = darkY - camera->vanishingPointReticle.py;
-
-  camera->vanishingPointReticle.px = darkX;
-  camera->vanishingPointReticle.py = darkY;
-  
-  cout << "setVanishingPoint Px Py: " << Px << " " << Py << endl;
-
-  if (ms->config.setVanishingPointIterations > ms->config.setVanishingPointTimeout) {
-    cout << "setVanishingPoint timed out, continuing..." << endl;
-  }
-
-  if ((fabs(Px) < ms->config.setVanishingPointPixelThresh) && (fabs(Py) < ms->config.setVanishingPointPixelThresh)) {
-    cout << "vanishing point set, continuing." << endl;
-  } else {
-    cout << "vanishing point not set, adjusting more. " << ms->config.setVanishingPointIterations << " " << ms->config.setVanishingPointTimeout << endl;
-    ms->pushWord("setVanishingPointA");
-    ms->pushWord("setVanishingPointPrep");
-  }
-}
-END_WORD
-REGISTER_WORD(SetVanishingPointB)
-
-
-WORD(SetMagnification)
-virtual void execute(MachineState * ms) {
-  int translationSteps = 5;
-  int imCallsToWait = 10;
-
-  int nudgeSteps = 4;
-
-  ms->evaluateProgram("cameraFitHyperbolic 2 cameraSetCalibrationMode");
-  // move back
-  // adjust until close	
-  // move back over then down 
-  // adjust until close	
-  // move over 
-  // go to height
-  translationSteps = 15;
-  ms->pushCopies("xDown", translationSteps);
-  ms->pushCopies("yDown", nudgeSteps);
-  ms->pushWord("setMagnificationA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("yUp", nudgeSteps);
-  ms->pushCopies("xUp", translationSteps);
-  ms->pushCopies("yDown", translationSteps);
-  ms->pushCopies("xDown", nudgeSteps);
-  ms->pushWord("setMagnificationB");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xUp", nudgeSteps);
-  ms->pushCopies("yUp", translationSteps);
-  ms->pushWord("changeToHeight3");
-
-  translationSteps = 15;
-  ms->pushCopies("xDown", translationSteps);
-  ms->pushCopies("yDown", nudgeSteps);
-  ms->pushWord("setMagnificationA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("yUp", nudgeSteps);
-  ms->pushCopies("xUp", translationSteps);
-  ms->pushCopies("yDown", translationSteps);
-  ms->pushCopies("xDown", nudgeSteps);
-  ms->pushWord("setMagnificationB");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xUp", nudgeSteps);
-  ms->pushCopies("yUp", translationSteps);
-  ms->pushWord("changeToHeight2");
-
-  translationSteps = 15;
-  ms->pushCopies("xDown", translationSteps);
-  ms->pushCopies("yDown", nudgeSteps);
-  ms->pushWord("setMagnificationA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("yUp", nudgeSteps);
-  ms->pushCopies("xUp", translationSteps);
-  ms->pushCopies("yDown", translationSteps);
-  ms->pushCopies("xDown", nudgeSteps);
-  ms->pushWord("setMagnificationB");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xUp", nudgeSteps);
-  ms->pushCopies("yUp", translationSteps);
-  ms->pushWord("changeToHeight1");
-
-  translationSteps = 10;
-  ms->pushCopies("xDown", translationSteps);
-  ms->pushCopies("yDown", nudgeSteps);
-  ms->pushWord("setMagnificationA");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("yUp", nudgeSteps);
-  ms->pushCopies("xUp", translationSteps);
-  ms->pushCopies("yDown", translationSteps);
-  ms->pushCopies("xDown", nudgeSteps);
-  ms->pushWord("setMagnificationB");
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", imCallsToWait);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushCopies("xUp", nudgeSteps);
-  ms->pushCopies("yUp", translationSteps);
-  ms->pushWord("changeToHeight0");
-
-  ms->evaluateProgram("0 cameraSetCalibrationMode");
-}
-END_WORD
-REGISTER_WORD(SetMagnification)
-
-WORD(SetMagnificationA)
-virtual void execute(MachineState * ms) {
-  // adjust until close	
-
-  int darkX = 0;
-  int darkY = 0;
-  findDarkness(ms, &darkX, &darkY);
-
-  ms->config.pilotTarget.px = darkX;
-  ms->config.pilotTarget.py = darkY;
-
-  int magIters = 2000; 
-  double magStep = 0.01;
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
-    int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-
-    // remember this is flipped!
-    double Px = darkY - eY;
-    double Py = darkX - eX;
-
-    double xFlip = 1.0;
-    double yFlip = 1.0;
-
-
-    // remember x, y are swapped
-    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-    if (darkX < thisFlipReticle.px) {
-      yFlip = -1.0;
-    }
-    if (darkY < thisFlipReticle.py) {
-      xFlip = -1.0;
-    }
-
-    cout << "about to adjust m_x, darkX eX Px xFlip darkY eY Py yFlip: " << darkX << " " << eX << " " << Px << " " << xFlip << " " << darkY << " " << eY << " " << Py << " " << yFlip << " ";
-
-    // only do x
-    if ((Px*xFlip) > 0) {
-      camera->m_x += .01;
-      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
-      cout << "m_x++ ";
-    } else if ((Px*xFlip) < 0) {
-      camera->m_x -= .01;
-      camera->m_x_h[ms->config.currentThompsonHeightIdx] = camera->m_x;
-      cout << "m_x-- ";
-    }
-
-    cout << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(SetMagnificationA)
-
 CONFIG_GETTER_DOUBLE(CameraGetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx], "") 
 CONFIG_SETTER_DOUBLE(CameraSetIdxMagX, ms->config.cameras[ms->config.focused_camera]->m_x_h[ms->config.currentThompsonHeightIdx]) 
 
@@ -1614,61 +1214,6 @@ CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleX, ms->config.cameras[ms->conf
 CONFIG_GETTER_DOUBLE(CameraGetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py, "Height reticle y") 
 CONFIG_SETTER_DOUBLE(CameraSetCurrentHeightReticleY, ms->config.cameras[ms->config.focused_camera]->heightReticles[ms->config.currentThompsonHeightIdx].py) 
 
-WORD(SetMagnificationB)
-virtual void execute(MachineState * ms) {
-  // adjust until close	
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  int darkX = 0;
-  int darkY = 0;
-  findDarkness(ms, &darkX, &darkY);
-
-  ms->config.pilotTarget.px = darkX;
-  ms->config.pilotTarget.py = darkY;
-
-  int magIters = 2000; 
-  double magStep = 0.01;
-
-  for (int i = 0; i < magIters; i++) {
-    double zToUse = ms->config.trueEEPoseEEPose.pz+ms->config.currentTableZ;
-    int eX=0, eY=0;
-    //globalToPixel(&eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-    globalToPixel(ms, &eX, &eY, zToUse, ms->config.eepReg1.px, ms->config.eepReg1.py);
-
-    // remember this is flipped!
-    double Px = darkY - eY;
-    double Py = darkX - eX;
-
-    double xFlip = 1.0;
-    double yFlip = 1.0;
-
-    // remember x, y are swapped
-    eePose thisFlipReticle = camera->heightReticles[ms->config.currentThompsonHeightIdx];
-    if (darkX < thisFlipReticle.px) {
-      yFlip = -1.0;
-    }
-    if (darkY < thisFlipReticle.py) {
-      xFlip = -1.0;
-    }
-
-    cout << "about to adjust m_y, darkX eX Px xFlip darkY eY Py yFlip: " << darkX << " " << eX << " " << Px << " " << xFlip << " " << darkY << " " << eY << " " << Py << " " << yFlip << " ";
-
-    // only do y
-    if ((Py*yFlip) > 0) {
-      camera->m_y += .01;
-      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
-      cout << "m_y++ ";
-    } else if ((Py*yFlip) < 0) {
-      camera->m_y -= .01;
-      camera->m_y_h[ms->config.currentThompsonHeightIdx] = camera->m_y;
-      cout << "m_y-- ";
-    }
-
-    cout << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(SetMagnificationB)
 
 WORD(SetGripperMaskOnes)
 virtual void execute(MachineState * ms) {
@@ -1697,52 +1242,12 @@ WORD(SetGripperMask)
 virtual void execute(MachineState * ms) {
   cout << "Program paused; please present the first contrast medium." << endl;
   ms->pushWord("setGripperMaskA"); 
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
-  ms->pushWord("resetAccumulatedDensity");
   ms->pushWord("comeToStop");
   ms->pushWord("pauseStackExecution"); 
 }
 END_WORD
 REGISTER_WORD(SetGripperMask)
 
-WORD(SetGripperMaskAA)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
-  camera->gripperMaskSecondContrast = camera->gripperMaskFirstContrast.clone();
-  camera->gripperMaskMean = camera->gripperMaskFirstContrast.clone();
-  camera->gripperMaskMean = 0.0;
-  camera->gripperMaskSquares = camera->gripperMaskFirstContrast.clone();
-  camera->gripperMaskSquares = 0.0;
-  camera->gripperMaskCounts = 0;
-
-  camera->gripperMask.create(camera->gripperMaskFirstContrast.size(), CV_8U);
-
-  Size sz = camera->gripperMask.size();
-  int imW = sz.width;
-  int imH = sz.height;
-
-  cout << "Updating image" << endl;
-  //camera->gripperMaskFirstContrastWindow->updateImage(ms->config.wristViewImage);
-
-  for (int x = 0; x < imW; x++) {
-    for (int y = 0; y < imH; y++) {
-      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
-      if (denom <= 1.0) {
-	denom = 1.0;
-      }
-      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
-      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
-      camera->gripperMaskFirstContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
-
-      camera->gripperMask.at<uchar>(y,x) = 0;
-    }
-  }
-  //ms->config.gripperMaskFirstContrastWindow->updateImage(ms->config.gripperMaskFirstContrast / 255.0);
-}
-END_WORD
-REGISTER_WORD(SetGripperMaskAA)
 
 WORD(InitCumulativeGripperMask)
 virtual void execute(MachineState * ms) {
@@ -1760,42 +1265,57 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(InitCumulativeGripperMask)
 
-WORD(SetGripperMaskA)
+WORD(AccumulateImage)
+virtual string description() {
+  return "Add the current image from the camera to the accumulated image buffer.";
+}
 virtual void execute(MachineState * ms) {
-  cout << "Program paused; please present the second contrast medium." << endl;
-  ms->pushWord("setGripperMaskB"); 
-  ms->pushWord("setGripperMaskBA"); 
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("pauseStackExecution"); 
-  ms->pushWord("setGripperMaskAA"); 
-  ms->pushWord("initCumulativeGripperMask"); 
+  accumulateImage(ms);
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskA)
+REGISTER_WORD(AccumulateImage)
 
-WORD(SetGripperMaskB)
+WORD(ResetAccumulatedImageAndMass)
+virtual string description() {
+  return "Initialize the accumulated buffer for averaging from the camera in image space.";
+}
 virtual void execute(MachineState * ms) {
-  cout << "Thank you. Don't forget to save your mask!" << endl;
+  resetAccumulatedImageAndMass(ms);
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskB)
+REGISTER_WORD(ResetAccumulatedImageAndMass)
 
-WORD(SetGripperMaskBA)
+WORD(SetGripperMaskFromAccumulatedImage)
+virtual string description() {
+  return "Set the gripper mask by thresholding based on the variance in the accumulated image.";
+}
 virtual void execute(MachineState * ms) {
+
+
+
+
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
+
   Size sz = camera->gripperMask.size();
   int imW = sz.width;
   int imH = sz.height;
 
-  int dilationPixels = 10;
-  double baseThresh = camera->gripperMaskThresh;
-  //double multiThresh = 3*baseThresh*baseThresh; // for rgb
-  double multiThresh = 2*baseThresh*baseThresh; // for ycbcr
 
-  cout << "  multiThresh dilationPixels: " << multiThresh << " " << dilationPixels << endl;
+  camera->gripperMaskFirstContrast = ms->config.accumulatedImage.clone();
+  camera->gripperMaskSecondContrast = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskMean = 0.0;
+  camera->gripperMaskSquares = camera->gripperMaskFirstContrast.clone();
+  camera->gripperMaskSquares = 0.0;
+  camera->gripperMaskCounts = 0;
+
+  camera->gripperMask.create(camera->gripperMaskFirstContrast.size(), CV_8U);
+
+
+
+  int dilationPixels = 20;
+  double baseThresh = camera->gripperMaskThresh;
+  double multiThresh = 2*baseThresh*baseThresh; // for ycbcr
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
@@ -1803,6 +1323,7 @@ virtual void execute(MachineState * ms) {
       if (denom <= 1.0) {
 	denom = 1.0;
       }
+
       camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[0] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[0] / denom);
       camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[1] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[1] / denom);
       camera->gripperMaskSecondContrast.at<Vec3d>(y,x)[2] = (ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom);
@@ -1816,8 +1337,11 @@ virtual void execute(MachineState * ms) {
       camera->gripperMaskSquares.at<Vec3d>(y,x)[2] += pow((ms->config.accumulatedImage.at<Vec3d>(y,x)[2] / denom), 2);
     }
   }
+  //ms->config.meanViewerWindow->updateImage(camera->gripperMaskMean);
+  camera->gripperMaskMean = camera->gripperMaskMean / 255.0;
+
+  ms->config.meanViewerWindow->updateImage(camera->gripperMaskMean);
   camera->gripperMaskCounts += 1;
-  //ms->config.gripperMaskSecondContrastWindow->updateImage(ms->config.gripperMaskSecondContrast / 255.0);
   Mat firstFloat; Mat firstYCBCR;  camera->gripperMaskFirstContrast.convertTo(firstFloat, CV_32FC3); cvtColor(firstFloat, firstYCBCR, CV_BGR2YCrCb);
   Mat secondFloat; Mat secondYCBCR;  camera->gripperMaskSecondContrast.convertTo(secondFloat, CV_32FC3); cvtColor(secondFloat, secondYCBCR, CV_BGR2YCrCb);
 
@@ -1827,13 +1351,6 @@ virtual void execute(MachineState * ms) {
 
   for (int x = 0; x < imW; x++) {
     for (int y = 0; y < imH; y++) {
-      //double maskDiff = 
-      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])*
-      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[0] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[0])) +
-      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])*
-      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[1] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[1])) +
-      //((ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2])*
-      //(ms->config.gripperMaskFirstContrast.at<Vec3d>(y,x)[2] - ms->config.gripperMaskSecondContrast.at<Vec3d>(y,x)[2]));
 
       double maskDiffFromFirst = 
       ((firstYCBCR.at<Vec3f>(y,x)[1] - secondYCBCR.at<Vec3f>(y,x)[1])*
@@ -1853,7 +1370,7 @@ virtual void execute(MachineState * ms) {
       varianceImage.at<Vec3d>(y,x)[1] = camera->gripperMaskSquares.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[1] / camera->gripperMaskCounts, 2) ;
       varianceImage.at<Vec3d>(y,x)[2] = camera->gripperMaskSquares.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts - pow(camera->gripperMaskMean.at<Vec3d>(y, x)[2] / camera->gripperMaskCounts, 2) ;
 
-      varianceImage.at<Vec3d>(y,x)[0] = 0;//varianceImage.at<Vec3d>(y,x)[0] / pow(255.0, 2);
+      varianceImage.at<Vec3d>(y,x)[0] = varianceImage.at<Vec3d>(y,x)[0] / pow(255.0, 2);
       varianceImage.at<Vec3d>(y,x)[1] = varianceImage.at<Vec3d>(y,x)[1] / pow(255.0, 2);
       varianceImage.at<Vec3d>(y,x)[2] = varianceImage.at<Vec3d>(y,x)[2] / pow(255.0, 2);
 
@@ -1866,10 +1383,6 @@ virtual void execute(MachineState * ms) {
     }
   }
 
-  //ms->config.gripperMaskDifferenceWindow->updateImage(differenceImage / 255.0);
-  //ms->config.gripperMaskVarianceWindow->updateImage(varianceImage * 10);
-  //ms->config.gripperMaskMeanWindow->updateImage(ms->config.gripperMaskMean /  ms->config.gripperMaskCounts / 255.0);
-  //ms->config.gripperMaskSquaresWindow->updateImage(ms->config.gripperMaskSquares /  ms->config.gripperMaskCounts / (255.0 * 255.0));
 
   Mat tmpMask = camera->gripperMask.clone();
 
@@ -1890,68 +1403,17 @@ virtual void execute(MachineState * ms) {
   }
 }
 END_WORD
-REGISTER_WORD(SetGripperMaskBA)
+REGISTER_WORD(SetGripperMaskFromAccumulatedImage)
+
+
 
 WORD(SetGripperMaskWithMotion)
 virtual void execute(MachineState * ms) {
-  ms->pushWord("setGripperMaskWithMotionA");
-  ms->pushWord("initCumulativeGripperMask");
+  ms->evaluateProgram("resetAccumulatedImageAndMass  ( waitUntilImageCallbackReceived accumulateImage setGripperMaskFromAccumulatedImage ( oXUp ) 10 replicateWord eighthTurn waitUntilAtCurrentPosition comeToStop  ) 10 replicateWord");
 }
 END_WORD
 REGISTER_WORD(SetGripperMaskWithMotion)
 
-WORD(SetGripperMaskWithMotionA)
-virtual void execute(MachineState * ms) {
-  int maskMotions = 25;
-  cout << "Setting gripper mask with motion, iterations: " << maskMotions << endl;
-
-  for (int m = 0; m < maskMotions; m++) {
-    // watch it as it develops
-    ms->pushWord("saveGripperMask");
-    ms->pushWord("setGripperMaskCB");
-
-    // once observed always observed
-    ms->pushWord("setGripperMaskCA");
-
-    ms->pushWord("setGripperMaskBA"); 
-    ms->pushWord("accumulatedDensity");
-    ms->pushCopies("waitUntilImageCallbackReceived", 10);
-    ms->pushWord("resetAccumulatedDensity");
-    ms->pushWord("comeToStop");
-    ms->pushWord("waitUntilAtCurrentPosition");
-
-    // move speed not set so that you can control for aliasing from repl
-    ms->pushWord("yDown");
-    ms->pushWord("eighthTurn");
-    ms->evaluateProgram("( oZUp ) 5 replicateWord");
-  }
-
-  ms->pushWord("setGripperMaskAA"); 
-  ms->pushWord("accumulatedDensity");
-  ms->pushCopies("waitUntilImageCallbackReceived", 10);
-  ms->pushWord("resetAccumulatedDensity");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-}
-END_WORD
-REGISTER_WORD(SetGripperMaskWithMotionA)
-
-WORD(SetGripperMaskCA)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->cumulativeGripperMask = max(camera->cumulativeGripperMask, camera->gripperMask);
-}
-END_WORD
-REGISTER_WORD(SetGripperMaskCA)
-
-WORD(SetGripperMaskCB)
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->gripperMask = camera->cumulativeGripperMask.clone();
-  cout << "Thank you. Don't forget to save your mask!" << endl;
-}
-END_WORD
-REGISTER_WORD(SetGripperMaskCB)
 
 WORD(LoadGripperMask)
 virtual void execute(MachineState * ms) {
@@ -1970,42 +1432,6 @@ END_WORD
 REGISTER_WORD(SaveGripperMask)
 
 
-
-WORD(CalibrateRGBCameraIntrinsicsPoint)
-virtual string description() {
-  return "Run the old wrist camera calibration, that uses a single black dot to calibrate.  You should use the new light field calibration with magic paper instead.";
-}
-virtual void execute(MachineState * ms) {
-  ms->pushWord("setMagnification");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToRegister1");
-
-  ms->pushWord("setHeightReticles");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("moveToRegister1");
-
-  ms->pushWord("setVanishingPoint");
-  ms->pushWord("moveCropToCenter");
-
-  //int tablePeek = 5;
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("saveRegister1");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  ms->pushWord("changeToHeight0"); 
-  //ms->pushCopies("xUp", tablePeek);
-  ms->pushWord("setTable");
-  ms->pushWord("comeToStop");
-  ms->pushWord("waitUntilAtCurrentPosition");
-  //ms->pushCopies("xDown", tablePeek);
-  ms->pushWord("setGridSizeCoarse");
-
-}
-END_WORD
-REGISTER_WORD(CalibrateRGBCameraIntrinsicsPoint)
 
 WORD(AssumeCalibrationPose)
 virtual void execute(MachineState * ms) {

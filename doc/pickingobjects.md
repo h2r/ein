@@ -110,6 +110,10 @@ note the dark gripper pixels smeared on the lower part of the image.
 
 ![Background map with bad gripper mask](../assets/bg_badgrippermask.jpg)
 
+If the automatic gripper mask is nto correct, edit it in an image
+editor to correct it.
+
+
 
 ### Update the observed map.
 

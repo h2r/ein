@@ -22,7 +22,7 @@ virtual void execute(MachineState * ms)
 
   ms->config.objectMapViewerWindow->setVisible(true);
 
-  ms->config.densityViewerWindow->setVisible(true);
+  ms->config.meanViewerWindow->setVisible(true);
 
   ms->config.mapBackgroundViewWindow->setVisible(true);
 
@@ -47,7 +47,7 @@ virtual void execute(MachineState * ms)
 
   ms->config.objectMapViewerWindow->setVisible(false);
 
-  ms->config.densityViewerWindow->setVisible(false);
+  ms->config.meanViewerWindow->setVisible(false);
 
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(false);
@@ -70,7 +70,7 @@ virtual void execute(MachineState * ms)
 
   ms->config.objectViewerWindow->setVisible(false);
   ms->config.objectMapViewerWindow->setVisible(false);
-  ms->config.densityViewerWindow->setVisible(false);
+  ms->config.meanViewerWindow->setVisible(false);
   ms->config.mapBackgroundViewWindow->setVisible(false);
   ms->config.wristViewWindow->setVisible(false);
   ms->config.coreViewWindow->setVisible(false);

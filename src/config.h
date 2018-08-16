@@ -564,7 +564,7 @@ class EinConfig {
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
-  EinWindow * densityViewerWindow;
+  EinWindow * meanViewerWindow;
   EinWindow * objectViewerWindow;
   EinWindow * objectMapViewerWindow;
   EinWindow * stereoViewerWindow;

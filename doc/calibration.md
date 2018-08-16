@@ -94,32 +94,11 @@ are open, and that there is no extra blue areas remaining.  If this
 does not work, recenter the gripper (`goHome`) and try again.  You may
 need to rearrange the magic circle or adjust the lighting or colors on
 your camera.  When the mask looks good, you can stop the process by
-running `clearStacks`.  It saves after every iteration.
+running `clearStacks`.  Then run `saveGripperMask` to save the gripper
+mask.  If the automatic process does not work to set the gripper mask,
+you can edit the file manually with an image editor.  The file name is
+printed when you save the gripper mask.
 
-
-<!--
-### Calibrate the height reticles
-
-Next we need to set the projection of the gripper in the image at
-different heights.  This allows Ein to map between pixel space and
-global space given the camera pose.    We set the magnification using
-interpolation based on several sample points.  The target is obtained
-by rotating the gripper in a plan and finding the minimum variance
-point at each point.  
-
-To do this process first `goHome` and then run
-`calibrateRGBCameraIntrinsics`.
--->
-
-The gripper will move to four different heights and take a series of
-measurements at different orientations.  This process takes about 20
-minutes to complete.  Because Ein is single threaded, the gui will
-periodically freeze while it is running the inference; this freezing
-does not mean it is broken.   If it fails you may have to run it again;
-in that case restart Ein or run `loadCalibration` to reload your old
-calibration (which, while not perfect, is a reasonable
-initialization).  When you obtain a good calibration (described
-below), save it by running `saveCalibration`.
 
 ### Set the hand/camera offset
 
