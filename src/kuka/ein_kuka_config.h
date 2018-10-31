@@ -10,7 +10,8 @@
 
 #include <iiwa_msgs/CartesianEulerPose.h>
 
-#include <moveit/move_group_interface/move_group.h>
+
+#include <moveit/move_group_interface/move_group_interface.h>
 using namespace moveit;
 using namespace planning_interface;
 
@@ -27,19 +28,17 @@ class EinKukaConfig {
   EinKukaConfig(MachineState * ms);
   ros::NodeHandle n;
 
+
+
   
-  MoveGroup * arm;
-  vector<MoveGroup *> endEffectors;
+  MoveGroupInterface * arm;
+  vector<MoveGroupInterface *> endEffectors;
   int focused_ee = 0;
 
-  ros::Subscriber moveitStatusSubscriber;
-  actionlib_msgs::GoalStatusArray moveitStatusMsg;
-  void moveitStatusCallback(const actionlib_msgs::GoalStatusArray&m);
-  map<string, actionlib_msgs::GoalStatus> goals;
+  ros::Subscriber jointStateSubscriber;
+
   ros::Time lastMoveitCallTime;
   eePose lastMoveitCallPose;
-
-
 
   const static unsigned int num_joints=7;  
   const vector<double> homedJoints{0,0,0,0,0,0,0};
@@ -58,7 +57,8 @@ class EinKukaConfig {
   eePose armTargetPose;
 
   void changeFocusedEndEffector(int idx);
-
+  void jointStateCallback(const sensor_msgs::JointState& js);
+  void moveitStatusCallback(const actionlib_msgs::GoalStatusArray & m);
 };
 
 #endif /* _EIN_KUKA_CONFIG_H_ */

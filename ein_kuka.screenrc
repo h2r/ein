@@ -19,7 +19,7 @@ screen -t " replR"
 stuff "ARM=right screen -m -c src/ein/ein_client.screenrc"
 
 screen -t " free"
-stuff "source ./setup.sh"
+stuff "source ./setup.shroslaunch iiwa_description iiwa7_upload.launch"
 
 screen -t " emacs"
 stuff "source ./setup.sh"

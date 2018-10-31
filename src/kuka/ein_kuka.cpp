@@ -22,14 +22,38 @@ EinKukaConfig::EinKukaConfig(MachineState * myms): n("~")
  {
    ms = myms;
 
-   arm = new MoveGroup("left_arm");
-   arm->setPlannerId("RRTConnectkConfigDefault");
+   //arm = new MoveGroup("left_arm");
+   //arm->setPlannerId("RRTConnectkConfigDefault");
    endEffectors.push_back(arm);
 
-   
-   moveitStatusSubscriber = n.subscribe("/move_group/status", 1, &EinKukaConfig::moveitStatusCallback, this);
-
+   jointStateSubscriber = n.subscribe("/iiwa/joint_states", 1, &EinKukaConfig::jointStateCallback, this);
    changeFocusedEndEffector(EE_ARM);
+}
+
+void EinKukaConfig::jointStateCallback(const sensor_msgs::JointState& js)
+{
+
+  geometry_msgs::PoseStamped id;
+  id.header.stamp = ros::Time(0);
+  id.pose.position.x = 0;
+  id.pose.position.y = 0;
+  id.pose.position.z = 0;
+  id.pose.orientation.x = 0;
+  id.pose.orientation.y = 0;
+  id.pose.orientation.z = 0;
+  id.pose.orientation.w = 1;
+  try {
+    geometry_msgs::PoseStamped armPose;
+    id.header.frame_id = "iiwa_link_ee";
+    ms->config.tfListener->transformPose("world", id, armPose);
+    MC->armPose = rosPoseToEEPose(armPose.pose);
+    ms->config.trueEEPoseEEPose = MC->armPose;
+  } catch (tf2::LookupException e) {
+    CONSOLE_ERROR(ms, "Extrapolation Exception: " << e.what());
+  } catch (tf2::ExtrapolationException e) {
+    CONSOLE_ERROR(ms, "Extrapolation Exception: " << e.what());
+  }
+
 }
 
 void EinKukaConfig::changeFocusedEndEffector(int idx)
@@ -42,7 +66,7 @@ void EinKukaConfig::changeFocusedEndEffector(int idx)
 void EinKukaConfig::moveitStatusCallback(const actionlib_msgs::GoalStatusArray & m)
 {
   for (int i = 0; i < m.status_list.size(); i++) {
-    MC->goals[m.status_list[i].goal_id.id] = m.status_list[i];
+    //MC->goals[m.status_list[i].goal_id.id] = m.status_list[i];
   }
 }
 
@@ -94,6 +118,13 @@ void robotInitializeConfig(MachineState * ms) {
  ms->config.robot_serial = "brown_kuka";
 
  ms->config.cameras.clear();
+ string image_topic = "/cameras/stub/image";
+ //Camera * c = new Camera(ms, "stub", image_topic, "stub", "stub");
+ //ms->config.cameras.push_back(c);
+ ms->config.focused_camera = 0;
+ Camera * c = new Camera(ms, "kinect2_color_qhd",  "/kinect2/qhd/image_color", "kinect2_link", "kinect2_rgb_link");
+ ms->config.cameras.push_back(c);
+
 }
 
 
@@ -127,6 +158,12 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(KukaKill)
 
+WORD(MoveCropToProperValueNoUpdate)
+virtual void execute(MachineState * ms) {
+  // stub
+}
+END_WORD
+REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
 
 }
