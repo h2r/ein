@@ -15,6 +15,8 @@
 #include "jaco/ein_jaco.h"
 #elif defined(USE_ROBOT_MOVO)
 #include "movo/ein_movo.h"
+#elif defined(USE_ROBOT_KUKA)
+#include "kuka/ein_kuka.h"
 #else
 
 #include "defaultrobot/ein_robot.h"
@@ -356,6 +358,7 @@ class EinAiboConfig;
 class EinPidroneConfig;
 class EinJacoConfig;
 class EinMovoConfig;
+class EinKukaConfig;
 
 class EinConfig {
  public:
@@ -365,6 +368,7 @@ class EinConfig {
   EinPidroneConfig * pidroneConfig;
   EinJacoConfig * jacoConfig;
   EinMovoConfig * movoConfig;
+  EinKukaConfig * kukaConfig;
 
   
   tf::TransformListener* tfListener;
