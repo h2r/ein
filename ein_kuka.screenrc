@@ -27,8 +27,9 @@ stuff "source ./setup.sh"
 stuff "roslaunch iiwa_robotiq_description iiwa7_robotiq_upload.launch && roslaunch iiwa_robotiq_state_publisher iiwa7_robotiq_publisher.launch"
 
 
-screen -t " free"
-stuff "source ./setup.shroslaunch iiwa_description iiwa7_upload.launch"
+screen -t " robotiq"
+stuff "source ./setup.shrosrun robotiq_3f_gripper_control Robotiq3FGripperTcpNode.py 138.16.160.195"
+
 
 screen -t " emacs"
 stuff "source ./setup.sh"
