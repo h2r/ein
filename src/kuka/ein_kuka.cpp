@@ -2,6 +2,8 @@
 #include "ein_kuka_config.h"
 
 #include <moveit_msgs/MoveItErrorCodes.h>
+#include <robotiq_3f_gripper_control/Robotiq3FGripper_robot_output.h>
+
 #include "config.h"
 #include "ein.h"
 
@@ -27,6 +29,11 @@ EinKukaConfig::EinKukaConfig(MachineState * myms): n("~")
    endEffectors.push_back(arm);
 
    jointStateSubscriber = n.subscribe("/iiwa/joint_states", 1, &EinKukaConfig::jointStateCallback, this);
+
+   cartesianPosePub = n.advertise<geometry_msgs::PoseStamped>("/iiwa/command/CartesianPose", 10);
+   gripperPub = n.advertise<robotiq_3f_gripper_control::Robotiq3FGripper_robot_output>("/Robotiq3FGripperRobotOutput", 10);
+   
+   
    changeFocusedEndEffector(EE_ARM);
 }
 
@@ -81,6 +88,18 @@ void robotUpdate(MachineState * ms) {
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
 
   if (MC->focused_ee == EE_ARM) {
+
+    if (sqrt(distance) > 0.001 || angleDistance > 0.001) {
+      geometry_msgs::PoseStamped target;
+      target.pose = eePoseToRosPose(ms->config.currentEEPose);
+      target.header.stamp = ros::Time::now();
+      target.header.frame_id = "iiwa_link_ee";
+
+      MC->cartesianPosePub.publish(target);
+      
+    }
+    
+    /*
     if ((sqrt(distance) > 0.001 || angleDistance > 0.001) && 
 	(ros::Time::now() - MC->lastMoveitCallTime  > ros::Duration(1)) &&
 	(MC->lastMoveitCallPose != ms->config.currentEEPose)) {
@@ -100,6 +119,7 @@ void robotUpdate(MachineState * ms) {
 	}
       }
     }
+    */
   } else {
     CONSOLE_ERROR(ms, "Bad focused EE: " << MC->focused_ee);
     assert(0);
@@ -164,6 +184,49 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
+
+
+WORD(OpenGripper)
+virtual string description() {
+  return "Send a kill command to estop the robot.";
+}
+virtual void execute(MachineState * ms) {
+
+}
+END_WORD
+REGISTER_WORD(OpenGripper)
+
+WORD(RobotiqOpen)
+virtual string description() {
+  return "Open the Robotiq gripper.";
+}
+virtual void execute(MachineState * ms) {
+  robotiq_3f_gripper_control::Robotiq3FGripper_robot_output command;
+  command.rPRA = 0;
+  MC->gripperPub.publish(command);
+
+}
+END_WORD
+REGISTER_WORD(RobotiqOpen)
+
+
+WORD(RobotiqActivate)
+virtual string description() {
+  return "Activate the Robotiq gripper.";
+}
+virtual void execute(MachineState * ms) {
+  robotiq_3f_gripper_control::Robotiq3FGripper_robot_output command;
+  command.rACT = 1;
+  command.rGTO = 1;
+  command.rSPA = 255;
+  command.rFRA = 150;
+
+  MC->gripperPub.publish(command);
+
+}
+END_WORD
+REGISTER_WORD(RobotiqActivate)
+  
 
 
 }

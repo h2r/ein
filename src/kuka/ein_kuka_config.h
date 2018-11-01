@@ -36,6 +36,8 @@ class EinKukaConfig {
   int focused_ee = 0;
 
   ros::Subscriber jointStateSubscriber;
+  ros::Publisher cartesianPosePub;
+  ros::Publisher gripperPub;
 
   ros::Time lastMoveitCallTime;
   eePose lastMoveitCallPose;
