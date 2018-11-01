@@ -640,6 +640,9 @@ class EinConfig {
 
   eePose trueRangePose;
 
+  std::string baseTfFrame;
+  std::string eeTfFrame;
+
   std::string forthCommand;
 
 
