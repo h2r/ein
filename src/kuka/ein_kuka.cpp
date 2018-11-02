@@ -186,12 +186,23 @@ END_WORD
 REGISTER_WORD(MoveCropToProperValueNoUpdate)
 
 
-WORD(OpenGripper)
+WORD(CloseGripper)
 virtual string description() {
-  return "Send a kill command to estop the robot.";
+  return "Close the gripper.";
 }
 virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("robotiqClose");
+}
+END_WORD
+REGISTER_WORD(CloseGripper)
 
+
+WORD(OpenGripper)
+virtual string description() {
+  return "Open gripper.";
+}
+virtual void execute(MachineState * ms) {
+  ms->evaluateProgram("robotiqOpen");
 }
 END_WORD
 REGISTER_WORD(OpenGripper)
@@ -202,12 +213,36 @@ virtual string description() {
 }
 virtual void execute(MachineState * ms) {
   robotiq_3f_gripper_control::Robotiq3FGripper_robot_output command;
+  command.rACT = 1;
+  command.rGTO = 1;
+  command.rSPA = 255;
+  command.rFRA = 150;
+  
   command.rPRA = 0;
   MC->gripperPub.publish(command);
 
 }
 END_WORD
 REGISTER_WORD(RobotiqOpen)
+
+
+WORD(RobotiqClose)
+virtual string description() {
+  return "Close the Robotiq gripper.";
+}
+virtual void execute(MachineState * ms) {
+  robotiq_3f_gripper_control::Robotiq3FGripper_robot_output command;
+  command.rACT = 1;  
+  command.rGTO = 1;
+  command.rSPA = 255;
+  command.rFRA = 150;
+  command.rPRA = 255;
+  MC->gripperPub.publish(command);
+
+}
+END_WORD
+REGISTER_WORD(RobotiqClose)
+  
 
 
 WORD(RobotiqActivate)
