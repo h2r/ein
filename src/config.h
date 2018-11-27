@@ -15,6 +15,8 @@
 #include "jaco/ein_jaco.h"
 #elif defined(USE_ROBOT_MOVO)
 #include "movo/ein_movo.h"
+#elif defined(USE_ROBOT_KUKA)
+#include "kuka/ein_kuka.h"
 #else
 
 #include "defaultrobot/ein_robot.h"
@@ -356,6 +358,7 @@ class EinAiboConfig;
 class EinPidroneConfig;
 class EinJacoConfig;
 class EinMovoConfig;
+class EinKukaConfig;
 
 class EinConfig {
  public:
@@ -365,6 +368,7 @@ class EinConfig {
   EinPidroneConfig * pidroneConfig;
   EinJacoConfig * jacoConfig;
   EinMovoConfig * movoConfig;
+  EinKukaConfig * kukaConfig;
 
   
   tf::TransformListener* tfListener;
@@ -564,7 +568,7 @@ class EinConfig {
   EinWindow * faceViewWindow;
   EinWindow * heightMemorySampleWindow;
 
-  EinWindow * densityViewerWindow;
+  EinWindow * meanViewerWindow;
   EinWindow * objectViewerWindow;
   EinWindow * objectMapViewerWindow;
   EinWindow * stereoViewerWindow;
@@ -639,6 +643,9 @@ class EinConfig {
   eePose lastHandEEPose;
 
   eePose trueRangePose;
+
+  std::string baseTfFrame;
+  std::string eeTfFrame;
 
   std::string forthCommand;
 

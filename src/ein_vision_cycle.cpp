@@ -18,130 +18,6 @@ END_WORD
 REGISTER_WORD(ClearStackIntoMappingPatrol)
 
 
-
-WORD(MapServo)
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentMapServoMode == HISTOGRAM_CLASSIFY) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("histogramDetectionIfBlueBoxes"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == ONCE_CLASSIFY) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("goClassifyBlueBoxes"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS) {
-    ms->pushWord("continuousServo");
-    //ms->pushWord("continuousServo");
-    //ms->pushWord("continuousServo");
-    //ms->pushWord("continuousServo");
-    //ms->pushWord("continuousServo");
-    //ms->pushWord("continuousServo");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("synchronicServo"); 
-    ms->pushWord("synchronicServoTakeClosest");
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_ACCUMULATED_NOSYN) {
-    ms->pushWord("gradientServoIfBlueBoxes");
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("visionCycleNoClassify"); 
-  } else if (ms->config.currentMapServoMode == FIXED_CLASS_CONTINUOUS_NOSYN) {
-    ms->pushCopies("continuousServo", 10);
-    ms->pushWord("mapClosestBlueBox");
-    ms->pushWord("mapEmptySpace");
-    ms->pushWord("replaceBlueBoxesWithFocusedClass"); 
-    ms->pushWord("visionCycleNoClassify"); 
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(MapServo)
-
-WORD(MapLocal)
-virtual void execute(MachineState * ms) {
-  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-  ms->pushWord("filterBoxMemories");
-  ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord("lockTargetIfBlueBoxes");
-
-  ms->pushWord("mapServo"); 
-
-  ms->pushWord("visionCycle"); 
-  ms->pushWord("cruisingSpeed"); 
-}
-END_WORD
-REGISTER_WORD(MapLocal)
-
-WORD(MappingPatrol)
-CODE(196727) // capslock + W
-virtual void execute(MachineState * ms) {
-  cout << "mappingPatrol" << endl;
-  ms->pushWord("moveToNextMapPosition");
-}
-END_WORD
-REGISTER_WORD(MappingPatrol)
-
-WORD(SetMapServoMode)
-virtual void execute(MachineState * ms) {
-  int modeGot = 0;
-  GET_ARG(ms, IntegerWord, modeGot);
-  cout << "setMapServoMode was: " << ms->config.currentMapServoMode << " setting " << modeGot << endl;
-  ms->config.currentMapServoMode = (mapServoMode)modeGot;
-}
-END_WORD
-REGISTER_WORD(SetMapServoMode)
-
-WORD(MappingPatrolA)
-virtual void execute(MachineState * ms) {
-  cout << "mappingPatrolA" << endl;
-  ms->config.bailAfterSynchronic = 1;
-  ms->config.bailAfterGradient = 1;
-
-  ms->pushWord("moveToNextMapPosition");
-
-  if (ms->config.mapAutoPick) {
-    ms->pushWord("pickAllBlueBoxes");
-  } else {
-  }
- 
-  ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-  //ms->pushWord("setRandomPositionAndOrientationForHeightLearning");
-  //ms->pushWord("recordAllBlueBoxes");
-  ms->pushWord("filterBoxMemories");
-  ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord("lockTargetIfBlueBoxes");
-  //ms->pushWord("collapseStack");
-
-  ms->pushWord("mapServo");
-
-  ms->pushWord("waitUntilAtCurrentPosition"); 
-  ms->pushWord("sampleHeight"); 
-  ms->pushWord("setBoundingBoxModeToMapping");
-  ms->pushWord("shiftIntoGraspGear1");
-  ms->pushWord("cruisingSpeed");
-  //ms->pushWord("shutdownAllNonessentialSystems");
-  //ms->pushWord("bringUpAllNonessentialSystems");
-  ms->pushWord("setPatrolStateToPatrolling");
-}
-END_WORD
-REGISTER_WORD(MappingPatrolA)
-
 WORD(ToggleShouldIDoIK)
 virtual void execute(MachineState * ms) {
   ms->config.shouldIDoIK = !ms->config.shouldIDoIK;
@@ -439,28 +315,6 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(ClearBlueBoxMemories)
 
-WORD(VisionCycle)
-CODE(131153)  // capslock + q
-virtual void execute(MachineState * ms) {
-  ms->pushWord("mapEmptySpace");
-  ms->pushWord("goClassifyBlueBoxes"); 
-  ms->pushWord("goFindBlueBoxes"); 
-  ms->pushCopies("density", 1); 
-  //ms->pushCopies("resetTemporalMap", 1); 
-  //ms->pushCopies("density", 1); 
-}
-END_WORD
-REGISTER_WORD(VisionCycle)
-
-WORD(Density)
-virtual void execute(MachineState * ms) {
-  ms->pushWord("densityA");
-  //ms->pushWord("waitUntilImageCallbackReceived");
-  //ms->pushCopies("waitUntilImageCallbackReceived", 5);
-  ms->pushWord("hover");
-}
-END_WORD
-REGISTER_WORD(Density)
 
 WORD(ResetTemporalMap)
 CODE(1179737) // capslock + numlock + y
@@ -559,6 +413,8 @@ END_WORD
 REGISTER_WORD(FaceServoB)
 
 */
+
+ 
 
 WORD(StereoPair)
 virtual void execute(MachineState * ms) {

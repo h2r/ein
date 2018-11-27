@@ -2384,7 +2384,7 @@ void MachineState::rangeCallback(const sensor_msgs::Range& range) {
 
     ms->config.objectMapViewerWindow->updateImage(ms->config.objectMapViewerImage);
 
-    ms->config.densityViewerWindow->updateImage(ms->config.densityViewerImage);
+    ms->config.meanViewerWindow->updateImage(ms->config.densityViewerImage);
 
     ms->config.mapBackgroundViewWindow->updateImage(ms->config.mapBackgroundImage);
   }
@@ -2784,6 +2784,36 @@ void loadConfig(MachineState * ms, string filename) {
   
 }
 
+void resetAccumulatedImageAndMass(MachineState * ms) {
+
+  Size sz = ms->config.accumulatedImageMass.size();
+  int imW = sz.width;
+  int imH = sz.height;
+  cout << "Reading denom:" << endl;
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      cout << "Denom is denom: " << denom << endl;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      ms->config.accumulatedImageMass.at<double>(y,x) = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[0] = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[1] = 0;
+      ms->config.accumulatedImage.at<Vec3d>(y,x)[2] = 0;
+    }
+  }
+
+  for (int x = 0; x < imW; x++) {
+    for (int y = 0; y < imH; y++) {
+      double denom = ms->config.accumulatedImageMass.at<double>(y,x);
+      cout << "Set denom: " << denom << endl;
+    }
+  }
+
+}
 
 void accumulateImage(MachineState * ms) {
   Size sz = ms->config.accumulatedImage.size();
@@ -3137,7 +3167,7 @@ void MachineState::imageCallback(Camera * camera) {
 
   ms->config.faceViewImage = camera->cam_bgr_img.clone();
 
-  accumulateImage(ms);
+  //accumulateImage(ms);
 
   renderWristViewImage(ms);
   if (ms->config.shouldIRender && ms->config.showgui) {
@@ -8764,9 +8794,9 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
   einMainWindow->addWindow(ms->config.mapBackgroundViewWindow);
 
 
-  ms->config.densityViewerWindow = new EinWindow(NULL, ms);
-  ms->config.densityViewerWindow->setWindowTitle("Density Viewer " + ms->config.left_or_right_arm);
-  einMainWindow->addWindow(ms->config.densityViewerWindow);
+  ms->config.meanViewerWindow = new EinWindow(NULL, ms);
+  ms->config.meanViewerWindow->setWindowTitle("Mean Viewer " + ms->config.left_or_right_arm);
+  einMainWindow->addWindow(ms->config.meanViewerWindow);
 
   ms->config.objectViewerWindow = new EinWindow(NULL, ms);
   ms->config.objectViewerWindow->setWindowTitle("Object Viewer " + ms->config.left_or_right_arm);

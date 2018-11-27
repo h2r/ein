@@ -3402,6 +3402,13 @@ CONFIG_GETTER_DOUBLE(CurrentTableZ, ms->config.currentTableZ, "Current location 
 CONFIG_SETTER_DOUBLE(SetCurrentTableZ, ms->config.currentTableZ)
 
 
+CONFIG_GETTER_STRING(BaseTfFrame, ms->config.baseTfFrame, "The name of the global frame you want to use.");
+CONFIG_SETTER_STRING(SetBaseTfFrame, ms->config.baseTfFrame);
+  
+
+CONFIG_GETTER_STRING(EeTfFrame, ms->config.eeTfFrame, "The name of the end effector frame you want to use.");
+CONFIG_SETTER_STRING(SetEeTfFrame, ms->config.eeTfFrame);    
+
 
 CONFIG_GETTER_INT(ObservedCameraFlip, ms->config.cameras[ms->config.focused_camera]->observedCameraFlip)
 CONFIG_GETTER_INT(ObservedCameraMirror, ms->config.cameras[ms->config.focused_camera]->observedCameraMirror)

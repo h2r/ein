@@ -12,6 +12,8 @@ class EinPidroneConfig {
 
   EinPidroneConfig(MachineState * ms);
 
+  ros::Time lastMapLookupPrintTime;
+
   void endPointCallback(const ros::TimerEvent&);
   ros::Timer eeTimer;
 

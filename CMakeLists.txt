@@ -222,6 +222,8 @@ find_package(catkin COMPONENTS kinova_msgs)
 
 find_package(catkin COMPONENTS movo_msgs)
 
+find_package(catkin COMPONENTS iiwa_msgs)
+
 
 # you must pick one robot. 
 
@@ -280,6 +282,22 @@ add_library(EinJaco SHARED
 src/jaco/ein_jaco.cpp 
 )
 target_link_libraries(ein EinJaco)
+
+elseif (iiwa_msgs_FOUND)
+MESSAGE("Building Kuka")
+
+find_package(catkin REQUIRED COMPONENTS
+    moveit_core
+    moveit_ros_planning
+    moveit_ros_planning_interface
+)
+add_definitions(-DUSE_ROBOT_KUKA)
+add_library(EinKuka SHARED
+src/kuka/ein_kuka.cpp 
+)
+target_link_libraries(ein EinKuka
+${catkin_LIBRARIES}
+)
 
 else()
 MESSAGE("Building Aibo")

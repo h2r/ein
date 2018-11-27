@@ -1,13 +1,13 @@
-#ifndef _EIN_PIDRONE_H_
-#define _EIN_PIDRONE_H_
+#ifndef _EIN_KUKA_H_
+#define _EIN_KUKA_H_
 
-class EinPidroneConfig;
+class EinKukaConfig;
 class MachineState;
+void robotInitializeSerial(MachineState * ms);
 void robotInitializeConfig(MachineState * ms);
 void robotInitializeMachine(MachineState * ms);
 void robotEndPointCallback(MachineState * ms);
 void robotSetCurrentJointPositions(MachineState * ms);
-void robotInitializeSerial(MachineState * ms);
 
 void robotActivateSensorStreaming(MachineState * ms);
 void robotDeactivateSensorStreaming(MachineState * ms);
@@ -15,4 +15,4 @@ void robotUpdate(MachineState * ms);
 
 #include <vector>
 #include <memory>
-#endif /* _EIN_PIDRONE_H_ */
+#endif /* _EIN_KUKA_H_ */

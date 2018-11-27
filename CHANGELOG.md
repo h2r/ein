@@ -1,3 +1,6 @@
+## 1.1 (November 27, 2018)
+
+
 ## 0.10.0 (July 08, 2018)
   - minor tweaks before elease
   - config for iorek and updated doc
