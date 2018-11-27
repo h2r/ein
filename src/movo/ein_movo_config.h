@@ -19,7 +19,7 @@
 
 #include <control_msgs/GripperCommandAction.h>
 
-#include <moveit/move_group_interface/move_group.h>
+#include <moveit/move_group_interface/move_group_interface.h>
 using namespace moveit;
 using namespace planning_interface;
 
@@ -50,10 +50,10 @@ class EinMovoConfig {
   ros::Time lastMapLookupPrintTime;
   
   
-  MoveGroup * upperBody;
-  MoveGroup * leftArm;
-  MoveGroup * rightArm;
-  vector<MoveGroup *> endEffectors;
+  MoveGroupInterface * upperBody;
+  MoveGroupInterface * leftArm;
+  MoveGroupInterface * rightArm;
+  vector<MoveGroupInterface *> endEffectors;
   int focused_ee = 0;
 
   ros::Subscriber moveitStatusSubscriber;

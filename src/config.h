@@ -1083,7 +1083,7 @@ class EinConfig {
 
   vector<string> classLabels; 
   vector<string> classPoseModels;
-  vector<CvKNearest*> classPosekNNs;
+  //vector<CvKNearest*> classPosekNNs;
   vector<Mat> classPosekNNfeatures;
   vector<Mat> classPosekNNlabels;
   vector< vector< cv::Vec<double,4> > > classQuaternions;
@@ -1094,7 +1094,7 @@ class EinConfig {
   DescriptorExtractor *extractor = NULL;
   BOWKMeansTrainer *bowTrainer = NULL; 
   BOWImgDescriptorExtractor *bowExtractor = NULL;
-  CvKNearest *kNN = NULL;
+  //CvKNearest *kNN = NULL;
 
 
   std::string class_crops_path;
