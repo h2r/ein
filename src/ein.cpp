@@ -9032,7 +9032,8 @@ int main(int argc, char **argv) {
   //timer->start(0);
   qRegisterMetaType<Mat>("Mat");
 
-  int cudaCount = gpu::getCudaEnabledDeviceCount();
+  //int cudaCount = gpu::getCudaEnabledDeviceCount();
+  int cudaCount = 0;
   cout << "cuda count: " << cudaCount << endl;;
 
   cv::redirectError(opencvError, NULL, NULL);
