@@ -44,7 +44,7 @@ class Camera;
 
 #include <cv.h>
 #include <ml.h>
-
+#include <opencv2/features2d.hpp>
 
 #include <ein/EinState.h>
 #include "distributions.h"

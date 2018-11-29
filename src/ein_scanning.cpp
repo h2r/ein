@@ -9,6 +9,7 @@
 #include "qtgui/einwindow.h"
 #include <boost/filesystem.hpp>
 #include <highgui.h>
+#include <opencv2/opencv.hpp>
 #include <sys/stat.h>
 
 using namespace std;

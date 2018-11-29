@@ -3,7 +3,7 @@
 #include "camera.h"
 #include "qtgui/streamviewerwindow.h"
 #include <highgui.h>
-
+#include <opencv2/opencv.hpp>
 
 int loadStreamImage(MachineState * ms, streamImage * tsi) {
   if (tsi == NULL) {

@@ -3,7 +3,7 @@
 #include "ein.h"
 #include "camera.h"
 #include "eigen_util.h"
-
+#include <opencv2/opencv.hpp>
 namespace ein_words {
 
 CONFIG_GETTER_DOUBLE(GridSize, ms->config.bDelta, "")

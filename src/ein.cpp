@@ -38,7 +38,7 @@
 #include <cv.h>
 #include <ml.h>
 #include <opencv2/gpu/gpu.hpp>
-
+#include <opencv2/opencv.hpp>
 
 //#define DEBUG_RING_BUFFER
 

@@ -1,11 +1,14 @@
 #include "qt_util.h"
 
+
 #include <string>
 #include <iostream>
 #include <fstream>
 
 #include <QFileDialog>
+#include <opencv2/opencv.hpp>
 #include <highgui.h>
+
 using namespace std;
 
 #include <boost/algorithm/string.hpp>

@@ -11,6 +11,7 @@
 #include "camera.h"
 #include <boost/filesystem.hpp>
 #include <highgui.h>
+#include <opencv2/opencv.hpp>
 using namespace boost::filesystem;
 
 

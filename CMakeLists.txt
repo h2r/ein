@@ -18,7 +18,7 @@ MESSAGE(CMAKE_MODULE_PATH)
 MESSAGE(${CMAKE_MODULE_PATH})
 
 
-find_package(OpenCV 2)
+find_package(OpenCV 3)
 
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules

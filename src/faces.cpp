@@ -2,7 +2,10 @@
 #include "ein_util.h"
 #include "eePose.h"
 #include <ros/console.h>
-#include <vector>
+#include <opencv2/objdetect.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 
 string face_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml";
 string eyes_cascade_name = "/usr/share/opencv/haarcascades/haarcascade_eye_tree_eyeglasses.xml";

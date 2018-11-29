@@ -5,7 +5,7 @@
 using namespace boost::algorithm;
 #include <boost/regex.hpp>
 #include "tokenizer.hpp"
-
+#include <opencv2/opencv.hpp>
 
 /*
  * We need to have a static variable so taht we don't have to worry
