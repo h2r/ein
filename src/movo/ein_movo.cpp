@@ -60,9 +60,9 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"),
    ms = myms;
 
 
-   upperBody = new MoveGroup("upper_body");
-   leftArm = new MoveGroup("left_arm");
-   rightArm = new MoveGroup("right_arm");
+   upperBody = new MoveGroupInterface("upper_body");
+   leftArm = new MoveGroupInterface("left_arm");
+   rightArm = new MoveGroupInterface("right_arm");
    upperBody->setPlannerId("RRTConnectkConfigDefault");
    leftArm->setPlannerId("RRTConnectkConfigDefault");
    rightArm->setPlannerId("RRTConnectkConfigDefault");
