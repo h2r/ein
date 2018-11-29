@@ -662,12 +662,12 @@ virtual void execute(MachineState * ms)       {
   if ( (knnFeaturesAll.data == NULL) || (knnFeaturesAll.rows < 1) || (knnFeaturesAll.cols < 1) ) {
     cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
   } else {
-    ms->config.kNN = new CvKNearest(knnFeaturesAll, knnLabelsAll);
+    ms->config.kNN = ml::KNearest::create();
     cout << "done." << endl;
     for (int i = 0; i < ms->config.numClasses; i++) {
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
-	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	ms->config.classPosekNNs[i] = ml::KNearest::create(); //new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
 	cout << "Done" << endl;
       }
     }

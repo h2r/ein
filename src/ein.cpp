@@ -6602,14 +6602,6 @@ void goClassifyBlueBoxes(MachineState * ms) {
   } else {
   }
 
-  if (ms->config.kNN->get_sample_count() < 1) {
-    CONSOLE_ERROR(ms, "Oops, kNN has no samples, so we better stop here... but we'll continue, setting all labels to 0." << endl);
-    for (int i = 0; i < ms->config.bLabels.size(); i++) {
-      ms->config.bLabels[i] = 0;
-    }
-    return;
-    //assert(0);
-  }
   Camera * camera  = ms->config.cameras[ms->config.focused_camera];
   for (int c = 0; c < ms->config.bTops.size(); c++) {
     vector<KeyPoint>& keypoints = ms->config.bKeypoints[c];
@@ -6665,8 +6657,10 @@ void goClassifyBlueBoxes(MachineState * ms) {
       if (!descriptors.empty() && !keypoints.empty()) {
       
 	appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
-	label = ms->config.kNN->find_nearest(descriptors2, param_numNeighbors);
-	ms->config.bLabels[c] = label;
+	Mat matResults(0,0,CV_32F);
+	
+	ms->config.kNN->findNearest(descriptors2, param_numNeighbors, matResults);
+	ms->config.bLabels[c] = matResults.at<double>(0,0,0); // stefie10: untested in move to opencv3.
       }
     } else if (ms->config.chosen_feature == OPPONENTSIFTBOW_GLOBALCOLOR_HIST) {
       processImage(crop, gray_image, yCrCb_image, ms->config.grayBlur);
@@ -6715,8 +6709,9 @@ void goClassifyBlueBoxes(MachineState * ms) {
       
 	//appendColorHist(yCrCb_image, keypoints, descriptors, descriptors2);
 	//label = kNN->find_nearest(descriptors2,k);
-	label = ms->config.kNN->find_nearest(descriptors, param_numNeighbors);
-	ms->config.bLabels[c] = label;
+	Mat matResults(0,0,CV_32F);	
+	label = ms->config.kNN->findNearest(descriptors, param_numNeighbors, matResults);
+	ms->config.bLabels[c] = matResults.at<double>(0,0,0); // stefie10: untested in move to opencv3.
       }
     } else if (ms->config.chosen_feature == GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
@@ -6774,9 +6769,9 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	  descriptorsG.at<float>(x + y*ms->config.gradientFeatureWidth) = gCrop.at<float>(y,x)/totalMass;
 	}
       }
-
-      label = ms->config.kNN->find_nearest(descriptorsG, param_numNeighbors);
-      ms->config.bLabels[c] = label;
+      Mat matResults(0,0,CV_32F);	
+      label = ms->config.kNN->findNearest(descriptorsG, param_numNeighbors, matResults);
+      ms->config.bLabels[c] = matResults.at<double>(0,0,0); // stefie10: untested in move to opencv3.
     } else if (ms->config.chosen_feature == OPPONENT_COLOR_GRADIENT) {
       processImage(crop, gray_image, yCrCb_image, ms->config.sobel_sigma);
 
@@ -6901,9 +6896,9 @@ void goClassifyBlueBoxes(MachineState * ms) {
 	  descriptorsCbCr.at<float>(x + y*ms->config.gradientFeatureWidth + ms->config.gradientFeatureWidth*ms->config.gradientFeatureWidth) = cbCrop.at<float>(y,x)/totalColorMass;
 	}
       }
-
-      label = ms->config.kNN->find_nearest(descriptorsCbCr, param_numNeighbors);
-      ms->config.bLabels[c] = label;
+      Mat matResults(0,0,CV_32F);	
+      label = ms->config.kNN->findNearest(descriptorsCbCr, param_numNeighbors, matResults);
+      ms->config.bLabels[c] = matResults.at<double>(0,0,0); // stefie10: untested in move to opencv3.
     }
 
     string labelName; 
@@ -7064,7 +7059,7 @@ void detectorsInit(MachineState * ms) {
   //ms->config.detector = new SiftFeatureDetector(0, 3, 0.04, 10, 1.6);
   //cout << "ms->config.chosen_feature: " << ms->config.chosen_feature << endl;
   if (ms->config.detector == NULL)
-    ms->config.detector = new FastFeatureDetector(4);
+    ms->config.detector = FastFeatureDetector::create(4);
 
 #ifdef __OPENCV_NONFREE_HPP__
   if (ms->config.extractor == NULL) {
@@ -7305,12 +7300,12 @@ void detectorsInit(MachineState * ms) {
     // seeing this can be distressing
     //cout << "There is a problem with kNN features, cannot initialize detector and files may be corrupt." << endl;
   } else {
-    ms->config.kNN = new CvKNearest(kNNfeatures, kNNlabels);
+    ms->config.kNN = ml::KNearest::create();
     cout << "done." << endl;
     for (int i = 0; i < ms->config.numClasses; i++) {
       if (ms->config.classPoseModels[i].compare("G") == 0) {
 	cout << "Class " << i << " kNN..." << ms->config.classPosekNNfeatures[i].size() << ms->config.classPosekNNlabels[i].size() << endl;
-	ms->config.classPosekNNs[i] = new CvKNearest(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
+	ms->config.classPosekNNs[i] = ml::KNearest::create(); //(ms->config.classPosekNNfeatures[i], ms->config.classPosekNNlabels[i]);
 	cout << "Done" << endl;
       }
     }

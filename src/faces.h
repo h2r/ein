@@ -4,9 +4,10 @@
 
 #include <cv.h>
 #include <ml.h>
-#include <opencv2/gpu/gpu.hpp>
+#include <vector>
 
 using namespace cv;
+using namespace std;
 
 vector<Rect> faceDetectAndDisplay(string windowName, Mat frame ) ;
 #endif /* _FACES_H_ */
