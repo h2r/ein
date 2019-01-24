@@ -63,9 +63,12 @@ EinMovoConfig::EinMovoConfig(MachineState * myms): n("~"),
    upperBody = new MoveGroup("upper_body");
    leftArm = new MoveGroup("left_arm");
    rightArm = new MoveGroup("right_arm");
-   upperBody->setPlannerId("RRTConnectkConfigDefault");
-   leftArm->setPlannerId("RRTConnectkConfigDefault");
-   rightArm->setPlannerId("RRTConnectkConfigDefault");
+   //upperBody->setPlannerId("RRTConnectkConfigDefault");
+   //leftArm->setPlannerId("RRTConnectkConfigDefault");
+   //rightArm->setPlannerId("RRTConnectkConfigDefault");
+   upperBody->setPlannerId("RRTstarkConfigDefault");
+   leftArm->setPlannerId("RRTstarkConfigDefault");
+   rightArm->setPlannerId("RRTstarkConfigDefault");
    endEffectors.push_back(leftArm);
    endEffectors.push_back(rightArm);
    endEffectors.push_back(upperBody);
@@ -187,7 +190,9 @@ void EinMovoConfig::torsoJointCallback(const sensor_msgs::JointState& js)
   MC->leftPose = rosPoseToEEPose(left_ee_pose.pose);
 
   geometry_msgs::PoseStamped right_ee_pose;
-  id.header.frame_id = "right_ee_link";
+  // Jonathan: attempting to change the right end effector link to the pen tip link
+  id.header.frame_id = "right_pen_tip_link"; 
+  //id.header.frame_id = "right_ee_link";
   ms->config.tfListener->transformPose("base_link", id, right_ee_pose);
   MC->rightPose = rosPoseToEEPose(right_ee_pose.pose);
 
