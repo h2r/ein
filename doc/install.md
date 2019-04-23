@@ -10,15 +10,15 @@ This page describes how to create a catkin workspace and install Ein.
 
 Install [Ubuntu Trusty 14.04 LTS](http://releases.ubuntu.com/14.04/).
 
-Install ROS Indigo as per http://wiki.ros.org/indigo/Installation/Ubuntu
+Install ROS Kinetic as per http://wiki.ros.org/kinetic/Installation/Ubuntu
 
-If you are on Trusty 14.04 LTS with Indigo, you need the non-free
+If you are on Trusty 14.04 LTS with Kinetic, you need the non-free
 functionality of opencv.
 
 Install other Ein dependencies: 
 
 ```
-sudo apt-get install qt5-default python-wstool ros-indigo-object-recognition-msgs libgsl0-dev ros-indigo-serial ros-indigo-object-recognition-msgs ros-indigo-pcl-ros libgsl0-dev qt5-default screen
+sudo apt-get install qt5-default python-wstool ros-kinetic-object-recognition-msgs libgsl0-dev ros-kinetic-serial ros-kinetic-object-recognition-msgs ros-kinetic-pcl-ros libgsl0-dev qt5-default screen
 ```
 
 Create your catkin workspace:
@@ -53,7 +53,7 @@ Next run catkin_make for the first time:
 
 ```
 cd ~/catkin_ws/src 
-source /opt/ros/indigo/setup.bash
+source /opt/ros/kinetic/setup.bash
 catkin_make
 ```
 

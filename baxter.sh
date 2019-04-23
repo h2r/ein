@@ -30,8 +30,8 @@ your_hostname="$HOSTNAME"
 #your_ip="128.30.27.9"
 
 
-# Specify ROS distribution (e.g. indigo, hydro, etc.)
-ros_version="indigo"
+# Specify ROS distribution (e.g. kinetic, hydro, etc.)
+ros_version="kinetic"
 #-----------------------------------------------------------------------------#
 
 tf=$(mktemp)

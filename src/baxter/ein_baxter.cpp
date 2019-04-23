@@ -21,6 +21,7 @@
 #include "ikfast/ikfast_wrapper_right.h"
 
 #include <highgui.h>
+#include <opencv2/opencv.hpp>
 
 void baxterCameraInit(MachineState * ms);
 
