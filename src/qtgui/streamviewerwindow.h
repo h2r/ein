@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <iostream>
-#include <cv.h>
 
 #include "window_QT.h"
 class MachineState;

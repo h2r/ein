@@ -2,10 +2,11 @@
 #include "ein_words.h"
 #include "ein.h"
 
-#include <ein/EinState.h>
+#include "ein/msg/ein_state.hpp"
 using namespace ein;
 
 #include <boost/filesystem.hpp>
+#include <iostream>
 
 #include <sys/stat.h>
 
@@ -57,9 +58,9 @@ REGISTER_WORD(Mkdirs)
 WORD(PublishState)
 virtual void execute(MachineState * ms) {
   {
-    EinState state;
+    ein::msg::EinState state;
     fillEinStateMsg(ms, &state);
-    ms->config.einStatePub.publish(state);
+    ms->config.einStatePub->publish(state);
   }
 }
 END_WORD
@@ -74,7 +75,7 @@ REGISTER_WORD(Drand48)
 
 WORD(Now)
 virtual void execute(MachineState * ms) {
-  ms->pushData(std::make_shared<DoubleWord>(ros::Time::now().toSec()));
+  ms->pushData(std::make_shared<DoubleWord>(rclcpp::Clock{}.now().seconds()));
 }
 END_WORD
 REGISTER_WORD(Now)
@@ -100,12 +101,12 @@ virtual void execute(MachineState * ms) {
   double its = 0;
   GET_NUMERIC_ARG(ms, its);
   
-  double start = ros::Time::now().toSec();
+  double start = rclcpp::Clock{}.now().seconds();
   int i = 0;
   for (i = 0; i < its; ) {
     i++;
   }
-  double end = ros::Time::now().toSec();
+  double end = rclcpp::Clock{}.now().seconds();
 
   double hz = double(i) / (end-start);
 
@@ -314,17 +315,6 @@ virtual void execute(MachineState * ms) {
 }
 END_WORD
 REGISTER_WORD(PrintState)
-
-WORD(DecrementTargetClass)
-CODE(196438)     // capslock + pagedown
-virtual void execute(MachineState * ms) {
-  if (ms->config.numClasses > 0) {
-    int newTargetClass = (ms->config.targetClass - 1 + ms->config.numClasses) % ms->config.numClasses;
-    changeTargetClass(ms, newTargetClass);
-  }
-}
-END_WORD
-REGISTER_WORD(DecrementTargetClass)
 
 WORD(Or)
 CODE('|') 
@@ -1463,32 +1453,6 @@ END_WORD
 REGISTER_WORD(ReloadCamera)
 
 
-
-WORD(IncrementTargetClass)
-CODE(196437)// capslock + pageup
-virtual void execute(MachineState * ms)
-{
-  if (ms->config.numClasses > 0) {
-    int newTargetClass = (ms->config.targetClass + 1) % ms->config.numClasses;
-    changeTargetClass(ms, newTargetClass);
-  }
-}
-END_WORD
-REGISTER_WORD(IncrementTargetClass)
-
-WORD(ChangeTargetClassToClosestBlueBox)
-virtual void execute(MachineState * ms)  {
-  if (ms->config.pilotClosestBlueBoxNumber == -1) {
-    cout << "Not changing because closest bbox is " << ms->config.pilotClosestBlueBoxNumber << endl;
-    return;
-  }
-  int class_idx = ms->config.bLabels[ms->config.pilotClosestBlueBoxNumber];
-  cout << "Changing to closest blue blox target, which is class " << ms->config.classLabels[class_idx] << endl;
-  changeTargetClass(ms, class_idx);
-}
-END_WORD
-REGISTER_WORD(ChangeTargetClassToClosestBlueBox)
-
 WORD(Noop)
 CODE('C')
 virtual void execute(MachineState * ms)
@@ -1514,7 +1478,7 @@ virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.txt";
   CONSOLE(ms, "Writing words to " << wordFileName);
-  ofstream wordFile;
+  std::ofstream wordFile;
   wordFile.open(wordFileName);
 
   std::vector<std::shared_ptr<Word> > words = register_word(NULL);
@@ -1537,7 +1501,7 @@ virtual void execute(MachineState * ms)
 {
   string wordFileName = "ein_words.html";
   CONSOLE(ms, "Writing words to " << wordFileName);
-  ofstream wordFile;
+  std::ofstream wordFile;
   wordFile.open(wordFileName);
   wordFile << "<table><tr><th>Word</th><th>Description</th></tr>" << endl;
 
@@ -1917,7 +1881,7 @@ REGISTER_WORD(ResetAuxiliary)
 WORD(WaitUntilImageCallbackReceived)
 virtual void execute(MachineState * ms)
 {
-  ms->config.lastImageCallbackRequest = ros::Time::now();
+  ms->config.lastImageCallbackRequest = rclcpp::Clock{}.now();
   ms->pushWord("waitUntilImageCallbackReceivedA");
   ms->config.shouldIImageCallback = 1;
   ms->config.endThisStackCollapse = 1;
@@ -1942,7 +1906,7 @@ REGISTER_WORD(WaitUntilImageCallbackReceivedA)
 WORD(WaitUntilAccelerometerCallbackReceived)
 virtual void execute(MachineState * ms)
 {
-  ms->config.lastAccelerometerCallbackRequest = ros::Time::now();
+  ms->config.lastAccelerometerCallbackRequest = rclcpp::Clock{}.now();
   ms->pushWord("waitUntilAccelerometerCallbackReceivedA");
   ms->config.endThisStackCollapse = 1;
 }
@@ -1965,7 +1929,7 @@ REGISTER_WORD(WaitUntilAccelerometerCallbackReceivedA)
 WORD(WaitUntilEndpointCallbackReceived)
 virtual void execute(MachineState * ms)
 {
-  ms->config.lastEndpointCallbackRequest = ros::Time::now();
+  ms->config.lastEndpointCallbackRequest = rclcpp::Clock{}.now();
   ms->pushWord("waitUntilEndpointCallbackReceivedA");
   ms->config.endThisStackCollapse = 1;
 }
@@ -1993,12 +1957,12 @@ virtual void execute(MachineState * ms)
 
   Mat ringImage;
   eePose thisPose;
-  ros::Time time;
+  rclcpp::Time time;
   int result = getMostRecentRingImageAndPose(ms, &ringImage, &thisPose, &time, false);
   double distance, angleDistance;
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, thisPose, &distance, &angleDistance);
   if (result != 1) { 
-    ROS_ERROR("Warning:  waitUntilRingBufferImageAtCurrentPosition got an error when accessing the ring buffer.");
+    CONSOLE_ERROR(ms, "Warning:  waitUntilRingBufferImageAtCurrentPosition got an error when accessing the ring buffer.");
     ms->pushWord("waitUntilRingBufferImageAtCurrentPosition");
     ms->config.endThisStackCollapse = 1;
     return;
@@ -2014,32 +1978,6 @@ END_WORD
 REGISTER_WORD(WaitUntilRingBufferImageAtCurrentPosition)
 
 
-WORD(WriteXMLEnvironment)
-virtual void execute(MachineState * ms)
-{
-  // For Dipendra
-  ofstream ofile;
-  string fileName = ms->config.data_directory + "/" + ms->config.left_or_right_arm + "_environment.xml";
-  cout << "Saving environment to " << fileName << endl;
-  ofile.open(fileName, ios::trunc);
-
-  ofile << "<environment>" << endl;
-  for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
-    BoxMemory box = ms->config.blueBoxMemories[i];
-    if (box.labeledClassIndex >= 0) {
-      ofile << "  <object>" << endl;
-      ofile << "    <name>" << ms->config.classLabels[box.labeledClassIndex] << "</name>" << endl;
-      ofile << "    <position>" << "( " << box.centroid.px << ", " << box.centroid.py << ", " << box.centroid.pz << ")" << "</position>" << endl;
-      ofile << "    <rotation>" << "(0, 0, 0)" << "</rotation>" << endl;
-      ofile << "  </object>" << endl;
-    }
-  }
-  ofile << "</environment>" << endl;
-
-  ofile.close();
-}
-END_WORD
-REGISTER_WORD(WriteXMLEnvironment)
 
 WORD(DisableRobot)
 virtual void execute(MachineState * ms)
@@ -2740,7 +2678,7 @@ REGISTER_WORD(NumBlueBoxes)
 
 WORD(DateString)
 virtual void execute(MachineState * ms) {
-  ros::Time thisNow = ros::Time::now();
+  rclcpp::Time thisNow = rclcpp::Clock{}.now();
   ms->pushWord(make_shared<StringWord>(formatTime(thisNow)));
 }
 END_WORD
@@ -2997,9 +2935,9 @@ virtual void execute(MachineState * ms) {
   string string_in;
   GET_STRING_ARG(ms, string_in);
 
-  std_msgs::String command;
+  std_msgs::msg::String command;
   command.data = string_in;
-  ms->config.forthCommandPublisher.publish(command);
+  ms->config.forthCommandPublisher->publish(command);
 }
 END_WORD
 REGISTER_WORD(CommandOtherArm)
@@ -3305,17 +3243,6 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(CameraCreate)
-
-WORD(SetHandCameraOffsetFromTf)
-virtual string description() {
-  return "Sets the hand camera  from tf using the links.";
-}
-virtual void execute(MachineState * ms) {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  camera->setHandCameraOffsetFromTf();
-}
-END_WORD
-REGISTER_WORD(SetHandCameraOffsetFromTf)
 
 
 

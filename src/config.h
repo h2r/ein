@@ -17,8 +17,9 @@
 #include "movo/ein_movo.h"
 #elif defined(USE_ROBOT_KUKA)
 #include "kuka/ein_kuka.h"
+#elif defined(USE_ROBOT_SPOT)
+#include "spot/ein_spot.h"
 #else
-
 #include "defaultrobot/ein_robot.h"
 #endif
 
@@ -32,21 +33,23 @@ class Scene;
 class OrientedRay;
 class Camera;
 
-#include <ros/ros.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/Range.h>
-#include <std_msgs/String.h>
-#include <std_msgs/Empty.h>
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/Pose.h>
-#include <tf/transform_listener.h>
-#include <rosgraph_msgs/Log.h>
+#include <rclcpp/rclcpp.hpp>
 
-#include <cv.h>
-#include <ml.h>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/range.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/empty.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 
+#include <image_transport/image_transport.hpp>
 
-#include <ein/EinState.h>
+#include <opencv2/opencv.hpp> 
+
+#include "ein/msg/ein_state.hpp"
+#include "ein/msg/ein_console.hpp"
 #include "distributions.h"
 
 #define NUM_JOINTS 7
@@ -253,7 +256,7 @@ struct Grasp {
 };
 
 struct CollisionDetection {
-  ros::Time time;
+  rclcpp::Time time;
   bool inCollision;
 };
 
@@ -268,7 +271,7 @@ struct BoxMemory {
   eePose top;
   eePose bot;
   eePose centroid;
-  ros::Time cameraTime;
+  rclcpp::Time cameraTime;
   int labeledClassIndex;
   memoryLockType lockStatus;
   double trZ;
@@ -279,7 +282,7 @@ struct BoxMemory {
 };
 
 typedef struct MapCell {
-  ros::Time lastMappedTime;
+  rclcpp::Time lastMappedTime;
   int detectedClass; // -1 means not denied
   double r, g, b;
   double pixelCount;
@@ -296,7 +299,7 @@ typedef struct Sprite {
   Mat image;
   string name; // unique identifier
   double scale; // this is pixels / cm
-  ros::Time creationTime;
+  rclcpp::Time creationTime;
   eePose top;
   eePose bot;
   eePose pose;
@@ -371,15 +374,16 @@ class EinConfig {
   EinKukaConfig * kukaConfig;
 
   
-  tf::TransformListener* tfListener;
+  std::shared_ptr<tf2_ros::TransformListener> tfListener{nullptr};
 
-  ros::Time lastStatePubTime;
-  ros::Publisher einStatePub;
-  ros::Publisher einConsolePub;
-  ros::Publisher vmMarkerPublisher;
-  ros::Publisher rec_objs_blue_memory;
-  ros::Publisher markers_blue_memory;
-  ros::Publisher ee_target_pub;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer;  
+
+  rclcpp::Time lastStatePubTime;
+  rclcpp::Publisher<ein::msg::EinState>::SharedPtr einStatePub;
+  rclcpp::Publisher<ein::msg::EinConsole>::SharedPtr einConsolePub;
+
+  rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr ee_target_pub;
+  image_transport::ImageTransport * it;
 
 
   int zero_g_toggle = 1;
@@ -402,12 +406,12 @@ class EinConfig {
 
 
 
-  std::vector<geometry_msgs::Pose> epRingBuffer;
+  std::vector<geometry_msgs::msg::Pose> epRingBuffer;
   std::vector<double> rgRingBuffer;
   
 
-  std::vector<ros::Time> epRBTimes;
-  std::vector<ros::Time> rgRBTimes;
+  std::vector<rclcpp::Time> epRBTimes;
+  std::vector<rclcpp::Time> rgRBTimes;
 
 
   movementState currentMovementState = STOPPED;
@@ -662,7 +666,7 @@ class EinConfig {
   double currentTableZ = leftTableZ;
   
 
-  ros::Time firstTableHeightTime;
+  rclcpp::Time firstTableHeightTime;
   double mostRecentUntabledZWait = 2.0;
   double mostRecentUntabledZLastValue = INFINITY;
   double mostRecentUntabledZDecay = 0.97;
@@ -787,7 +791,7 @@ class EinConfig {
   int synServoLockFrames = 0;
 
 
-  ros::Time oscilStart;
+  rclcpp::Time oscilStart;
   double oscCenX = 0.0;
   double oscCenY = 0.0;
   double oscCenZ = 0.0;
@@ -801,8 +805,8 @@ class EinConfig {
   double oscFreqZ = commonFreq*1.0;
   double visionCycleInterval = 7.5 / 7.0 * (1.0/commonFreq);
 
-  ros::Time lastVisionCycle;
-  ros::Duration accumulatedTime;
+  rclcpp::Time lastVisionCycle;
+  rclcpp::Duration accumulatedTime;
 
   int targetClass = -1;
 
@@ -827,12 +831,12 @@ class EinConfig {
   double gripperPosition = 0;
   int gripperGripping = 0;
   double gripperThresh = 3.5;//6.0;//7.0;
-  ros::Time gripperLastUpdated;
+  rclcpp::Time gripperLastUpdated;
   double gripperNotMovingConfirmTime = 0.25;
   // the last value the gripper was at when it began to open from a closed position
   double lastMeasuredClosed = 3.0;
 
-  ros::Time graspTrialStart;
+  rclcpp::Time graspTrialStart;
   double graspAttemptCounter = 0;
   double graspSuccessCounter = 0;
   double graspSuccessRate = 0;
@@ -911,15 +915,15 @@ class EinConfig {
   waitMode currentWaitMode = WAIT_KEEP_ON;
   int waitUntilAtCurrentPositionCounter = 0;
   int waitUntilAtCurrentPositionCounterTimeout = 300;
-  ros::Time waitUntilAtCurrentPositionStart;
+  rclcpp::Time waitUntilAtCurrentPositionStart;
   double  waitUntilAtCurrentPositionTimeout = 60.0;
   int waitUntilEffortCounter = 0;
   int waitUntilEffortCounterTimeout = 3000;
-  ros::Time pressUntilEffortStart;
+  rclcpp::Time pressUntilEffortStart;
   double pressUntilEffortTimeout = 30.0;
   int waitUntilGripperNotMovingCounter = 0;
   int waitUntilGripperNotMovingTimeout = 100;
-  ros::Time waitUntilGripperNotMovingStamp;
+  rclcpp::Time waitUntilGripperNotMovingStamp;
 
   double currentEESpeedRatio = 0.5;
 
@@ -933,18 +937,18 @@ class EinConfig {
   int heartBeatPeriod = 150;
 
 
-  ros::Time lastAccelerometerCallbackRequest;
-  ros::Time lastGripperCallbackRequest;
-  ros::Time lastEndpointCallbackRequest;
+  rclcpp::Time lastAccelerometerCallbackRequest;
+  rclcpp::Time lastGripperCallbackRequest;
+  rclcpp::Time lastEndpointCallbackRequest;
   
-  ros::Time lastAccelerometerCallbackReceived;
-  ros::Time lastGripperCallbackReceived;
-  ros::Time lastEndpointCallbackReceived;
+  rclcpp::Time lastAccelerometerCallbackReceived;
+  rclcpp::Time lastGripperCallbackReceived;
+  rclcpp::Time lastEndpointCallbackReceived;
 
-  ros::Time lastImageStamp;
-  ros::Time lastImageFromDensityReceived;
+  rclcpp::Time lastImageStamp;
+  rclcpp::Time lastImageFromDensityReceived;
 
-  ros::Time lastImageCallbackRequest;
+  rclcpp::Time lastImageCallbackRequest;
 
   bool usePotentiallyCollidingIK = 0;
 
@@ -952,29 +956,29 @@ class EinConfig {
   Mat objectViewerGrayBlur;
 
 
-  ros::Time lastHoverRequest;
+  rclcpp::Time lastHoverRequest;
   double hoverTimeout = 3.0;//2.0; // seconds
   double hoverGoThresh = 0.02;
   double hoverAngleThresh = 0.02;
   eePose lastHoverTrueEEPoseEEPose;
 
-  ros::Time lastMovementStateSet;
+  rclcpp::Time lastMovementStateSet;
   eePose lastTrueEEPoseEEPose;
   
-  ros::Time comeToHoverStart;
+  rclcpp::Time comeToHoverStart;
   double comeToHoverTimeout = 3.0;
-  ros::Time comeToStopStart;
+  rclcpp::Time comeToStopStart;
   double comeToStopTimeout = 30.0;
-  ros::Time waitForTugStart;
+  rclcpp::Time waitForTugStart;
   double waitForTugTimeout = 1e10;
   double armedThreshold = 0.05;
 
 
 
   double simulatorCallbackFrequency = 30.0;
-  ros::Timer simulatorCallbackTimer;
+  rclcpp::TimerBase::SharedPtr simulatorCallbackTimer;
 
-  ros::Timer timer1;
+  rclcpp::TimerBase::SharedPtr timer1;
   
   int mbiWidth = 2000;
   int mbiHeight = 2000;
@@ -1078,28 +1082,7 @@ class EinConfig {
 
   std::string cache_prefix = "";
 
-
-  int numClasses = 0;
-
-  vector<string> classLabels; 
-  vector<string> classPoseModels;
-  vector<CvKNearest*> classPosekNNs;
-  vector<Mat> classPosekNNfeatures;
-  vector<Mat> classPosekNNlabels;
-  vector< vector< cv::Vec<double,4> > > classQuaternions;
-
-
-  DescriptorMatcher *matcher = NULL;
-  FeatureDetector *detector = NULL;
-  DescriptorExtractor *extractor = NULL;
-  BOWKMeansTrainer *bowTrainer = NULL; 
-  BOWImgDescriptorExtractor *bowExtractor = NULL;
-  CvKNearest *kNN = NULL;
-
-
-  std::string class_crops_path;
-
-
+  
   int cropCounter;
 
   double maxDensity = 0;
@@ -1166,14 +1149,9 @@ class EinConfig {
   const static int mapHeight = (mapYMax - mapYMin) / mapStep;
 
   MapCell objectMap[mapWidth * mapHeight];
-  ros::Time lastScanStarted;
-  int mapFreeSpacePixelSkirt = 25;
-  int mapBlueBoxPixelSkirt = 50;
-  double mapBlueBoxCooldown = 180; // cooldown is a temporal skirt
-  int mapGrayBoxPixelSkirtRows = 60;
-  int mapGrayBoxPixelSkirtCols = 110;
-  int mapGrayBoxPixelWaistRows = 0;
-  int mapGrayBoxPixelWaistCols = 0;
+  rclcpp::Time lastScanStarted;
+
+
   int ikMap[mapWidth * mapHeight];
   int clearanceMap[mapWidth * mapHeight];
   int drawClearanceMap = 1;
@@ -1311,25 +1289,18 @@ class EinConfig {
     return numCollisions;
   }
 
-  ros::Subscriber rosout_sub;
+  rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr moveEndEffectorCommandCallbackSub;
+  rclcpp::Subscription<ein::msg::EinState>::SharedPtr einSub;
 
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr forthCommandSubscriber;
+  
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr forthCommandPublisher;
 
+  rclcpp::Time waitForSecondsTarget;
+  rclcpp::Time spinForSecondsTarget;
 
-
-  ros::Subscriber pickObjectUnderEndEffectorCommandCallbackSub;
-  ros::Subscriber placeObjectInEndEffectorCommandCallbackSub;
-  ros::Subscriber moveEndEffectorCommandCallbackSub;
-  ros::Subscriber einSub;
-
-  ros::Subscriber armItbCallbackSub;
-  ros::Subscriber forthCommandSubscriber;
-  ros::Publisher forthCommandPublisher;
-
-  ros::Time waitForSecondsTarget;
-  ros::Time spinForSecondsTarget;
-
-  ros::Time measureTimeTarget;
-  ros::Time measureTimeStart;
+  rclcpp::Time measureTimeTarget;
+  rclcpp::Time measureTimeStart;
   double measureTimePeriod = 1.0;
   
 
@@ -1389,6 +1360,8 @@ class EinConfig {
   double wristViewBrightnessScalar = 1.0;
 
 
+  EinConfig() : accumulatedTime(0,0) {
+  }
   
 }; // config end
 
@@ -1446,23 +1419,19 @@ class MachineState: public std::enable_shared_from_this<MachineState> {
 
   string currentState();
 
-  void moveEndEffectorCommandCallback(const geometry_msgs::Pose& msg);
+  void moveEndEffectorCommandCallback(const geometry_msgs::msg::Pose& msg);  
 
-
-  void pickObjectUnderEndEffectorCommandCallback(const std_msgs::Empty& msg);
-  void placeObjectInEndEffectorCommandCallback(const std_msgs::Empty& msg);
-  void forthCommandCallback(const std_msgs::String::ConstPtr& msg);
+  void forthCommandCallback(const std_msgs::msg::String& msg);
   void evaluateProgram(const string program);
-  void accelerometerCallback(const sensor_msgs::Imu& moment);
-  void rangeCallback(const sensor_msgs::Range& range);
-  void timercallback1(const ros::TimerEvent&);
+  void accelerometerCallback(const sensor_msgs::msg::Imu& moment);
+  void rangeCallback(const sensor_msgs::msg::Range& range);
+  void timercallback1();
   void imageCallback(Camera * camera);
 
-  void targetCallback(const geometry_msgs::Point& point);
-  void simulatorCallback(const ros::TimerEvent&);
-  void einStateCallback(const ein::EinState & msg);
+  void targetCallback(const geometry_msgs::msg::Point& point);
 
-  void rosoutCallback(const rosgraph_msgs::Log& js);
+  void einStateCallback(const ein::msg::EinState & msg);
+
   void publishConsoleMessage(string msg);
 
   int getStreamPoseAtTime(double tin, eePose * outArm, eePose * outBase);

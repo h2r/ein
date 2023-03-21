@@ -1,5 +1,8 @@
 #include "ein_util.h"
-#include <ros/console.h>
+
+#include "ein/msg/ein_state.hpp"
+#include "ein/msg/ein_console.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -80,7 +83,7 @@ string readBinaryFromYaml(FileNode & fn) {
   try { 
     return decompress_string(decoded_data);
   } catch( ... ) {
-    ROS_ERROR("Exception uncompressing a binary yaml file.");
+    cerr << "Exception uncompressing a binary yaml file.";
     std::exception_ptr p = std::current_exception();
     std::clog <<(p ? p.__cxa_exception_type()->name() : "null") << std::endl;
     return "";
@@ -122,7 +125,7 @@ void pushGridSign(MachineState * ms, double speed) {
   } else if (speed == GRID_VERY_FINE) {
     ms->pushWord("setGridSizeVeryFine"); 
   } else {
-    ROS_ERROR_STREAM("Unknown speed: " << speed);
+    CONSOLE_ERROR(ms, "Unknown speed: " << speed);
     assert(0);
   }
 
@@ -147,7 +150,7 @@ void initializeMachine(MachineState * ms) {
 
 
   stringstream s;
-  s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(ros::Time::now());
+  s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(rclcpp::Clock{}.now());
   cout << "start message: " << s.str() << endl;
   ms->pushWord("print");
   ms->pushData(make_shared<StringWord>(s.str()));
@@ -164,10 +167,10 @@ void initializeMachine(MachineState * ms) {
 
 
 
-string formatTime(ros::Time time) {
+string formatTime(rclcpp::Time time) {
   stringstream buf;
 
-  boost::posix_time::ptime old = time.toBoost();
+  boost::posix_time::ptime old = boost::posix_time::from_time_t(time.seconds());
 
   typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
   boost::posix_time::ptime p =  local_adj::utc_to_local(old);
@@ -272,11 +275,6 @@ bool copyDir(string src, string dest) {
 
 string sceneModelFile(MachineState * ms, string label) {
   return ms->config.data_directory + "/objects/" + label + "/ein/sceneModel/model.yml";
-}
-
-string streamDirectory(MachineState * ms, int classIdx) {
-  string thisLabelName = ms->config.classLabels[classIdx];
-  return ms->config.data_directory + "/objects/" + thisLabelName + "/raw";
 }
 
 

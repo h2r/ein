@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
+
 
 ArmWidget::ArmWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
 								       ms(_ms),
@@ -31,8 +31,6 @@ ArmWidget::ArmWidget(QWidget * parent, MachineState * _ms) : QWidget(parent),
     ui->dataStackTableView->setModel(dataStackModel);
     ui->dataStackTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
-
-    wristView.setMouseCallBack(pilotCallbackFunc, ms);
 
     QStringList wordList;
     std::vector<std::shared_ptr<Word> > words = register_word(NULL);

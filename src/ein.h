@@ -10,15 +10,12 @@
 #include <Eigen/Geometry> 
 using namespace Eigen;
 
-#include <ein/EinState.h>
-#include <ein/EinConsole.h>
-
-#include <object_recognition_msgs/RecognizedObjectArray.h>
+#include <ein/msg/ein_state.hpp>
+#include <ein/msg/ein_console.hpp>
 
 #include <vector>
 #include <string>
 
-#include <cv.h>
 #include <Eigen/Geometry> 
 
 
@@ -113,77 +110,29 @@ int getColorReticleY(MachineState * ms);
 
 void mapxyToij(double xmin, double ymin, double mapStep, double x, double y, int * i, int * j);
 void mapijToxy(double xmin, double ymin, double mapStep, int i, int j, double * x, double * y); 
-void voidMapRegion(MachineState * ms, double xc, double yc);
-void clearMapForPatrol(MachineState * ms);
-void initializeMap(MachineState * ms);
-void randomizeNanos(MachineState * ms, ros::Time * time);
-int blueBoxForPixel(int px, int py);
-int skirtedBlueBoxForPixel(MachineState * ms, int px, int py, int skirtPixels);
-bool cellIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double xmin, double ymin, double mapStep, int i, int j);
-bool positionIsSearched(double fenceXMin, double fenceXMax, double fenceYMin, double fenceYMax, double x, double y);
-void markMapAsCompleted(MachineState * ms);
-
-
-gsl_matrix * boxMemoryToPolygon(BoxMemory b);
-vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx);
-vector<BoxMemory> memoriesForClass(MachineState * ms, int classIdx, int * memoryIdxOfFirst);
-int getBoxMemoryOfLabel(MachineState * ms, string label, int * idxOfLabel, BoxMemory * out);
-int placementPoseLabel1AboveLabel2By3dFirst(MachineState * ms, string label1, string label2, double zAbove, eePose * out);
-int placementPoseLabel1AboveLabel2By(MachineState * ms, string label1, string label2, double zAbove, eePose * out);
-int placementPoseHeldAboveLabel2By(MachineState * ms, string label2, double zAbove, eePose * out);
-int placementPoseLabel1BetweenLabel2AndLabel3(MachineState * ms, string label1, 
-  string label2, string label3, eePose * out);
-void recordBlueBoxInHistogram(MachineState * ms, int idx);
-void computeClassificationDistributionFromHistogram(MachineState * ms);
-
-// XXX TODO searched and mapped are redundant. just need one to talk about the fence.
-bool cellIsMapped(int i, int j);
-bool positionIsMapped(MachineState * ms, double x, double y);
-bool boxMemoryIntersectPolygons(BoxMemory b1, BoxMemory b2);
-bool boxMemoryIntersectCentroid(BoxMemory b1, BoxMemory b2);
-bool boxMemoryContains(BoxMemory b, double x, double y);
-bool boxMemoryIntersectsMapCell(MachineState * ms, BoxMemory b, int map_i, int map_j);
-const ros::Duration mapMemoryTimeout(10);
-
-// XXX TODO these just check the corners, they should check all the interior points instead
-bool isBoxMemoryIkPossible(MachineState * ms, BoxMemory b);
-bool isBlueBoxIkPossible(MachineState * ms, cv::Point tbTop, cv::Point tbBot);
-
-bool isCellInPursuitZone(MachineState * ms, int i, int j);
-bool isCellInPatrolZone(MachineState * ms, int i, int j);
-
-bool isCellInteresting(MachineState * ms, int i, int j);
-void markCellAsInteresting(MachineState * ms, int i, int j);
-void markCellAsNotInteresting(MachineState * ms, int i, int j);
-
-bool isCellIkColliding(MachineState * ms, int i, int j);
-bool isCellIkPossible(MachineState * ms, int i, int j);
-bool isCellIkImpossible(MachineState * ms, int i, int j);
 
 
 //
 // start pilot prototypes 
 ////////////////////////////////////////////////
-int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose, ros::Time * time, bool debug=false);
-int getRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
+int getMostRecentRingImageAndPose(MachineState * ms, Mat * image, eePose * pose, rclcpp::Time * time, bool debug=false);
+int getRingPoseAtTime(MachineState * ms, rclcpp::Time t, geometry_msgs::msg::Pose &value, int drawSlack = 0, bool debug=false);
 
 
 extern "C" {
 double cephes_incbet(double a, double b, double x) ;
 }
-void setRingImageAtTime(MachineState * ms, ros::Time t, Mat& imToSet);
-void setRingRangeAtTime(MachineState * ms, ros::Time t, double rgToSet);
-void setRingPoseAtTime(MachineState * ms, ros::Time t, geometry_msgs::Pose epToSet);
+void setRingImageAtTime(MachineState * ms, rclcpp::Time t, Mat& imToSet);
+void setRingRangeAtTime(MachineState * ms, rclcpp::Time t, double rgToSet);
+void setRingPoseAtTime(MachineState * ms, rclcpp::Time t, geometry_msgs::msg::Pose epToSet);
 void rgRingBufferAdvance(MachineState * ms);
 void epRingBufferAdvance(MachineState * ms);
-void allRingBuffersAdvance(MachineState * ms, ros::Time t);
+void allRingBuffersAdvance(MachineState * ms, rclcpp::Time t);
 
 void recordReadyRangeReadings(MachineState * ms);
-int classIdxForName(MachineState * ms, string name);
 
-void initClassFolders(MachineState * ms, string folderName);
-void writeClassToFolder(MachineState * ms, int idx, string folderName);
-void writeClassGraspsToFolder(MachineState * ms, int idx, string folderName);
+
+
 void writeThumbnail(MachineState * ms, int idx, string servoCrop_file_path);
 void write3dGrasps(MachineState * ms, int idx, string this_grasp_path);
 void writeSceneModel(MachineState * ms, int idx, string this_grasp_path);
@@ -199,26 +148,13 @@ bool streamJointsComparator(streamJoints i, streamJoints j);
 bool streamWordComparator(streamWord i, streamWord j);
 bool streamLabelComparator(streamLabel i, streamLabel j);
 
-void activateSensorStreaming(MachineState * ms);
-void deactivateSensorStreaming(MachineState * ms);
 
-int didSensorStreamTimeout(MachineState * ms);
-
-void populateStreamPoseBuffer(MachineState * ms);
 void populateStreamRangeBuffer(MachineState * ms);
 void populateStreamWordBuffer(MachineState * ms);
 void populateStreamLabelBuffer(MachineState * ms);
 
-void streamImageAsClass(MachineState * ms, Mat im, int classToStreamIdx, double now);
-void streamRangeAsClass(MachineState * ms, double range, int classToStreamIdx, double now);
-void streamPoseAsClass(MachineState * ms, eePose poseIn, int classToStreamIdx, double now);
-void streamWordAsClass(MachineState * ms, string wordIn, string commandIn, int classToStreamIdx, double now);
-void streamLabelAsClass(MachineState * ms, string labelIn, int classToStreamIdx, double now);
+void changeCamera(MachineState * ms, int newCamera);
 
-void writeRangeBatchAsClass(MachineState * ms, int classToStreamIdx);
-void writePoseBatchAsClass(MachineState * ms, int classToStreamIdx);
-void writeWordBatchAsClass(MachineState * ms, int classToStreamIdx);
-void writeLabelBatchAsClass(MachineState * ms, int classToStreamIdx);
 
 int loadStreamImage(MachineState * ms, streamImage * tsi);
 void checkAndStreamWord(MachineState * ms, string wordIn, string commandIn);
@@ -228,10 +164,6 @@ void readSideAndSerialFromFileStorage(MachineState * ms, FileStorage fsvI, strin
 string appendSideAndSerial(MachineState * ms, string root);
 
 void populateStreamJointsBuffer(MachineState * ms);
-void streamJointsAsClass(MachineState * ms, int classToStreamIdx, double now);
-void writeJointsBatchAsClass(MachineState * ms, int classToStreamIdx);
-
-
 
 bool isInGripperMask(MachineState * ms, int x, int y);
 bool isInGripperMaskBlocks(MachineState * ms, int x, int y);
@@ -244,7 +176,7 @@ void resetAccumulatedImageAndMass(MachineState * ms);
 
 cv::Vec3b getCRColor(MachineState * ms);
 cv::Vec3b getCRColor(MachineState * ms, Mat im);
-Quaternionf extractQuatFromPose(geometry_msgs::Pose poseIn);
+Quaternionf extractQuatFromPose(geometry_msgs::msg::Pose poseIn);
 
 
 
@@ -259,27 +191,9 @@ void endEffectorAngularUpdateOuter(eePose *givenEEPose, eePose *deltaEEPose);
 
 
 
-void renderRangeogramView(MachineState * ms);
-void renderObjectMapView(MachineState * leftArm, MachineState * rightArm);
-void renderObjectMapViewOneArm(MachineState * ms);
-void objectMapCallbackFunc(int event, int x, int y, int flags, void* userdata);
-void doObjectMapCallbackFunc(int event, int x, int y, int flags, MachineState * ms);
-
-
-void drawMapPolygon(Mat mapImage, double mapXMin, double mapXMax, double mapYMin, double mapYMax, gsl_matrix * poly, cv::Scalar color);
-gsl_matrix * mapCellToPolygon(MachineState * ms, int map_i, int map_j) ;
-
 
 int doCalibrateGripper(MachineState * ms);
 int calibrateGripper(MachineState * ms);
-int shouldIPick(MachineState * ms, int classToPick);
-
-void changeTargetClass(MachineState * ms, int);
-void changeCamera(MachineState * ms, int);
-
-void guard3dGrasps(MachineState * ms);
-void guardSceneModels(MachineState * ms);
-void drawMapRegisters(MachineState * ms);
 
 
 double convertHeightIdxToGlobalZ(MachineState * ms, int);
@@ -323,10 +237,6 @@ void paintEEPoseOnWrist(MachineState * ms, eePose toPaint, cv::Scalar theColor);
 double vectorArcTan(MachineState * ms, double y, double x);
 void initVectorArcTan(MachineState * ms);
 
-void mapBlueBox(MachineState * ms, cv::Point tbTop, cv::Point tbBot, int detectedClass, ros::Time timeToMark);
-void mapBox(MachineState * ms, BoxMemory boxMemory);
-
-
 void globalToMapBackground(MachineState * ms, double gX, double gY, double zToUse, int * mapGpPx, int * mapGpPy);
 
 
@@ -353,22 +263,11 @@ bool isFiniteNumber(double x);
 void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descriptors, Mat& descriptors2);
 void processImage(Mat &image, Mat& gray_image, Mat& yCrCb_image, double sigma);
 
-void bowGetFeatures(MachineState * ms, std::string classDir, const char *className, double sigma, int keypointPeriod, int * grandTotalDescriptors, DescriptorExtractor * extractor, BOWKMeansTrainer * bowTrainer);
-void kNNGetFeatures(MachineState * ms, std::string classDir, const char *className, int label, double sigma, Mat &kNNfeatures, Mat &kNNlabels, double sobel_sigma);
-void posekNNGetFeatures(MachineState * ms, std::string classDir, const char *className, double sigma, Mat &kNNfeatures, Mat &kNNlabels,
-                        vector< cv::Vec<double,4> >& classQuaternions, int keypointPeriod, BOWImgDescriptorExtractor *bowExtractor, int lIndexStart = 0);
-
-
-void goFindBlueBoxes(MachineState * ms);
-void goClassifyBlueBoxes(MachineState * ms);
-void goFindRedBoxes();
 
 void loadROSParamsFromArgs(MachineState * ms);
 
 void irInit(MachineState * ms);
 void nodeInit(MachineState * ms);
-void detectorsInit(MachineState * ms);
-void initRedBoxes();
 
 void tryToLoadRangeMap(MachineState * ms, std::string classDir, const char *className, int i);
 void clearAllRangeMaps(MachineState * ms);
@@ -377,24 +276,13 @@ void processSaliency(Mat in, Mat out);
 
 void initializeViewers(MachineState * ms);
 
-int findClosestBlueBoxMemory(MachineState * ms, eePose targetPose, int classToSearch = -1);
-void fillRecognizedObjectArrayFromBlueBoxMemory(MachineState * ms, object_recognition_msgs::RecognizedObjectArray * roa);
-void promoteBlueBoxes(MachineState * ms);
-void fillEinStateMsg(MachineState * ms, EinState * stateOut);
-void targetBoxMemory(MachineState * ms, int idx);
 
-bool isFocusedClassValid(MachineState * ms);
-void initializeAndFocusOnTempClass(MachineState * ms);
-void initializeAndFocusOnNewClass(MachineState * ms);
+void fillEinStateMsg(MachineState * ms, ein::msg::EinState * stateOut);
 
 
-double computeSimilarity(MachineState * ms, int class1, int class2);
-double computeSimilarity(MachineState * ms, Mat im1, Mat im2);
 
 void prepareForCrossCorrelation(MachineState * ms, Mat input, Mat& output, int thisOrient, int numOrientations, double thisScale, Size toBecome);
 void normalizeForCrossCorrelation(MachineState * ms, Mat input, Mat& output);
-void pilotCallbackFunc(int event, int x, int y, int flags, void* userdata);
-void mapCallbackFunc(int event, int x, int y, int flags, void* userdata);
 
 void loadConfig(MachineState * ms, string filename);
 void saveConfig(MachineState * ms, string outFileName);

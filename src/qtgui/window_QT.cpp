@@ -98,7 +98,7 @@ DefaultEinViewPort::DefaultEinViewPort(QWidget* arg, int keep_ratio) : QGraphics
     //no border
     setStyleSheet( "QGraphicsView { border-style: none; }" );
 
-    image2Draw_mat = cvCreateMat(viewport()->height(), viewport()->width(), CV_8UC3);
+    image2Draw_mat->create(viewport()->height(), viewport()->width(), CV_8UC3);
     cvZero(image2Draw_mat);
 
     nbChannelOriginImage = 0;
@@ -111,7 +111,7 @@ DefaultEinViewPort::DefaultEinViewPort(QWidget* arg, int keep_ratio) : QGraphics
 DefaultEinViewPort::~DefaultEinViewPort()
 {
     if (image2Draw_mat)
-        cvReleaseMat(&image2Draw_mat);
+      image2Draw_mat->release();
 }
 
 
@@ -161,21 +161,22 @@ void DefaultEinViewPort::readSettings(QSettings& settings)
 
 void DefaultEinViewPort::updateImage(const Mat arr)
 {
-  CvMat cvimg = arr;
+  Mat cvimg = arr;
   CV_Assert(&cvimg);
 
-  CvMat* mat = & cvimg;
+  Mat* mat = & cvimg;
   
   
   if (!image2Draw_mat || !CV_ARE_SIZES_EQ(image2Draw_mat, mat))
     {
       if (image2Draw_mat) {
-        cvReleaseMat(&image2Draw_mat);
+        image2Draw_mat->release();
       }
       
       //the image in ipl (to do a deep copy with cvCvtColor)
-      image2Draw_mat = cvCreateMat(mat->rows, mat->cols, CV_8UC3);
-      image2Draw_qt = QImage(image2Draw_mat->data.ptr, image2Draw_mat->cols, image2Draw_mat->rows, image2Draw_mat->step, QImage::Format_RGB888);
+      //image2Draw_mat = cvCreateMat(mat->rows, mat->cols, CV_8UC3);
+      image2Draw_mat->create(mat->rows, mat->cols, CV_8UC3);
+      image2Draw_qt = QImage(image2Draw_mat->data, image2Draw_mat->cols, image2Draw_mat->rows, image2Draw_mat->step, QImage::Format_RGB888);
       setMaximumSize(image2Draw_qt.width(), image2Draw_qt.height());
       setMinimumSize(image2Draw_qt.width(), image2Draw_qt.height());
       
@@ -187,7 +188,8 @@ void DefaultEinViewPort::updateImage(const Mat arr)
   
   nbChannelOriginImage = cvGetElemType(mat);
   
-  cvConvertImage(mat, image2Draw_mat, CV_CVTIMG_SWAP_RB);
+  cv::cvtColor(*mat, *image2Draw_mat, CV_BGR2RGB);
+    //cvConvertImage(mat, image2Draw_mat, CV_CVTIMG_SWAP_RB);
   
   viewport()->update();
 }
@@ -356,7 +358,7 @@ void DefaultEinViewPort::resizeEvent(QResizeEvent* evnt)
 
 void DefaultEinViewPort::wheelEvent(QWheelEvent* evnt)
 {
-    scaleView(evnt->delta() / 240.0, evnt->pos());
+  scaleView(evnt->angleDelta().y() / 240.0, evnt->position());
     viewport()->update();
 }
 
@@ -459,9 +461,9 @@ void DefaultEinViewPort::stopDisplayInfo()
 }
 
 
-inline bool DefaultEinViewPort::isSameSize(IplImage* img1, IplImage* img2)
+inline bool DefaultEinViewPort::isSameSize(cv::Mat* img1, cv::Mat* img2)
 {
-    return img1->width == img2->width && img1->height == img2->height;
+    return img1->size[0] == img2->size[0] && img1->size[1] == img2->size[1];
 }
 
 
@@ -565,7 +567,7 @@ void DefaultEinViewPort::icvmouseHandler(QMouseEvent *evnt, type_mouse_event cat
     flags |= EIN_EVENT_FLAG_LBUTTON;
   if(buttons & Qt::RightButton)
     flags |= EIN_EVENT_FLAG_RBUTTON;
-  if(buttons & Qt::MidButton)
+  if(buttons & Qt::MiddleButton)
     flags |= EIN_EVENT_FLAG_MBUTTON;
 
   cv_event = EIN_EVENT_MOUSEMOVE;
@@ -579,7 +581,7 @@ void DefaultEinViewPort::icvmouseHandler(QMouseEvent *evnt, type_mouse_event cat
       cv_event = tableMouseButtons[category][1];
       flags |= EIN_EVENT_FLAG_RBUTTON;
       break;
-    case Qt::MidButton:
+    case Qt::MiddleButton:
       cv_event = tableMouseButtons[category][2];
       flags |= EIN_EVENT_FLAG_MBUTTON;
       break;
@@ -615,7 +617,7 @@ QSize DefaultEinViewPort::sizeHint() const
 
 void DefaultEinViewPort::draw2D(QPainter *painter)
 {
-    image2Draw_qt = QImage(image2Draw_mat->data.ptr, image2Draw_mat->cols, image2Draw_mat->rows,image2Draw_mat->step,QImage::Format_RGB888);
+    image2Draw_qt = QImage(image2Draw_mat->data, image2Draw_mat->cols, image2Draw_mat->rows,image2Draw_mat->step,QImage::Format_RGB888);
     painter->drawImage(QRect(0,0,viewport()->width(),viewport()->height()), image2Draw_qt, QRect(0,0, image2Draw_qt.width(), image2Draw_qt.height()) );
 }
 
@@ -941,7 +943,7 @@ void OpenGlEinViewPort::icvmouseHandler(QMouseEvent* evnt, type_mouse_event cate
     flags |= EIN_EVENT_FLAG_LBUTTON;
   if (buttons & Qt::RightButton)
     flags |= EIN_EVENT_FLAG_RBUTTON;
-  if (buttons & Qt::MidButton)
+  if (buttons & Qt::MiddleButton)
     flags |= EIN_EVENT_FLAG_MBUTTON;
 
   cv_event = EIN_EVENT_MOUSEMOVE;
@@ -956,7 +958,7 @@ void OpenGlEinViewPort::icvmouseHandler(QMouseEvent* evnt, type_mouse_event cate
       flags |= EIN_EVENT_FLAG_RBUTTON;
       break;
 
-    case Qt::MidButton:
+    case Qt::MiddleButton:
       cv_event = tableMouseButtons[category][2];
       flags |= EIN_EVENT_FLAG_MBUTTON;
       break;

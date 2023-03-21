@@ -1,6 +1,14 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.22)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(ein)
+
+
+
+
+
 
 
 #SET (CMAKE_CXX_COMPILER             "/home/stefie10/dev/pidrone/src/ein/timecpp.sh")
@@ -12,64 +20,61 @@ project(ein)
 #SET (CMAKE_OBJDUMP "/usr/bin/llvm-objdump-5.0")
 #SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib-5.0")
 
+find_package(Boost REQUIRED COMPONENTS filesystem regex)
+
+find_package(rosidl_default_generators REQUIRED)
+
+find_package(ament_cmake REQUIRED)
+
+
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/ein/cmake") 
 MESSAGE(CMAKE_MODULE_PATH)
 MESSAGE(${CMAKE_MODULE_PATH})
 
+find_package(eigen3_cmake_module REQUIRED)
+find_package(Eigen3)
 
-find_package(OpenCV 2)
+find_package(OpenCV)
 
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  roscpp
-  rospy
-  std_msgs
-  object_recognition_msgs
-  geometry_msgs
-  visualization_msgs
-  tf_conversions
-  genmsg
-  cv_bridge
-  image_transport
-  message_generation
-  control_msgs
-)
-
-
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(object_recognition_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 
 find_package(LAPACK REQUIRED)
 find_package(GSL REQUIRED)
 find_package(ZLIB REQUIRED)
 
+set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL)
 find_package(GLUT)
 find_package(GLEW)
 find_package(OpenCL)
+find_package(tf2)
+find_package(tf2_ros)
 
 
 
 
 
 
-add_message_files(
-  FILES
-  EinState.msg
-  EinConsole.msg
-)
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  object_recognition_msgs
-)
+rosidl_generate_interfaces(einmsgs
+  "msg/EinState.msg"
+  "msg/EinConsole.msg"
+  LIBRARY_NAME ${PROJECT_NAME}
+  DEPENDENCIES object_recognition_msgs geometry_msgs
+  )
 
-catkin_package(CATKIN_DEPENDS 
-  eigen
-  message_runtime
-  std_msgs
-  object_recognition_msgs
-)
+rosidl_get_typesupport_target(cpp_typesupport_target einmsgs "rosidl_typesupport_cpp")
+ament_export_dependencies(rosidl_default_runtime)
+
+
 
 
 
@@ -78,12 +83,12 @@ catkin_package(CATKIN_DEPENDS
 
 
 include_directories(include
-	${catkin_INCLUDE_DIRS}
+	${ament_INCLUDE_DIRS}
 	${EIGEN_INCLUDE_DIRS}
 )
 
 set(OPENMP_FLAG "-fopenmp")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissive -Wno-deprecated-register -Wno-parentheses")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -g -std=c++11 -fpermissive")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG} -O3 -std=c++11 -fpermissive")
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -115,15 +120,19 @@ add_library (EinQtLib SHARED
     ${EinQtLib_src}
     ${EinQtLib_hdr_moc}
     ${EinQtLib_ui_moc}
-)
-add_dependencies(EinQtLib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
+    )
+
+qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
+  
+ament_target_dependencies(EinQtLib OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport)
+target_link_libraries(EinQtLib ${cpp_typesupport_target})
 
 
 
-add_executable(ein src/ein.cpp src/ein_words.cpp src/config.cpp
-src/ein_render.cpp src/ein_movement.cpp src/ein_servo.cpp src/ein_vision_cycle.cpp src/ein_scanning.cpp src/ein_misc.cpp src/ein_pick_place.cpp 
+add_executable(einx src/ein.cpp src/ein_words.cpp src/config.cpp
+src/ein_render.cpp src/ein_movement.cpp src/ein_vision_cycle.cpp  src/ein_misc.cpp 
 src/ein_stream.cpp src/camera.cpp  
-src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/faces.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
+src/word.cpp src/gaussian_map.cpp src/gaussian_map_words.cpp src/eePose.cpp src/eigen_util.cpp  src/ein_util.cpp 
 src/opencl/ein_opencl.cpp 
 src/slu/math2d.cpp src/slu/gsl_utilities.cpp   src/base64.cpp src/compress.cpp
 src/distributions.c src/randomkit.c src/cephes/airy.c    src/cephes/fdtr.c    src/cephes/kn.c          src/cephes/scipy_iv.c
@@ -146,177 +155,32 @@ src/cephes/exp2.c    src/cephes/k0.c      src/cephes/rgamma.c      src/cephes/ze
 src/cephes/expn.c    src/cephes/k1.c      src/cephes/round.c
 )
 
-target_link_libraries(ein
+target_link_libraries(einx
 	${catkin_LIBRARIES}
 	${OpenCV_LIBS}
         ${GSL_LIBRARIES}
         ${LAPACK_LIBRARIES}
 	${ZLIB_LIBRARIES}
         EinQtLib
+	${cpp_typesupport_target}
 )
-add_dependencies(ein ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ein_generate_messages_cpp)
+ament_target_dependencies(einx rclcpp std_msgs sensor_msgs cv_bridge image_transport OpenCV object_recognition_msgs visualization_msgs geometry_msgs tf2 tf2_ros Eigen3)
+ament_export_dependencies(eigen3_cmake_module)
+ament_export_dependencies(Eigen3)
 
 
-qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
-if (OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND AND OpenCL_FOUND)
 
-MESSAGE("Building openCL with hardware acceleration.")
-include_directories (${PROJECT_SOURCE_DIR}/src/opencl/oclNbody/inc/)
-add_definitions(-DUSE_OPENCL)
-add_library(EinOpenCLLib SHARED
-src/opencl/oclNbody/src/cmd_arg_reader.cpp
-src/opencl/oclNbody/src/oclBodySystemCpu.cpp
-src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
-src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
-src/opencl/oclNbody/src/oclNbody.cpp
-src/opencl/oclNbody/src/oclNbodyGold.cpp
-src/opencl/oclNbody/src/oclRenderParticles.cpp
-src/opencl/oclNbody/src/oclUtils.cpp
-src/opencl/oclNbody/src/param.cpp
-src/opencl/oclNbody/src/paramgl.cpp
-src/opencl/oclNbody/src/shrUtils.cpp)
+#qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 
+install(TARGETS einx DESTINATION lib/${PROJECT_NAME})
 
-target_link_libraries(EinOpenCLLib
-        ${OPENGL_LIBRARIES}
-        ${GLEW_LIBRARIES}
-        ${GLUT_LIBRARIES}
-        ${OpenCL_LIBRARY}
-        EinQtLib
+add_definitions(-DUSE_ROBOT_SPOT)
+#add_definitions(-DBOOST_NO_CXX11_SCOPED_ENUMS)
+add_library(EinSpot SHARED
+src/spot/ein_spot.cpp 
 )
+ament_target_dependencies(EinSpot OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport)
+target_link_libraries(einx EinSpot Boost::filesystem Boost::regex)
+target_link_libraries(EinSpot ${cpp_typesupport_target})
 
-
-
-
-add_executable(nbody
-src/opencl/oclNbody/src/cmd_arg_reader.cpp
-src/opencl/oclNbody/src/oclBodySystemCpu.cpp
-src/opencl/oclNbody/src/oclBodySystemOpencl.cpp
-src/opencl/oclNbody/src/oclBodySystemOpenclLaunch.cpp
-src/opencl/oclNbody/src/oclNbody.cpp
-src/opencl/oclNbody/src/oclNbodyMain.cpp
-src/opencl/oclNbody/src/oclNbodyGold.cpp
-src/opencl/oclNbody/src/oclRenderParticles.cpp
-src/opencl/oclNbody/src/oclUtils.cpp
-src/opencl/oclNbody/src/param.cpp
-src/opencl/oclNbody/src/paramgl.cpp
-src/opencl/oclNbody/src/shrUtils.cpp)
-
-target_link_libraries(nbody
-        ${OPENGL_LIBRARIES}
-        ${GLEW_LIBRARIES}
-        ${GLUT_LIBRARIES}
-        ${OpenCL_LIBRARY}
-)
-target_link_libraries(ein EinOpenCLLib)
-
-else()
-MESSAGE("Not building openCL with hardware accelleration.")
-endif()
-
-find_package(catkin COMPONENTS baxter_core_msgs)
-
-find_package(catkin COMPONENTS pidrone_pkg)
-
-find_package(catkin COMPONENTS kinova_msgs)
-
-find_package(catkin COMPONENTS movo_msgs)
-
-find_package(catkin COMPONENTS iiwa_msgs)
-
-
-# you must pick one robot. 
-
-if (baxter_core_msgs_FOUND)
-MESSAGE("Building Baxter.")
-add_definitions(-DUSE_ROBOT_BAXTER)
-find_package(catkin REQUIRED COMPONENTS kdl_parser kdl_conversions)
-
-string(REPLACE "." "_" happy_version ${baxter_core_msgs_VERSION}     )
-add_definitions(-DRETHINK_SDK_${happy_version})
-add_library(EinBaxter SHARED
-src/baxter/ein_baxter.cpp 
-src/baxter/ein_face_animation.cpp 
-src/baxter/ikfast/ikfast_wrapper_left.cpp 
-src/baxter/ikfast/ikfast_wrapper_right.cpp 
-src/baxter/ein_ik.cpp 
-)
-target_link_libraries(EinBaxter
-	${catkin_LIBRARIES}
-	${OpenCV_LIBS}
-        ${LAPACK_LIBRARIES}
-)
-
-
-target_link_libraries(ein EinBaxter)
-
-elseif (pidrone_pkg_FOUND)
-
-MESSAGE("Building Pidrone")
-add_definitions(-DUSE_ROBOT_PIDRONE)
-add_library(EinPidrone SHARED
-src/pidrone/ein_pidrone.cpp 
-)
-target_link_libraries(ein EinPidrone)
-elseif (movo_msgs_FOUND)
-MESSAGE("Building movo")
-
-find_package(catkin REQUIRED COMPONENTS
-    moveit_core
-    moveit_ros_planning
-    moveit_ros_planning_interface
-)
-add_definitions(-DUSE_ROBOT_MOVO)
-add_library(EinMovo SHARED
-src/movo/ein_movo.cpp
-)
-target_link_libraries(ein EinMovo
-${catkin_LIBRARIES}
-)
-add_dependencies(EinMovo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-elseif (kinova_msgs_FOUND)
-MESSAGE("Building jaco")
-add_definitions(-DUSE_ROBOT_JACO)
-add_library(EinJaco SHARED
-src/jaco/ein_jaco.cpp 
-)
-target_link_libraries(ein EinJaco)
-
-elseif (iiwa_msgs_FOUND)
-MESSAGE("Building Kuka")
-
-find_package(catkin REQUIRED COMPONENTS
-    moveit_core
-    moveit_ros_planning
-    moveit_ros_planning_interface
-)
-add_definitions(-DUSE_ROBOT_KUKA)
-add_library(EinKuka SHARED
-src/kuka/ein_kuka.cpp 
-)
-target_link_libraries(ein EinKuka
-${catkin_LIBRARIES}
-)
-
-else()
-MESSAGE("Building Aibo")
-add_definitions(-DUSE_ROBOT_AIBO)
-
-add_library(EinAibo SHARED
-  src/aibo/ein_aibo.cpp
-  src/aibo/ein_aibo_reactive.cpp 
-)
-add_dependencies(EinAibo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
-
-target_link_libraries(EinAibo
-	${catkin_LIBRARIES}
-	${OpenCV_LIBS}
-        )
-
-target_link_libraries(ein EinAibo)
-
-endif()
-
+ament_package()

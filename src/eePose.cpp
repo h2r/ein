@@ -8,8 +8,8 @@ using namespace std;
 
 ostream & operator<<(ostream & os, const _eePose& toPrint)
 {
-  FileStorage st;
-  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  cv::FileStorage st;
+  st.open("tmp.yml", cv::FileStorage::WRITE | cv::FileStorage::MEMORY);
   st << "eePose"; 
   toPrint.writeToFileStorage(st);
   string result = st.releaseAndGetString();
@@ -50,7 +50,7 @@ _eePose _eePose::identity() {
 }
 
 
-_eePose _eePose::fromGeometryMsgPose(geometry_msgs::Pose pose) {
+_eePose _eePose::fromGeometryMsgPose(geometry_msgs::msg::Pose pose) {
   _eePose out;
   out.px = pose.position.x;
   out.py = pose.position.y;
@@ -110,7 +110,7 @@ double _eePose::dotP(eePose pose1, eePose pose2) {
   return dot;
 }
 
-eePose _eePose::fromRectCentroid(Rect rect) {
+eePose _eePose::fromRectCentroid(cv::Rect rect) {
   eePose result;
   result.px = rect.x + rect.width * 0.5;
   result.py = rect.y + rect.width * 0.5;
@@ -357,7 +357,7 @@ _eePose _eePose::applyRPYTo(double roll_z, double pitch_y, double yaw_x) const {
   return toreturn;
 }
 
-void _eePose::writeToFileStorage(FileStorage& fsvO) const {
+void _eePose::writeToFileStorage(cv::FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "px" << px;
   fsvO << "py" << py;
@@ -369,12 +369,12 @@ void _eePose::writeToFileStorage(FileStorage& fsvO) const {
   fsvO << "}";
 }
 
-void _eePose::readFromFileNodeIterator(FileNodeIterator& it) {
-  FileNode node = *it;
+void _eePose::readFromFileNodeIterator(cv::FileNodeIterator& it) {
+  cv::FileNode node = *it;
   readFromFileNode(node);
 }
 
-void _eePose::readFromFileNode(FileNode& it) {
+void _eePose::readFromFileNode(cv::FileNode& it) {
   px = (double)(it)["px"];
   py = (double)(it)["py"];
   pz = (double)(it)["pz"];
@@ -471,8 +471,8 @@ bool _armPose::equals(_armPose pose)
 
 ostream & operator<<(ostream & os, const _armPose& toPrint)
 {
-  FileStorage st;
-  st.open("tmp.yml", FileStorage::WRITE | FileStorage::MEMORY);
+  cv::FileStorage st;
+  st.open("tmp.yml", cv::FileStorage::WRITE | cv::FileStorage::MEMORY);
   st << "armPose"; 
   toPrint.writeToFileStorage(st);
   string result = st.releaseAndGetString();
@@ -480,7 +480,7 @@ ostream & operator<<(ostream & os, const _armPose& toPrint)
   return os;
 } 
 
-void _armPose::writeToFileStorage(FileStorage& fsvO) const {
+void _armPose::writeToFileStorage(cv::FileStorage& fsvO) const {
   fsvO << "{:";
   fsvO << "a0" << joints[0];
   fsvO << "a1" << joints[1];
@@ -494,8 +494,8 @@ void _armPose::writeToFileStorage(FileStorage& fsvO) const {
 
 
 
-geometry_msgs::Pose eePoseToRosPose(eePose p) {
-  geometry_msgs::Pose result;
+geometry_msgs::msg::Pose eePoseToRosPose(eePose p) {
+  geometry_msgs::msg::Pose result;
   result.position.x = p.px;
   result.position.y = p.py;
   result.position.z = p.pz;
@@ -506,7 +506,7 @@ geometry_msgs::Pose eePoseToRosPose(eePose p) {
   return result;
 }
 
-eePose rosPoseToEEPose(geometry_msgs::Pose pose) {
+eePose rosPoseToEEPose(geometry_msgs::msg::Pose pose) {
   eePose result;
   result.px = pose.position.x;
   result.py = pose.position.y;

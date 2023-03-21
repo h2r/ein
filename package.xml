@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<package>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>ein</name>
   <version>1.0.0</version>
   <description>The Brown H2R robot virtual machine package.</description>
@@ -32,48 +33,30 @@
   <!-- Dependencies can be catkin packages or system dependencies -->
   <!-- Examples: -->
   <!-- Use build_depend for packages you need at compile time: -->
-  <build_depend>message_generation</build_depend>
-  <!-- build_depend bing /build_depend-->
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <!-- Use buildtool_depend for build tool packages: -->
-  <!--   <buildtool_depend>catkin</buildtool_depend> -->
-  <!-- Use run_depend for packages you need at runtime: -->
-  <run_depend>message_runtime</run_depend>
-  <!-- Use test_depend for packages you need only for testing: -->
-  <!--   <test_depend>gtest</test_depend> -->
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>message_generation</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>baxter_core_msgs</build_depend>
-  <build_depend>cmake_modules</build_depend>
-  <build_depend>pidrone_pkg</build_depend>
-  <build_depend>kinova_msgs</build_depend>
-  <build_depend>movo_msgs</build_depend>
-  <build_depend>moveit_core</build_depend>
-  <build_depend>moveit_ros_planning_interface</build_depend>
-  <build_depend>moveit_ros_perception</build_depend>
-  <build_depend>cv_bridge</build_depend>
-  <build_depend>object_recognition_msgs</build_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
-  <run_depend>roscpp</run_depend>
-  <run_depend>eigen</run_depend>
-  <run_depend>message_runtime</run_depend>
-  <run_depend>rospy</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>object_recognition_msgs</run_depend>
+  <build_depend>rosidl_default_generators</build_depend>
 
+  <exec_depend>rosidl_default_runtime</exec_depend>
 
-  <run_depend>moveit_ros_planning_interface</run_depend>
-  <run_depend>moveit_core</run_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
-  <!-- The export tag contains other, unspecified, tags -->
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>OpenCV</depend>
+  <depend>object_recognition_msgs</depend>
+
+  <depend>eigen</depend>
+  
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
   <export>
-    <!-- You can specify that this package is a metapackage here: -->
-    <!-- <metapackage/> -->
-
-    <!-- Other tools can request additional information be placed here -->
-
+    <build_type>ament_cmake</build_type>
   </export>
+
 </package>

@@ -2,14 +2,14 @@
 #define _EEPOSEH_
 
 
-#include <geometry_msgs/Pose.h>
-#include <cv.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <opencv2/opencv.hpp> 
 
 #include <iostream>
 #include <fstream>
 using namespace std;
 
-using namespace cv;
+
 
 
 
@@ -47,10 +47,10 @@ typedef struct _eePose{
 
   _eePose applyRPYTo(double roll, double pitch, double yaw) const;
 
-  void writeToFileStorage(FileStorage& fsvO) const;
+  void writeToFileStorage(cv::FileStorage& fsvO) const;
 
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
 
   bool equals(_eePose pose);
 
@@ -65,10 +65,10 @@ typedef struct _eePose{
   void getRollPitchYaw(double * roll, double * pitch, double * yaw);
   double qmagnitude();
 
-  static _eePose fromRectCentroid(Rect rect);
+  static _eePose fromRectCentroid(cv::Rect rect);
   static _eePose zero();
   static _eePose identity();
-  static _eePose fromGeometryMsgPose(geometry_msgs::Pose);
+  static _eePose fromGeometryMsgPose(geometry_msgs::msg::Pose);
   
 
   friend ostream & operator<<(ostream &, const _eePose &);
@@ -91,7 +91,7 @@ typedef struct _armPose{
   _armPose(double a0, double a1, double a2, double a3, double a4, double a5, double a6);
   _armPose();
 
-  void writeToFileStorage(FileStorage& fsvO) const;
+  void writeToFileStorage(cv::FileStorage& fsvO) const;
 
   /*
 
@@ -137,11 +137,11 @@ typedef struct _armPose{
   static _armPose fromRectCentroid(Rect rect);
   static _armPose zero();
   static _armPose identity();
-  static _armPose fromGeometryMsgPose(geometry_msgs::Pose);
+  static _armPose fromGeometryMsgPose(geometry_msgs::msg::Pose);
   */
 } armPose;
 
-eePose rosPoseToEEPose(geometry_msgs::Pose pose);
-geometry_msgs::Pose eePoseToRosPose(eePose);
+eePose rosPoseToEEPose(geometry_msgs::msg::Pose pose);
+geometry_msgs::msg::Pose eePoseToRosPose(eePose);
 
 #endif /* _EEPOSEH_ */

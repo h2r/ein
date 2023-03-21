@@ -2,7 +2,6 @@
 #define EINWINDOW_H
 
 #include <QMainWindow>
-#include <cv.h>
 
 #include "window_QT.h"
 class MachineState;
@@ -22,8 +21,8 @@ class EinWindow : public QMainWindow
 public:
     explicit EinWindow(QWidget *parent, MachineState * _ms);
     ~EinWindow();
-    void showImage(CvMat mat);
-    Q_INVOKABLE void updateImage(const Mat image) ;
+  void showImage(cv::Mat mat);
+  Q_INVOKABLE void updateImage(const cv::Mat image) ;
     Mat myImage;
     void setMouseCallBack(EinMouseCallback m, void* param);
     void keyPressEvent(QKeyEvent *evnt);

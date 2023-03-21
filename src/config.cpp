@@ -56,10 +56,6 @@ string MachineState::currentState()
     //state << "synchronicTakeClosest: " << config.synchronicTakeClosest << endl;
     state << "ikMode: " << ikModeToString(config.currentIKMode) << endl;
     state << "zeroGMode: " << config.zero_g_toggle << endl;
-    state << "focusedClass: " << config.focusedClass;
-    if (config.focusedClass != -1 && config.classLabels.size() != 0) {
-      state << " " << config.classLabels[config.focusedClass];
-    }
     state << endl;
     
     //state << "targetClass: " << config.targetClass;

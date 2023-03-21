@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "config.h"
 
-#include <highgui.h>
+
 #include <QTest>
 #include <boost/algorithm/string.hpp>
 #include "qt_util.h"

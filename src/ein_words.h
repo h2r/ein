@@ -282,27 +282,6 @@ REGISTER_WORD(backName)
 
 
 
-#define REQUIRE_FOCUSED_CLASS(ms, tfc) \
-int tfc = ms->config.focusedClass;\
-if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
-} else {\
-  CONSOLE_ERROR(ms, this->name() << ": Invalid focused class, not grabbing..."); \
-  return;\
-}\
-
-#define REQUIRE_VALID_CLASS(ms, tfc) \
-if ( (tfc > -1) && (tfc < ms->config.classLabels.size()) ) {\
-} else {\
-  CONSOLE_ERROR(ms, "Invalid focused class, not grabbing..."); \
-  return;\
-}\
-
-#define REQUIRE_VALID_SCENE_OBJECT(ms, tfc) \
-if ( (tfc > -1) && (tfc < ms->config.scene->predicted_objects.size()) ) {\
-} else {\
-  CONSOLE_ERROR(ms, this->name() << ": Invalid scene object, class, not grabbing..."); \
-  return;\
-}\
 
 
 #define GET_WORD_ARG_VALUE_LIST(ms,type,x)\

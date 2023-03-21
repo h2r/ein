@@ -2,9 +2,8 @@
 #define _EIN_UTIL_H_
 
 #include <string>
-
-#include <cv.h>
-
+#include <rclcpp/rclcpp.hpp>
+#include <opencv2/opencv.hpp> 
 #include "word.h"
 
 #include "base64.h"
@@ -62,7 +61,7 @@ void pushGridSign(MachineState * ms, double speed);
 bool isSketchyMat(Mat sketchy);
 
 void initializeMachine(MachineState * ms);
-string formatTime(ros::Time time);
+string formatTime(rclcpp::Time time);
 bool copyDir(string src, string dest);
 
 string readBinaryFromYaml(FileNode & fn);

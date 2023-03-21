@@ -2,7 +2,7 @@
 #define DISCREPANCYWINDOW_H
 
 #include <QMainWindow>
-#include <cv.h>
+
 
 class MachineState;
 

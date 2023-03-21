@@ -56,10 +56,10 @@ virtual void execute(MachineState * ms) {
 
   ms->config.currentMovementState = MOVING;
   ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = rclcpp::Clock{}.now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
-  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
+  ms->config.waitUntilAtCurrentPositionStart = rclcpp::Clock{}.now();
   double dx = (ms->config.currentEEPose.px - ms->config.trueEEPoseEEPose.px);
   double dy = (ms->config.currentEEPose.py - ms->config.trueEEPoseEEPose.py);
   double dz = (ms->config.currentEEPose.pz - ms->config.trueEEPoseEEPose.pz);
@@ -95,10 +95,10 @@ virtual void execute(MachineState * ms) {
 
   ms->config.currentMovementState = MOVING;
   ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = rclcpp::Clock{}.now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
-  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
+  ms->config.waitUntilAtCurrentPositionStart = rclcpp::Clock{}.now();
 
   double distance, angleDistance;
   eePose::distanceXYZAndAngle(ms->config.currentEEPose, ms->config.trueEEPoseEEPose, &distance, &angleDistance);
@@ -129,7 +129,7 @@ virtual void execute(MachineState * ms) {
 
   ms->config.currentMovementState = MOVING;
   ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = rclcpp::Clock{}.now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
 
@@ -154,7 +154,7 @@ CONFIG_SETTER_ENUM(WaitSetCurrentWaitMode, ms->config.currentWaitMode, (waitMode
 WORD(WaitUntilAtCurrentPositionB)
 virtual void execute(MachineState * ms) {
   //if (ms->config.waitUntilAtCurrentPositionCounter < ms->config.waitUntilAtCurrentPositionCounterTimeout) 
-  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
+  if ( rclcpp::Clock{}.now().seconds() - ms->config.waitUntilAtCurrentPositionStart.seconds() < ms->config.waitUntilAtCurrentPositionTimeout )
   {
 
 
@@ -208,7 +208,7 @@ REGISTER_WORD(WaitUntilAtCurrentPositionB)
 WORD(WaitUntilGripperNotMoving)
 virtual void execute(MachineState * ms) {
   ms->config.waitUntilGripperNotMovingCounter = 0;
-  ms->config.lastGripperCallbackRequest = ros::Time::now();
+  ms->config.lastGripperCallbackRequest = rclcpp::Clock{}.now();
   ms->pushWord("waitUntilGripperNotMovingB"); 
   ms->config.endThisStackCollapse = 1;
 }
@@ -220,14 +220,14 @@ virtual void execute(MachineState * ms) {
   if (ms->config.lastGripperCallbackRequest >= ms->config.lastGripperCallbackReceived) {
     ms->pushWord("waitUntilGripperNotMovingB"); 
   } else {
-    ms->config.lastGripperCallbackRequest = ros::Time::now();
+    ms->config.lastGripperCallbackRequest = rclcpp::Clock{}.now();
     if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
       if (ms->config.gripperMoving) {
 	ms->config.waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingB"); 
       } else {
 	ms->pushWord("waitUntilGripperNotMovingC"); 
-	ms->config.waitUntilGripperNotMovingStamp = ros::Time::now();
+	ms->config.waitUntilGripperNotMovingStamp = rclcpp::Clock{}.now();
 	ms->config.waitUntilGripperNotMovingCounter = 0;
       }
     } else {
@@ -245,10 +245,10 @@ virtual void execute(MachineState * ms) {
   if (ms->config.lastGripperCallbackRequest >= ms->config.lastGripperCallbackReceived) {
     ms->pushWord("waitUntilGripperNotMovingC"); 
   } else {
-    ms->config.lastGripperCallbackRequest = ros::Time::now();
+    ms->config.lastGripperCallbackRequest = rclcpp::Clock{}.now();
     if (ms->config.waitUntilGripperNotMovingCounter < ms->config.waitUntilGripperNotMovingTimeout) {
-      ros::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - ms->config.waitUntilGripperNotMovingStamp;
-      if (deltaSinceUpdate.toSec() <= ms->config.gripperNotMovingConfirmTime) {
+      rclcpp::Duration deltaSinceUpdate = ms->config.gripperLastUpdated - ms->config.waitUntilGripperNotMovingStamp;
+      if (deltaSinceUpdate.seconds() <= ms->config.gripperNotMovingConfirmTime) {
 	ms->config.waitUntilGripperNotMovingCounter++;
 	ms->pushWord("waitUntilGripperNotMovingC"); 
       }
@@ -601,8 +601,8 @@ REGISTER_WORD(SetGripperThresh)
 WORD(CalibrateGripper)
 CODE('i') 
 virtual void execute(MachineState * ms) {
-  //baxter_core_msgs::EndEffectorCommand command;
-  //command.command = baxter_core_msgs::EndEffectorCommand::CMD_CALIBRATE;
+  //baxter_core_msgs::msg::EndEffectorCommand command;
+  //command.command = baxter_core_msgs::msg::EndEffectorCommand::CMD_CALIBRATE;
   //command.id = 65538;
   //ms->config.gripperPub.publish(command);
   calibrateGripper(ms);
@@ -886,555 +886,12 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(SetSpeed)
 
-WORD(Hover)
-virtual void execute(MachineState * ms) {
-  ms->config.lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->pushWord("hoverA");
-  ms->config.endThisStackCollapse = 1;
-  ms->config.shouldIDoIK = 1;
-  ms->config.lastHoverRequest = ros::Time::now();
-  ms->config.lastEndpointCallbackRequest = ms->config.lastHoverRequest;
-}
-END_WORD
-REGISTER_WORD(Hover)
-
-WORD(HoverA)
-virtual void execute(MachineState * ms) {
-  if (ms->config.lastEndpointCallbackRequest >= ms->config.lastEndpointCallbackReceived) {
-    ms->pushWord("hoverA");
-    cout << "hoverA waiting for endpointCallback." << endl;
-    ms->config.endThisStackCollapse = 1;
-  } else {
-    double dx = (ms->config.lastHoverTrueEEPoseEEPose.px - ms->config.trueEEPoseEEPose.px);
-    double dy = (ms->config.lastHoverTrueEEPoseEEPose.py - ms->config.trueEEPoseEEPose.py);
-    double dz = (ms->config.lastHoverTrueEEPoseEEPose.pz - ms->config.trueEEPoseEEPose.pz);
-    double distance = dx*dx + dy*dy + dz*dz;
-    
-    double qx = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qx) - fabs(ms->config.trueEEPoseEEPose.qx));
-    double qy = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qy) - fabs(ms->config.trueEEPoseEEPose.qy));
-    double qz = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qz) - fabs(ms->config.trueEEPoseEEPose.qz));
-    double qw = (fabs(ms->config.lastHoverTrueEEPoseEEPose.qw) - fabs(ms->config.trueEEPoseEEPose.qw));
-    double angleDistance = qx*qx + qy*qy + qz*qz + qw*qw;
-  
-    if ( ros::Time::now() - ms->config.lastHoverRequest < ros::Duration(ms->config.hoverTimeout) ) {
-      if ((distance > ms->config.hoverGoThresh*ms->config.hoverGoThresh) || (angleDistance > ms->config.hoverAngleThresh*ms->config.hoverAngleThresh)) {
-	ms->pushWord("hoverA"); 
-	ms->config.endThisStackCollapse = 1;
-	ms->config.shouldIDoIK = 1;
-	cout << "hoverA distance requirement not met, distance angleDistance: " << distance << " " << angleDistance << endl;
-	ms->config.lastHoverTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-      } else {
-	ms->config.endThisStackCollapse = ms->config.endCollapse;
-      }
-    } else {
-      cout << "Warning: hover timed out, moving on." << endl;
-      ms->config.endThisStackCollapse = ms->config.endCollapse;
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(HoverA)
-
-WORD(SpawnTargetClassAtEndEffector)
-CODE(65379) // insert
-virtual void execute(MachineState * ms) {
-  cout << "SpawnTargetClassAtEndEffector called." << endl;
-  if (ms->config.targetClass < 0) {
-    cout << "Not spawning because targetClass is " << ms->config.targetClass << endl;
-    return;
-  }
-
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-    BoxMemory box;
-    box.bTop.x = camera->vanishingPointReticle.px-ms->config.simulatedObjectHalfWidthPixels;
-    box.bTop.y = camera->vanishingPointReticle.py-ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.x = camera->vanishingPointReticle.px+ms->config.simulatedObjectHalfWidthPixels;
-    box.bBot.y = camera->vanishingPointReticle.py+ms->config.simulatedObjectHalfWidthPixels;
-    box.cameraPose = ms->config.currentEEPose;
-    box.top = pixelToGlobalEEPose(ms, box.bTop.x, box.bTop.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
-    box.bot = pixelToGlobalEEPose(ms, box.bBot.x, box.bBot.y, ms->config.trueEEPoseEEPose.pz + ms->config.currentTableZ);
-    box.centroid.px = (box.top.px + box.bot.px) * 0.5;
-    box.centroid.py = (box.top.py + box.bot.py) * 0.5;
-    box.centroid.pz = (box.top.pz + box.bot.pz) * 0.5;
-    box.cameraTime = ros::Time::now();
-    box.labeledClassIndex = ms->config.targetClass;
-  
-    mapBox(ms, box);
-    vector<BoxMemory> newMemories;
-    for (int i = 0; i < ms->config.blueBoxMemories.size(); i++) {
-      newMemories.push_back(ms->config.blueBoxMemories[i]);
-    }
-    newMemories.push_back(box);
-    ms->config.blueBoxMemories = newMemories;
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(SpawnTargetClassAtEndEffector)
-
-WORD(DestroyObjectInEndEffector)
-CODE(65535) // delete
-virtual void execute(MachineState * ms) {
-  if (ms->config.objectInHandLabel >= 0) {
-    cout << "destroyObjectInEndEffector: The " << ms->config.classLabels[ms->config.objectInHandLabel] << " in your hand simply vanished." << endl;
-    ms->config.objectInHandLabel = -1;
-  } else {
-    cout << "destroyObjectInEndEffector: There is nothing in your hand so there is nothing to destroy." << ms->config.objectInHandLabel << endl;
-  }
-}
-END_WORD
-REGISTER_WORD(DestroyObjectInEndEffector)
-
-WORD(PickObjectUnderEndEffector)
-CODE(65365) // page up
-virtual void execute(MachineState * ms) {
-  std_msgs::Empty msg;
-  ms->pickObjectUnderEndEffectorCommandCallback(msg);
-}
-END_WORD
-REGISTER_WORD(PickObjectUnderEndEffector)
-
-WORD(PlaceObjectInEndEffector)
-CODE(65366) // page down
-virtual void execute(MachineState * ms) {
-  std_msgs::Empty msg;
-  ms->placeObjectInEndEffectorCommandCallback(msg);
-}
-END_WORD
-REGISTER_WORD(PlaceObjectInEndEffector)
-
-WORD(SetCurrentCornellTableToZero)
-virtual void execute(MachineState * ms) {
-  cout << "Setting currentCornellTableIndex to " << "0" << " out of " << ms->config.numCornellTables << "." << endl;
-  ms->config.currentCornellTableIndex = 0;
-}
-END_WORD
-REGISTER_WORD(SetCurrentCornellTableToZero)
-
-WORD(IncrementCurrentCornellTable)
-virtual void execute(MachineState * ms) {
-  ms->config.currentCornellTableIndex = (ms->config.currentCornellTableIndex + 1 + ms->config.numCornellTables) % ms->config.numCornellTables;
-  cout << "Incrementing currentCornellTableIndex to " << ms->config.currentCornellTableIndex << " out of " << ms->config.numCornellTables << "." << endl;
-}
-END_WORD
-REGISTER_WORD(IncrementCurrentCornellTable)
-
-WORD(DecrementCurrentCornellTable)
-virtual void execute(MachineState * ms) {
-  ms->config.currentCornellTableIndex = (ms->config.currentCornellTableIndex - 1 + ms->config.numCornellTables) % ms->config.numCornellTables;
-  cout << "Decrementing currentCornellTableIndex to " << ms->config.currentCornellTableIndex << " out of " << ms->config.numCornellTables << "." << endl;
-}
-END_WORD
-REGISTER_WORD(DecrementCurrentCornellTable)
-
-WORD(MoveToCurrentCornellTable)
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentCornellTableIndex >= 0) {
-    ms->config.currentEEPose.px = ms->config.cornellTables[ms->config.currentCornellTableIndex].px;
-    ms->config.currentEEPose.py = ms->config.cornellTables[ms->config.currentCornellTableIndex].py;
-  }
-}
-END_WORD
-REGISTER_WORD(MoveToCurrentCornellTable)
-
-WORD(SpawnTargetMasterSpriteAtEndEffector)
-CODE(130915) // shift + insert
-virtual void execute(MachineState * ms) {
-  cout << "SpawnTargetMasterSpriteAtEndEffector called." << endl;
-  if (ms->config.targetMasterSprite < 0) {
-    cout << "Not spawning because targetMasterSprite is " << ms->config.targetMasterSprite << endl;
-    return;
-  }
-
-  for (int s = 0; s < ms->config.masterSprites.size(); s++) {
-    cout << "checked " << ms->config.masterSprites[s].name << " as masterSprites[" << s << "] scale " << ms->config.masterSprites[s].scale << " image size " << ms->config.masterSprites[s].image.size() << endl;
-  }
-  
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    Sprite sprite;
-    sprite.image = ms->config.masterSprites[ms->config.targetMasterSprite].image.clone();
-    sprite.name = ms->config.masterSprites[ms->config.targetMasterSprite].name;
-    sprite.scale = ms->config.masterSprites[ms->config.targetMasterSprite].scale;
-    sprite.creationTime = ros::Time::now();
-    sprite.pose = ms->config.currentEEPose;
-    sprite.top = sprite.pose;
-    sprite.bot = sprite.pose;
-
-    // rotate image and grow size
-    {
-      Size sz = sprite.image.size();
-      int deltaWidth = 0;
-      int deltaHeight = 0;
-      if (sz.width < sz.height) {
-	deltaWidth = sz.height - sz.width;
-	sz.width = sz.height;
-      }
-      if (sz.width > sz.height) {
-	deltaHeight = sz.width - sz.height;
-	sz.height = sz.width;
-      }
-
-      Quaternionf eeqform(sprite.pose.qw, sprite.pose.qx, sprite.pose.qy, sprite.pose.qz);
-      Quaternionf crane2Orient(0, 1, 0, 0);
-      Quaternionf rel = eeqform * crane2Orient.inverse();
-      Quaternionf ex(0,1,0,0);
-      Quaternionf zee(0,0,0,1);
-	    
-      Quaternionf result = rel * ex * rel.conjugate();
-      Quaternionf thumb = rel * zee * rel.conjugate();
-      double aY = result.y();
-      double aX = result.x();
-
-      double angle = vectorArcTan(ms, aY, aX)*180.0/3.1415926;
-      angle = (angle);
-      double scale = 1.0;
-      Point center = Point(sz.width/2, sz.height/2);
-
-      Mat un_rot_mat = getRotationMatrix2D( center, angle, scale );
-
-      Mat trans_mat = getRotationMatrix2D( center, angle, scale );
-      trans_mat.at<double>(0,0) = 1;
-      trans_mat.at<double>(1,1) = 1;
-      trans_mat.at<double>(0,1) = 0;
-      trans_mat.at<double>(1,0) = 0;
-      trans_mat.at<double>(0,2) = double(deltaWidth) / 2.0;
-      trans_mat.at<double>(1,2) = double(deltaHeight) / 2.0;
-
-      //Mat rotatedSpriteImage;
-      //warpAffine(sprite.image, rotatedSpriteImage, un_rot_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
-      Mat translatedSpriteImage;
-      warpAffine(sprite.image, translatedSpriteImage, trans_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
-      Mat rotatedSpriteImage;
-      warpAffine(translatedSpriteImage, rotatedSpriteImage, un_rot_mat, sz, INTER_LINEAR, BORDER_REPLICATE);
-      sprite.image = rotatedSpriteImage;
-    }
-
-    double halfWidthMeters = sprite.image.cols / (2.0 * sprite.scale);
-    double halfHeightMeters = sprite.image.rows / (2.0 * sprite.scale);
-
-    sprite.top.px -= halfWidthMeters;
-    sprite.top.py -= halfHeightMeters;
-    sprite.bot.px += halfWidthMeters;
-    sprite.bot.py += halfHeightMeters;
-
-    ms->config.instanceSprites.push_back(sprite);
-  } else {
-    assert(0);
-  }
-  cout << "Now instanceSprites.size() is " << ms->config.instanceSprites.size() << "." << endl;
-}
-END_WORD
-REGISTER_WORD(SpawnTargetMasterSpriteAtEndEffector)
-
-WORD(DestroyTargetInstanceSprite)
-CODE(131071) // shift + delete
-virtual void execute(MachineState * ms) {
-  cout << "DestroyTargetInstanceSprite called." << endl;
-  if ((ms->config.targetInstanceSprite < 0) ||
-      (ms->config.targetInstanceSprite >= ms->config.instanceSprites.size())) {
-    cout << "Not destoying because targetInstanceSprite is " << ms->config.targetInstanceSprite << " out of " << ms->config.instanceSprites.size() << endl;
-    return;
-  }
-  
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    vector<Sprite> newInstanceSprites;
-    for (int s = 0; s < ms->config.instanceSprites.size(); s++) {
-      if (s != ms->config.targetInstanceSprite) {
-	newInstanceSprites.push_back(ms->config.instanceSprites[s]);
-      }
-    }
-    ms->config.instanceSprites = newInstanceSprites;
-  } else {
-    assert(0);
-  }
-  cout << "Now instanceSprites.size() is " << ms->config.instanceSprites.size() << "." << endl;
-}
-END_WORD
-REGISTER_WORD(DestroyTargetInstanceSprite)
-
-WORD(IncrementTargetInstanceSprite)
-CODE(130901) // shift + page up
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = ms->config.instanceSprites.size();
-    ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite + 1 + base) % max(base, 1);
-    cout << "Incrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(IncrementTargetInstanceSprite)
-
-WORD(DecrementTargetInstanceSprite)
-CODE(130902) // shift + page down
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = ms->config.instanceSprites.size();
-    ms->config.targetInstanceSprite = (ms->config.targetInstanceSprite - 1 + base) % max(base, 1);
-    cout << "Decrementing targetInstanceSprite to " << ms->config.targetInstanceSprite << " out of " << base << "." << endl;
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(DecrementTargetInstanceSprite)
-
-WORD(IncrementTargetMasterSprite)
-CODE(130896) // shift + home 
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = ms->config.masterSprites.size();
-    ms->config.targetMasterSprite = (ms->config.targetMasterSprite + 1 + base) % max(base, 1);
-    cout << "Incrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(IncrementTargetMasterSprite)
-
-WORD(DecrementTargetMasterSprite)
-CODE(130903) // shift + end 
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentRobotMode == PHYSICAL) {
-    return;
-  } else if (ms->config.currentRobotMode == SIMULATED) {
-    int base = ms->config.masterSprites.size();
-    ms->config.targetMasterSprite = (ms->config.targetMasterSprite - 1 + base) % max(base, 1);
-    cout << "Decrementing targetMasterSprite to " << ms->config.targetMasterSprite << " out of " << base << "." << endl;
-  } else {
-    assert(0);
-  }
-}
-END_WORD
-REGISTER_WORD(DecrementTargetMasterSprite)
-
-CONFIG_GETTER_DOUBLE(ArmedThreshold, ms->config.armedThreshold, "")
-CONFIG_SETTER_DOUBLE(SetArmedThreshold, ms->config.armedThreshold)
-CONFIG_GETTER_DOUBLE(MovingThreshold, ms->config.movingThreshold, "")
-CONFIG_SETTER_DOUBLE(SetMovingThreshold, ms->config.movingThreshold)
-CONFIG_GETTER_DOUBLE(HoverThreshold, ms->config.hoverThreshold, "")
-CONFIG_SETTER_DOUBLE(SetHoverThreshold, ms->config.hoverThreshold)
-
-WORD(ComeToStop)
-virtual void execute(MachineState * ms) {
-  //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
-  ms->pushWord("comeToStopA");
-  ms->config.comeToStopStart = ros::Time::now();
-  cout << "Waiting to come to a stop..." << endl;
-}
-END_WORD
-REGISTER_WORD(ComeToStop)
-
-WORD(ComeToStopA)
-virtual void execute(MachineState * ms) {
-  if ( (ms->config.currentMovementState == STOPPED) ||
-       (ms->config.currentMovementState == BLOCKED) ) {
-    // do nothing
-    cout << "Came to a stop, moving on." << endl;
-  } else {
-    ros::Duration timeSinceCTS = ros::Time::now() - ms->config.comeToStopStart;
-    if (timeSinceCTS.toSec() < ms->config.comeToStopTimeout) {
-      ms->pushWord("comeToStopA");
-    } else {
-      ROS_WARN_STREAM("_____*____*________");
-      ROS_ERROR_STREAM("comeToStop timeout reached, moving on.");
-      ROS_WARN_STREAM("_____*____*________");
-
-      // waitUntilCurrentPosition will time out, make sure that there will
-      //  be no cycles introduced
-      ms->config.currentEEPose.pz = ms->config.trueEEPoseEEPose.pz + 0.001;
-      cout << "  backing up just a little to dislodge from failed hover, then waiting." << endl;
-      ms->pushWord("waitUntilAtCurrentPosition"); 
-    }
-    ms->config.endThisStackCollapse = 1;
-  }
-}
-END_WORD
-REGISTER_WORD(ComeToStopA)
-
-WORD(ComeToHover)
-virtual void execute(MachineState * ms) {
-  //ms->config.currentEEPose = ms->config.trueEEPoseEEPose;
-  ms->pushWord("comeToHoverA");
-  ms->config.comeToHoverStart = ros::Time::now();
-  cout << "Waiting to come to a hover..." << endl;
-}
-END_WORD
-REGISTER_WORD(ComeToHover)
-
-WORD(ComeToHoverA)
-virtual void execute(MachineState * ms) {
-  if ( (ms->config.currentMovementState == HOVERING) ) {
-    // do nothing
-    cout << "Came to a hover, moving on." << endl;
-  } else {
-    ros::Duration timeSinceCTH = ros::Time::now() - ms->config.comeToHoverStart;
-    if (timeSinceCTH.toSec() < ms->config.comeToHoverTimeout) {
-      ms->pushWord("comeToHoverA");
-    } else {
-      ROS_WARN_STREAM("_____*____*________");
-      ROS_ERROR_STREAM("comeToHover timeout reached, moving on.");
-      ROS_WARN_STREAM("_____*____*________");
-    }
-    ms->config.endThisStackCollapse = 1;
-  }
-}
-END_WORD
-REGISTER_WORD(ComeToHoverA)
-
-WORD(WaitForTugThenOpenGripper)
-virtual void execute(MachineState * ms) {
-  ms->pushWord("waitForTugThenOpenGripperA");
-  ms->pushWord("waitUntilEndpointCallbackReceived");
-  //ms->pushWord("comeToStop");
-  //ms->pushWord("comeToHover");
-  //ms->pushWord("waitUntilAtCurrentPosition");
-  ms->config.waitForTugStart = ros::Time::now();
-  cout << "Waiting to feel a tug... " << ARMED << " " << ms->config.currentMovementState << endl;
-}
-END_WORD
-REGISTER_WORD(WaitForTugThenOpenGripper)
-
-WORD(WaitForTugThenOpenGripperA)
-virtual void execute(MachineState * ms) {
-  ms->config.endThisStackCollapse = 1;
-  if (0) { // position based
-    if ( ( ms->config.currentMovementState == MOVING ) ||
-	 ( !ms->config.gripperGripping ) ) {
-      if ( !ms->config.gripperGripping ) {
-	cout << "There is nothing in the gripper so we should move on..." << endl;
-      }
-      if (ms->config.currentMovementState == MOVING) {
-	cout << "Felt a tug, opening gripper." << endl;
-      }
-      ms->pushWord("openGripper");
-    } else {
-      ms->config.currentMovementState = ARMED;
-      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
-      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
-	ms->pushWord("waitForTugThenOpenGripperA");
-      } else {
-	ROS_WARN_STREAM("_____*____*________");
-	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
-	ROS_WARN_STREAM("_____*____*________");
-      }
-    }
-  } else if (0) { // wrench based
-    double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
-    bool wrenchOverThresh = ( wrenchNorm > ms->config.wrenchThresh );
-
-    if ( wrenchOverThresh || 
-	 ( !ms->config.gripperGripping ) ) {
-      if ( !ms->config.gripperGripping ) {
-	cout << "There is nothing in the gripper so we should move on..." << endl;
-      }
-      if ( wrenchOverThresh ) {
-	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << ms->config.wrenchThresh << " " << endl;
-      }
-      ms->pushWord("openGripper");
-    } else {
-      ms->config.currentMovementState = ARMED;
-      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
-      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
-	ms->pushWord("waitForTugThenOpenGripperA");
-      } else {
-	ROS_WARN_STREAM("_____*____*________");
-	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
-	ROS_WARN_STREAM("_____*____*________");
-      }
-    }
-  } else {
-    // triple trigger, position enabled
-    double wrenchNorm = sqrt( eePose::squareDistance(eePose::zero(), ms->config.trueEEWrench) );
-    bool wrenchOverThresh = ( wrenchNorm > ms->config.wrenchThresh );
-
-
-    bool effortOverThresh = false;
-    {
-      double totalDiff = 0.0;
-      for (int i = 0; i < NUM_JOINTS; i++) {
-	double thisDiff = (ms->config.target_joint_actual_effort[i] - ms->config.last_joint_actual_effort[i]);
-	//cout << ms->config.target_joint_actual_effort[i] << " " << ms->config.last_joint_actual_effort[i] << " " << thisDiff << " ";
-	totalDiff = totalDiff + (thisDiff * thisDiff);
-      }
-
-      //cout << endl << "  totalDiff: " << totalDiff << "   actual_effort_thresh: " << ms->config.actual_effort_thresh << endl;
-      effortOverThresh = (totalDiff > ms->config.actual_effort_thresh);
-    }
-
-    bool positionTrigger = ( ms->config.currentMovementState == MOVING );
-    //bool positionTrigger = false;
-
-    if ( wrenchOverThresh || effortOverThresh || positionTrigger ||
-	 ( !ms->config.gripperGripping ) ) {
-      if ( !ms->config.gripperGripping ) {
-	cout << "There is nothing in the gripper so we should move on..." << endl;
-      }
-      if ( wrenchOverThresh ) {
-	cout << "Felt a tug, opening gripper; wrenchNorm wrenchThresh: " << wrenchNorm << " " << ms->config.wrenchThresh << " " << endl;
-      }
-      cout << "position trigger disabled --> wrenchOverThresh, effortOverThresh, positionTrigger: " << wrenchOverThresh << " " << effortOverThresh << " " << positionTrigger << endl;
-      ms->pushWord("openGripper");
-    } else {
-      ms->config.currentMovementState = ARMED;
-      ros::Duration timeSinceWFT = ros::Time::now() - ms->config.waitForTugStart;
-      if (timeSinceWFT.toSec() < ms->config.waitForTugTimeout) {
-	ms->pushWord("waitForTugThenOpenGripperA");
-      } else {
-	ROS_WARN_STREAM("_____*____*________");
-	ROS_ERROR_STREAM("waitForTugThenOpenGripper timeout reached, moving on.");
-	ROS_WARN_STREAM("_____*____*________");
-      }
-    }
-  }
-}
-END_WORD
-REGISTER_WORD(WaitForTugThenOpenGripperA)
-
-WORD(Idler)
-virtual void execute(MachineState * ms) {
-  if (ms->config.currentIdleMode == EMPTY) {
-    // empty
-  } else if (ms->config.currentIdleMode == STOPCLEAR) {
-    ms->pushWord("clearStack"); 
-  } else if (ms->config.currentIdleMode == PATROL) {
-    ms->pushWord("clearStackIntoMappingPatrol"); 
-  } else if (ms->config.currentIdleMode == CRANE) {
-    ms->pushWord("idler"); 
-    ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-    ms->pushWord("assumeCrane1"); 
-  } else if (ms->config.currentIdleMode == SHRUG) {
-    ms->pushWord("publishRecognizedObjectArrayFromBlueBoxMemory");
-    ms->pushWord("assumeShrugPose"); 
-  } else {
-    assert(0);
-  }
-  ms->pushWord("setPatrolStateToIdling");
-}
-END_WORD
-REGISTER_WORD(Idler)
 
 WORD(SetMovementStateToMoving)
 virtual void execute(MachineState * ms) {
   ms->config.currentMovementState = MOVING;
   ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = rclcpp::Clock{}.now();
 }
 END_WORD
 REGISTER_WORD(SetMovementStateToMoving)
@@ -1631,7 +1088,7 @@ virtual void execute(MachineState * ms) {
   double secondsToWait = 0;
   GET_NUMERIC_ARG(ms, secondsToWait);
 
-  ms->config.waitForSecondsTarget = ros::Time::now() + ros::Duration(secondsToWait);
+  ms->config.waitForSecondsTarget = rclcpp::Clock{}.now() + rclcpp::Duration(secondsToWait, 0);
   //cout << "waiting " << secondsToWait << " seconds until " << ms->config.waitForSecondsTarget << endl;
   ms->pushWord("waitForSecondsA");
 }
@@ -1641,11 +1098,11 @@ REGISTER_WORD(WaitForSeconds)
 WORD(WaitForSecondsA)
 virtual void execute(MachineState * ms) {
   //cout << "waitForSecondsA: ";
-  ros::Time thisNow = ros::Time::now();
-  if (thisNow.toSec() > ms->config.waitForSecondsTarget.toSec()) {
-    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+  rclcpp::Time thisNow = rclcpp::Clock{}.now();
+  if (thisNow.seconds() > ms->config.waitForSecondsTarget.seconds()) {
+    //cout << "PASSED at time, target, delta: " << thisNow.seconds() << " " << ms->config.waitForSecondsTarget.seconds() << " " << thisNow.seconds() - ms->config.waitForSecondsTarget.seconds() << endl;
   } else {
-    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.waitForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.waitForSecondsTarget.toSec() << endl;
+    //cout << "HELD at time, target, delta: " << thisNow.seconds() << " " << ms->config.waitForSecondsTarget.seconds() << " " << thisNow.seconds() - ms->config.waitForSecondsTarget.seconds() << endl;
     ms->pushWord("waitForSecondsA");
     ms->config.endThisStackCollapse = 1;
   }
@@ -1667,8 +1124,8 @@ WORD(SpinForSecondsInit)
 virtual void execute(MachineState * ms) {
   double secondsToSpin = 0;
   GET_NUMERIC_ARG(ms, secondsToSpin);
-  ros::Time spinForSecondsTarget = ros::Time::now() + ros::Duration(secondsToSpin);
-  ms->pushData(make_shared<DoubleWord>(spinForSecondsTarget.toSec())); 
+  rclcpp::Time spinForSecondsTarget = rclcpp::Clock{}.now() + rclcpp::Duration(secondsToSpin, 0);
+  ms->pushData(make_shared<DoubleWord>(spinForSecondsTarget.seconds())); 
 }
 END_WORD
 REGISTER_WORD(SpinForSecondsInit)
@@ -1678,11 +1135,11 @@ virtual void execute(MachineState * ms) {
   //cout << "spinForSecondsA: ";
   double spinForSecondsTargetDouble = 0;
   GET_NUMERIC_ARG(ms, spinForSecondsTargetDouble);
-  ros::Time thisNow = ros::Time::now();
-  if (thisNow.toSec() > spinForSecondsTargetDouble) {
-    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
+  rclcpp::Time thisNow = rclcpp::Clock{}.now();
+  if (thisNow.seconds() > spinForSecondsTargetDouble) {
+    //cout << "PASSED at time, target, delta: " << thisNow.seconds() << " " << ms->config.spinForSecondsTarget.seconds() << " " << thisNow.seconds() - ms->config.spinForSecondsTarget.seconds() << endl;
   } else {
-    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.spinForSecondsTarget.toSec() << " " << thisNow.toSec() - ms->config.spinForSecondsTarget.toSec() << endl;
+    //cout << "HELD at time, target, delta: " << thisNow.seconds() << " " << ms->config.spinForSecondsTarget.seconds() << " " << thisNow.seconds() - ms->config.spinForSecondsTarget.seconds() << endl;
     ms->pushWord("spinForSecondsA");
     ms->pushData(make_shared<DoubleWord>(spinForSecondsTargetDouble)); 
     // does not end stack collapse
@@ -1722,7 +1179,7 @@ REGISTER_WORD(DiagnosticRelativePose)
 
 WORD(MeasureTimeStart)
 virtual void execute(MachineState * ms) {
-  ros::Time tNow = ros::Time::now();
+  rclcpp::Time tNow = rclcpp::Clock{}.now();
   ms->config.measureTimeTarget = tNow;
   ms->config.measureTimeStart = tNow;
   ms->config.measureTimePeriod = 1.0;
@@ -1766,7 +1223,7 @@ WORD(MeasureTimeInit)
 virtual void execute(MachineState * ms) {
   double secondsToMeasure = 0;
   GET_NUMERIC_ARG(ms, secondsToMeasure);
-  ms->config.measureTimeTarget = ms->config.measureTimeTarget + ros::Duration(secondsToMeasure * ms->config.measureTimePeriod);
+  ms->config.measureTimeTarget = ms->config.measureTimeTarget + rclcpp::Duration(secondsToMeasure * ms->config.measureTimePeriod, 0);
 }
 END_WORD
 REGISTER_WORD(MeasureTimeInit)
@@ -1775,7 +1232,7 @@ WORD(MeasureTimeInitSinceStart)
 virtual void execute(MachineState * ms) {
   double secondsToMeasure = 0;
   GET_NUMERIC_ARG(ms, secondsToMeasure);
-  ms->config.measureTimeTarget = ms->config.measureTimeStart + ros::Duration(secondsToMeasure * ms->config.measureTimePeriod);
+  ms->config.measureTimeTarget = ms->config.measureTimeStart + rclcpp::Duration((int) secondsToMeasure * ms->config.measureTimePeriod, 0);
 }
 END_WORD
 REGISTER_WORD(MeasureTimeInitSinceStart)
@@ -1783,11 +1240,11 @@ REGISTER_WORD(MeasureTimeInitSinceStart)
 WORD(MeasureTimeA)
 virtual void execute(MachineState * ms) {
   //cout << "measureTimeA: ";
-  ros::Time thisNow = ros::Time::now();
-  if (thisNow.toSec() > ms->config.measureTimeTarget.toSec()) {
-    //cout << "PASSED at time, target, delta: " << thisNow.toSec() << " " << ms->config.measureTimeTarget.toSec() << " " << thisNow.toSec() - ms->config.measureTimeTarget.toSec() << endl;
+  rclcpp::Time thisNow = rclcpp::Clock{}.now();
+  if (thisNow.seconds() > ms->config.measureTimeTarget.seconds()) {
+    //cout << "PASSED at time, target, delta: " << thisNow.seconds() << " " << ms->config.measureTimeTarget.seconds() << " " << thisNow.seconds() - ms->config.measureTimeTarget.seconds() << endl;
   } else {
-    //cout << "HELD at time, target, delta: " << thisNow.toSec() << " " << ms->config.measureTimeTarget.toSec() << " " << thisNow.toSec() - ms->config.measureTimeTarget.toSec() << endl;
+    //cout << "HELD at time, target, delta: " << thisNow.seconds() << " " << ms->config.measureTimeTarget.seconds() << " " << thisNow.seconds() - ms->config.measureTimeTarget.seconds() << endl;
     ms->pushWord("measureTimeA");
     // does not end stack collapse
   }
@@ -1978,10 +1435,10 @@ virtual void execute(MachineState * ms) {
 
   ms->config.currentMovementState = MOVING;
   ms->config.lastTrueEEPoseEEPose = ms->config.trueEEPoseEEPose;
-  ms->config.lastMovementStateSet = ros::Time::now();
+  ms->config.lastMovementStateSet = rclcpp::Clock{}.now();
 
   ms->config.waitUntilAtCurrentPositionCounter = 0;
-  ms->config.waitUntilAtCurrentPositionStart = ros::Time::now();
+  ms->config.waitUntilAtCurrentPositionStart = rclcpp::Clock{}.now();
 
   eePose anchorDiff = ms->config.trueEEPoseEEPose.minusP(anchorIn);
   double distFromPlane = eePose::dotP(anchorDiff, normalIn);
@@ -2016,7 +1473,7 @@ virtual void execute(MachineState * ms) {
   eePose anchorIn;
   GET_ARG(ms, EePoseWord, anchorIn);
 
-  if ( ros::Time::now().toSec() - ms->config.waitUntilAtCurrentPositionStart.toSec() < ms->config.waitUntilAtCurrentPositionTimeout )
+  if ( rclcpp::Clock{}.now().seconds() - ms->config.waitUntilAtCurrentPositionStart.seconds() < ms->config.waitUntilAtCurrentPositionTimeout )
   {
     if ( (ms->config.currentMovementState == STOPPED) ||
 	 (ms->config.currentMovementState == BLOCKED) ) {

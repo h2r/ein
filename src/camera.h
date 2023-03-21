@@ -7,7 +7,7 @@
 #include <string>
 #include <memory>
 
-#include <image_transport/image_transport.h>
+#include <image_transport/image_transport.hpp>
 
 using namespace std;
 
@@ -21,15 +21,15 @@ class Camera {
   shared_ptr<image_transport::ImageTransport> it;
   image_transport::Subscriber image_sub;
 
-  ros::Time lastImageCallbackReceived;
-  ros::Time lastImageStamp;
+  rclcpp::Time lastImageCallbackReceived;
+  rclcpp::Time lastImageStamp;
 
   cv::Mat cam_img;
   cv::Mat cam_bgr_img;
   cv::Mat cam_ycrcb_img;
   int imRingBufferSize = 300;
   std::vector<Mat> imRingBuffer;
-  std::vector<ros::Time> imRBTimes;
+  std::vector<rclcpp::Time> imRBTimes;
   int imRingBufferStart = 0;
   int imRingBufferEnd = 0;
   std::vector<streamImage> streamImageBuffer;
@@ -93,7 +93,7 @@ class Camera {
 
   Eigen::Quaternionf gear0offset;
 
-  ros::Time lastCameraLogTime;
+  rclcpp::Time lastCameraLogTime;
   bool observedCameraFlip;
   bool observedCameraMirror;
   int observedCameraExposure = -1;
@@ -117,14 +117,14 @@ class Camera {
 
   void deactivateSensorStreaming();
   void activateSensorStreaming();
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& msg);
   Camera(MachineState * ms, string name, string topic, string tf_ee_link, string tf_camera_link);
 
 
-  int getRingImageAtTime(ros::Time t, Mat& value, int drawSlack = 0, bool debug=false);
-  int getRingRangeAtTime(ros::Time t, double &value, int drawSlack = 0);
-  int getRingPoseAtTime(ros::Time t, geometry_msgs::Pose &value, int drawSlack = 0, bool debug=false);
-  void setRingImageAtTime(ros::Time t, Mat& imToSet);
+  int getRingImageAtTime(rclcpp::Time t, Mat& value, int drawSlack = 0, bool debug=false);
+  int getRingRangeAtTime(rclcpp::Time t, double &value, int drawSlack = 0);
+  int getRingPoseAtTime(rclcpp::Time t, geometry_msgs::msg::Pose &value, int drawSlack = 0, bool debug=false);
+  void setRingImageAtTime(rclcpp::Time t, Mat& imToSet);
   void imRingBufferAdvance();
 
   int sibCurIdx = 0;
@@ -138,11 +138,9 @@ class Camera {
   void initializeConfig(int rows, int cols);
 
   void resetAccumulatedStreamImage();
-  void populateStreamImageBuffer();
+
   void clearStreamBuffer();
-  void streamImageAsClass(Mat im, int classToStreamIdx, double now);
   void writeImage(Mat im, int classToStreamIdx, double now);
-  void writeImageBatchAsClass(int classToStreamIdx);
   string createStreamImagePath(int classToStreamIdx);
 
   void loadCalibration(string inFileName);
@@ -155,11 +153,10 @@ class Camera {
   void saveGripperMask(string outFileName);
   void saveGripperMask();
 
-  void setHandCameraOffsetFromTf();
   void setDefaultHandCameraOffset();
 
-  void updateTrueCameraPoseFromTf(ros::Time time);
-  void updateTrueCameraPoseWithHandCameraOffset(ros::Time time);
+  void updateTrueCameraPoseFromTf(rclcpp::Time time);
+  void updateTrueCameraPoseWithHandCameraOffset(rclcpp::Time time);
 
   double mu_x;
   double mu_y;

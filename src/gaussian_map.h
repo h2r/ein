@@ -47,14 +47,14 @@ typedef struct _GaussianMapCell {
   void multS(double scalar); 
   void addC(_GaussianMapCell * cell); 
 
-  void writeToFileStorage(FileStorage& fsvO) const;
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void writeToFileStorage(cv::FileStorage& fsvO) const;
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
 
-  void newObservation(const Vec3b & obs);
-  void newObservation(const Vec3b & obs, double zobs);
-  void newObservation(const Vec3d & obs);
-  void newObservation(const Vec3d & obs, double zobs);
+  void newObservation(const cv::Vec3b & obs);
+  void newObservation(const cv::Vec3b & obs, double zobs);
+  void newObservation(const cv::Vec3d & obs);
+  void newObservation(const cv::Vec3d & obs, double zobs);
   void newObservation(uchar r, uchar g, uchar b);
   void newObservation(uchar r, uchar g, uchar b, double zobs);
   
@@ -94,28 +94,28 @@ class GaussianMap {
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
 
-  void writeToFileStorage(FileStorage& fsvO);
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void writeToFileStorage(cv::FileStorage& fsvO);
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
   
-  void writeCells(FileStorage & fsvO);
+  void writeCells(cv::FileStorage & fsvO);
   void recalculateMusAndSigmas(MachineState * ms);
 
-  void rgbDiscrepancyMuToMat(MachineState * ms, Mat& out);
-  void rgbMuToMat(Mat& out);
-  void rgbSigmaSquaredToMat(Mat& out);
-  void rgbCountsToMat(Mat& out);
-  void rgbSquaredCountsToMat(Mat& out);
-  void rgbSigmaToMat(Mat& out);
+  void rgbDiscrepancyMuToMat(MachineState * ms, cv::Mat& out);
+  void rgbMuToMat(cv::Mat& out);
+  void rgbSigmaSquaredToMat(cv::Mat& out);
+  void rgbCountsToMat(cv::Mat& out);
+  void rgbSquaredCountsToMat(cv::Mat& out);
+  void rgbSigmaToMat(cv::Mat& out);
 
-  void rgbMuToBgrMat(Mat & out);
+  void rgbMuToBgrMat(cv::Mat & out);
 
-  void zMuToMat(Mat& out);
-  void zSigmaSquaredToMat(Mat& out);
-  void zCountsToMat(Mat& out);
-  void zMuToScaledMat(Mat& out);
+  void zMuToMat(cv::Mat& out);
+  void zSigmaSquaredToMat(cv::Mat& out);
+  void zCountsToMat(cv::Mat& out);
+  void zMuToScaledMat(cv::Mat& out);
 
 
   void zeroBox(int _x1, int _y1, int _x2, int _y2);
@@ -170,9 +170,9 @@ class SceneObject {
 
   vector<SceneObjectScore> scores;
 
-  void writeToFileStorage(FileStorage& fsvO);
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void writeToFileStorage(cv::FileStorage& fsvO);
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
 };
 
 
@@ -198,14 +198,14 @@ class Scene {
   GaussianMapCell light_model;
   shared_ptr<GaussianMap> background_map;
   shared_ptr<GaussianMap> predicted_map;
-  Mat predicted_segmentation;
+  cv::Mat predicted_segmentation;
   shared_ptr<GaussianMap> observed_map;
   shared_ptr<GaussianMap> discrepancy;
-  Mat discrepancy_magnitude;
+  cv::Mat discrepancy_magnitude;
   // transform image to find hot spots
-  Mat discrepancy_density;
-  Mat discrepancy_before;
-  Mat discrepancy_after;
+  cv::Mat discrepancy_density;
+  cv::Mat discrepancy_before;
+  cv::Mat discrepancy_after;
 
   vector<shared_ptr<SceneObject> > predicted_objects;
 
@@ -219,9 +219,7 @@ class Scene {
   void addPredictedObjectsToObservedMap(double threshold=0.5, double learning_weight = 1.0);
   void initializePredictedMapWithBackground();
   void measureDiscrepancy();
-  double computeProbabilityOfMap();
-  double computeProbabilityOfMap1();
-  double computeProbabilityOfMapDouble();
+
   double computeScore();
   double assignScore();
   double measureScoreRegion(int _x1, int _y1, int _x2, int _y2);
@@ -238,9 +236,9 @@ class Scene {
 
   void findBestScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
   void findBestAffineScoreForObject(int class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
-  void tryToAddObjectToScene(int class_idx);
+
   void findBestObjectAndScore(int * class_idx, int num_orientations, int * l_max_x, int * l_max_y, int * l_max_orient, double * l_max_theta, double * l_max_score, int * l_max_i);
-  void tryToAddBestObjectToScene();
+
   shared_ptr<SceneObject> addPredictedObject(double x, double y, double theta, int class_idx);
   shared_ptr<SceneObject> getPredictedObject(double x, double y, double theta, int class_idx);
   void removeObjectFromPredictedMap(shared_ptr<SceneObject>);
@@ -256,16 +254,16 @@ class Scene {
   void metersToCell(double xm, double ym, int * xc, int * yc);
   void metersToCell(double xm, double ym, double * xc, double * yc);
   void cellToMeters(int xc, int yc, double * xm, double * ym);
-  void writeToFileStorage(FileStorage& fsvO);
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void writeToFileStorage(cv::FileStorage& fsvO);
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
 
   shared_ptr<Scene> copy();
 
-  void readPredictedObjects(FileNode & fn);
-  void writePredictedObjects(FileStorage & fsvO);
+  void readPredictedObjects(cv::FileNode & fn);
+  void writePredictedObjects(cv::FileStorage & fsvO);
 
   static shared_ptr<Scene> createFromFile(MachineState * ms, string filename);
   static shared_ptr<Scene> createEmptyScene(MachineState * ms);
@@ -300,9 +298,9 @@ class TransitionTable {
 
   void initCounts();
 
-  void writeToFileStorage(FileStorage& fsvO);
-  void readFromFileNodeIterator(FileNodeIterator& it);
-  void readFromFileNode(FileNode& it);
+  void writeToFileStorage(cv::FileStorage& fsvO);
+  void readFromFileNodeIterator(cv::FileNodeIterator& it);
+  void readFromFileNode(cv::FileNode& it);
   void saveToFile(string filename);
   void loadFromFile(string filename);
 };

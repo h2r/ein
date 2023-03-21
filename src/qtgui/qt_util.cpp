@@ -5,7 +5,7 @@
 #include <fstream>
 
 #include <QFileDialog>
-#include <highgui.h>
+
 using namespace std;
 
 #include <boost/algorithm/string.hpp>

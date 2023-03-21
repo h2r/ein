@@ -77,7 +77,7 @@
 #include <QButtonGroup>
 #include <QMenu>
 
-#include <cv.h>
+#include <opencv2/opencv.hpp> 
 
 using namespace cv;
 //start private enum
@@ -149,7 +149,7 @@ static const int tableMouseButtons[][3]={
 
 typedef void (*EinMouseCallback )(int event, int x, int y, int flags, void* param);
 
-typedef void (CV_CDECL *EinOpenGlDrawCallback)(void* userdata);
+typedef void (*EinOpenGlDrawCallback)(void* userdata);
 
 
 class EinViewPort
@@ -292,7 +292,7 @@ private:
     //parameters (will be save/load)
     QTransform param_matrixWorld;
 
-    CvMat* image2Draw_mat;
+    cv::Mat* image2Draw_mat;
     QImage image2Draw_qt;
     int nbChannelOriginImage;
 
@@ -309,7 +309,7 @@ private:
     QTransform matrixWorld_inv;
     float ratioX, ratioY;
 
-    bool isSameSize(IplImage* img1,IplImage* img2);
+    bool isSameSize(cv::Mat* img1,cv::Mat* img2);
 
     QSize sizeHint() const;
     QPointer<QWidget> centralWidget;

@@ -1,12 +1,14 @@
 #include "config.h"
 #include "camera.h"
 #include <vector>
-#include <image_transport/image_transport.h>
+#include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/image_encodings.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
-#include <highgui.h>
+
 
 #include <dirent.h>
 
@@ -21,12 +23,11 @@ Camera::Camera(MachineState * m, string iname, string topic, string _tf_ee_link,
   ms = m;
   tf_ee_link = _tf_ee_link;
   tf_camera_link = _tf_camera_link;
-  ros::NodeHandle n("~");
-  it = make_shared<image_transport::ImageTransport>(n);
-  image_sub = it->subscribe(image_topic, 1, &Camera::imageCallback, this);
+
+  image_sub = m->config.it->subscribe(image_topic, 1, &Camera::imageCallback, this);
   imRingBuffer.resize(imRingBufferSize);
   imRBTimes.resize(imRingBufferSize);
-  lastImageCallbackReceived = ros::Time::now();
+  lastImageCallbackReceived = rclcpp::Clock{}.now();
   calibrationDirectory = ms->config.data_directory + ms->config.config_directory + name;
 
   // call after ROS is all set up.
@@ -71,27 +72,18 @@ void Camera::activateSensorStreaming() {
 
 
 
-void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
-  lastImageCallbackReceived = ros::Time::now();
+void Camera::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& msg){
+  lastImageCallbackReceived = rclcpp::Clock{}.now();
 
   lastImageStamp = msg->header.stamp;
   cv_bridge::CvImageConstPtr cv_ptr = NULL;
 
   try {
-    //cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cv_ptr = cv_bridge::toCvShare(msg);
+    //cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::msg::image_encodings::BGR8);
+    cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
   } catch(cv_bridge::Exception& e) {
     CONSOLE_ERROR(ms, "cv_bridge exception " << __FILE__ ":" << __LINE__ << " camera " << name << ": " << e.what());
     return;
-  }
-
-  if((ms->config.sensorStreamOn) && (ms->config.sisImage)) {
-    int cfClass = ms->config.focusedClass;
-    if ((cfClass > -1) && (cfClass < ms->config.classLabels.size())) {
-      double thisNow = msg->header.stamp.toSec();
-      //cout << "     Now: " << msg->header.stamp << endl;
-      streamImageAsClass(cv_ptr->image, cfClass, thisNow); 
-    }
   }
 
   if (!ms->config.shouldIImageCallback) {
@@ -106,14 +98,14 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
   if (cam_img.type() == CV_16UC1) {
     Mat graybgr;
-    cvtColor(cam_img, graybgr, CV_GRAY2BGR);  
+    cvtColor(cam_img, graybgr, cv::COLOR_GRAY2BGR);  
     graybgr.convertTo(cam_bgr_img, CV_8U, 1.0/256.0);
   } else if (cam_img.type() == CV_8UC4) {
-    cvtColor(cam_img, cam_bgr_img, CV_BGRA2BGR);
+    cvtColor(cam_img, cam_bgr_img, cv::COLOR_BGRA2BGR);
   } else {
     cam_bgr_img = cam_img.clone();
   }
-  cvtColor(cam_bgr_img, cam_ycrcb_img, CV_BGR2YCrCb);
+  cvtColor(cam_bgr_img, cam_ycrcb_img, cv::COLOR_BGR2YCrCb);
 
   setRingImageAtTime(msg->header.stamp, cam_bgr_img);
 
@@ -122,7 +114,7 @@ void Camera::imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
 
 
-int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debug) {
+int Camera::getRingImageAtTime(rclcpp::Time t, Mat& value, int drawSlack, bool debug) {
   if (imRingBufferStart == imRingBufferEnd) {
     
     if (debug) {
@@ -131,24 +123,24 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
     return 0;
   } else {
     int earliestSlot = imRingBufferStart;
-    ros::Duration deltaTdur = t - imRBTimes[earliestSlot];
+    rclcpp::Duration deltaTdur = t - imRBTimes[earliestSlot];
     // if the request comes before our earliest record, deny
-    if (deltaTdur.toSec() <= 0.0) {
+    if (deltaTdur.seconds() <= 0.0) {
       if (debug) {
 	cout << "Denied out of order range value in getRingImageAtTime(): Too small." << endl;
-	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
-	  imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
+	//	cout << "  getRingImageAtTime() ms->config.imRingBufferStart ms->config.imRingBufferEnd t ms->config.imRBTimes[earliestSlot]: " << 
+	//	  imRingBufferStart << " " << imRingBufferEnd << " " << t << " " << imRBTimes[earliestSlot] << endl;
       }
       return -1;
     } else if (imRingBufferStart < imRingBufferEnd) {
       for (int s = imRingBufferStart; s < imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	rclcpp::Duration deltaTdurPre = t - imRBTimes[s];
+	rclcpp::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.seconds() >= 0.0) && (deltaTdurPost.seconds() <= 0)) {
 	  Mat m1 = imRingBuffer[s];
 	  Mat m2 = imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
+	  double w1 = deltaTdurPre.seconds();
+	  double w2 = -deltaTdurPost.seconds();
 	  double totalWeight = w1 + w2;
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
@@ -173,13 +165,13 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
       return -2;
     } else {
       for (int s = imRingBufferStart; s < imRingBufferSize-1; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	rclcpp::Duration deltaTdurPre = t - imRBTimes[s];
+	rclcpp::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.seconds() >= 0.0) && (deltaTdurPost.seconds() <= 0)) {
 	  Mat m1 = imRingBuffer[s];
 	  Mat m2 = imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
+	  double w1 = deltaTdurPre.seconds();
+	  double w2 = -deltaTdurPost.seconds();
 	  double totalWeight = w1 + w2;
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
@@ -195,13 +187,13 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
 	  return 1;
 	}
       } {
-	ros::Duration deltaTdurPre = t - imRBTimes[imRingBufferSize-1];
-	ros::Duration deltaTdurPost = t - imRBTimes[0];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	rclcpp::Duration deltaTdurPre = t - imRBTimes[imRingBufferSize-1];
+	rclcpp::Duration deltaTdurPost = t - imRBTimes[0];
+	if ((deltaTdurPre.seconds() >= 0.0) && (deltaTdurPost.seconds() <= 0)) {
 	  Mat m1 = imRingBuffer[imRingBufferSize-1];
 	  Mat m2 = imRingBuffer[0];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
+	  double w1 = deltaTdurPre.seconds();
+	  double w2 = -deltaTdurPost.seconds();
 	  double totalWeight = w1 + w2;
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
@@ -217,13 +209,13 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
 	  return 1;
 	}
       } for (int s = 0; s < imRingBufferEnd; s++) {
-	ros::Duration deltaTdurPre = t - imRBTimes[s];
-	ros::Duration deltaTdurPost = t - imRBTimes[s+1];
-	if ((deltaTdurPre.toSec() >= 0.0) && (deltaTdurPost.toSec() <= 0)) {
+	rclcpp::Duration deltaTdurPre = t - imRBTimes[s];
+	rclcpp::Duration deltaTdurPost = t - imRBTimes[s+1];
+	if ((deltaTdurPre.seconds() >= 0.0) && (deltaTdurPost.seconds() <= 0)) {
 	  Mat m1 = imRingBuffer[s];
 	  Mat m2 = imRingBuffer[s+1];
-	  double w1 = deltaTdurPre.toSec();
-	  double w2 = -deltaTdurPost.toSec();
+	  double w1 = deltaTdurPre.seconds();
+	  double w2 = -deltaTdurPost.seconds();
 	  double totalWeight = w1 + w2;
 	  w1 = w1 / totalWeight;
 	  w2 = w2 / totalWeight;
@@ -247,6 +239,7 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
       return -2;
     }
   }
+  return -10;
 }
 
 
@@ -254,7 +247,7 @@ int Camera::getRingImageAtTime(ros::Time t, Mat& value, int drawSlack, bool debu
 
 
 
-void Camera::setRingImageAtTime(ros::Time t, Mat& imToSet) {
+void Camera::setRingImageAtTime(rclcpp::Time t, Mat& imToSet) {
 #ifdef DEBUG_RING_BUFFER
   //cout << "setRingImageAtTime() start end size: " << ms->config.imRingBufferStart << " " << ms->config.imRingBufferEnd << " " << ms->config.imRingBufferSize << endl;
 #endif
@@ -266,10 +259,10 @@ void Camera::setRingImageAtTime(ros::Time t, Mat& imToSet) {
     imRingBuffer[0] = imToSet;
     imRBTimes[0] = t;
   } else {
-    ros::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
-    if (deltaTdur.toSec() <= 0.0) {
+    rclcpp::Duration deltaTdur = t - imRBTimes[imRingBufferStart];
+    if (deltaTdur.seconds() <= 0.0) {
 #ifdef DEBUG_RING_BUFFER 
-      //cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].toSec() << " " << t.toSec() << " " << deltaTdur.toSec() << " " << endl;
+      //cout << "Dropped out of order range value in setRingImageAtTime(). " << ms->config.imRBTimes[ms->config.imRingBufferStart].seconds() << " " << t.seconds() << " " << deltaTdur.seconds() << " " << endl;
 #endif
     } else {
       int slot = imRingBufferEnd;
@@ -470,165 +463,9 @@ void Camera::resetAccumulatedStreamImage() {
 
 
 
-void Camera::populateStreamImageBuffer() {
-  DIR *dpdf;
-  struct dirent *epdf;
-  string dot(".");
-  string dotdot("..");
-  string dotpng(".png");
-
-  int classToStreamIdx = ms->config.focusedClass;
-  if (ms->config.focusedClass == -1) {
-    return;
-  }
-  string root_path = createStreamImagePath(classToStreamIdx);
-  cout << "Populating stream image buffer from " << root_path << endl;
-
-  vector<string> files = glob(root_path + "*.png");
-
-  for (int i = 0; i < files.size(); i++) {
-    string fname(files[i]);
-    int loaded = 1;
-    string fnoextension = fname.substr(0, fname.size() - 4);
-
-    string imfilename(fname);
-    string ymlfilename = fnoextension + ".yml";
-
-    FileStorage fsvI;
-    cout << "Streaming image from " << ymlfilename << " ...";
-    fsvI.open(ymlfilename, FileStorage::READ);
-
-    double time = 0.0;
-    {
-      FileNode anode = fsvI["time"];
-      FileNodeIterator it = anode.begin(), it_end = anode.end();
-      if (it != it_end) {
-        time = *(it++);
-      } else {
-        loaded = 0;
-      }
-    }
-
-    if (loaded) {
-      streamImage toAdd;
-      toAdd.time = time;
-      toAdd.loaded = 0;
-      toAdd.filename = imfilename;
-      streamImageBuffer.push_back(toAdd);
-      cout << "done." << endl;
-    } else {
-      cout << "failed :P" << endl;
-    }
-  }
-
-  sort(streamImageBuffer.begin(), streamImageBuffer.end(), streamImageComparator);
-
-}
-
 void Camera::clearStreamBuffer() {
   streamImageBuffer.resize(0);
 }
-
-
-string Camera::createStreamImagePath(int classToStreamIdx) {
-
-  string this_image_path = streamDirectory(ms, classToStreamIdx) + "/images/";
-
-  stringstream buf;
-  buf << this_image_path << "/";
-  buf << ms->config.robot_serial << "_" << ms->config.left_or_right_arm << "_" << name;
-  return buf.str();
-}
-
-void Camera::writeImage(Mat im, int classToStreamIdx, double now) {
-  string root_path = createStreamImagePath(classToStreamIdx);
-  string formattedTime = formatTime(ros::Time(now));
-  root_path += "_" + formattedTime;
-
-
-  string png_path = root_path + ".png";
-  string yaml_path = root_path + ".yml";
-  //cout << "streamImageAsClass: Streaming current frame to " << png_path << " " << yaml_path << endl;
-  // no compression!
-  std::vector<int> args;
-  args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  args.push_back(ms->config.globalPngCompression);
-  imwrite(png_path, im, args);
-
-  // may want to save additional camera parameters
-  FileStorage fsvO;
-  fsvO.open(yaml_path, FileStorage::WRITE);
-  
-  writeSideAndSerialToFileStorage(ms, fsvO);
-  
-  fsvO << "time" <<  now;
-  fsvO.release();
-}
-
-void Camera::writeImageBatchAsClass(int classToStreamIdx) {
-
-  FileStorage fsvO;
-  string root_path = createStreamImagePath(classToStreamIdx);
-
-  ros::Time time;
-  if (streamImageBuffer.size() != 0) {
-    time = ros::Time(streamImageBuffer[0].time);
-  } else {
-    time = ros::Time::now();
-  }
-
-  string formattedTime = formatTime(time);
-  root_path += "_" + formattedTime + "_batch";
-  string yaml_path = root_path + ".yml";
-
-  fsvO.open(yaml_path, FileStorage::WRITE);
-  fsvO << "camera_name"  << name;
-  fsvO << "camera_topic"  << image_topic;
-  fsvO << "camera_ee_link"  << tf_ee_link;
-  fsvO << "camera_camera_link"  << tf_camera_link;
-  fsvO.release();
-
-  saveCalibration(root_path + "_calibration.yml");
-
-
-  int tng = streamImageBuffer.size();
-  for (int i = 0; i < tng; i++) {
-    streamImage &tsi = streamImageBuffer[i];
-    if (tsi.image.data == NULL) {
-      tsi.image = imread(tsi.filename);
-      if (tsi.image.data == NULL) {
-        cout << " Failed to load " << tsi.filename << endl;
-        tsi.loaded = 0;
-        return;
-      } else {
-        tsi.loaded = 1;
-      }
-    }
-    writeImage(tsi.image, classToStreamIdx, tsi.time);
-  }
-}
-
-void Camera::streamImageAsClass(Mat im, int classToStreamIdx, double now) {
-
-  if (didSensorStreamTimeout(ms)) {
-    return;
-  } else {
-  }
-
-  if (ms->config.diskStreamingEnabled) {
-    writeImage(im, classToStreamIdx, now);
-  } else {
-    streamImage toAdd;
-    toAdd.image = im.clone();
-    toAdd.time = now;
-    toAdd.loaded = 1;
-    toAdd.filename = "CAMERA";
-    streamImageBuffer.push_back(toAdd);
-
-    //cout << "streamImageAsClass: WARNING disk streaming not enabled, there are " << ms->config.streamImageBuffer.size() << " images in the buffer and growing..." << endl;
-  }
-}
-
 
 
 
@@ -770,7 +607,7 @@ void Camera::loadCalibration() {
 }
 void Camera::saveCalibration(string outFileName) {
   CONSOLE(ms, "Saving calibration file from " << outFileName);
-  ros::Time savedTime = ros::Time::now();
+  rclcpp::Time savedTime = rclcpp::Clock{}.now();
 
   /* this works
   for (int i = 0; i < 5; i++) {
@@ -791,7 +628,7 @@ void Camera::saveCalibration(string outFileName) {
   }
 
   fsvO << "savedTime" << "[" 
-    << savedTime.toSec() 
+    << savedTime.seconds() 
   << "]";
 
   fsvO << "hand_camera_offset";
@@ -905,7 +742,7 @@ void Camera::loadGripperMask() {
 }
 void Camera::loadGripperMask(string filename) {
   CONSOLE(ms, "Loading gripper mask from " << filename << "...");
-  Mat tmpMask = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+  Mat tmpMask = imread(filename, cv::ImreadModes::IMREAD_GRAYSCALE);
   if (tmpMask.data == NULL) {
     CONSOLE_ERROR(ms, "Could not load gripper mask; will use empty one.");
   }
@@ -927,9 +764,9 @@ void Camera::loadGripperMask(string filename) {
 }
 
 
-void Camera::updateTrueCameraPoseFromTf(ros::Time time) {
+void Camera::updateTrueCameraPoseFromTf(rclcpp::Time time) {
   // string tflink = ms->config.left_or_right_arm + "_hand_camera"
-  geometry_msgs::PoseStamped pose;
+  geometry_msgs::msg::PoseStamped pose;
   pose.pose.position.x = 0;
   pose.pose.position.y = 0;
   pose.pose.position.z = 0;
@@ -938,19 +775,19 @@ void Camera::updateTrueCameraPoseFromTf(ros::Time time) {
   pose.pose.orientation.z = 0;
   pose.pose.orientation.w = 1;
 
-  //pose.header.stamp = ros::Time(0);
+  //pose.header.stamp = rclcpp::Time(0);
   pose.header.stamp = time;
   pose.header.frame_id =  tf_camera_link;
   
-  geometry_msgs::PoseStamped transformed_pose;
+  geometry_msgs::msg::PoseStamped transformed_pose;
   if (ms->config.currentRobotMode != SIMULATED) {    
     try {
-      ms->config.tfListener->waitForTransform("base", tf_camera_link, pose.header.stamp, ros::Duration(1.0));
-        ms->config.tfListener->transformPose("base", pose.header.stamp, pose, tf_camera_link, transformed_pose);
-      } catch (tf::TransformException ex){
+      //ms->config.tfListener->waitForTransform("base", tf_camera_link, pose.header.stamp, rclcpp::Duration(1.0, 0));
+      //ms->config.tfListener->transformPose("base", pose.header.stamp, pose, tf_camera_link, transformed_pose);
+      } catch (tf2::TransformException ex){
         cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
         cout << "link: " << tf_camera_link << endl;
-        cout << "p1: " << pose << " p2: " << transformed_pose << endl;
+        //cout << "p1: " << pose << " p2: " << transformed_pose << endl;
         cout << ex.what();
         //throw;
       }
@@ -966,43 +803,6 @@ void Camera::updateTrueCameraPoseFromTf(ros::Time time) {
   }
 
 
-void Camera::updateTrueCameraPoseWithHandCameraOffset(ros::Time time) {
-  geometry_msgs::PoseStamped pose;
-  pose.pose.position.x = handCameraOffset.px;
-  pose.pose.position.y = handCameraOffset.py;
-  pose.pose.position.z = handCameraOffset.pz;
-  pose.pose.orientation.x = handCameraOffset.qx;
-  pose.pose.orientation.y = handCameraOffset.qy;
-  pose.pose.orientation.z = handCameraOffset.qz;
-  pose.pose.orientation.w = handCameraOffset.qw;
-  
-  //pose.header.stamp = ros::Time(0);
-  pose.header.stamp = time;
-  pose.header.frame_id =  tf_ee_link;
-  
-  geometry_msgs::PoseStamped transformed_pose;
-  if (ms->config.currentRobotMode != SIMULATED) {    
-    try {
-      ms->config.tfListener->waitForTransform("base", tf_ee_link, pose.header.stamp, ros::Duration(1.0));
-      ms->config.tfListener->transformPose("base", pose.header.stamp, pose, tf_ee_link, transformed_pose);
-    } catch (tf::TransformException ex){
-      cout << "Tf error (a few at startup are normal; worry if you see a lot!): " << __FILE__ << ":" << __LINE__ << endl;
-      cout << "link: " << tf_ee_link << endl;
-      cout << "p1: " << pose << " p2: " << transformed_pose << endl;
-      cout << ex.what();
-      //throw;
-    }
-  }
-  
-  truePose.px = transformed_pose.pose.position.x;
-  truePose.py = transformed_pose.pose.position.y;
-  truePose.pz = transformed_pose.pose.position.z;
-  truePose.qx = transformed_pose.pose.orientation.x;
-  truePose.qy = transformed_pose.pose.orientation.y;
-  truePose.qz = transformed_pose.pose.orientation.z;
-  truePose.qw = transformed_pose.pose.orientation.w;
-}
-
 
 void Camera::setDefaultHandCameraOffset() {
   eePose p = {0.03815,0.01144,0.01589, 0,0,0,1};
@@ -1010,27 +810,6 @@ void Camera::setDefaultHandCameraOffset() {
 }
 
 
-void Camera::setHandCameraOffsetFromTf()
-{
-  geometry_msgs::PoseStamped pose;
-  pose.pose.position.x = 0;
-  pose.pose.position.y = 0;
-  pose.pose.position.z = 0;
-  pose.pose.orientation.x = 0;
-  pose.pose.orientation.y = 0;
-  pose.pose.orientation.z = 0;
-  pose.pose.orientation.w = 1;
-
-  pose.header.stamp = ros::Time(0);
-  pose.header.frame_id =  tf_camera_link;
-  geometry_msgs::PoseStamped transformed_pose;
-  try {
-    ms->config.tfListener->transformPose(tf_ee_link, pose.header.stamp, pose, tf_camera_link, transformed_pose);
-    handCameraOffset = rosPoseToEEPose(transformed_pose.pose);
-  } catch (tf2::TransformException e) {
-    CONSOLE_ERROR(ms, "TF Exception: " << e.what());
-  }
-}
 
 
 void Camera::initializeConfig(int rows, int cols)

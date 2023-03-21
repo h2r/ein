@@ -108,8 +108,6 @@ bool MachineState::pushWord(string token) {
 
 bool MachineState::pushWord(std::shared_ptr<Word> word) {
   call_stack.push_back(word);
-  MachineState * ms = this;
-  checkAndStreamWord(ms, word->name(), "push");
   return true;
 }
 
@@ -134,7 +132,6 @@ bool MachineState::pushData(string token) {
 
 bool MachineState::pushData(std::shared_ptr<Word> word) {
   data_stack.push_back(word);
-  checkAndStreamWord(this, word->name(), "pushData");
   return true;
 }
 
@@ -146,17 +143,8 @@ shared_ptr<Word> MachineState::popData() {
   if (data_stack.size() > 0) {
     std::shared_ptr<Word> word = data_stack.back();
     data_stack.pop_back();
-    if (word != NULL) {
-      MachineState * ms = this;
-      checkAndStreamWord(ms, word->name(), "popData");
-    } else {
-      MachineState * ms = this;
-      checkAndStreamWord(ms, "", "popData");
-    }
-    return word; 
-  } else {
-    MachineState * ms = this;
-    checkAndStreamWord(ms, "", "popData");
+    return word;
+  } else{
     return NULL;
   }
 }
@@ -183,29 +171,23 @@ bool MachineState::pushControl(string token) {
 
 bool MachineState::pushControl(std::shared_ptr<Word> word) {
   control_stack.push_back(word);
-  MachineState * ms = this;
-  checkAndStreamWord(ms, word->name(), "pushControl");
   return true;
 }
 
 
 void MachineState::clearStack() {
   call_stack.resize(0);
-  MachineState * ms = this;
-  checkAndStreamWord(ms, "", "clear");
 }
 
 void MachineState::clearData() {
   data_stack.resize(0);
-  MachineState * ms = this;
-  checkAndStreamWord(ms, "", "clearData");
 }
 
 void MachineState::execute(shared_ptr<Word> word) {
   if (word != NULL) {
     current_instruction = word;
     MachineState * ms = this;
-    checkAndStreamWord(ms, word->name(), "execute");
+
     try {
       word->execute(this);
     } catch(const std::exception & e) {
@@ -225,17 +207,8 @@ shared_ptr<Word> MachineState::popWord() {
   if (call_stack.size() > 0) {
     std::shared_ptr<Word> word = call_stack.back();
     call_stack.pop_back();
-    if (word != NULL) {
-      MachineState * ms = this;
-      checkAndStreamWord(ms, word->name(), "pop");
-    } else {
-      MachineState * ms = this;
-      checkAndStreamWord(ms, "", "pop");
-    }
     return word; 
   } else {
-    MachineState * ms = this;
-    checkAndStreamWord(ms, "", "pop");
     return NULL;
   }
 }
@@ -306,7 +279,7 @@ vector<string> tokenize_string(const string program) {
     }
     return tokens;
   } catch(escaped_forth_error &e) {
-    ROS_ERROR_STREAM("Error tokenizing: " << e.what() << endl);
+    cerr << "Error tokenizing: " << e.what() << endl;
     vector<string> empty;
     return empty;
   }
@@ -770,6 +743,7 @@ string InputFileWord::readfile()
 bool InputFileWord::close()
 {
   fstream.close();
+  return true;
 }
 
 
@@ -805,4 +779,5 @@ bool OutputFileWord::write(string s)
 bool OutputFileWord::close()
 {
   fstream.close();
+  return true;
 }

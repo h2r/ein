@@ -3,7 +3,6 @@
 
 #include "gaussianmapwidget.h"
 #include <QMainWindow>
-#include <cv.h>
 
 #include "window_QT.h"
 

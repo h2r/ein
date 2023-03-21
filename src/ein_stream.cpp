@@ -2,8 +2,6 @@
 #include "ein.h"
 #include "camera.h"
 #include "qtgui/streamviewerwindow.h"
-#include <highgui.h>
-
 
 int loadStreamImage(MachineState * ms, streamImage * tsi) {
   if (tsi == NULL) {
@@ -20,35 +18,12 @@ int loadStreamImage(MachineState * ms, streamImage * tsi) {
       return 0;
     }
   }
+  return -1;
 }
 
 
 namespace ein_words {
 
-WORD(StreamLabel)
-virtual void execute(MachineState * ms)
-{
-  string thisLabel;
-  GET_ARG(ms, StringWord, thisLabel);
-
-  cout << "streamLabel: " << thisLabel << endl;
-
-  int cfClass = ms->config.focusedClass;
-  if ((cfClass > -1) && (cfClass < ms->config.classLabels.size()) && (ms->config.sensorStreamOn) && (ms->config.sisLabel)) {
-    ros::Time rNow = ros::Time::now();
-    double thisNow = rNow.toSec();
-    streamLabelAsClass(ms, thisLabel, cfClass, thisNow);
-
-    for (int i = 0; i < ms->config.streamLabelBuffer.size(); i++) {
-      cout << "  streamLabelBuffer[" << i << "] = " << ms->config.streamLabelBuffer[i].label << " " << ms->config.streamLabelBuffer[i].time << endl;;
-    }
-  } else {
-    cout << "  streamLabel failed " << thisLabel << endl;
-cout << " XXX " << (cfClass > -1)  << (cfClass < ms->config.classLabels.size()) << (ms->config.sensorStreamOn) << (ms->config.sisLabel) << endl;
-  } // do nothing
-}
-END_WORD
-REGISTER_WORD(StreamLabel)
 
 WORD(RestoreIkShare)
 virtual void execute(MachineState * ms)
@@ -104,53 +79,6 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(BringUpAllNonessentialSystems)
-
-WORD(ActivateSensorStreaming)
-virtual string description() {
-  return "Start streaming data; you might want to set the SiS (\"Should I Stream?\") first using setSisFlags or streamSetSis.";
-}
-virtual void execute(MachineState * ms)
-{
-  activateSensorStreaming(ms);
-}
-END_WORD
-REGISTER_WORD(ActivateSensorStreaming)
-
-WORD(DeactivateSensorStreaming)
-virtual string description() {
-  return "Stop streaming data.";
-}
-virtual void execute(MachineState * ms)
-{
-  deactivateSensorStreaming(ms);
-}
-END_WORD
-REGISTER_WORD(DeactivateSensorStreaming)
-
-WORD(StreamWriteBuffersToDisk)
-virtual string description() {
-  return "Write what is in the stream buffer to disk.";
-}
-virtual void execute(MachineState * ms)
-{
-  REQUIRE_FOCUSED_CLASS(ms,tfc);
-
-  CONSOLE(ms, "Writing to " << streamDirectory(ms, tfc));
-
-  writeRangeBatchAsClass(ms, tfc);	
-  writePoseBatchAsClass(ms, tfc);	
-  writeJointsBatchAsClass(ms, tfc);	
-  writeWordBatchAsClass(ms, tfc);	
-  writeLabelBatchAsClass(ms, tfc);
-  for (int i = 0; i < ms->config.cameras.size(); i++) {
-    ms->config.cameras[i]->writeImageBatchAsClass(tfc);
-  }
-
-}
-END_WORD
-REGISTER_WORD(StreamWriteBuffersToDisk)
-
-
 
 
 WORD(SetSisFlags)
@@ -239,84 +167,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(ClearStreamBuffers)
 
-WORD(PopulateStreamBuffers)
-virtual void execute(MachineState * ms)
-{
-  for (int i = 0; i < ms->config.cameras.size(); i++) {
-    ms->config.cameras[i]->clearStreamBuffer();
-    ms->config.cameras[i]->populateStreamImageBuffer();
-  }
-  ms->config.streamPoseBuffer.resize(0);
-  ms->config.streamRangeBuffer.resize(0);
-
-
-  populateStreamPoseBuffer(ms);
-  populateStreamRangeBuffer(ms);
-  populateStreamJointsBuffer(ms);
-  populateStreamWordBuffer(ms);
-  populateStreamLabelBuffer(ms);
-
-  sort(ms->config.streamRangeBuffer.begin(), ms->config.streamRangeBuffer.end(), streamRangeComparator);
-  sort(ms->config.streamPoseBuffer.begin(), ms->config.streamPoseBuffer.end(), streamPoseComparator);
-  sort(ms->config.streamJointsBuffer.begin(), ms->config.streamJointsBuffer.end(), streamJointsComparator);
-  sort(ms->config.streamWordBuffer.begin(), ms->config.streamWordBuffer.end(), streamWordComparator);
-  sort(ms->config.streamLabelBuffer.begin(), ms->config.streamLabelBuffer.end(), streamLabelComparator);
-}
-END_WORD
-REGISTER_WORD(PopulateStreamBuffers)
-
-WORD(IntegrateRangeStreamBuffer)
-virtual void execute(MachineState * ms)
-{
-  int thisFc = ms->config.focusedClass;
-  if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
-  } else {
-    cout << "integrateRangeStreamBuffer sees an invalid focused class, clearing call stack." << endl;
-    ms->clearStack();
-    return;
-  }
-
-  initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
-
-
-  int p_printSkip = 1000; 
-
-  for (int i = 0; i < ms->config.streamRangeBuffer.size(); i++) {
-    streamRange &tsr = ms->config.streamRangeBuffer[i];
-    eePose tArmP, tBaseP, tRelP;
-    int success = ms->getStreamPoseAtTime(tsr.time, &tArmP, &tBaseP);
-    tRelP = tArmP.getPoseRelativeTo(tBaseP); 
-    double tRange = tsr.range;
-
-    //cout << "got stream pose at time " << tsr.time << " " << tArmP << tBaseP << tRelP << endl;
-
-    if (success) {
-
-      // this allows us to stitch together readings from different scans
-      //cout << "XXX: " << endl << tArmP << tBaseP << tRelP << tRelP.applyAsRelativePoseTo(tBaseP) << "YYY" << endl;
-      eePose thisCrane = tBaseP;
-      thisCrane.copyQ(ms->config.straightDown); 
-      eePose thisCraneRelativeThisBase = thisCrane.getPoseRelativeTo(tBaseP);
-
-      eePose rebasedRelative = tRelP.applyAsRelativePoseTo(thisCraneRelativeThisBase);
-      eePose rebasedArm = rebasedRelative.applyAsRelativePoseTo(tBaseP);
-
-      Eigen::Vector3d rayDirection;
-      castRangeRay(ms, tRange, rebasedArm, &rayDirection);
-    } else {
-      cout << "ray " << i << " failed to get pose, not casting." << endl;
-    }
-  }
-
-  ms->pushWord("fullRender"); 
-  ms->pushWord("paintReticles"); 
-  ms->pushWord("shiftIntoGraspGear1"); 
-  ms->pushWord("drawMapRegisters"); 
-  ms->pushWord("downsampleIrScan"); 
-}
-END_WORD
-REGISTER_WORD(IntegrateRangeStreamBuffer)
-
 
 WORD(RewindImageStreamBuffer)
 virtual void execute(MachineState * ms)
@@ -338,91 +188,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(RewindImageStreamBufferNLNK)
 
-WORD(IntegrateImageStreamBufferCrops)
-virtual void execute(MachineState * ms)
-{
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-  int thisFc = ms->config.focusedClass;
-  if ( (thisFc > -1) && (thisFc < ms->config.classLabels.size()) ) {
-  } else {
-    cout << "integrateImageStreamBuffer sees an invalid focused class, clearing call stack." << endl;
-    ms->clearStack();
-    return;
-  }
-
-  initClassFolders(ms, ms->config.data_directory + "/objects/" + ms->config.classLabels[thisFc] + "/");
-
-  // backwards because it's a stack
-  // XXX this should increment without loading and only load if it passes the test
-
-  int keptSamples = 0;
-  for (int i = camera->streamImageBuffer.size()-1; i > -1; i--) {
-    // should really check pose here and only process if it is good.
-    streamImage * tsi = camera->setIsbIdxNoLoad(i);
-    if (tsi == NULL) {
-      cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
-    } else {
-    }
-
-    eePose tArmP, tBaseP;
-    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
-
-    double thisZ = tArmP.pz - tBaseP.pz;
-    eePose thisVpBaseheight;
-    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
-    pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
-
-    double p_dist_thresh = 0.07;
-    double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
-    // only load if we pass the distance test
-	
-    if (dist_to_base < p_dist_thresh) {
-      cout << "Counting stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-	  keptSamples++;
-    } else {
-    }
-  }
-
-  for (int i = camera->streamImageBuffer.size()-1; i > -1; i--) {
-    //ms->pushWord("endStackCollapseNoop");
-    ms->pushWord("incrementImageStreamBuffer");
-
-    // should really check pose here and only process if it is good.
-    streamImage * tsi = camera->setIsbIdxNoLoad(i);
-    if (tsi == NULL) {
-      cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
-    } else {
-    }
-
-    eePose tArmP, tBaseP;
-    int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
-
-    double thisZ = tArmP.pz - tBaseP.pz;
-    eePose thisVpBaseheight;
-    thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
-    pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
-
-    double p_dist_thresh = 0.07;
-    double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
-    // only load if we pass the distance test
-	
-	double keepFraction = ms->config.expectedCropsToStream / double(keptSamples);
-	int keepSample = ( (drand48()) < (keepFraction) );
-    if ((dist_to_base < p_dist_thresh) && keepSample) {
-      cout << "Stream crop vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-	  cout << keepFraction << " " << ms->config.expectedCropsToStream << " " << keptSamples << endl;
-
-      //ms->pushWord("streamCropsAsFocusedClass");
-      ms->pushWord("streamCenterCropAsFocusedClass");
-      ms->pushWord("goFindBlueBoxes"); 
-      ms->pushWord("streamedDensity"); 
-    } else {
-    }
-  }
-  ms->pushWord("rewindImageStreamBuffer"); 
-}
-END_WORD
-REGISTER_WORD(IntegrateImageStreamBufferCrops)
 
 WORD(SetExpectedCropsToStream)
 virtual void execute(MachineState * ms)
@@ -545,123 +310,6 @@ virtual void execute(MachineState * ms)
 END_WORD
 REGISTER_WORD(ImageStreamBufferLoadCurrent)
 
-
-
-WORD(StreamCropsAsFocusedClass)
-virtual void execute(MachineState * ms)       {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  streamImage * tsi = camera->setIsbIdxNoLoad(camera->sibCurIdx);
-  if (tsi == NULL) {
-    cout << "streamCropsAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
-  } else {
-  }
-
-  eePose tArmP, tBaseP;
-  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
-
-  double thisZ = tArmP.pz - tBaseP.pz;
-  eePose thisVpBaseheight;
-  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
-  pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
-
-  double p_dist_thresh = 0.07;
-  double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
-  // only load if we pass the distance test
-  if (dist_to_base < p_dist_thresh) {
-    cout << "streamCropsAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    tsi = camera->setIsbIdx(camera->sibCurIdx);
-    if (tsi == NULL) {
-      cout << "streamCropsAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
-    } else {
-    }
-  } else {
-    cout << "streamCropsAsFocusedClass: vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    return;
-  }
-
-  if ( ms->config.focusedClass > -1 ) {
-    for (int c = 0; c < ms->config.bTops.size(); c++) {
-      // XXX TODO want to annotate these crops with a yaml file that includes pose and time
-      string thisLabelName = ms->config.focusedClassLabel;
-      Mat thisTarget = tsi->image;
-      Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
-      std::stringstream buf;
-      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
-
-      ros::Time thisNow = ros::Time::now();
-      buf << this_crops_path << ms->config.run_prefix << ms->config.robot_serial << ms->config.left_or_right_arm << std::setprecision (std::numeric_limits<double>::digits10 + 1) << thisNow << ".png";
-      // no compression!
-      std::vector<int> args;
-      args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-      args.push_back(ms->config.globalPngCompression);
-      imwrite(buf.str(), crop, args);
-      ms->config.cropCounter++;
-    }
-  } else {
-  }
-}
-END_WORD
-REGISTER_WORD(StreamCropsAsFocusedClass)
-
-WORD(StreamCenterCropAsFocusedClass)
-virtual void execute(MachineState * ms)       {
-  Camera * camera  = ms->config.cameras[ms->config.focused_camera];
-
-  streamImage * tsi = camera->setIsbIdxNoLoad(camera->sibCurIdx);
-  if (tsi == NULL) {
-    cout << "streamCenterCropAsFocusedClass: setIsbIdxNoLoad returned null. Returning." << endl;
-  } else {
-  }
-
-  eePose tArmP, tBaseP;
-  int success = ms->getStreamPoseAtTime(tsi->time, &tArmP, &tBaseP);
-
-  double thisZ = tArmP.pz - tBaseP.pz;
-  eePose thisVpBaseheight;
-  thisVpBaseheight.pz = tBaseP.pz + (thisZ - convertHeightIdxToLocalZ(ms, ms->config.mappingHeightIdx));
-  pixelToGlobal(ms, camera->vanishingPointReticle.px, camera->vanishingPointReticle.py, thisZ, &thisVpBaseheight.px, &thisVpBaseheight.py, tArmP);
-
-  double p_dist_thresh = 0.07;
-  double dist_to_base = eePose::distance(tBaseP, thisVpBaseheight);
-  // only load if we pass the distance test
-  if (dist_to_base < p_dist_thresh) {
-    cout << "streamCenterCropAsFocusedClass: vanishing point to base test SUCCESS, accepting, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    tsi = camera->setIsbIdx(camera->sibCurIdx);
-    if (tsi == NULL) {
-      cout << "streamCenterCropAsFocusedClass: setIsbIdx returned null after distance check! Returning." << endl;
-    } else {
-    }
-  } else {
-    cout << "streamCenterCropAsFocusedClass: vanishing point to base test FAILURE, skipping, dist_to_base, p_dist_thresh: " << dist_to_base << " " << p_dist_thresh << endl;
-    return;
-  }
-
-  if ( ms->config.focusedClass > -1 ) {
-    int c = ms->config.pilotClosestBlueBoxNumber;
-    if ( (c > -1) && (c < ms->config.bTops.size()) ) {
-      // XXX TODO want to annotate these crops with a yaml file that includes pose and time
-      string thisLabelName = ms->config.focusedClassLabel;
-      Mat thisTarget = tsi->image;
-      Mat crop = thisTarget(cv::Rect(ms->config.bTops[c].x, ms->config.bTops[c].y, ms->config.bBots[c].x-ms->config.bTops[c].x, ms->config.bBots[c].y-ms->config.bTops[c].y));
-      std::stringstream buf;
-      string this_crops_path = ms->config.data_directory + "/objects/" + thisLabelName + "/ein/detectionCrops/";
-
-      ros::Time thisNow = ros::Time::now();
-      buf << this_crops_path << ms->config.run_prefix << ms->config.robot_serial << ms->config.left_or_right_arm << std::setprecision (std::numeric_limits<double>::digits10 + 1) << thisNow.toSec() << ".png";
-cout << "  saving to " << buf.str() << " with this_crops_path " << this_crops_path;
-      // no compression!
-      std::vector<int> args;
-      args.push_back(CV_IMWRITE_PNG_COMPRESSION);
-      args.push_back(ms->config.globalPngCompression);
-      imwrite(buf.str(), crop, args);
-      ms->config.cropCounter++;
-    }
-  } else {
-  }
-}
-END_WORD
-REGISTER_WORD(StreamCenterCropAsFocusedClass)
 
 
 WORD(IntegrateImageStreamBufferServoImages)
@@ -828,38 +476,6 @@ virtual void execute(MachineState * ms)
 }
 END_WORD
 REGISTER_WORD(MapAndPick)
-
-WORD(PickAllBlueBoxes)
-virtual void execute(MachineState * ms)
-{
-  int foundOne = 0;
-  int foundClass = -1;
-  cout << "pickAllBlueBoxes: promoting blue boxes" << endl;
-  promoteBlueBoxes(ms);
-
-  // loop through blue boxes
-  int nc = ms->config.classLabels.size();
-  for (int i = 0; i < nc; i++) {
-    int idxOfFirst = -1;
-    vector<BoxMemory> focusedClassMemories = memoriesForClass(ms, i, &idxOfFirst);
-
-    if (idxOfFirst == -1) {
-      cout << "No POSE_REPORTED objects of class" << i << "." << endl;
-    } else {
-      cout << "Found a POSE_REPORTED object of class" << i << ". Picking it." << endl;
-
-      ms->pushWord("pickAllBlueBoxes");
-      ms->pushWord("deliverObject");
-      ms->pushWord(std::make_shared<StringWord>(ms->config.classLabels[i]));
-      ms->config.endThisStackCollapse = 1;
-      return;
-    }
-  }
-
-  cout << "Found no POSE_REPORTED objects of any class" << endl;
-}
-END_WORD
-REGISTER_WORD(PickAllBlueBoxes)
 
 WORD(SetRandomPositionAfterPick)
 virtual void execute(MachineState * ms)

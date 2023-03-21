@@ -6,7 +6,7 @@
 #include <fstream>
 #include <memory>
 
-#include <object_recognition_msgs/RecognizedObjectArray.h>
+
 
 
 
