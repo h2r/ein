@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import rospy
+import rclpy
+from rclpy.node import Node
+import threading
 
-import std_msgs
+from std_msgs.msg import String
 import readline
 
 from ein.msg import EinState
@@ -40,19 +42,21 @@ class SimpleCompleter(object):
         return response
 
 
-class EinClient:
+class EinClient(Node):
     def __init__(self, words, base_topic, print_console_messages, print_stacks):
-        print "base topic: ", base_topic
+        super().__init__('EinClient')
+
+        print("base topic: ", base_topic)
 
         self.print_console_messages = print_console_messages
         self.print_stacks = print_stacks
-        self.forth_command_publisher = rospy.Publisher("%s/forth_commands" % base_topic, 
-                                                       std_msgs.msg.String, queue_size=10)
+        self.forth_command_publisher = self.create_publisher(String, "%s/forth_commands" % base_topic, 
+                                                             10)
 
-        self.state_subscriber = rospy.Subscriber("%s/state" % base_topic, 
-                                                 EinState, self.state_callback)
-        self.console_subscriber = rospy.Subscriber("%s/console" % base_topic, 
-                                                   EinConsole, self.einconsole_callback)
+        self.state_subscriber = self.create_subscription(EinState, "%s/state" % base_topic, 
+                                                         self.state_callback, 10)
+        self.console_subscriber = self.create_subscription(EinConsole, "%s/console" % base_topic, 
+                                                           self.einconsole_callback, 10)
 
         self.state = None
         self.call_stack = []
@@ -76,22 +80,27 @@ class EinClient:
 
 
     def printCallStack(self):
-        print "Call Stack: "
+        print("Call Stack: ")
         for word in reversed(self.call_stack):
-            print " ".rjust(15), word
+            print(" ".rjust(15) + " " + word)
 
     def printDataStack(self):
-        print "Data Stack: "
+        print("Data Stack: ")
         for word in reversed(self.data_stack):
-            print " ".rjust(15), word
+            print(" ".rjust(15) + word)
 
 
     def ask(self):
-        while not rospy.is_shutdown():
-            rospy.sleep(0.2)
+
+        thread = threading.Thread(target=rclpy.spin, args=(self, ), daemon=True)
+        thread.start()
+        rate = self.create_rate(0.2)
+        
+        while rclpy.ok():
+            rate.sleep()
             if self.print_console_messages:
-                print "Console: "
-                print "\t" + "\n\t".join(self.console_messages)
+                print("Console: ")
+                print("\t" + "\n\t".join(self.console_messages))
             if self.print_stacks:
                 self.printCallStack()
                 self.printDataStack()
@@ -104,6 +113,7 @@ class EinClient:
                 break
             #print 'ENTERED: "%s"' % line
             self.forth_command_publisher.publish(line);
+            rclpy.spinOnce()
 
 def save_history_hook():
     import os
@@ -133,15 +143,11 @@ def main():
     parser.add_argument('--silence-stacks', action='store_true',
                         help='Whether we should print the stacks.')
 
-    parser.add_argument('arm', nargs=1, choices=("left", "right"),
-                        help='Which arm to use.')
-
     args = parser.parse_args()
-    arm = args.arm[0]
 
 
 
-    rospy.init_node("ein_client_%s" % arm, anonymous=True)
+    rclpy.init()
     #words = []
     #for wordline in open("ein_words.txt"):
     #    words.append(wordline.split(" ")[0])
@@ -149,10 +155,10 @@ def main():
     #print words
 
 
-    client = EinClient([], "/ein/%s" % arm, not args.silence_console_messages, not args.silence_stacks)
+    client = EinClient([], "/ein/left", not args.silence_console_messages, not args.silence_stacks)
     rows, cols = os.popen('stty size', 'r').read().split()
     rows = int(rows)
-    print "".rjust(rows, "\n")
+    print("".rjust(rows, "\n"))
 
     signal.signal(signal.SIGHUP, hangup)
     client.ask()

@@ -34,6 +34,7 @@
   <!-- Examples: -->
   <!-- Use build_depend for packages you need at compile time: -->
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 

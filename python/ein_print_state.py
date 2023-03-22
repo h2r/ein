@@ -1,23 +1,28 @@
 #!/usr/bin/env python
-import rospy
+import rclpy
+from rclpy.node import Node
 import math
 from ein.msg import EinState
 import os
-class EinPrint:
-    def __init__(self, topic):
+class EinPrint(Node):
 
-        self.state_subscriber = rospy.Subscriber(topic, 
-                                                 EinState, self.state_callback, queue_size=1)
+    def __init__(self, topic):
+        super().__init__('EinPrint')
+        self.state_subscriber = self.create_subscription(EinState, topic, 
+                                                         self.state_callback, 10)
         self.state = None
         self.call_stack = []
         self.data_stack = []
-        self.lastrun = rospy.get_rostime()
+        self.lastrun = self.get_clock().now()
+
+        self.rate = self.create_rate(0.1)
+        
 
     def state_callback(self, msg):
-        if rospy.get_rostime() - self.lastrun < rospy.Duration(0.25):
+        if self.get_clock().now() - self.lastrun < rclpy.Duration(0.25):
             return
 
-        self.lastrun = rospy.get_rostime()
+        self.lastrun = self.get_clock().now()
             
         state = str(msg.state_string)
 
@@ -31,11 +36,12 @@ class EinPrint:
         lines_to_add = max(0, rows - num_lines - 1)
         state +="".rjust(lines_to_add, "\n")
         #print "num_lines: ", num_lines, "rows", rows, "lines to add", lines_to_add
-        print state
-        rospy.sleep(0.1)
+        print(state)
+        self.rate.sleep()
     def spin(self):
-        while not rospy.is_shutdown():
-            rospy.sleep(0.3)
+        rate = self.create_rate(0.3)
+        while rclpy.ok():
+            rate.sleep()
 def hangup(signal, stackframe):
     import signal
     import os
@@ -44,17 +50,16 @@ def hangup(signal, stackframe):
 def main():
     import sys
     import signal
-    if (len(sys.argv) != 2):
-        print "usage:  ein_print_state.py left|right"
+    if (len(sys.argv) != 1):
+        print("usage:  ein_print_state.py")
         return
 
-    arm = sys.argv[1]
     signal.signal(signal.SIGHUP, hangup)
 
-    rospy.init_node("ein_print_state_%s" % arm, anonymous=True)
+    rclpy.init()
 
 
-    client = EinPrint("/ein/%s/state" % arm)
+    client = EinPrint("/ein/left/state")
     client.spin()
 
 

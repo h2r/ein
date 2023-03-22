@@ -7,32 +7,27 @@ split
 split -v
 
 screen -t " state" 
-stuff "source setup.sh"
-stuff "rosrun ein ein_print_state.py $ARM"
+stuff "cd src/ein && python3 python/ein_print_state.py"
 
 split -v
 focus
 screen -t " call_stack" 
-stuff "source setup.sh"
-stuff "rosrun ein ein_print_stack.py $ARM call"
+stuff "cd src/ein && python3 python/ein_print_stack.py call"
 
 split -v
 focus
 screen -t " data_stack" 
-stuff "source setup.sh"
-stuff "rosrun ein ein_print_stack.py $ARM data"
+stuff "cd src/ein && python3 python/ein_print_stack.py data"
 
 
 focus
 screen -t " console"
-stuff "source setup.sh"
-stuff "rosrun ein ein_print_console.py $ARM"
+stuff "cd src/ein && python3 python/ein_print_console.py "
 
 
 focus
 screen -t " repl"
-stuff "source setup.sh"
-stuff "rosrun ein ein_client.py --silence-console-messages --silence-stacks $ARM"
+stuff "cd src/ein && python3 python/ein_client.py --silence-console-messages --silence-stacks "
 
 
 
