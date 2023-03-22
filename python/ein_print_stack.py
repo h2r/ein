@@ -18,8 +18,10 @@ class EinStack(Node):
         self.data_stack = []
         self.stack_to_use = stack_to_use
 
+        self.timer = self.create_timer(0.2, self.printCallback)
+        
+
     def state_callback(self, msg):
-        #print "received state."
         self.state = msg
         self.call_stack = self.state.call_stack
         self.data_stack = self.state.data_stack
@@ -27,7 +29,7 @@ class EinStack(Node):
     def printStack(self, stack):
         rows, cols = os.popen('stty size', 'r').read().split()
         rows = int(rows)
-        print("rows " + rows)
+        print("rows " + str(rows))
         stack_to_print = stack[0:rows]
         string = ""
         if len(stack_to_print) != rows:
@@ -40,16 +42,14 @@ class EinStack(Node):
     def printDataStack(self):
         self.printStack(self.data_stack)
 
-    def spin(self):
-        rate = self.create_rate(0.2)
-        while rclpy.ok():
-            rate.sleep()
-            if self.stack_to_use == "call":
-                self.printCallStack()
-            elif self.stack_to_use == "data":
-                self.printDataStack()
-            else:
-                raise ValueError("Bad stack: %s" % self.stack_to_use)
+    def printCallback(self):
+        if self.stack_to_use == "call":
+            self.printCallStack()
+        elif self.stack_to_use == "data":
+            self.printDataStack()
+        else:
+            raise ValueError("Bad stack: %s" % self.stack_to_use)
+
 def hangup(signal, stackframe):
     import signal
     import os
@@ -70,10 +70,12 @@ def main():
 
     rclpy.init()
 
-    signal.signal(signal.SIGHUP, hangup)
+    #signal.signal(signal.SIGHUP, hangup)
     client = EinStack("/ein/left/state", stack)
-    client.spin()
+    rclpy.spin(client)
 
+    client.destroy_node()
+    rclpy.shutdown()
 
     
 if __name__=='__main__':

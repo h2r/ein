@@ -1210,6 +1210,7 @@ void MachineState::timercallback1() {
   if (rclcpp::Clock{}.now() - ms->config.lastStatePubTime > rclcpp::Duration(0.1, 0)) {
     ein::msg::EinState state;
     fillEinStateMsg(ms, &state);
+    //cout << "Publishing state." << endl;
     ms->config.einStatePub->publish(state);
     ms->config.lastStatePubTime = rclcpp::Clock{}.now();
   }
@@ -1237,7 +1238,7 @@ void MachineState::publishConsoleMessage(string msg) {
   ein::msg::EinConsole consoleMsg;
   consoleMsg.msg = msg;
   ms->config.einConsolePub->publish(consoleMsg);
-  cout << "Console: " << msg;
+  cout << "Console: " << msg << endl;
 }
 
 
@@ -3617,7 +3618,7 @@ int main(int argc, char **argv) {
   signal(SIGHUP, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  
+  cout << "Spinning ." << endl;
   rclcpp::spin(node);
 
   return 0;

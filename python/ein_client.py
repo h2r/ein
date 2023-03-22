@@ -57,6 +57,7 @@ class EinClient(Node):
                                                          self.state_callback, 10)
         self.console_subscriber = self.create_subscription(EinConsole, "%s/console" % base_topic, 
                                                            self.einconsole_callback, 10)
+        self.timer = self.create_timer(0.2, self.timerCallback)
 
         self.state = None
         self.call_stack = []
@@ -90,30 +91,23 @@ class EinClient(Node):
             print(" ".rjust(15) + word)
 
 
-    def ask(self):
-
-        thread = threading.Thread(target=rclpy.spin, args=(self, ), daemon=True)
-        thread.start()
-        rate = self.create_rate(0.2)
-        
-        while rclpy.ok():
-            rate.sleep()
-            if self.print_console_messages:
-                print("Console: ")
-                print("\t" + "\n\t".join(self.console_messages))
-            if self.print_stacks:
-                self.printCallStack()
-                self.printDataStack()
-            try:
-                line = raw_input('Prompt: ')
-            except EOFError:
-                break
+    def timerCallback(self):
+        if self.print_console_messages:
+            print("Console: ")
+            print("\t" + "\n\t".join(self.console_messages))
+        if self.print_stacks:
+            self.printCallStack()
+            self.printDataStack()
+        try:
+            line = input('Prompt: ')
+        except EOFError:
+            return
     
-            if line == 'stop':
-                break
-            #print 'ENTERED: "%s"' % line
-            self.forth_command_publisher.publish(line);
-            rclpy.spinOnce()
+        if line == 'stop':
+            return
+        msg = String()
+        msg.data = line
+        self.forth_command_publisher.publish(msg);
 
 def save_history_hook():
     import os
@@ -161,7 +155,10 @@ def main():
     print("".rjust(rows, "\n"))
 
     signal.signal(signal.SIGHUP, hangup)
-    client.ask()
+    rclpy.spin(client)
+    client.destroy_node()
+    rclpy.shutdown()
+
 
 
     

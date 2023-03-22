@@ -15,11 +15,8 @@ class EinPrint(Node):
         self.data_stack = []
         self.lastrun = self.get_clock().now()
 
-        self.rate = self.create_rate(0.1)
-        
-
     def state_callback(self, msg):
-        if self.get_clock().now() - self.lastrun < rclpy.Duration(0.25):
+        if self.get_clock().now() - self.lastrun < rclpy.duration.Duration(seconds=0.25):
             return
 
         self.lastrun = self.get_clock().now()
@@ -37,12 +34,9 @@ class EinPrint(Node):
         state +="".rjust(lines_to_add, "\n")
         #print "num_lines: ", num_lines, "rows", rows, "lines to add", lines_to_add
         print(state)
-        self.rate.sleep()
-    def spin(self):
-        rate = self.create_rate(0.3)
-        while rclpy.ok():
-            rate.sleep()
-def hangup(signal, stackframe):
+
+
+def hangoup(signal, stackframe):
     import signal
     import os
     os.kill(os.getpid(), signal.SIGTERM)
@@ -54,14 +48,16 @@ def main():
         print("usage:  ein_print_state.py")
         return
 
-    signal.signal(signal.SIGHUP, hangup)
+    #signal.signal(signal.SIGHUP, hangup)
 
     rclpy.init()
 
 
     client = EinPrint("/ein/left/state")
-    client.spin()
+    rclpy.spin(client)
 
+    client.destroy_node()
+    rclpy.shutdown()
 
     
 if __name__=='__main__':

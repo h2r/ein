@@ -1,0 +1,21 @@
+startup_message off
+
+defscrollback 5000
+
+escape ``
+
+hardstatus             alwayslastline
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %d/%m %{W}%c %{g}]'
+
+multiuser on
+
+screen -t " einR"
+stuff "colcon build && gdb --args ./build/ein/einx physical left nogui"
+screen -t " replR"
+stuff "screen -m -c src/ein/ein_client.screenrc"
+screen -t " emacs"
+stuff "emacs -nw src/ein/src/ein.cpp"
+screen -t " free"
+screen -t " website"
+stuff "cd src/ein/doc && jekyll serve"
+

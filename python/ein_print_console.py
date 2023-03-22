@@ -1,24 +1,22 @@
 #!/usr/bin/env python
-import rospy
+
+import rclpy
+from rclpy.node import Node
+
 
 from ein.msg import EinConsole
 import os
-class EinPrint:
+class EinPrint(Node):
     def __init__(self, topic):
-
-        self.state_subscriber = rospy.Subscriber(topic, 
-                                                 EinConsole, self.einconsole_callback)
-        self.state = None
-        self.call_stack = []
-        self.data_stack = []
-        
+        super().__init__('EinPrint')
+        print("topic: " + topic)
+        self.state_subscriber = self.create_subscription(EinConsole, topic, 
+                                                         self.einconsole_callback, 10)
 
     def einconsole_callback(self, msg):
-        print str(msg.msg)
+        print("got msg")
+        print(str(msg.msg))
 
-    def spin(self):
-        while not rospy.is_shutdown():
-            rospy.sleep(0.2)
 
 def hangup(signal, stackframe):
     import signal
@@ -30,20 +28,24 @@ def main():
     import sys
     import signal
 
-    if (len(sys.argv) != 2):
-        print "usage:  ein_print_console.py left|right"
+    if (len(sys.argv) != 1):
+        print("usage:  ein_print_console.py")
         return
 
-    arm = sys.argv[1]
-    signal.signal(signal.SIGHUP, hangup)
-    rospy.init_node("ein_print_console_%s" % arm, anonymous=True)
+
+    #signal.signal(signal.SIGHUP, hangup)
+    rclpy.init()
 
     rows, cols = os.popen('stty size', 'r').read().split()
     rows = int(rows)
-    print "".rjust(rows, "\n")
+    print("".rjust(rows, "\n"))
 
-    client = EinPrint("/ein/%s/console" % arm)
-    client.spin()
+    client = EinPrint("/ein/left/console")
+    print("spinning")
+    rclpy.spin(client)
+
+    client.destroy_node()
+    rclpy.shutdown()
 
 
     
