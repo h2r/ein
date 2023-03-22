@@ -146,23 +146,13 @@ void initializeMachine(MachineState * ms) {
   ms->execute_stack = 1;
 
   ms->evaluateProgram("\"init\" import");
-  ms->pushWord("sceneInit"); 
-
-
+ 
   stringstream s;
   s << "*** Starting Ein " << ms->config.ein_software_version << " " << ms->config.left_or_right_arm << " at " << formatTime(rclcpp::Clock{}.now());
   cout << "start message: " << s.str() << endl;
-  ms->pushWord("print");
-  ms->pushData(make_shared<StringWord>(s.str()));
 
   robotInitializeMachine(ms);
-
-
-  ms->pushWord("loadCalibration"); 
-  ms->pushWord("loadConfig"); 
-  ms->pushWord("initializeConfig");
-  ms->pushWord("guiCustom1"); 
-  
+`  
 }
 
 
