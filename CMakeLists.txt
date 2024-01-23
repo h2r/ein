@@ -39,6 +39,7 @@ find_package(OpenCV)
 
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(object_recognition_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
@@ -173,13 +174,14 @@ ament_export_dependencies(Eigen3)
 #qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 
 install(TARGETS einx DESTINATION lib/${PROJECT_NAME})
+find_package(spot_msgs REQUIRED)
 
 add_definitions(-DUSE_ROBOT_SPOT)
 #add_definitions(-DBOOST_NO_CXX11_SCOPED_ENUMS)
 add_library(EinSpot SHARED
-src/spot/ein_spot.cpp 
+  src/spot/ein_spot.cpp
 )
-ament_target_dependencies(EinSpot OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport)
+ament_target_dependencies(EinSpot OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport spot_msgs std_srvs)
 target_link_libraries(einx EinSpot Boost::filesystem Boost::regex)
 target_link_libraries(EinSpot ${cpp_typesupport_target})
 

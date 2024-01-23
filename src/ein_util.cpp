@@ -152,7 +152,7 @@ void initializeMachine(MachineState * ms) {
   cout << "start message: " << s.str() << endl;
 
   robotInitializeMachine(ms);
-`  
+
 }
 
 

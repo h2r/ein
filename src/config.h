@@ -362,6 +362,7 @@ class EinPidroneConfig;
 class EinJacoConfig;
 class EinMovoConfig;
 class EinKukaConfig;
+class EinSpotConfig;
 
 class EinConfig {
  public:
@@ -372,8 +373,9 @@ class EinConfig {
   EinJacoConfig * jacoConfig;
   EinMovoConfig * movoConfig;
   EinKukaConfig * kukaConfig;
+  EinSpotConfig * spotConfig;
 
-  
+  rclcpp::Node::SharedPtr node;
   std::shared_ptr<tf2_ros::TransformListener> tfListener{nullptr};
 
   std::unique_ptr<tf2_ros::Buffer> tf_buffer;  

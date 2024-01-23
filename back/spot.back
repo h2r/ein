@@ -1,0 +1,1 @@
+( ( dup spotActionIsComplete ) ( 0.01 waitForSeconds ) while ) "Wait until the trigger action passed as an argument is done."  "waitForWord" define

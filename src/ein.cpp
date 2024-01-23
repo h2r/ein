@@ -3311,30 +3311,6 @@ void initializeArm(rclcpp::Node::SharedPtr node, MachineState * ms, string left_
 
 void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
 
-//  ms->config.gripperMaskFirstContrastWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskFirstContrastWindow->setWindowTitle("Gripper Mask First Contrast " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskFirstContrastWindow);
-//
-//  ms->config.gripperMaskSecondContrastWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskSecondContrastWindow->setWindowTitle("Gripper Mask Second Contrast " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskSecondContrastWindow);
-//
-//  ms->config.gripperMaskDifferenceWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskDifferenceWindow->setWindowTitle("Gripper Mask Difference " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskDifferenceWindow);
-//
-//  ms->config.gripperMaskVarianceWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskVarianceWindow->setWindowTitle("Gripper Mask Variance " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskVarianceWindow);
-//
-//  ms->config.gripperMaskMeanWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskMeanWindow->setWindowTitle("Gripper Mask Mean " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskMeanWindow);
-//
-//  ms->config.gripperMaskSquaresWindow = new EinWindow(NULL, ms);
-//  ms->config.gripperMaskSquaresWindow->setWindowTitle("Gripper Mask Squares " + ms->config.left_or_right_arm);
-//  einMainWindow->addWindow(ms->config.gripperMaskSquaresWindow);
-
   ms->config.dogSnoutViewWindow = new EinWindow(NULL, ms);
   ms->config.dogSnoutViewWindow->setWindowTitle("Dog Snout View " + ms->config.left_or_right_arm);
   einMainWindow->addWindow(ms->config.dogSnoutViewWindow);
@@ -3468,10 +3444,7 @@ void initializeArmGui(MachineState * ms, MainWindow * einMainWindow) {
 
 
 
-  //createTrackbar("post_density_sigma", ms->config.densityViewerName, &ms->config.postDensitySigmaTrackbarVariable, 40);
-  //createTrackbar("canny_lo", ms->config.densityViewerName, &ms->config.loTrackbarVariable, 100);
-  //createTrackbar("canny_hi", ms->config.densityViewerName, &ms->config.hiTrackbarVariable, 100);
-
+  
 
 }
 
@@ -3564,6 +3537,7 @@ int main(int argc, char **argv) {
   for(int i = 0; i < arm_names.size(); i++) {
     string left_or_right = arm_names[i];
     MachineState * ms = new MachineState();
+    ms->config.node = node;
     ms->config.ein_software_version = ein_software_version;
     ms->config.robot_mode = robot_mode;
     if (ms->config.robot_mode == "simulated") {
