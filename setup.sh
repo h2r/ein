@@ -11,11 +11,12 @@ if [ -z ${ROBOT} ]; then
 export ROBOT=localhost
 fi 
 
-source devel/setup.bash
+source install/setup.sh
 #export ROS_IP=192.168.42.1
-export ROS_HOSTNAME=`hostname`
-export ROS_MASTER_URI=http://$ROBOT:11311
-export PS1="\[\033[00;33m\][pidrone - ${ROS_MASTER_URI}]\[\033[00m\] $PS1"
+export SPOT_IP=kepler
+export BOSDYN_CLIENT_USERNAME=user
+export BOSDYN_CLIENT_PASSWORD=bbbdddaaaiii
+export PS1="\[\033[00;33m\][spot - ${SPOT_IP}]\[\033[00m\] $PS1"
 
 # If you are using baxter, make this file source baxter.sh and remove
 # the othe rstuff above, which is redundant if you are using

@@ -111,15 +111,15 @@ REGISTER_WORD(waitName)
 
 
 CONFIG_TRIGGER_WORD(SpotSitAsync, SpotSit, "sit", "Sit the robot.");
-// CONFIG_TRIGGER_WORD(SpotStandAsync, SpotStand, "stand", "Stand the robot.");
-// CONFIG_TRIGGER_WORD(SpotClaimAsync, SpotClaim, "claim", "Claim the robot.");
-// CONFIG_TRIGGER_WORD(SpotReleaseAsync, SpotRelease, "release", "Release the robot.");
-// CONFIG_TRIGGER_WORD(SpotPowerOnAsync, SpotPowerOn, "power_on", "Power on the robot.");
-// CONFIG_TRIGGER_WORD(SpotPowerOffAsync, SpotPowerOff, "power_off", "Power off the robot.");
-// CONFIG_TRIGGER_WORD(SpotArmStowAsync, SpotArmStow, "arm_stow", "Stow the arm.");
-// CONFIG_TRIGGER_WORD(SpotArmUnstowAsync, SpotArmUnstow, "arm_unstow", "Unstow the arm.");
-// CONFIG_TRIGGER_WORD(SpotGripperOpenAsync, SpotGripperOpen, "gripper_open", "Open the gripper.");
-// CONFIG_TRIGGER_WORD(SpotGripperCloseAsync, SpotGripperClose, "gripper_close", "Close the gripper.");
-// CONFIG_TRIGGER_WORD(SpotArmCarryAsync, SpotArmCarry, "arm_carry", "Put the arm in carry position.");
+CONFIG_TRIGGER_WORD(SpotStandAsync, SpotStand, "stand", "Stand the robot.");
+CONFIG_TRIGGER_WORD(SpotClaimAsync, SpotClaim, "claim", "Claim the robot.");
+CONFIG_TRIGGER_WORD(SpotReleaseAsync, SpotRelease, "release", "Release the robot.");
+CONFIG_TRIGGER_WORD(SpotPowerOnAsync, SpotPowerOn, "power_on", "Power on the robot.");
+CONFIG_TRIGGER_WORD(SpotPowerOffAsync, SpotPowerOff, "power_off", "Power off the robot.");
+CONFIG_TRIGGER_WORD(SpotArmStowAsync, SpotArmStow, "arm_stow", "Stow the arm.");
+CONFIG_TRIGGER_WORD(SpotArmUnstowAsync, SpotArmUnstow, "arm_unstow", "Unstow the arm.");
+CONFIG_TRIGGER_WORD(SpotGripperOpenAsync, SpotGripperOpen, "gripper_open", "Open the gripper.");
+CONFIG_TRIGGER_WORD(SpotGripperCloseAsync, SpotGripperClose, "gripper_close", "Close the gripper.");
+CONFIG_TRIGGER_WORD(SpotArmCarryAsync, SpotArmCarry, "arm_carry", "Put the arm in carry position.");
 
 }

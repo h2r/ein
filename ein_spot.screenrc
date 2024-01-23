@@ -9,13 +9,21 @@ hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u
 
 multiuser on
 
-screen -t " einR"
-stuff "colcon build && gdb --args ./build/ein/einx physical left nogui"
-screen -t " replR"
-stuff "screen -m -c src/ein/ein_client.screenrc"
+screen -t " SpotDriver"
+stuff "source src/ein/setup.shros2 launch spot_driver spot_driver.launch.py has_arm:=True"
+screen -t " SpotModel"
+stuff "source src/ein/setup.shros2 launch spot_description description.launch.py"
+screen -t " SpotPointcloud2"
+stuff "source src/ein/setup.shros2 launch spot_driver point_cloud_xyz.launch.py"
+screen -t " ein"
+stuff "source src/ein/setup.shcolcon build --paths src/ein  --symlink-install
+ && gdb --args ./build/ein/einx physical left nogui"
+screen -t " repl"
+stuff "source src/ein/setup.shscreen -m -c src/ein/ein_client.screenrc"
 screen -t " emacs"
-stuff "emacs -nw src/ein/src/ein.cpp"
+stuff "source src/ein/setup.shemacs -nw src/ein/src/ein.cpp"
 screen -t " free"
-screen -t " website"
-stuff "cd src/ein/doc && jekyll serve"
+stuff "source src/ein/setup.sh"
+screen -t " free"
+stuff "source src/ein/setup.sh"
 
