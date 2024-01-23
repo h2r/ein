@@ -78,7 +78,23 @@ virtual string description() {
   return "Pop the name of a trigger from the stack; wait until it completes.";
 }
 virtual void execute(MachineState * ms) { 
-  
+
+  string trigger_name;
+  GET_STRING_ARG(ms, trigger_name);
+  if (ms->config.spotConfig->trigger_responses.find(trigger_name) !=
+      ms->config.spotConfig->trigger_responses.end()) {
+    rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture response;
+    response = ms->config.spotConfig->trigger_responses[trigger_name];
+    
+    if (rclcpp::spin_until_future_complete(ms->config.node, response) ==
+	rclcpp::FutureReturnCode::SUCCESS) {
+      CONSOLE_ERROR(ms, "Finished " << trigger_name);
+    } else {
+      CONSOLE_ERROR(ms, "Error: " << trigger_name);
+    }
+  } else {
+    CONSOLE_ERROR(ms, "No response for triger " << trigger_name << ".");
+  }
   
 }
 END_WORD \
@@ -92,7 +108,9 @@ WORD(wordName) \
 }\
 virtual void execute(MachineState * ms) { \
  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();\
-  auto result = ms->config.spotConfig->trigger_clients[stringName]->async_send_request(request);\
+ /*rclcpp::Client<std_srvs::srv::Trigger>::FutureAndRequestId result = ms->config.spotConfig->trigger_clients[stringName]->async_send_request(request); */  \
+ rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture result = ms->config.spotConfig->trigger_clients[stringName]->async_send_request(request).share(); \
+ ms->config.spotConfig->trigger_responses[stringName] = result;		\
 } \
 END_WORD \
 REGISTER_WORD(wordName)\
@@ -112,14 +130,14 @@ REGISTER_WORD(waitName)
 
 CONFIG_TRIGGER_WORD(SpotSitAsync, SpotSit, "sit", "Sit the robot.");
 CONFIG_TRIGGER_WORD(SpotStandAsync, SpotStand, "stand", "Stand the robot.");
-CONFIG_TRIGGER_WORD(SpotClaimAsync, SpotClaim, "claim", "Claim the robot.");
-CONFIG_TRIGGER_WORD(SpotReleaseAsync, SpotRelease, "release", "Release the robot.");
-CONFIG_TRIGGER_WORD(SpotPowerOnAsync, SpotPowerOn, "power_on", "Power on the robot.");
-CONFIG_TRIGGER_WORD(SpotPowerOffAsync, SpotPowerOff, "power_off", "Power off the robot.");
-CONFIG_TRIGGER_WORD(SpotArmStowAsync, SpotArmStow, "arm_stow", "Stow the arm.");
-CONFIG_TRIGGER_WORD(SpotArmUnstowAsync, SpotArmUnstow, "arm_unstow", "Unstow the arm.");
-CONFIG_TRIGGER_WORD(SpotGripperOpenAsync, SpotGripperOpen, "gripper_open", "Open the gripper.");
-CONFIG_TRIGGER_WORD(SpotGripperCloseAsync, SpotGripperClose, "gripper_close", "Close the gripper.");
-CONFIG_TRIGGER_WORD(SpotArmCarryAsync, SpotArmCarry, "arm_carry", "Put the arm in carry position.");
+  //CONFIG_TRIGGER_WORD(SpotClaimAsync, SpotClaim, "claim", "Claim the robot.");
+  //CONFIG_TRIGGER_WORD(SpotReleaseAsync, SpotRelease, "release", "Release the robot.");
+  //CONFIG_TRIGGER_WORD(SpotPowerOnAsync, SpotPowerOn, "power_on", "Power on the robot.");
+  //CONFIG_TRIGGER_WORD(SpotPowerOffAsync, SpotPowerOff, "power_off", "Power off the robot.");
+  //CONFIG_TRIGGER_WORD(SpotArmStowAsync, SpotArmStow, "arm_stow", "Stow the arm.");
+  //CONFIG_TRIGGER_WORD(SpotArmUnstowAsync, SpotArmUnstow, "arm_unstow", "Unstow the arm.");
+  //CONFIG_TRIGGER_WORD(SpotGripperOpenAsync, SpotGripperOpen, "gripper_open", "Open the gripper.");
+  //CONFIG_TRIGGER_WORD(SpotGripperCloseAsync, SpotGripperClose, "gripper_close", "Close the gripper.");
+  //CONFIG_TRIGGER_WORD(SpotArmCarryAsync, SpotArmCarry, "arm_carry", "Put the arm in carry position.");
 
 }
