@@ -1,1 +1,4 @@
 ( "Initialized!" print ) "initializeConfig" store
+
+"spot" import
+

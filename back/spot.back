@@ -1,1 +1,5 @@
 ( ( dup spotActionIsComplete ) ( 0.01 waitForSeconds ) while ) "Wait until the trigger action passed as an argument is done."  "waitForWord" define
+
+
+
+( 0.1 waitForSeconds ( spotIsMoving )  ( 0.01 waitForSeconds ) while ) "Wait until the robot's joint velocities are small."  "waitUntilStopped" define

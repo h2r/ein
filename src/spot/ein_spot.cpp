@@ -128,6 +128,7 @@ WORD(waitName) \
 }\
 virtual void execute(MachineState * ms) { \
   ms->pushWord(wordStringName);   \
+  return;			  \
   ms->pushData(stringName);  \
   ms->pushWord("waitTrigger");  \
 } \
@@ -222,7 +223,32 @@ virtual void execute(MachineState * ms) {
 END_WORD
 REGISTER_WORD(BaseSendYVel)
 
-  
 
+
+
+WORD(SpotIsMoving)
+virtual string description() {
+  return "Is the robot moving with joint velocities?";
+}
+virtual void execute(MachineState * ms) {
+
+  double max_vel = 0;
+  for (int i = 0; i < ms->config.spotConfig->jointMsg.velocity.size(); i++) {
+    if (ms->config.spotConfig->jointMsg.velocity[i] > max_vel) {
+      max_vel = ms->config.spotConfig->jointMsg.velocity[i];
+    }
+  }
+  int isMoving;
+  if (max_vel > 0.1) {
+    isMoving = 1;
+  } else {
+    isMoving = 0;
+  }
+  shared_ptr<IntegerWord> isMovingWord= make_shared<IntegerWord>(isMoving);
+  ms->pushWord(isMovingWord);
+
+}
+END_WORD
+REGISTER_WORD(SpotIsMoving)
 
   }
