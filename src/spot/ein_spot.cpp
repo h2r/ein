@@ -29,16 +29,9 @@ void robotInitializeConfig(MachineState * ms) {
 
   MC->trigger_clients["power_off"] = ms->config.node->create_client<std_srvs::srv::Trigger>("power_off");
 
-  MC->trigger_clients["arm_stow"] = ms->config.node->create_client<std_srvs::srv::Trigger>("arm_stow");
-  MC->trigger_clients["arm_unstow"] = ms->config.node->create_client<std_srvs::srv::Trigger>("arm_unstow");      
+  MC->trigger_clients["self_right"] = ms->config.node->create_client<std_srvs::srv::Trigger>("self_right");
+  MC->trigger_clients["rollover"] = ms->config.node->create_client<std_srvs::srv::Trigger>("rollover");      
 
-
-  MC->trigger_clients["gripper_open"] = ms->config.node->create_client<std_srvs::srv::Trigger>("gripper_open");
-
-  MC->trigger_clients["gripper_close"] = ms->config.node->create_client<std_srvs::srv::Trigger>("gripper_close");
-
-
-  MC->trigger_clients["arm_carry"] = ms->config.node->create_client<std_srvs::srv::Trigger>("arm_carry");            
 
   for (std::map<string, rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr>::iterator it=MC->trigger_clients.begin(); it!=MC->trigger_clients.end(); ++it) {
     it->second->wait_for_service(2s);
@@ -48,7 +41,10 @@ void robotInitializeConfig(MachineState * ms) {
   }
 
 
-  MC->cmdVelPub = ms->config.node->create_publisher<geometry_msgs::msg::Twist>("/movo/cmd_vel", 10);
+  MC->cmdVelPub = ms->config.node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+
+
+  MC->jointStateSub = ms->config.node->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&EinSpotConfig::jointStateCallback, ms->config.spotConfig, std::placeholders::_1)); 
   
 
   
@@ -72,6 +68,11 @@ void robotUpdate(MachineState * ms){}
 EinSpotConfig::EinSpotConfig(MachineState * ms)  {
 
 
+}
+
+
+void EinSpotConfig::jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)  {
+  jointMsg = *msg;
 }
   
 namespace ein_words {
@@ -136,19 +137,14 @@ REGISTER_WORD(waitName)
 
 CONFIG_TRIGGER_WORD(SpotSitAsync, "spotSitAsync", SpotSit, "sit", "Sit the robot.");
 CONFIG_TRIGGER_WORD(SpotStandAsync, "spotStandAsync", SpotStand, "stand", "Stand the robot.");
-  //CONFIG_TRIGGER_WORD(SpotClaimAsync, SpotClaim, "claim", "Claim the robot.");
-  //CONFIG_TRIGGER_WORD(SpotReleaseAsync, SpotRelease, "release", "Release the robot.");
-  //CONFIG_TRIGGER_WORD(SpotPowerOnAsync, SpotPowerOn, "power_on", "Power on the robot.");
-  //CONFIG_TRIGGER_WORD(SpotPowerOffAsync, SpotPowerOff, "power_off", "Power off the robot.");
-  //CONFIG_TRIGGER_WORD(SpotArmStowAsync, SpotArmStow, "arm_stow", "Stow the arm.");
-  //CONFIG_TRIGGER_WORD(SpotArmUnstowAsync, SpotArmUnstow, "arm_unstow", "Unstow the arm.");
-  //CONFIG_TRIGGER_WORD(SpotGripperOpenAsync, SpotGripperOpen, "gripper_open", "Open the gripper.");
-  //CONFIG_TRIGGER_WORD(SpotGripperCloseAsync, SpotGripperClose, "gripper_close", "Close the gripper.");
-  //CONFIG_TRIGGER_WORD(SpotArmCarryAsync, SpotArmCarry, "arm_carry", "Put the arm in carry position.");
+CONFIG_TRIGGER_WORD(SpotClaimAsync, "spotClaimAsync", SpotClaim, "claim", "Claim the robot.");
+CONFIG_TRIGGER_WORD(SpotReleaseAsync, "spotReleaseAsync", SpotRelease, "release", "Release the robot.");
+CONFIG_TRIGGER_WORD(SpotPowerOnAsync, "spotPowerOnAsync", SpotPowerOn, "power_on", "Power on the robot.");
+CONFIG_TRIGGER_WORD(SpotPowerOffAsync, "spotPowerOffAsync", SpotPowerOff, "power_off", "Power off the robot.");
 
+CONFIG_TRIGGER_WORD(SpotRolloverAsync, "spotRolloverAsync", SpotRollover, "rollover", "Roll the robot over.");
 
-
-
+CONFIG_TRIGGER_WORD(SpotSelfRightAsync, "spotSelfRightAsync", SpotSelfRight, "self_right", "Self right.");    
 WORD(BaseStopTwist)
 virtual string description() {
   return "Send a zero twist command.";

@@ -10,8 +10,12 @@ using namespace Eigen;
 #include <std_srvs/srv/trigger.hpp>
 #include <spot_msgs/srv/set_locomotion.hpp>
 
+#include <spot_msgs/srv/get_inverse_kinematic_solutions.hpp>
+
 #include <spot_msgs/action/robot_command.hpp>
 #include "geometry_msgs/msg/twist.hpp"
+
+#include "sensor_msgs/msg/joint_state.hpp"
 
 
 class EinSpotConfig {
@@ -33,10 +37,19 @@ class EinSpotConfig {
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr sit_client;
 
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr stand_client;
+
+  rclcpp::Client<spot_msgs::srv::GetInverseKinematicSolutions>::SharedPtr ik_client;
+  
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmdVelPub;
 
+
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr jointStateSub;
+
   geometry_msgs::msg::Twist twistMsg;
+
+  sensor_msgs::msg::JointState jointMsg;
   
+  virtual void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr);
 
 };
 
