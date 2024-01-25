@@ -3592,8 +3592,13 @@ int main(int argc, char **argv) {
   signal(SIGHUP, signalHandler);
   signal(SIGTERM, signalHandler);
 
+
+  machineStates[0]->config.executor.add_node(node);
   cout << "Spinning ." << endl;
-  rclcpp::spin(node);
+  machineStates[0]->config.executor.spin();
+  rclcpp::shutdown();
+
+  //rclcpp::spin(node);
 
   return 0;
 }

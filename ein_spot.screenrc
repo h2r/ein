@@ -16,8 +16,7 @@ stuff "source src/ein/setup.shros2 launch spot_description description.launch.p
 screen -t " SpotPointcloud2"
 stuff "source src/ein/setup.shros2 launch spot_driver point_cloud_xyz.launch.py"
 screen -t " ein"
-stuff "source src/ein/setup.shcolcon build --paths src/ein  --symlink-install
- && gdb --args ./build/ein/einx physical left nogui"
+stuff "source src/ein/setup.shcolcon build --paths src/ein  --symlink-install && gdb --args ./build/ein/einx physical left nogui"
 screen -t " repl"
 stuff "source src/ein/setup.shscreen -m -c src/ein/ein_client.screenrc"
 screen -t " emacs"

@@ -10,6 +10,9 @@ using namespace Eigen;
 #include <std_srvs/srv/trigger.hpp>
 #include <spot_msgs/srv/set_locomotion.hpp>
 
+#include <spot_msgs/action/robot_command.hpp>
+#include "geometry_msgs/msg/twist.hpp"
+
 
 class EinSpotConfig {
 
@@ -21,7 +24,7 @@ class EinSpotConfig {
   std::map<string, rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr> trigger_clients;
 
 
-  std::map<string, rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture> trigger_responses;
+  std::map<string, bool> trigger_responses;
   //  std::map<string, rclcpp::Client<std_srvs::srv::Trigger>::FutureAndRequestId> trigger_responses;
 	   //std::shared_ptr<rclcpp::Client<std_srvs::srv::Trigger>::FutureAndRequestId> > trigger_responses;
 
@@ -30,7 +33,9 @@ class EinSpotConfig {
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr sit_client;
 
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr stand_client;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmdVelPub;
 
+  geometry_msgs::msg::Twist twistMsg;
   
 
 };

@@ -376,6 +376,8 @@ class EinConfig {
   EinSpotConfig * spotConfig;
 
   rclcpp::Node::SharedPtr node;
+  rclcpp::executors::SingleThreadedExecutor executor;
+
   std::shared_ptr<tf2_ros::TransformListener> tfListener{nullptr};
 
   std::unique_ptr<tf2_ros::Buffer> tf_buffer;  

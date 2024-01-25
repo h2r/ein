@@ -13,7 +13,7 @@ fi
 
 source install/setup.sh
 #export ROS_IP=192.168.42.1
-export SPOT_IP=kepler
+export SPOT_IP=donner
 export BOSDYN_CLIENT_USERNAME=user
 export BOSDYN_CLIENT_PASSWORD=bbbdddaaaiii
 export PS1="\[\033[00;33m\][spot - ${SPOT_IP}]\[\033[00m\] $PS1"
