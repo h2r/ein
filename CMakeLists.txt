@@ -174,7 +174,10 @@ ament_export_dependencies(Eigen3)
 #qt5_use_modules(EinQtLib Core Gui Widgets Test OpenGL)
 
 install(TARGETS einx DESTINATION lib/${PROJECT_NAME})
-find_package(spot_msgs REQUIRED)
+
+find_package(spot_msgs)
+
+if (spot_msgs_FOUND)
 
 add_definitions(-DUSE_ROBOT_SPOT)
 #add_definitions(-DBOOST_NO_CXX11_SCOPED_ENUMS)
@@ -184,6 +187,24 @@ add_library(EinSpot SHARED
 ament_target_dependencies(EinSpot OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport spot_msgs std_srvs)
 target_link_libraries(einx EinSpot Boost::filesystem Boost::regex)
 target_link_libraries(EinSpot ${cpp_typesupport_target})
+else()
 
+MESSAGE("Building Aibo")
+add_definitions(-DUSE_ROBOT_AIBO)
+
+add_library(EinAibo SHARED
+  src/aibo/ein_aibo.cpp
+  src/aibo/ein_aibo_reactive.cpp 
+)
+ament_target_dependencies(EinAibo OpenCV geometry_msgs rclcpp sensor_msgs tf2 tf2_ros rosgraph_msgs Eigen3 image_transport std_srvs)
+
+
+target_link_libraries(einx EinAibo Boost::filesystem Boost::regex)
+target_link_libraries(EinAibo ${cpp_typesupport_target})
+
+qt5_use_modules(EinAibo Core Gui Widgets  OpenGL)
+
+
+endif()
 
 ament_package()
