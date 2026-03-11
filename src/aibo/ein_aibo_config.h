@@ -1,9 +1,18 @@
 #ifndef _EIN_AIBO_CONFIG_H_
 #define _EIN_AIBO_CONFIG_H_
 
-#include <ros/package.h>
-#include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
+
+
+#include <Eigen/Geometry> 
+using namespace Eigen;
+
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <std_srvs/srv/trigger.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/image.hpp>
+
 #include <sys/stat.h>
 #include <dirent.h>
 #include <signal.h>
@@ -98,12 +107,13 @@ class EinAiboSensors {
 class EinAiboDog {
 
   public:
-  EinAiboDog();
-  ros::Publisher aibo_snout_pub;
-  ros::Publisher joint_state_pub;
-  sensor_msgs::JointState joint_state;
+  EinAiboDog(rclcpp::Node::SharedPtr node);
+  rclcpp::Node::SharedPtr node;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr aibo_snout_pub;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub;
+  sensor_msgs::msg::JointState joint_state;
 
-  ros::Time lastSensoryMotorUpdateTime;
+  rclcpp::Time lastSensoryMotorUpdateTime;
 
   EinAiboJoints targetJoints;
   EinAiboJoints trueJoints;
@@ -219,9 +229,9 @@ class EinAiboConfig {
   int focusedMember = 0;
   std::vector<EinAiboDog*> pack;
 
-  ros::Time aiboStoppedTime;
+  rclcpp::Time aiboStoppedTime;
   EinAiboJoints * stoppedJoints;
-  ros::Time aiboComeToStopTime;
+  rclcpp::Time aiboComeToStopTime;
 };
 
 #endif /* _EIN_AIBO_CONFIG_H_ */

@@ -3083,6 +3083,12 @@ void appendColorHist(Mat& yCrCb_image, vector<KeyPoint>& keypoints, Mat& descrip
   }
 }
 
+void robotInitializeSerial(MachineState * ms) {
+  // Stub function for ROS 2 migration
+  // Previously retrieved robot serial number, now using default
+  ms->config.robot_serial = "default_aibo";
+}
+
 void loadROSParamsFromArgs(MachineState * ms) {
 
 

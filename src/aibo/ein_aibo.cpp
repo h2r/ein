@@ -9,15 +9,12 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/JointState.h>
-#include <sensor_msgs/image_encodings.h>
-#include <ros/package.h>
+
 #include <iostream>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <tf2/LinearMath/Quaternion.h>
+#include <sensor_msgs/image_encodings.hpp>
 
 
 using namespace cv;
@@ -130,21 +127,21 @@ void robotInitializeConfig(MachineState * ms) {
   ms->config.cameras.push_back(c);
   ms->config.focused_camera = 0;
 
-  ros::NodeHandle n("~");
-
-  string description_fname = ros::package::getPath("aibo_description") + "/urdf/Aibo.urdf";
+  string package_path = ament_index_cpp::get_package_share_directory("aibo_description");
+  string description_fname = package_path + "/urdf/Aibo.urdf";
   std::ifstream input(description_fname);
   std::stringstream sstr;
 
   while(input >> sstr.rdbuf());
-  
 
-  n.setParam("/robot_description", sstr.str());
 
-  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
-  geometry_msgs::TransformStamped static_transformStamped;
+  ms->config.node->declare_parameter<std::string>("/robot_description", sstr.str());
+  ms->config.node->set_parameter(rclcpp::Parameter("/robot_description", sstr.str()));
 
-  static_transformStamped.header.stamp = ros::Time::now();
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster(ms->config.node);
+  geometry_msgs::msg::TransformStamped static_transformStamped;
+
+  static_transformStamped.header.stamp = rclcpp::Clock{}.now();
   static_transformStamped.header.frame_id = "map";
   static_transformStamped.child_frame_id = "base_link";
   static_transformStamped.transform.translation.x = 0;
@@ -170,10 +167,8 @@ EinAiboConfig::EinAiboConfig(MachineState * myms) {
   ms = myms;
 }
 
-EinAiboDog::EinAiboDog() {
-  ros::NodeHandle n("~");
-
-  joint_state_pub = n.advertise<sensor_msgs::JointState>("/joint_states",10);
+EinAiboDog::EinAiboDog(rclcpp::Node::SharedPtr node) : node(node) {
+  joint_state_pub = node->create_publisher<sensor_msgs::msg::JointState>("/joint_states", 10);
   joint_state.name.resize(17);
   joint_state.name[0] = "legRF1";
   joint_state.name[1] = "legRF2";
@@ -236,15 +231,15 @@ void EinAiboDog::publishJoints() {
   joint_state.position[15] = truePose.tailTilt;
   joint_state.position[16] = truePose.tailPan;
   joint_state.header.stamp = lastSensoryMotorUpdateTime;
-  joint_state_pub.publish(joint_state);
+  joint_state_pub->publish(joint_state);
 
     
 }
 
 void EinAiboDog::publishMapToBaseLink() {
-  static tf2_ros::TransformBroadcaster broadcaster;
-  geometry_msgs::TransformStamped t;
-  t.header.stamp = ros::Time::now();
+  static tf2_ros::TransformBroadcaster broadcaster(node);
+  geometry_msgs::msg::TransformStamped t;
+  t.header.stamp = rclcpp::Clock{}.now();
   t.header.frame_id = "map";
   t.child_frame_id = "base_link";
   t.transform.translation.x = 0;
@@ -615,7 +610,7 @@ virtual void execute(MachineState * ms) {
     ms->config.aiboConfig->pack.resize(toSet);
     for (int i = 0; i < ms->config.aiboConfig->pack.size(); i ++) {
       if (ms->config.aiboConfig->pack[i] == NULL) {
-        ms->config.aiboConfig->pack[i] = new EinAiboDog();
+        ms->config.aiboConfig->pack[i] = new EinAiboDog(ms->config.node);
       }
     }
     
@@ -1010,13 +1005,12 @@ REGISTER_WORD(DogSetWalkSpeed)
 WORD(DogFormatImageDefault)
 virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
-  ros::NodeHandle n("~");
   stringstream ss;
 
 
   ss << "dog_" << ms->config.aiboConfig->focusedMember << "_snout";
   string s = ss.str();
-  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = n.advertise<sensor_msgs::Image>(s,10);
+  ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub = ms->config.node->create_publisher<sensor_msgs::msg::Image>(s, 10);
   Camera * c = new Camera(ms, s, s, s, s);
   ms->config.cameras.push_back(c);
 
@@ -1077,7 +1071,7 @@ virtual void execute(MachineState * ms) {
     }
 
     // convert YCrCb explicity to BGR
-    cvtColor(ms->config.aiboConfig->pack[this_dog]->snoutImage, ms->config.aiboConfig->pack[this_dog]->snoutImage, CV_YCrCb2BGR);
+    cvtColor(ms->config.aiboConfig->pack[this_dog]->snoutImage, ms->config.aiboConfig->pack[this_dog]->snoutImage, cv::COLOR_YCrCb2BGR);
 
     // for now this is done for display purposes only
     Size p_toBecome(640, 400);
@@ -1094,10 +1088,10 @@ WORD(DogPublishSnout)
 virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
   {
-    sensor_msgs::Image msg;
+    sensor_msgs::msg::Image msg;
     Mat topub = ms->config.aiboConfig->pack[this_dog]->snoutImage;
 
-    msg.header.stamp = ros::Time::now();
+    msg.header.stamp = rclcpp::Clock{}.now();
     msg.width = topub.cols;
     msg.height = topub.rows;
     msg.step = topub.cols * topub.elemSize();
@@ -1105,7 +1099,7 @@ virtual void execute(MachineState * ms) {
     msg.encoding = sensor_msgs::image_encodings::BGR8;
     msg.data.assign(topub.data, topub.data + size_t(topub.rows * msg.step));
 
-    ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub.publish(msg);
+    ms->config.aiboConfig->pack[this_dog]->aibo_snout_pub->publish(msg);
   }
 }
 END_WORD
@@ -1228,7 +1222,7 @@ virtual void execute(MachineState * ms) {
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchR);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchM);
   DOG_READ_VAR(ms->config.aiboConfig->pack[this_dog]->trueSensors.backTouchF);
-  ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = ros::Time::now();
+  ms->config.aiboConfig->pack[this_dog]->lastSensoryMotorUpdateTime = rclcpp::Clock{}.now();
   //cout << "dogGetSensoryMotorStates: finished" << endl;
   ms->config.aiboConfig->pack[this_dog]->publishJoints();
   ms->config.aiboConfig->pack[this_dog]->publishMapToBaseLink();
@@ -3259,9 +3253,9 @@ virtual void execute(MachineState * ms) {
   int this_dog = ms->config.aiboConfig->focusedMember;
   EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
 
-  ms->config.aiboConfig->aiboStoppedTime = ros::Time(0,0);
+  ms->config.aiboConfig->aiboStoppedTime = rclcpp::Time(0,0);
   *ms->config.aiboConfig->stoppedJoints = dog->truePose;
-  ms->config.aiboConfig->aiboComeToStopTime = ros::Time::now();
+  ms->config.aiboConfig->aiboComeToStopTime = rclcpp::Clock{}.now();
 }
 END_WORD
 REGISTER_WORD(DogComeToStop)
@@ -3269,11 +3263,11 @@ REGISTER_WORD(DogComeToStop)
 
 WORD(DogComeToStopA)
 virtual void execute(MachineState * ms) {
-  ros::Duration comeToStopLength = ros::Time::now() - ms->config.aiboConfig->aiboComeToStopTime;
+  rclcpp::Duration comeToStopLength = rclcpp::Clock{}.now() - ms->config.aiboConfig->aiboComeToStopTime;
   //ms->pushWord("dogGetSensoryMotorStates");
 
-  cout << "Length: " << comeToStopLength << endl;
-  if (comeToStopLength > ros::Duration(10, 0)) {
+  cout << "Length: " << comeToStopLength.nanoseconds() << " ns" << endl;
+  if (comeToStopLength > rclcpp::Duration(10, 0)) {
     return;
   }
 
@@ -3281,13 +3275,13 @@ virtual void execute(MachineState * ms) {
   EinAiboDog * dog = ms->config.aiboConfig->pack[this_dog];
   cout << "Dist: " << ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) << endl;
   if (ms->config.aiboConfig->stoppedJoints->dist(dog->truePose) < 6.0) {
-    ros::Duration stoppedTime = ros::Time::now()- ms->config.aiboConfig->aiboStoppedTime;
-    if (stoppedTime < ros::Duration(1, 0)) {
+    rclcpp::Duration stoppedTime = rclcpp::Clock{}.now()- ms->config.aiboConfig->aiboStoppedTime;
+    if (stoppedTime < rclcpp::Duration(1, 0)) {
       ms->pushWord("dogComeToStopA");
     }
   } else {
     ms->pushWord("dogComeToStopA");
-    ms->config.aiboConfig->aiboStoppedTime = ros::Time::now();
+    ms->config.aiboConfig->aiboStoppedTime = rclcpp::Clock{}.now();
     *ms->config.aiboConfig->stoppedJoints = dog->truePose;
   }
   ms->pushWord("endStackCollapseNoop");
