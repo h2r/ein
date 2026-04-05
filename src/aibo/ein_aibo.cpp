@@ -123,7 +123,7 @@ void robotInitializeConfig(MachineState * ms) {
   ms->config.aiboConfig = new EinAiboConfig(ms);
   ms->config.cameras.clear();
 
-  Camera * c = new Camera(ms, "", "", "", "");
+  Camera * c = new Camera(ms, "x", "x", "x", "x");
   ms->config.cameras.push_back(c);
   ms->config.focused_camera = 0;
 
